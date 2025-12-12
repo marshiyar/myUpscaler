@@ -11,6 +11,8 @@ Features
 --------
 - Apple Silicon–first (Intel supported); GPU/Neural Engine acceleration when using Metal Shaders.
 - End-to-end FFmpeg and pipeline, interpolation, dual denoise/deblock/dering/sharpen/deband/grain stacks, LUT support, color EQ.
+  
+<img src="https://github.com/user-attachments/assets/0c40540b-d83c-4f9b-bad5-07c0baa4b978" width="600">
 
 Requirements
 ------------

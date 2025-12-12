@@ -1,0 +1,38 @@
+{
+  "configurations" : [
+    {
+      "id" : "1BC76DAE-B49F-44F8-93AA-4275D020C3F4",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "performanceAntipatternCheckerEnabled" : true,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:myUpscaler.xcodeproj",
+      "identifier" : "5E23E5052ED9AB0B008298B2",
+      "name" : "myUpscaler"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:myUpscaler.xcodeproj",
+        "identifier" : "5E23E5122ED9AB0C008298B2",
+        "name" : "myUpscalerTests"
+      }
+    },
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:myUpscaler.xcodeproj",
+        "identifier" : "5E23E51C2ED9AB0C008298B2",
+        "name" : "myUpscalerUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

@@ -1,0 +1,723 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		5E5365492EEB117900B2C59B /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 5E5365482EEB117900B2C59B /* AsyncAlgorithms */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		5E23E5142ED9AB0C008298B2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5E23E4FE2ED9AB0B008298B2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5E23E5052ED9AB0B008298B2;
+			remoteInfo = myUpscaler;
+		};
+		5E23E51E2ED9AB0C008298B2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5E23E4FE2ED9AB0B008298B2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5E23E5052ED9AB0B008298B2;
+			remoteInfo = myUpscaler;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		5E23E5062ED9AB0B008298B2 /* myUpscaler.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = myUpscaler.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5E23E5132ED9AB0C008298B2 /* myUpscalerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = myUpscalerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		5E23E51D2ED9AB0C008298B2 /* myUpscalerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = myUpscalerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		5E6259532EE81EC9004D8958 /* myUpscaler.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = myUpscaler.xctestplan; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		5E23E7C82ED9B256008298B2 /* Exceptions for "myUpscaler" folder in "myUpscaler" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				upscaler/CoreML_README.md,
+				upscaler/filters/README.md,
+				upscaler/models/RealESRGAN_x2.mlpackage,
+				upscaler/models/RealESRGAN_x4.mlpackage,
+				upscaler/models/RealESRGAN_x8.mlpackage,
+			);
+			target = 5E23E5052ED9AB0B008298B2 /* myUpscaler */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+		5E625D4D2EE872B1004D8958 /* Exceptions for "myUpscaler" folder in "Copy Bundle Resources" phase from "myUpscaler" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			buildPhase = 5E23E5042ED9AB0B008298B2 /* Resources */;
+			membershipExceptions = (
+				upscaler/models/RealESRGAN_x2.mlpackage,
+				upscaler/models/RealESRGAN_x4.mlpackage,
+				upscaler/models/RealESRGAN_x8.mlpackage,
+			);
+		};
+/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		5E23E5082ED9AB0B008298B2 /* myUpscaler */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				5E23E7C82ED9B256008298B2 /* Exceptions for "myUpscaler" folder in "myUpscaler" target */,
+				5E625D4D2EE872B1004D8958 /* Exceptions for "myUpscaler" folder in "Copy Bundle Resources" phase from "myUpscaler" target */,
+			);
+			path = myUpscaler;
+			sourceTree = "<group>";
+		};
+		5E23E5162ED9AB0C008298B2 /* myUpscalerTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = myUpscalerTests;
+			sourceTree = "<group>";
+		};
+		5E23E5202ED9AB0C008298B2 /* myUpscalerUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = myUpscalerUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		5E23E5032ED9AB0B008298B2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5E5365492EEB117900B2C59B /* AsyncAlgorithms in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5E23E5102ED9AB0C008298B2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5E23E51A2ED9AB0C008298B2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		5E23E4FD2ED9AB0B008298B2 = {
+			isa = PBXGroup;
+			children = (
+				5E6259532EE81EC9004D8958 /* myUpscaler.xctestplan */,
+				5E23E5082ED9AB0B008298B2 /* myUpscaler */,
+				5E23E5162ED9AB0C008298B2 /* myUpscalerTests */,
+				5E23E5202ED9AB0C008298B2 /* myUpscalerUITests */,
+				5E23E5072ED9AB0B008298B2 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		5E23E5072ED9AB0B008298B2 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				5E23E5062ED9AB0B008298B2 /* myUpscaler.app */,
+				5E23E5132ED9AB0C008298B2 /* myUpscalerTests.xctest */,
+				5E23E51D2ED9AB0C008298B2 /* myUpscalerUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		5E23E5052ED9AB0B008298B2 /* myUpscaler */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5E23E5272ED9AB0C008298B2 /* Build configuration list for PBXNativeTarget "myUpscaler" */;
+			buildPhases = (
+				5E23E5022ED9AB0B008298B2 /* Sources */,
+				5E23E5032ED9AB0B008298B2 /* Frameworks */,
+				5E23E5042ED9AB0B008298B2 /* Resources */,
+				5E23E7C72ED9B1C8008298B2 /* Run Script */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				5E23E5082ED9AB0B008298B2 /* myUpscaler */,
+			);
+			name = myUpscaler;
+			packageProductDependencies = (
+				5E5365482EEB117900B2C59B /* AsyncAlgorithms */,
+			);
+			productName = myUpscaler;
+			productReference = 5E23E5062ED9AB0B008298B2 /* myUpscaler.app */;
+			productType = "com.apple.product-type.application";
+		};
+		5E23E5122ED9AB0C008298B2 /* myUpscalerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5E23E52A2ED9AB0C008298B2 /* Build configuration list for PBXNativeTarget "myUpscalerTests" */;
+			buildPhases = (
+				5E23E50F2ED9AB0C008298B2 /* Sources */,
+				5E23E5102ED9AB0C008298B2 /* Frameworks */,
+				5E23E5112ED9AB0C008298B2 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5E23E5152ED9AB0C008298B2 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				5E23E5162ED9AB0C008298B2 /* myUpscalerTests */,
+			);
+			name = myUpscalerTests;
+			packageProductDependencies = (
+			);
+			productName = myUpscalerTests;
+			productReference = 5E23E5132ED9AB0C008298B2 /* myUpscalerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		5E23E51C2ED9AB0C008298B2 /* myUpscalerUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5E23E52D2ED9AB0C008298B2 /* Build configuration list for PBXNativeTarget "myUpscalerUITests" */;
+			buildPhases = (
+				5E23E5192ED9AB0C008298B2 /* Sources */,
+				5E23E51A2ED9AB0C008298B2 /* Frameworks */,
+				5E23E51B2ED9AB0C008298B2 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5E23E51F2ED9AB0C008298B2 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				5E23E5202ED9AB0C008298B2 /* myUpscalerUITests */,
+			);
+			name = myUpscalerUITests;
+			packageProductDependencies = (
+			);
+			productName = myUpscalerUITests;
+			productReference = 5E23E51D2ED9AB0C008298B2 /* myUpscalerUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		5E23E4FE2ED9AB0B008298B2 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2610;
+				LastUpgradeCheck = 2610;
+				TargetAttributes = {
+					5E23E5052ED9AB0B008298B2 = {
+						CreatedOnToolsVersion = 26.1.1;
+					};
+					5E23E5122ED9AB0C008298B2 = {
+						CreatedOnToolsVersion = 26.1.1;
+						TestTargetID = 5E23E5052ED9AB0B008298B2;
+					};
+					5E23E51C2ED9AB0C008298B2 = {
+						CreatedOnToolsVersion = 26.1.1;
+						LastSwiftMigration = 2610;
+						TestTargetID = 5E23E5052ED9AB0B008298B2;
+					};
+				};
+			};
+			buildConfigurationList = 5E23E5012ED9AB0B008298B2 /* Build configuration list for PBXProject "myUpscaler" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 5E23E4FD2ED9AB0B008298B2;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				5E5365472EEB117900B2C59B /* XCRemoteSwiftPackageReference "swift-async-algorithms" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 5E23E5072ED9AB0B008298B2 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				5E23E5052ED9AB0B008298B2 /* myUpscaler */,
+				5E23E5122ED9AB0C008298B2 /* myUpscalerTests */,
+				5E23E51C2ED9AB0C008298B2 /* myUpscalerUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		5E23E5042ED9AB0B008298B2 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5E23E5112ED9AB0C008298B2 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5E23E51B2ED9AB0C008298B2 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		5E23E7C72ED9B1C8008298B2 /* Run Script */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PROJECT_DIR}/myUpscaler/lib/libavcodec.62.dylib",
+				"${PROJECT_DIR}/myUpscaler/lib/libavformat.62.dylib",
+				"${PROJECT_DIR}/myUpscaler/lib/libavutil.60.dylib",
+				"${PROJECT_DIR}/myUpscaler/lib/libavfilter.11.dylib",
+				"${PROJECT_DIR}/myUpscaler/lib/libavdevice.62.dylib",
+				"${PROJECT_DIR}/myUpscaler/lib/libswscale.9.dylib",
+				"${PROJECT_DIR}/myUpscaler/lib/libswresample.6.dylib",
+			);
+			name = "Run Script";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Frameworks/libavcodec.62.dylib",
+				"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Frameworks/libavformat.62.dylib",
+				"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Frameworks/libavutil.60.dylib",
+				"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Frameworks/libavfilter.11.dylib",
+				"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Frameworks/libavdevice.62.dylib",
+				"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Frameworks/libswscale.9.dylib",
+				"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Frameworks/libswresample.6.dylib",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\n\nAPP_BUNDLE=\"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app\"\nFRAMEWORKS_DIR=\"${APP_BUNDLE}/Contents/Frameworks\"\n\nmkdir -p \"${FRAMEWORKS_DIR}\"\n\necho \"📦 Copying FFmpeg libraries into .app bundle...\"\n\nFFLIBS=(\n  \"libavcodec.62.dylib\"\n  \"libavformat.62.dylib\"\n  \"libavutil.60.dylib\"\n  \"libavfilter.11.dylib\"\n  \"libavdevice.62.dylib\"\n  \"libswscale.9.dylib\"\n  \"libswresample.6.dylib\"\n)\n\nfor lib in \"${FFLIBS[@]}\"; do\n  SRC=\"${PROJECT_DIR}/myUpscaler/lib/${lib}\"\n  DST=\"${FRAMEWORKS_DIR}/${lib}\"\n  cp -f \"$SRC\" \"$DST\"\n  codesign --remove-signature \"$DST\" 2>/dev/null || true\n  codesign --force --sign - \"$DST\" 2>/dev/null || true\ndone\n\necho \"✅ FFmpeg libraries embedded (using library API, no binary needed).\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		5E23E5022ED9AB0B008298B2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5E23E50F2ED9AB0C008298B2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5E23E5192ED9AB0C008298B2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		5E23E5152ED9AB0C008298B2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5E23E5052ED9AB0B008298B2 /* myUpscaler */;
+			targetProxy = 5E23E5142ED9AB0C008298B2 /* PBXContainerItemProxy */;
+		};
+		5E23E51F2ED9AB0C008298B2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5E23E5052ED9AB0B008298B2 /* myUpscaler */;
+			targetProxy = 5E23E51E2ED9AB0C008298B2 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		5E23E5252ED9AB0C008298B2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = M48T7DC657;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"UP60P_LIBRARY_MODE=1",
+					"$(inherited)",
+				);
+				GCC_STRICT_ALIASING = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.video";
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.7;
+				MTLLINKER_FLAGS = "-fcikernel";
+				MTL_COMPILER_FLAGS = "-fcikernel";
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		5E23E5262ED9AB0C008298B2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = M48T7DC657;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"UP60P_LIBRARY_MODE=1",
+					"$(inherited)",
+				);
+				GCC_STRICT_ALIASING = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.video";
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.7;
+				MTLLINKER_FLAGS = "-fcikernel";
+				MTL_COMPILER_FLAGS = "-fcikernel";
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Release;
+		};
+		5E23E5282ED9AB0C008298B2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = M48T7DC657;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readwrite;
+				GCC_STRICT_ALIASING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = MyUpscaler;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/myUpscaler/lib",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14;
+				MARKETING_VERSION = "0.0.1 Public Beta";
+				"MARKETING_VERSION[sdk=macosx*]" = "0.0.1 Public Beta";
+				MTL_COMPILER_FLAGS = "-fcikernel";
+				OTHER_LDFLAGS = "";
+				PRODUCT_BUNDLE_IDENTIFIER = Ashrox.myUpscaler;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = myUpscaler/upscaler/Up60PBridging.h;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		5E23E5292ED9AB0C008298B2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				"ASSETCATALOG_COMPILER_APPICON_NAME[sdk=macosx*]" = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = M48T7DC657;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readwrite;
+				GCC_STRICT_ALIASING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = MyUpscaler;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/myUpscaler/lib",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14;
+				MARKETING_VERSION = "0.0.1 Public Beta";
+				MTL_COMPILER_FLAGS = "-fcikernel";
+				OTHER_LDFLAGS = "";
+				PRODUCT_BUNDLE_IDENTIFIER = Ashrox.myUpscaler;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = myUpscaler/upscaler/Up60PBridging.h;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		5E23E52B2ED9AB0C008298B2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = M48T7DC657;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.7;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = Ashrox.myUpscalerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = macosx;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/myUpscaler.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/myUpscaler";
+			};
+			name = Debug;
+		};
+		5E23E52C2ED9AB0C008298B2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = M48T7DC657;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.7;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = Ashrox.myUpscalerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = macosx;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/myUpscaler.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/myUpscaler";
+			};
+			name = Release;
+		};
+		5E23E52E2ED9AB0C008298B2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = M48T7DC657;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = Ashrox.myUpscalerUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = myUpscaler;
+			};
+			name = Debug;
+		};
+		5E23E52F2ED9AB0C008298B2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = M48T7DC657;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = Ashrox.myUpscalerUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = myUpscaler;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		5E23E5012ED9AB0B008298B2 /* Build configuration list for PBXProject "myUpscaler" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5E23E5252ED9AB0C008298B2 /* Debug */,
+				5E23E5262ED9AB0C008298B2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5E23E5272ED9AB0C008298B2 /* Build configuration list for PBXNativeTarget "myUpscaler" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5E23E5282ED9AB0C008298B2 /* Debug */,
+				5E23E5292ED9AB0C008298B2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5E23E52A2ED9AB0C008298B2 /* Build configuration list for PBXNativeTarget "myUpscalerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5E23E52B2ED9AB0C008298B2 /* Debug */,
+				5E23E52C2ED9AB0C008298B2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5E23E52D2ED9AB0C008298B2 /* Build configuration list for PBXNativeTarget "myUpscalerUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5E23E52E2ED9AB0C008298B2 /* Debug */,
+				5E23E52F2ED9AB0C008298B2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		5E5365472EEB117900B2C59B /* XCRemoteSwiftPackageReference "swift-async-algorithms" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-async-algorithms.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.1.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		5E5365482EEB117900B2C59B /* AsyncAlgorithms */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5E5365472EEB117900B2C59B /* XCRemoteSwiftPackageReference "swift-async-algorithms" */;
+			productName = AsyncAlgorithms;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 5E23E4FE2ED9AB0B008298B2 /* Project object */;
+}

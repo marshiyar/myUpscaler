@@ -50,17 +50,9 @@ playground.xcworkspace
 
 .build/
 
-# CocoaPods
-#
-# Pods/
-#
-# Add this line if you want to avoid checking in source code from the Xcode workspace
+
 # *.xcworkspace
 
-# Carthage
-#
-# Add this line if you want to avoid checking in source code from Carthage dependencies.
-# Carthage/Checkouts
 
 Carthage/Build/
 
@@ -101,7 +93,6 @@ Temporary Items
 .apdisk
 
 # IDEs
-# Visual Studio Code
 
 .vscode/
 *.code-workspace

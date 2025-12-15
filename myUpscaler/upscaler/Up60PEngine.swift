@@ -93,30 +93,16 @@ final class Up60PEngine {
             }
         }
         
+        // Configure dylib search paths before initializing the C engine
+        let dylibPath = ensureFFmpegDylibPath()
+
         // Log initialization start
         Up60PEngine.logHandlerQueue.sync {
             if let handler = Up60PEngine.currentLogHandler {
                 DispatchQueue.main.async {
                     handler("Initializing C engine...\n")
-                    if let envPath = getenv("UP60P_FFMPEG") {
-                        let pathStr = String(cString: envPath)
-                        handler("UP60P_FFMPEG env var set to: \(pathStr)\n")
-                    }
-                }
-            }
-        }
-
-        // Fallback: if no env var and bundled ffmpeg likely missing, try common system locations
-        if getenv("UP60P_FFMPEG") == nil {
-            let fm = FileManager.default
-            let candidates = ["/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg", "/usr/bin/ffmpeg"]
-            if let first = candidates.first(where: { fm.isExecutableFile(atPath: $0) }) {
-                setenv("UP60P_FFMPEG", first, 1)
-                Up60PEngine.logHandlerQueue.sync {
-                    if let handler = Up60PEngine.currentLogHandler {
-                        DispatchQueue.main.async {
-                            handler("UP60P_FFMPEG not set. Using detected ffmpeg: \(first)\n")
-                        }
+                    if let dylibPath {
+                        handler("Using FFmpeg dylibs at: \(dylibPath)\n")
                     }
                 }
             }
@@ -146,8 +132,40 @@ final class Up60PEngine {
                 }
             }
         }
-        
+
         isInitialized = true
+    }
+
+    @discardableResult
+    private func ensureFFmpegDylibPath() -> String? {
+        let env = ProcessInfo.processInfo.environment
+        if let existing = env["DYLD_LIBRARY_PATH"], !existing.isEmpty,
+           FileManager.default.fileExists(atPath: existing) {
+            return existing
+        }
+
+        let fm = FileManager.default
+        let bundle = Bundle(for: Up60PEngine.self)
+        let mainBundle = Bundle.main
+
+        let candidates: [String] = [
+            bundle.privateFrameworksPath,
+            mainBundle.privateFrameworksPath,
+            bundle.bundleURL.deletingLastPathComponent().appendingPathComponent("Frameworks").path,
+            mainBundle.bundleURL.appendingPathComponent("Contents/Frameworks").path,
+            bundle.bundleURL.deletingLastPathComponent().appendingPathComponent("lib").path,
+            mainBundle.bundleURL.deletingLastPathComponent().appendingPathComponent("lib").path,
+            URL(fileURLWithPath: fm.currentDirectoryPath).appendingPathComponent("myUpscaler/lib").path,
+            bundle.resourceURL?.appendingPathComponent("lib").path,
+            mainBundle.resourceURL?.appendingPathComponent("lib").path
+        ].compactMap { $0 }
+
+        guard let usablePath = candidates.first(where: { fm.fileExists(atPath: $0) }) else {
+            return nil
+        }
+
+        setenv("DYLD_LIBRARY_PATH", usablePath, 1)
+        return usablePath
     }
 
     deinit {

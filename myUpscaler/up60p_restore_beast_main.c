@@ -18,10 +18,19 @@
 #include <dirent.h>
 #include <string.h>
 #include <strings.h>
-#include <sys/wait.h>
 #include <sys/select.h>
-#include <mach-o/dyld.h>
 #include <limits.h>
+#include <dlfcn.h>
+
+#include <libavcodec/avcodec.h>
+#include <libavfilter/avfilter.h>
+#include <libavfilter/buffersink.h>
+#include <libavfilter/buffersrc.h>
+#include <libavformat/avformat.h>
+#include <libavutil/avutil.h>
+#include <libavutil/imgutils.h>
+#include <libavutil/channel_layout.h>
+#include <libswresample/swresample.h>
 
 
 #include "upscaler/up60p.h"
@@ -34,7 +43,6 @@
 static volatile sig_atomic_t cancel_requested = 0;
 
 static const char *SCRIPT_NAME = "up60p_restore_beast";
-static char FFMPEG_PATH_BUF[PATH_MAX];
 int DRY_RUN = 0;
 
 
@@ -45,105 +53,53 @@ static void safe_copy(char *dst, const char *src, size_t size) {
 }
 
 
-static const char* get_bundled_ffmpeg_path(void) {
-    char bundle_path[PATH_MAX];
-    uint32_t size = sizeof(bundle_path);
-    
-    
-    const char *env = getenv("UP60P_FFMPEG");
-    if (!env || !*env) {
-        env = getenv("FFMPEG_PATH");
-    }
-    if (env && *env && access(env, X_OK) == 0) {
-        safe_copy(FFMPEG_PATH_BUF, env, sizeof(FFMPEG_PATH_BUF));
-        return FFMPEG_PATH_BUF;
-    }
+#define ARR_LEN(a) ((int)(sizeof(a)/sizeof((a)[0])))
 
-    
-    
-    if (_NSGetExecutablePath(bundle_path, &size) == 0) {
-        char *exe_dir = dirname(bundle_path);
-        
-        
-        char resources_ffmpeg[PATH_MAX];
-        snprintf(resources_ffmpeg, sizeof(resources_ffmpeg), "%s/../../Contents/Resources/ffmpeg", exe_dir);
-        if (access(resources_ffmpeg, X_OK) == 0) {
-            
-            char resolved[PATH_MAX];
-            if (realpath(resources_ffmpeg, resolved) != NULL) {
-                safe_copy(FFMPEG_PATH_BUF, resolved, sizeof(FFMPEG_PATH_BUF));
-                return FFMPEG_PATH_BUF;
-            }
-        }
-        
-        
-        char macos_ffmpeg[PATH_MAX];
-        snprintf(macos_ffmpeg, sizeof(macos_ffmpeg), "%s/../../Contents/MacOS/ffmpeg", exe_dir);
-        if (access(macos_ffmpeg, X_OK) == 0) {
-            char resolved[PATH_MAX];
-            if (realpath(macos_ffmpeg, resolved) != NULL) {
-                safe_copy(FFMPEG_PATH_BUF, resolved, sizeof(FFMPEG_PATH_BUF));
-                return FFMPEG_PATH_BUF;
-            }
-        }
-        
-        
-        char lib_ffmpeg[PATH_MAX];
-        snprintf(lib_ffmpeg, sizeof(lib_ffmpeg), "%s/../../Contents/Resources/lib/ffmpeg", exe_dir);
-        if (access(lib_ffmpeg, X_OK) == 0) {
-            char resolved[PATH_MAX];
-            if (realpath(lib_ffmpeg, resolved) != NULL) {
-                safe_copy(FFMPEG_PATH_BUF, resolved, sizeof(FFMPEG_PATH_BUF));
-                return FFMPEG_PATH_BUF;
-            }
+static bool check_dylib_candidates(const char *const *names, size_t count) {
+    for (size_t i = 0; i < count; i++) {
+        void *handle = dlopen(names[i], RTLD_LAZY | RTLD_LOCAL);
+        if (handle) {
+            dlclose(handle);
+            return true;
         }
     }
-
-    
-    const char *candidates[] = {
-        "/opt/homebrew/bin/ffmpeg",  
-        "/usr/local/bin/ffmpeg",     
-        "/usr/bin/ffmpeg"           
-    };
-
-    for (int i = 0; i < (int)(sizeof(candidates) / sizeof(candidates[0])); i++) {
-        if (access(candidates[i], X_OK) == 0) {
-            safe_copy(FFMPEG_PATH_BUF, candidates[i], sizeof(FFMPEG_PATH_BUF));
-            return FFMPEG_PATH_BUF;
-        }
-    }
-
-    
-    
-    FILE *fp = popen("which ffmpeg 2>/dev/null", "r");
-    if (fp != NULL) {
-        char path[PATH_MAX];
-        if (fgets(path, sizeof(path), fp) != NULL) {
-            
-            size_t len = strlen(path);
-            if (len > 0 && path[len - 1] == '\n') {
-                path[len - 1] = '\0';
-            }
-            
-            if (len > 1 && access(path, X_OK) == 0) {
-                pclose(fp);
-                safe_copy(FFMPEG_PATH_BUF, path, sizeof(FFMPEG_PATH_BUF));
-                return FFMPEG_PATH_BUF;
-            }
-        }
-        pclose(fp);
-    }
-    
-    
-    FFMPEG_PATH_BUF[0] = '\0';
-    return NULL;
+    return false;
 }
 
+static bool ffmpeg_dylibs_available(void) {
+    static const char *const avformat_candidates[] = {
+        "libavformat.62.dylib", "libavformat.60.dylib", "libavformat.dylib"
+    };
+    static const char *const avcodec_candidates[] = {
+        "libavcodec.62.dylib", "libavcodec.60.dylib", "libavcodec.dylib"
+    };
+    static const char *const avfilter_candidates[] = {
+        "libavfilter.11.dylib", "libavfilter.9.dylib", "libavfilter.dylib"
+    };
+    static const char *const avutil_candidates[] = {
+        "libavutil.60.dylib", "libavutil.58.dylib", "libavutil.dylib"
+    };
+    static const char *const swscale_candidates[] = {
+        "libswscale.9.dylib", "libswscale.7.dylib", "libswscale.dylib"
+    };
+    static const char *const swresample_candidates[] = {
+        "libswresample.6.dylib", "libswresample.4.dylib", "libswresample.dylib"
+    };
+    static const char *const avdevice_candidates[] = {
+        "libavdevice.62.dylib", "libavdevice.60.dylib", "libavdevice.dylib"
+    };
 
-#ifndef PATH_MAX
-#define PATH_MAX 4096
-#endif
-#define ARR_LEN(a) ((int)(sizeof(a)/sizeof((a)[0])))
+    bool ok = true;
+    ok &= check_dylib_candidates(avformat_candidates, ARR_LEN(avformat_candidates));
+    ok &= check_dylib_candidates(avcodec_candidates, ARR_LEN(avcodec_candidates));
+    ok &= check_dylib_candidates(avfilter_candidates, ARR_LEN(avfilter_candidates));
+    ok &= check_dylib_candidates(avutil_candidates, ARR_LEN(avutil_candidates));
+    ok &= check_dylib_candidates(swscale_candidates, ARR_LEN(swscale_candidates));
+    ok &= check_dylib_candidates(swresample_candidates, ARR_LEN(swresample_candidates));
+    ok &= check_dylib_candidates(avdevice_candidates, ARR_LEN(avdevice_candidates));
+
+    return ok;
+}
 
 #define C_RESET   "\033[0m"
 #define C_BOLD    "\033[1m"
@@ -499,7 +455,7 @@ static void settings_from_up60p_options(Settings *dst, const up60p_options *src)
 }
 
 
-static void process_file(const char *in, const char *ffmpeg, bool batch);
+static void process_file(const char *in, bool batch);
 static void process_directory(const char *dir, const char *ffmpeg);
 static int ar_menu_choose(const char *prompt, const char **items, int n, int start_index);
 static void set_defaults(void);
@@ -1177,7 +1133,7 @@ static int parse_command_line(char *command_line, char ***argv_out) {
     argv[argc] = NULL; *argv_out = argv; return argc;
 }
 
-static int process_cli_args(int argc, char **argv, const char *ffmpeg_path) {
+static int process_cli_args(int argc, char **argv) {
     char input_path[PATH_MAX]="";
     int opt, long_idx;
     
@@ -1233,7 +1189,7 @@ static int process_cli_args(int argc, char **argv, const char *ffmpeg_path) {
         }
     }
     if (optind < argc && !*input_path) safe_copy(input_path, argv[optind], PATH_MAX);
-    if (*input_path) process_file(input_path, ffmpeg_path, false);
+    if (*input_path) process_file(input_path, false);
     return 0;
 }
 
@@ -1334,22 +1290,457 @@ static bool is_image(const char *path) {
     return false;
 }
 
-#ifndef UP60P_LIBRARY_MODE
-static int execute_ffmpeg_command(char **args) {
-    pid_t pid = fork();
-    if (pid < 0) return -1;
-    if (pid == 0) {
-        execvp(args[0], args);
-        perror("execvp");
-        _exit(1);
-    }
-    int status;
-    waitpid(pid, &status, 0);
-    return WIFEXITED(status) ? WEXITSTATUS(status) : 1;
+static const char *av_errstr(int errnum) {
+    static char buf[256];
+    av_strerror(errnum, buf, sizeof(buf));
+    return buf;
 }
-#endif
 
-static void process_file(const char *in, const char *ffmpeg, bool batch) {
+typedef struct {
+    AVFormatContext *ifmt;
+    AVCodecContext *decoder;
+    AVFormatContext *ofmt;
+    AVCodecContext *encoder;
+    AVCodecContext *audio_decoder;
+    AVCodecContext *audio_encoder;
+    SwrContext *swr;
+    AVFilterGraph *graph;
+    AVFilterContext *src;
+    AVFilterContext *sink;
+    int video_stream;
+    int audio_stream;
+} FFmpegPipeline;
+
+static void pipeline_free(FFmpegPipeline *p) {
+    if (!p) return;
+    if (p->graph) avfilter_graph_free(&p->graph);
+    if (p->decoder) avcodec_free_context(&p->decoder);
+    if (p->encoder) avcodec_free_context(&p->encoder);
+    if (p->audio_decoder) avcodec_free_context(&p->audio_decoder);
+    if (p->audio_encoder) avcodec_free_context(&p->audio_encoder);
+    if (p->swr) swr_free(&p->swr);
+    if (p->ifmt) avformat_close_input(&p->ifmt);
+    if (p->ofmt) {
+        if (!(p->ofmt->oformat->flags & AVFMT_NOFILE) && p->ofmt->pb) {
+            avio_closep(&p->ofmt->pb);
+        }
+        avformat_free_context(p->ofmt);
+    }
+}
+
+static int pipeline_init_filters(FFmpegPipeline *p, const char *filter_desc, AVRational time_base, AVPixelFormat pix_fmt, int width, int height, AVPixelFormat target_pix_fmt) {
+    int ret = 0;
+    char args[512];
+    const AVFilter *buffersrc = avfilter_get_by_name("buffer");
+    const AVFilter *buffersink = avfilter_get_by_name("buffersink");
+
+    p->graph = avfilter_graph_alloc();
+    if (!p->graph) return AVERROR(ENOMEM);
+
+    snprintf(args, sizeof(args),
+             "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=1/1",
+             width, height, pix_fmt, time_base.num, time_base.den);
+
+    ret = avfilter_graph_create_filter(&p->src, buffersrc, "in", args, NULL, p->graph);
+    if (ret < 0) return ret;
+
+    ret = avfilter_graph_create_filter(&p->sink, buffersink, "out", NULL, NULL, p->graph);
+    if (ret < 0) return ret;
+
+    if (target_pix_fmt != AV_PIX_FMT_NONE) {
+        enum AVPixelFormat pix_fmts[] = { target_pix_fmt, AV_PIX_FMT_NONE };
+        ret = av_opt_set_int_list(p->sink, "pix_fmts", pix_fmts, AV_PIX_FMT_NONE, AV_OPT_SEARCH_CHILDREN);
+        if (ret < 0) return ret;
+    }
+
+    AVFilterInOut *outputs = avfilter_inout_alloc();
+    AVFilterInOut *inputs = avfilter_inout_alloc();
+    if (!outputs || !inputs) {
+        avfilter_inout_free(&outputs);
+        avfilter_inout_free(&inputs);
+        return AVERROR(ENOMEM);
+    }
+
+    outputs->name = av_strdup("in");
+    outputs->filter_ctx = p->src;
+    outputs->pad_idx = 0;
+    outputs->next = NULL;
+
+    inputs->name = av_strdup("out");
+    inputs->filter_ctx = p->sink;
+    inputs->pad_idx = 0;
+    inputs->next = NULL;
+
+    ret = avfilter_graph_parse_ptr(p->graph, filter_desc, &inputs, &outputs, NULL);
+    if (ret >= 0) ret = avfilter_graph_config(p->graph, NULL);
+
+    avfilter_inout_free(&outputs);
+    avfilter_inout_free(&inputs);
+    return ret;
+}
+
+static int64_t parse_bitrate(const char *str) {
+    if (!str || !*str) return 192000;
+    char *end = NULL;
+    long long base = strtoll(str, &end, 10);
+    if (base <= 0) return 192000;
+    if (end && (*end == 'k' || *end == 'K')) base *= 1000;
+    if (end && (*end == 'm' || *end == 'M')) base *= 1000000;
+    return base;
+}
+
+static int pipeline_init(const char *input, const char *output, const char *filter_desc, const char *encoder_name, const char *pix_fmt_name, int is_image, FFmpegPipeline *p) {
+    memset(p, 0, sizeof(*p));
+    int ret = avformat_open_input(&p->ifmt, input, NULL, NULL);
+    if (ret < 0) return ret;
+
+    ret = avformat_find_stream_info(p->ifmt, NULL);
+    if (ret < 0) return ret;
+
+    p->video_stream = av_find_best_stream(p->ifmt, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
+    if (p->video_stream < 0) return p->video_stream;
+
+    AVStream *in_stream = p->ifmt->streams[p->video_stream];
+    const AVCodec *dec = avcodec_find_decoder(in_stream->codecpar->codec_id);
+    if (!dec) return AVERROR_DECODER_NOT_FOUND;
+
+    p->decoder = avcodec_alloc_context3(dec);
+    if (!p->decoder) return AVERROR(ENOMEM);
+
+    ret = avcodec_parameters_to_context(p->decoder, in_stream->codecpar);
+    if (ret < 0) return ret;
+
+    ret = avcodec_open2(p->decoder, dec, NULL);
+    if (ret < 0) return ret;
+
+    p->audio_stream = av_find_best_stream(p->ifmt, AVMEDIA_TYPE_AUDIO, -1, -1, NULL, 0);
+    if (p->audio_stream >= 0) {
+        AVStream *in_a = p->ifmt->streams[p->audio_stream];
+        const AVCodec *adec = avcodec_find_decoder(in_a->codecpar->codec_id);
+        if (adec) {
+            p->audio_decoder = avcodec_alloc_context3(adec);
+            if (!p->audio_decoder) return AVERROR(ENOMEM);
+            ret = avcodec_parameters_to_context(p->audio_decoder, in_a->codecpar);
+            if (ret < 0) return ret;
+            ret = avcodec_open2(p->audio_decoder, adec, NULL);
+            if (ret < 0) return ret;
+        }
+    }
+
+    const AVOutputFormat *out_fmt = NULL;
+    if (is_image) out_fmt = av_guess_format(NULL, output, "image/png");
+    ret = avformat_alloc_output_context2(&p->ofmt, out_fmt, NULL, output);
+    if (ret < 0 || !p->ofmt) return ret;
+
+    const AVCodec *enc = NULL;
+    if (encoder_name && *encoder_name) enc = avcodec_find_encoder_by_name(encoder_name);
+    if (!enc) {
+        enc = avcodec_find_encoder(is_image ? AV_CODEC_ID_PNG : AV_CODEC_ID_H264);
+    }
+    if (!enc) return AVERROR_ENCODER_NOT_FOUND;
+
+    p->encoder = avcodec_alloc_context3(enc);
+    if (!p->encoder) return AVERROR(ENOMEM);
+
+    p->encoder->width = p->decoder->width;
+    p->encoder->height = p->decoder->height;
+    p->encoder->time_base = av_inv_q(av_guess_frame_rate(p->ifmt, in_stream, NULL));
+    if (p->encoder->time_base.num == 0 || p->encoder->time_base.den == 0) {
+        p->encoder->time_base = in_stream->time_base.num && in_stream->time_base.den ? in_stream->time_base : (AVRational){1, 60};
+    }
+    p->encoder->pix_fmt = pix_fmt_name && *pix_fmt_name ? av_get_pix_fmt(pix_fmt_name) : enc->pix_fmts ? enc->pix_fmts[0] : p->decoder->pix_fmt;
+    if (p->encoder->pix_fmt == AV_PIX_FMT_NONE) p->encoder->pix_fmt = AV_PIX_FMT_YUV420P;
+
+    if (!is_image) {
+        p->encoder->max_b_frames = 2;
+        p->encoder->gop_size = 120;
+        if (*S.preset) av_opt_set(p->encoder->priv_data, "preset", S.preset, 0);
+        if (*S.crf) av_opt_set(p->encoder->priv_data, "crf", S.crf, 0);
+        if (!strcmp(enc->name, "libx265") && *S.x265_params) {
+            av_opt_set(p->encoder->priv_data, "x265-params", S.x265_params, 0);
+        }
+        if (*S.threads) {
+            int t = atoi(S.threads);
+            if (t > 0) p->encoder->thread_count = t;
+        }
+    }
+
+    if (p->ofmt->oformat->flags & AVFMT_GLOBALHEADER) p->encoder->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+
+    ret = avcodec_open2(p->encoder, enc, NULL);
+    if (ret < 0) return ret;
+
+    AVStream *out_stream = avformat_new_stream(p->ofmt, enc);
+    if (!out_stream) return AVERROR_UNKNOWN;
+    out_stream->time_base = p->encoder->time_base;
+
+    ret = avcodec_parameters_from_context(out_stream->codecpar, p->encoder);
+    if (ret < 0) return ret;
+
+    if (p->audio_decoder) {
+        const AVCodec *aenc = avcodec_find_encoder_by_name("aac");
+        if (!aenc) aenc = avcodec_find_encoder(AV_CODEC_ID_AAC);
+        if (!aenc) return AVERROR_ENCODER_NOT_FOUND;
+
+        p->audio_encoder = avcodec_alloc_context3(aenc);
+        if (!p->audio_encoder) return AVERROR(ENOMEM);
+
+        p->audio_encoder->sample_rate = p->audio_decoder->sample_rate ? p->audio_decoder->sample_rate : 48000;
+        p->audio_encoder->channel_layout = p->audio_decoder->channel_layout ? p->audio_decoder->channel_layout : av_get_default_channel_layout(p->audio_decoder->channels ? p->audio_decoder->channels : 2);
+        p->audio_encoder->channels = av_get_channel_layout_nb_channels(p->audio_encoder->channel_layout);
+        p->audio_encoder->sample_fmt = aenc->sample_fmts ? aenc->sample_fmts[0] : AV_SAMPLE_FMT_FLTP;
+        p->audio_encoder->bit_rate = parse_bitrate(S.audio_bitrate);
+        p->audio_encoder->time_base = (AVRational){1, p->audio_encoder->sample_rate};
+
+        if (p->ofmt->oformat->flags & AVFMT_GLOBALHEADER) p->audio_encoder->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+
+        ret = avcodec_open2(p->audio_encoder, aenc, NULL);
+        if (ret < 0) return ret;
+
+        if (p->audio_decoder->sample_fmt != p->audio_encoder->sample_fmt ||
+            p->audio_decoder->sample_rate != p->audio_encoder->sample_rate ||
+            p->audio_decoder->channel_layout != p->audio_encoder->channel_layout) {
+            p->swr = swr_alloc_set_opts(NULL,
+                                        p->audio_encoder->channel_layout,
+                                        p->audio_encoder->sample_fmt,
+                                        p->audio_encoder->sample_rate,
+                                        p->audio_decoder->channel_layout ? p->audio_decoder->channel_layout : av_get_default_channel_layout(p->audio_decoder->channels),
+                                        p->audio_decoder->sample_fmt,
+                                        p->audio_decoder->sample_rate,
+                                        0, NULL);
+            if (!p->swr) return AVERROR(ENOMEM);
+            ret = swr_init(p->swr);
+            if (ret < 0) return ret;
+        }
+
+        AVStream *out_a = avformat_new_stream(p->ofmt, aenc);
+        if (!out_a) return AVERROR_UNKNOWN;
+        out_a->time_base = p->audio_encoder->time_base;
+        ret = avcodec_parameters_from_context(out_a->codecpar, p->audio_encoder);
+        if (ret < 0) return ret;
+    }
+
+    AVPixelFormat sink_fmt = p->encoder->pix_fmt;
+    ret = pipeline_init_filters(p, filter_desc, p->decoder->time_base, p->decoder->pix_fmt, p->decoder->width, p->decoder->height, sink_fmt);
+    if (ret < 0) return ret;
+
+    if (!(p->ofmt->oformat->flags & AVFMT_NOFILE)) {
+        ret = avio_open(&p->ofmt->pb, output, AVIO_FLAG_WRITE);
+        if (ret < 0) return ret;
+    }
+
+    AVDictionary *mux_opts = NULL;
+    if (!is_image && *S.movflags) {
+        av_dict_set(&mux_opts, "movflags", S.movflags, 0);
+    }
+    ret = avformat_write_header(p->ofmt, &mux_opts);
+    av_dict_free(&mux_opts);
+    return ret;
+}
+
+static int pipeline_encode_frame(FFmpegPipeline *p, AVFrame *frame) {
+    int ret = avcodec_send_frame(p->encoder, frame);
+    if (ret < 0) return ret;
+
+    AVPacket pkt = {0};
+    av_init_packet(&pkt);
+
+    while (ret >= 0) {
+        ret = avcodec_receive_packet(p->encoder, &pkt);
+        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+            av_packet_unref(&pkt);
+            return 0;
+        } else if (ret < 0) {
+            av_packet_unref(&pkt);
+            return ret;
+        }
+        av_packet_rescale_ts(&pkt, p->encoder->time_base, p->ofmt->streams[0]->time_base);
+        pkt.stream_index = 0;
+        int write_ret = av_interleaved_write_frame(p->ofmt, &pkt);
+        av_packet_unref(&pkt);
+        if (write_ret < 0) return write_ret;
+    }
+    return 0;
+}
+
+static int pipeline_encode_audio_frame(FFmpegPipeline *p, AVFrame *frame) {
+    if (!p->audio_encoder) return 0;
+    int ret = avcodec_send_frame(p->audio_encoder, frame);
+    if (ret < 0) return ret;
+
+    AVPacket pkt = {0};
+    av_init_packet(&pkt);
+
+    while (ret >= 0) {
+        ret = avcodec_receive_packet(p->audio_encoder, &pkt);
+        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+            av_packet_unref(&pkt);
+            return 0;
+        } else if (ret < 0) {
+            av_packet_unref(&pkt);
+            return ret;
+        }
+
+        av_packet_rescale_ts(&pkt, p->audio_encoder->time_base, p->ofmt->streams[p->ofmt->nb_streams - 1]->time_base);
+        pkt.stream_index = p->ofmt->nb_streams - 1;
+        int write_ret = av_interleaved_write_frame(p->ofmt, &pkt);
+        av_packet_unref(&pkt);
+        if (write_ret < 0) return write_ret;
+    }
+    return 0;
+}
+
+static int pipeline_run(const char *input, const char *output, const char *filter_desc, const char *encoder_name, const char *pix_fmt_name, int is_image) {
+    FFmpegPipeline p = {0};
+    int ret = pipeline_init(input, output, filter_desc, encoder_name, pix_fmt_name, is_image, &p);
+    if (ret < 0) {
+        pipeline_free(&p);
+        return ret;
+    }
+
+    AVPacket packet;
+    AVFrame *frame = av_frame_alloc();
+    AVFrame *filt_frame = av_frame_alloc();
+    if (!frame || !filt_frame) {
+        ret = AVERROR(ENOMEM);
+    }
+
+    while (ret >= 0 && av_read_frame(p.ifmt, &packet) >= 0) {
+        if (packet.stream_index == p.audio_stream && p.audio_decoder) {
+            int ares = avcodec_send_packet(p.audio_decoder, &packet);
+            av_packet_unref(&packet);
+            if (ares < 0) { ret = ares; break; }
+
+            AVFrame *audio_frame = av_frame_alloc();
+            if (!audio_frame) { ret = AVERROR(ENOMEM); break; }
+            while (ret >= 0) {
+                ret = avcodec_receive_frame(p.audio_decoder, audio_frame);
+                if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) { ret = 0; break; }
+                if (ret < 0) break;
+
+                AVFrame *enc_frame = audio_frame;
+                AVFrame *tmp = NULL;
+                if (p.swr) {
+                    tmp = av_frame_alloc();
+                    if (!tmp) { ret = AVERROR(ENOMEM); break; }
+                    tmp->channel_layout = p.audio_encoder->channel_layout;
+                    tmp->sample_rate = p.audio_encoder->sample_rate;
+                    tmp->format = p.audio_encoder->sample_fmt;
+                    int nb_samples = av_rescale_rnd(swr_get_delay(p.swr, p.audio_decoder->sample_rate) + audio_frame->nb_samples,
+                                                    p.audio_encoder->sample_rate, p.audio_decoder->sample_rate, AV_ROUND_UP);
+                    tmp->nb_samples = nb_samples;
+                    if (av_frame_get_buffer(tmp, 0) < 0) { av_frame_free(&tmp); ret = AVERROR(ENOMEM); break; }
+                    if (swr_convert_frame(p.swr, tmp, audio_frame) < 0) { av_frame_free(&tmp); ret = AVERROR_UNKNOWN; break; }
+                    enc_frame = tmp;
+                }
+
+                enc_frame->pts = av_rescale_q(enc_frame->pts, p.audio_decoder->time_base, p.audio_encoder->time_base);
+                int enc_ret = pipeline_encode_audio_frame(&p, enc_frame);
+                if (tmp) av_frame_free(&tmp);
+                av_frame_unref(audio_frame);
+                if (enc_ret < 0) { ret = enc_ret; break; }
+            }
+            av_frame_free(&audio_frame);
+            if (ret < 0) break;
+            continue;
+        }
+        if (packet.stream_index != p.video_stream) { av_packet_unref(&packet); continue; }
+        ret = avcodec_send_packet(p.decoder, &packet);
+        av_packet_unref(&packet);
+        if (ret < 0) break;
+
+        while (ret >= 0) {
+            ret = avcodec_receive_frame(p.decoder, frame);
+            if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) { ret = 0; break; }
+            if (ret < 0) break;
+            frame->pts = frame->best_effort_timestamp;
+            ret = av_buffersrc_add_frame_flags(p.src, frame, AV_BUFFERSRC_FLAG_KEEP_REF);
+            if (ret < 0) break;
+
+            while (ret >= 0) {
+                ret = av_buffersink_get_frame(p.sink, filt_frame);
+                if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) { ret = 0; break; }
+                if (ret < 0) break;
+                filt_frame->pict_type = AV_PICTURE_TYPE_NONE;
+                int enc_ret = pipeline_encode_frame(&p, filt_frame);
+                av_frame_unref(filt_frame);
+                if (enc_ret < 0) { ret = enc_ret; break; }
+            }
+            av_frame_unref(frame);
+        }
+    }
+
+    if (ret >= 0) {
+        ret = avcodec_send_packet(p.decoder, NULL);
+        while (ret >= 0) {
+            ret = avcodec_receive_frame(p.decoder, frame);
+            if (ret == AVERROR_EOF) { ret = 0; break; }
+            if (ret == AVERROR(EAGAIN)) { ret = 0; break; }
+            if (ret < 0) break;
+            frame->pts = frame->best_effort_timestamp;
+            int add_ret = av_buffersrc_add_frame_flags(p.src, frame, AV_BUFFERSRC_FLAG_KEEP_REF);
+            av_frame_unref(frame);
+            if (add_ret < 0) { ret = add_ret; break; }
+            while (ret >= 0) {
+                ret = av_buffersink_get_frame(p.sink, filt_frame);
+                if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) { ret = 0; break; }
+                if (ret < 0) break;
+                int enc_ret = pipeline_encode_frame(&p, filt_frame);
+                av_frame_unref(filt_frame);
+                if (enc_ret < 0) { ret = enc_ret; break; }
+            }
+        }
+    }
+
+    if (ret >= 0 && p.audio_decoder) {
+        ret = avcodec_send_packet(p.audio_decoder, NULL);
+        AVFrame *audio_frame = av_frame_alloc();
+        if (!audio_frame) ret = AVERROR(ENOMEM);
+        while (ret >= 0) {
+            ret = avcodec_receive_frame(p.audio_decoder, audio_frame);
+            if (ret == AVERROR_EOF) { ret = 0; break; }
+            if (ret == AVERROR(EAGAIN)) { ret = 0; break; }
+            if (ret < 0) break;
+            AVFrame *enc_frame = audio_frame;
+            AVFrame *tmp = NULL;
+            if (p.swr) {
+                tmp = av_frame_alloc();
+                if (!tmp) { ret = AVERROR(ENOMEM); break; }
+                tmp->channel_layout = p.audio_encoder->channel_layout;
+                tmp->sample_rate = p.audio_encoder->sample_rate;
+                tmp->format = p.audio_encoder->sample_fmt;
+                tmp->nb_samples = av_rescale_rnd(swr_get_delay(p.swr, p.audio_decoder->sample_rate) + audio_frame->nb_samples,
+                                                 p.audio_encoder->sample_rate, p.audio_decoder->sample_rate, AV_ROUND_UP);
+                if (av_frame_get_buffer(tmp, 0) < 0) { av_frame_free(&tmp); ret = AVERROR(ENOMEM); break; }
+                if (swr_convert_frame(p.swr, tmp, audio_frame) < 0) { av_frame_free(&tmp); ret = AVERROR_UNKNOWN; break; }
+                enc_frame = tmp;
+            }
+            enc_frame->pts = av_rescale_q(enc_frame->pts, p.audio_decoder->time_base, p.audio_encoder->time_base);
+            int enc_ret = pipeline_encode_audio_frame(&p, enc_frame);
+            if (tmp) av_frame_free(&tmp);
+            av_frame_unref(audio_frame);
+            if (enc_ret < 0) { ret = enc_ret; break; }
+        }
+        av_frame_free(&audio_frame);
+    }
+
+    if (ret >= 0) {
+        ret = pipeline_encode_frame(&p, NULL);
+    }
+
+    if (ret >= 0 && p.audio_encoder) {
+        ret = pipeline_encode_audio_frame(&p, NULL);
+    }
+
+    if (ret >= 0) ret = av_write_trailer(p.ofmt);
+
+    av_frame_free(&frame);
+    av_frame_free(&filt_frame);
+    pipeline_free(&p);
+    return ret;
+}
+
+static void process_file(const char *in, bool batch) {
     (void)batch; char outdir[PATH_MAX], base[PATH_MAX], out[PATH_MAX];
     bool img = is_image(in);
 
@@ -1602,216 +1993,41 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
         vf.len--;
     }
 
-    char *args[128]; int a=0;
-    args[a++] = (char*)ffmpeg; args[a++] = "-hide_banner"; args[a++] = "-loglevel"; args[a++] = "error"; args[a++] = "-stats"; args[a++] = "-y";
-    if (strcmp(S.hwaccel,"none")) {
-        args[a++] = "-hwaccel"; args[a++] = S.hwaccel;
-        if (!strcmp(S.hwaccel, "videotoolbox")) {
-            
-            
-            
-        }
-    }
-    args[a++] = "-i"; args[a++] = (char*)in;
-
-    
-    char complex_filter[8192];
-    if (S.preview) {
-        snprintf(complex_filter, sizeof(complex_filter), "[0:v]%s,split=2[main][prev]", vf.buf);
-        args[a++] = "-filter_complex"; args[a++] = complex_filter;
-        args[a++] = "-map"; args[a++] = "[main]";
-        args[a++] = "-map"; args[a++] = "0:a?"; 
-    } else {
-        args[a++] = "-vf"; args[a++] = vf.buf;
-        args[a++] = "-map"; args[a++] = "0:v:0";
-        args[a++] = "-map"; args[a++] = "0:a?"; 
-    }
-    
+    const char *encoder_name = NULL;
     if (!img) {
-        char *cod = "libx264";
         if (!strcmp(S.codec, "hevc")) {
-            if (!strcmp(S.encoder, "nvenc")) cod = "hevc_nvenc"; else if (!strcmp(S.encoder, "qsv")) cod = "hevc_qsv"; else if (!strcmp(S.encoder, "vaapi")) cod = "hevc_vaapi"; else cod = "libx265";
-        } else { if (!strcmp(S.encoder, "nvenc")) cod = "h264_nvenc"; else if (!strcmp(S.encoder, "qsv")) cod = "h264_qsv"; else if (!strcmp(S.encoder, "vaapi")) cod = "h264_vaapi"; }
-
-        args[a++] = "-c:v"; args[a++] = cod;
-        
-        if (strstr(cod, "hevc") || strstr(cod, "265")) { args[a++] = "-tag:v"; args[a++] = "hvc1"; }
-        args[a++] = "-pix_fmt"; args[a++] = (char*)pix;
-        if (*S.threads) { args[a++] = "-threads"; args[a++] = S.threads; }
-
-        char x265_fixed[256];
-        if (!strstr(cod, "vaapi")) { args[a++] = "-preset"; args[a++] = S.preset; args[a++] = "-crf"; args[a++] = S.crf; }
-        if (!strcmp(cod, "libx265") && *S.x265_params) {
-            safe_copy(x265_fixed, S.x265_params, sizeof(x265_fixed));
-            
-            for (char *p = x265_fixed; *p; p++) {
-                if (*p == ',') {
-                    char *next = p + 1;
-                    while (*next == ' ' || *next == '\t') next++;
-                    int is_param_separator = 0;
-                    char *check = next;
-                    while (*check && *check != ',' && *check != ':') {
-                        if (*check == '=') {
-                            is_param_separator = 1;
-                            break;
-                        }
-                        check++;
-                    }
-                    if (is_param_separator) {
-                        *p = ':';
-                    }
-
-                }
-            }
-            args[a++] = "-x265-params";
-            args[a++] = x265_fixed;
+            encoder_name = "libx265";
+        } else {
+            encoder_name = "libx264";
         }
-
-        args[a++] = "-c:a"; args[a++] = "aac"; args[a++] = "-b:a"; args[a++] = S.audio_bitrate;
-        if (*S.movflags) { args[a++] = "-movflags"; args[a++] = S.movflags; }
-    } else {
-        args[a++] = "-frames:v"; args[a++] = "1";
     }
-    args[a++] = out;
-
-    if (S.preview) {
-        args[a++] = "-map"; args[a++] = "[prev]";
-        args[a++] = "-c:v"; args[a++] = "rawvideo";
-        args[a++] = "-f"; args[a++] = "sdl";
-        args[a++] = "Live Preview";
-    }
-    args[a] = NULL;
 
 #ifdef UP60P_LIBRARY_MODE
     log_message("Processing: %s\n", in);
-    
-    if (DRY_RUN) {
-        if (global_log_cb) {
-            char cmd_buf[8192];
-            int pos = 0;
-            pos += snprintf(cmd_buf + pos, sizeof(cmd_buf) - pos, "CMD: ");
-            for(int i=0; args[i]; i++) {
-                pos += snprintf(cmd_buf + pos, sizeof(cmd_buf) - pos, "%s ", args[i]);
-            }
-            pos += snprintf(cmd_buf + pos, sizeof(cmd_buf) - pos, "\n");
-            global_log_cb(cmd_buf);
-        }
-    } else {
-        
-        int stdout_pipe[2], stderr_pipe[2];
-        if (pipe(stdout_pipe) == -1 || pipe(stderr_pipe) == -1) {
-            if (global_log_cb) global_log_cb("Error: Failed to create pipes\n");
-            free(vf.buf);
-            return;
-        }
-        
-        pid_t pid = fork();
-        if (pid == 0) {
-            
-            int nullfd = open("/dev/null", O_RDONLY);
-            if (nullfd >= 0) {
-                dup2(nullfd, STDIN_FILENO);
-                close(nullfd);
-            } else {
-                close(STDIN_FILENO);
-            }
-            
-            close(stdout_pipe[0]);
-            close(stderr_pipe[0]);
-            dup2(stdout_pipe[1], STDOUT_FILENO);
-            dup2(stderr_pipe[1], STDERR_FILENO);
-            close(stdout_pipe[1]);
-            close(stderr_pipe[1]);
-            execvp(args[0], args);
-            _exit(1);
-        } else {
-            
-            close(stdout_pipe[1]);
-            close(stderr_pipe[1]);
-            
-            char buffer[4096];
-            fd_set readfds;
-            int maxfd = (stdout_pipe[0] > stderr_pipe[0]) ? stdout_pipe[0] : stderr_pipe[0];
-            ssize_t result;
-            
-            while (1) {
-                FD_ZERO(&readfds);
-                FD_SET(stdout_pipe[0], &readfds);
-                FD_SET(stderr_pipe[0], &readfds);
-                
-                struct timeval timeout = {0, 100000}; 
-                int select_result = select(maxfd + 1, &readfds, NULL, NULL, &timeout);
-                
-                if (select_result > 0) {
-                    if (FD_ISSET(stdout_pipe[0], &readfds)) {
-                        ssize_t n = read(stdout_pipe[0], buffer, sizeof(buffer) - 1);
-                        if (n > 0) {
-                            buffer[n] = 0;
-                            if (global_log_cb) global_log_cb(buffer);
-                        } else if (n == 0) {
-                            close(stdout_pipe[0]);
-                            FD_CLR(stdout_pipe[0], &readfds);
-                        }
-                    }
-                    if (FD_ISSET(stderr_pipe[0], &readfds)) {
-                        ssize_t n = read(stderr_pipe[0], buffer, sizeof(buffer) - 1);
-                        if (n > 0) {
-                            buffer[n] = 0;
-                            if (global_log_cb) global_log_cb(buffer);
-                        } else if (n == 0) {
-                            close(stderr_pipe[0]);
-                            FD_CLR(stderr_pipe[0], &readfds);
-                        }
-                    }
-                } else if (select_result == 0) {
-                    
-                    int status;
-                    if (waitpid(pid, &status, WNOHANG) != 0) {
-                        
-                        break;
-                    }
-                }
-            }
-            
-            
-            while ((result = read(stdout_pipe[0], buffer, sizeof(buffer) - 1)) > 0) {
-                buffer[result] = 0;
-                if (global_log_cb) global_log_cb(buffer);
-            }
-            while ((result = read(stderr_pipe[0], buffer, sizeof(buffer) - 1)) > 0) {
-                buffer[result] = 0;
-                if (global_log_cb) global_log_cb(buffer);
-            }
-            
-            close(stdout_pipe[0]);
-            close(stderr_pipe[0]);
-            waitpid(pid, NULL, 0);
-            
-            if (global_log_cb) global_log_cb("Done.\n");
-        }
-    }
 #else
     printf(C_BOLD "Processing: %s\n" C_RESET, in);
-    if (DRY_RUN) {
-        printf(C_YELLOW "CMD: ");
-        for(int i=0; args[i]; i++) printf("%s ", args[i]);
-        printf("\n" C_RESET);
-    } else {
-        if (up60p_is_cancelled()) { free(vf.buf); return; }
-        
-        int result = execute_ffmpeg_command(args);
-        if (result == 0) {
-            printf(C_GREEN "Done.\n" C_RESET);
-        } else {
-            printf(C_RED "Error: FFmpeg returned code %d\n" C_RESET, result);
+#endif
+
+    if (!DRY_RUN) {
+        int res = pipeline_run(in, out, vf.buf ? vf.buf : "null", encoder_name, pix, img);
+        if (res < 0) {
+#ifdef UP60P_LIBRARY_MODE
+            if (global_log_cb) {
+                char errbuf[256];
+                snprintf(errbuf, sizeof(errbuf), "Error: %s\n", av_errstr(res));
+                global_log_cb(errbuf);
+            }
+#else
+            printf(C_RED "Error: %s\n" C_RESET, av_errstr(res));
+#endif
         }
     }
-#endif
+
     free(vf.buf);
 }
 
 
-static void process_directory(const char *dir, const char *ffmpeg) {
+static void process_directory(const char *dir) {
     DIR *d = opendir(dir); if (!d) return;
     struct dirent *e;
     while ((e = readdir(d))) {
@@ -1820,13 +2036,13 @@ static void process_directory(const char *dir, const char *ffmpeg) {
         char path[PATH_MAX]; snprintf(path, sizeof(path), "%s/%s", dir, e->d_name);
         struct stat st;
         if (stat(path, &st) == 0) {
-            if (S_ISDIR(st.st_mode)) process_directory(path, ffmpeg);
-            else if (strstr(path, ".mp4") || strstr(path, ".mkv") || strstr(path, ".mov") || is_image(path)) process_file(path, ffmpeg, true);
+            if (S_ISDIR(st.st_mode)) process_directory(path);
+            else if (strstr(path, ".mp4") || strstr(path, ".mkv") || strstr(path, ".mov") || is_image(path)) process_file(path, true);
         }
     } closedir(d);
 }
 
-__attribute__((unused)) static int interactive_mode(const char *self_path, const char *ffmpeg_path) {
+__attribute__((unused)) static int interactive_mode(const char *self_path) {
     (void)self_path;
     char line[PATH_MAX];
     printf("\n" C_BOLD "up60p_restore_beast v4.9 COMPLETE" C_RESET "\n"); 
@@ -1844,12 +2060,12 @@ __attribute__((unused)) static int interactive_mode(const char *self_path, const
         if (p_argc > 1 || (p_argc == 1 && p_argv[0][0] == '-')) {
             char *t_argv[64]; t_argv[0] = (char*)SCRIPT_NAME;
             for(int i=0; i<p_argc; i++) t_argv[i+1] = p_argv[i];
-            process_cli_args(p_argc+1, t_argv, ffmpeg_path);
+            process_cli_args(p_argc+1, t_argv);
         } else {
             struct stat st;
             if (stat(line, &st) == 0) {
-                if (S_ISDIR(st.st_mode)) process_directory(line, ffmpeg_path);
-                else process_file(line, ffmpeg_path, false);
+                if (S_ISDIR(st.st_mode)) process_directory(line);
+                else process_file(line, false);
             } else printf(C_RED "Invalid path or command.\n" C_RESET);
         }
         for(int i=0; i<p_argc; i++) free(p_argv[i]); free(p_argv); free(lc);
@@ -1869,13 +2085,18 @@ void up60p_request_cancel(void) {
 
 
 up60p_error up60p_init(const char *app_support_dir, up60p_log_callback log_cb) {
-    (void)app_support_dir; 
-    
+    (void)app_support_dir;
+
 #ifdef UP60P_LIBRARY_MODE
-    global_log_cb = log_cb; 
+    global_log_cb = log_cb;
 #endif
 
-    
+    if (!ffmpeg_dylibs_available()) {
+        return UP60P_ERR_FFMPEG_NOT_FOUND;
+    }
+    avformat_network_init();
+
+
     init_paths();
     
     
@@ -1907,14 +2128,10 @@ up60p_error up60p_process_path(const char *input_path,
 
     cancel_requested = 0;
 
-    const char *ffmpeg = get_bundled_ffmpeg_path();
-    if (!ffmpeg || ffmpeg[0] == '\0') {
-        
+    if (!ffmpeg_dylibs_available()) {
 #ifdef UP60P_LIBRARY_MODE
         if (global_log_cb) {
-            global_log_cb("ERROR: FFmpeg executable not found.\n");
-            global_log_cb("Please install FFmpeg via Homebrew: brew install ffmpeg\n");
-            global_log_cb("Or set UP60P_FFMPEG environment variable to point to FFmpeg executable.\n");
+            global_log_cb("ERROR: FFmpeg libraries not available.\n");
         }
 #endif
         return UP60P_ERR_FFMPEG_NOT_FOUND;
@@ -1927,9 +2144,9 @@ up60p_error up60p_process_path(const char *input_path,
     settings_from_up60p_options(&S, opts);
 
     if (S_ISDIR(st.st_mode)) {
-        process_directory(input_path, ffmpeg);
+        process_directory(input_path);
     } else {
-        process_file(input_path, ffmpeg, false);
+        process_file(input_path, false);
     }
 
     if (up60p_is_cancelled()) {
@@ -1954,9 +2171,8 @@ int main(int argc, char **argv) {
     active_preset_name(ap, sizeof(ap));
     load_preset_file(ap, true);
 
-    const char *ffmpeg = get_bundled_ffmpeg_path();
-    if (!ffmpeg) {
-        printf("Error: FFmpeg not found.\n");
+    if (!ffmpeg_dylibs_available()) {
+        printf("Error: FFmpeg libraries not found.\n");
         return 1;
     }
 
@@ -1964,14 +2180,14 @@ int main(int argc, char **argv) {
         struct stat st;
         if (stat(argv[1], &st) == 0) {
             if (S_ISDIR(st.st_mode)) {
-                process_directory(argv[1], ffmpeg);
+                process_directory(argv[1]);
             } else {
-                process_file(argv[1], ffmpeg, false);
+                process_file(argv[1], false);
             }
             return 0;
         }
     }
 
-    return interactive_mode(argv[0], ffmpeg);
+    return interactive_mode(argv[0]);
 }
 #endif

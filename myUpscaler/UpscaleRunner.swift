@@ -486,10 +486,8 @@ class UpscaleRunner: ObservableObject {
                     var errorMessage = "\n--- ERROR: "
                     switch error {
                     case .ffmpegNotFound:
-                        errorMessage += "FFmpeg executable not found.\n"
-                        errorMessage += "Please install FFmpeg via Homebrew:\n"
-                        errorMessage += "  brew install ffmpeg\n"
-                        errorMessage += "Or set UP60P_FFMPEG environment variable to point to FFmpeg executable.\n"
+                        errorMessage += "FFmpeg libraries not found or failed to load.\n"
+                        errorMessage += "Ensure the bundled dylibs are present in the app's Frameworks directory or set DYLD_LIBRARY_PATH.\n"
                     case .invalidOptions:
                         errorMessage += "Invalid options provided.\n"
                     case .io:

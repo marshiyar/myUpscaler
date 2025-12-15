@@ -59,8 +59,11 @@ struct myUpscalerApp: App {
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         #if DEBUG
-        if getenv("UP60P_FFMPEG") == nil {
-            setenv("UP60P_FFMPEG", "/opt/homebrew/bin/ffmpeg", 1)
+        if getenv("DYLD_LIBRARY_PATH") == nil {
+            let bundlePath = Bundle.main.privateFrameworksPath ?? Bundle.main.bundleURL.appendingPathComponent("Contents/Frameworks").path
+            if FileManager.default.fileExists(atPath: bundlePath) {
+                setenv("DYLD_LIBRARY_PATH", bundlePath, 1)
+            }
         }
         #endif
 

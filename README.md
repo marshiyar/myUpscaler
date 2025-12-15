@@ -34,14 +34,15 @@ Build & Run
 
 Runtime Notes
 -------------
-- FFmpeg path: the bridge uses the bundled libs plus an executable. Set `UP60P_FFMPEG=/path/to/ffmpeg` if auto-detection fails (Debug defaults to `/opt/homebrew/bin/ffmpeg`).
+- FFmpeg libraries: provide FFmpeg dylibs in `myUpscaler/lib/` (or in the app's `Contents/Frameworks` directory) matching the versions referenced in the Xcode project. The bridge loads these directly via libav and no longer shells out to the CLI.
+- You can populate `myUpscaler/lib/` by running `ci_scripts/fetch_ffmpeg_dylibs.sh` after installing FFmpeg with Homebrew.
 - CoreML models: Real-ESRGAN models are bundled (`upscaler/models/`) and compiled on first use. See `upscaler/CoreML_README.md` for details.
 - Filters: `f3kdb` is emulated via `deband` with parameter mapping; see `upscaler/filters/README.md`.
 - Sandbox: the app requests read/write access to user-selected files, Downloads, and Movies as declared in `myUpscaler.entitlements`.
 
 Troubleshooting
 ---------------
-- Missing FFmpeg: install via `brew install ffmpeg` or point `UP60P_FFMPEG` to your binary.
+- Missing FFmpeg dylibs: ensure the required libav*.dylib files are present in the app bundle's Frameworks directory or set `DYLD_LIBRARY_PATH` to a directory containing them. Running `ci_scripts/fetch_ffmpeg_dylibs.sh` will copy Homebrew's dylibs into `myUpscaler/lib/`.
 - Model load/compile issues: confirm models are present and valid; re-open the app after the first compile.
 - Build errors after Xcode upgrade: clean build folder, then re-run `xcodebuild -scheme myUpscaler -configuration Debug build`.
 - Make sure you have the dylibs installed on your end

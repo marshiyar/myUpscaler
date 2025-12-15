@@ -2267,7 +2267,7 @@ private struct PictureInPicturePreview: View {
     let onSelectFrame: (Int) -> Void
     @Binding var isVisible: Bool
     @State private var dragOffset: CGSize = .zero
-    @State private var position: CGPoint = CGPoint(x: 100, y: 100)
+    @State private var accumulatedOffset: CGSize = .zero
     @State private var isMinimized: Bool = false
     
     var body: some View {
@@ -2314,8 +2314,8 @@ private struct PictureInPicturePreview: View {
                         dragOffset = value.translation
                     }
                     .onEnded { value in
-                        position.x += value.translation.width
-                        position.y += value.translation.height
+                        accumulatedOffset.width += value.translation.width
+                        accumulatedOffset.height += value.translation.height
                         dragOffset = .zero
                     }
             )
@@ -2368,8 +2368,9 @@ private struct PictureInPicturePreview: View {
             RoundedRectangle(cornerRadius: 10)
                 .stroke(Color.gray.opacity(0.3), lineWidth: 1)
         )
-        .offset(x: dragOffset.width, y: dragOffset.height)
-        .position(x: position.x + (isMinimized ? 75 : 150), y: position.y + (isMinimized ? 20 : 120))
+        .offset(x: accumulatedOffset.width + dragOffset.width,
+                y: accumulatedOffset.height + dragOffset.height)
+        .padding(14)
     }
 }
 
@@ -2566,17 +2567,15 @@ struct ContentView: View {
         .overlay(
             Group {
                 if showPiPPreview, let state = editorState {
-                    GeometryReader { geometry in
-                        PictureInPicturePreview(
-                            thumbnailImage: state.thumbnailImage,
-                            timelineFrames: state.timelineFrames,
-                            selectedFrameIndex: state.selectedFrameIndex,
-                            onSelectFrame: { index in
-                                state.selectFrame(index)
-                            },
-                            isVisible: $showPiPPreview
-                        )
-                    }
+                    PictureInPicturePreview(
+                        thumbnailImage: state.thumbnailImage,
+                        timelineFrames: state.timelineFrames,
+                        selectedFrameIndex: state.selectedFrameIndex,
+                        onSelectFrame: { index in
+                            state.selectFrame(index)
+                        },
+                        isVisible: $showPiPPreview
+                    )
                 }
             }
             , alignment: .bottomTrailing

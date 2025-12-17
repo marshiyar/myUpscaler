@@ -1949,6 +1949,7 @@ private struct ProgressDetails: View {
     }
 }
 
+// MARK : Processing Log (UI)
 /// Log view – scrolls automatically to the bottom
 private struct LogPanel: View {
     @ObservedObject var runner: UpscaleRunner
@@ -1990,7 +1991,11 @@ private struct LogPanel: View {
                             }
                         }
                     }
-                    .frame(height: 170)  // Reduced to make room for button
+                    .frame(height: 700)  // Reduced to make room for button
+                    
+// note I have changed the height from 170 originally so More log is visible as this is a lazy way of accessing easier since the texts are copy eligble
+                    
+// MARK : Proccessing log (itself) end
                     
                     // Button to open completed video (uses completedOutputPath which is set correctly)
                     if !runner.isRunning, let outputPath = runner.completedOutputPath {

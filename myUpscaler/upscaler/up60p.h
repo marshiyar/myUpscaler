@@ -29,14 +29,14 @@ typedef struct {
     char preset[32];
     char fps[16];
     char scale_factor[16];
-
+    
     /* Scaler / AI */
     char scaler[16];
     char ai_backend[16];
     char ai_model[PATH_MAX];
     char ai_model_type[16];
     char dnn_backend[32];
-
+    
     /* Filters – First Set */
     char denoiser[16];
     char denoise_strength[16];
@@ -44,21 +44,21 @@ typedef struct {
     char deblock_thresh[64];
     int  dering_active;
     char dering_strength[16];
-
+    
     char sharpen_method[16];
     char sharpen_strength[32];
     char usm_radius[16];
     char usm_amount[16];
     char usm_threshold[16];
-
+    
     char deband_method[16];
     char deband_strength[32];
     char f3kdb_range[16];
     char f3kdb_y[16];
     char f3kdb_cbcr[16];
-
+    
     char grain_strength[16];
-
+    
     /* Filters – Second Set */
     char denoiser_2[16];
     char denoise_strength_2[16];
@@ -66,38 +66,38 @@ typedef struct {
     char deblock_thresh_2[64];
     int  dering_active_2;
     char dering_strength_2[16];
-
+    
     char sharpen_method_2[16];
     char sharpen_strength_2[32];
     char usm_radius_2[16];
     char usm_amount_2[16];
     char usm_threshold_2[16];
-
+    
     char deband_method_2[16];
     char deband_strength_2[32];
     char f3kdb_range_2[16];
     char f3kdb_y_2[16];
     char f3kdb_cbcr_2[16];
-
+    
     char grain_strength_2[16];
-
+    
     int use_denoise_2;
     int use_deblock_2;
     int use_dering_2;
     int use_sharpen_2;
     int use_deband_2;
     int use_grain_2;
-
+    
     /* Interpolation / EQ / LUT */
     char mi_mode[16];
     char eq_contrast[16];
     char eq_brightness[16];
     char eq_saturation[16];
     char lut3d_file[PATH_MAX];
-
+    
     /* Encoder extra */
     char x265_params[256];
-
+    
     /* I/O */
     char outdir[PATH_MAX];
     char audio_bitrate[32];
@@ -105,7 +105,7 @@ typedef struct {
     char movflags[32];
     int  use10;
     int  preview;
-
+    
     /* Toggles */
     int no_deblock;
     int no_denoise;
@@ -116,7 +116,7 @@ typedef struct {
     int no_eq;
     int no_grain;
     int pci_safe_mode;
-
+    
     /* HW */
     char hwaccel[16];
     char encoder[16];
@@ -124,6 +124,10 @@ typedef struct {
 
 /* Log callback type */
 typedef void (*up60p_log_callback)(const char *message);
+
+#ifdef UP60P_LIBRARY_MODE
+extern void (*global_log_cb)(const char *message);
+#endif
 
 /* Initialize engine (paths, defaults, presets). app_support_dir is optional. */
 up60p_error up60p_init(const char *app_support_dir, up60p_log_callback log_cb);

@@ -7,30 +7,43 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		5E5365492EEB117900B2C59B /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 5E5365482EEB117900B2C59B /* AsyncAlgorithms */; };
+		5EFC67422EF232F7007ADC03 /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 5E5365482EEB117900B2C59B /* AsyncAlgorithms */; };
 /* End PBXBuildFile section */
 
-/* Begin PBXContainerItemProxy section */
-		5E23E5142ED9AB0C008298B2 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 5E23E4FE2ED9AB0B008298B2 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 5E23E5052ED9AB0B008298B2;
-			remoteInfo = myUpscaler;
+/* Begin PBXCopyFilesBuildPhase section */
+		5E61682F2EF1CC100008FB42 /* Copy Files */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = ThirdParty/FFmpeg;
+			dstSubfolderSpec = 6;
+			files = (
+			);
+			name = "Copy Files";
+			runOnlyForDeploymentPostprocessing = 0;
 		};
-		5E23E51E2ED9AB0C008298B2 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 5E23E4FE2ED9AB0B008298B2 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 5E23E5052ED9AB0B008298B2;
-			remoteInfo = myUpscaler;
+		5EFC673E2EF2240B007ADC03 /* Embed Libraries */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			name = "Embed Libraries";
+			runOnlyForDeploymentPostprocessing = 0;
 		};
-/* End PBXContainerItemProxy section */
+		5EFC68042EF24B3D007ADC03 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 7;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		5E23E5062ED9AB0B008298B2 /* myUpscaler.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = myUpscaler.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		5E23E5132ED9AB0C008298B2 /* myUpscalerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = myUpscalerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		5E23E51D2ED9AB0C008298B2 /* myUpscalerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = myUpscalerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		5E6168322EF1CC540008FB42 /* myUpscaler.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = myUpscaler.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5E6259532EE81EC9004D8958 /* myUpscaler.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = myUpscaler.xctestplan; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -38,11 +51,19 @@
 		5E23E7C82ED9B256008298B2 /* Exceptions for "myUpscaler" folder in "myUpscaler" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Info.plist,
 				upscaler/CoreML_README.md,
 				upscaler/filters/README.md,
 				upscaler/models/RealESRGAN_x2.mlpackage,
 				upscaler/models/RealESRGAN_x4.mlpackage,
 				upscaler/models/RealESRGAN_x8.mlpackage,
+			);
+			target = 5E23E5052ED9AB0B008298B2 /* myUpscaler */;
+		};
+		5EFC66EF2EF1FF31007ADC03 /* Exceptions for "ThirdParty" folder in "myUpscaler" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				FFMPEG/ffmpeg,
 			);
 			target = 5E23E5052ED9AB0B008298B2 /* myUpscaler */;
 		};
@@ -56,6 +77,70 @@
 				upscaler/models/RealESRGAN_x2.mlpackage,
 				upscaler/models/RealESRGAN_x4.mlpackage,
 				upscaler/models/RealESRGAN_x8.mlpackage,
+			);
+		};
+		5EFC66ED2EF1F7E1007ADC03 /* Exceptions for "ThirdParty" folder in "Copy Files" phase from "myUpscaler" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			attributesByRelativePath = {
+				FFMPEG/ffmpeg = (CodeSignOnCopy, );
+			};
+			buildPhase = 5E61682F2EF1CC100008FB42 /* Copy Files */;
+			membershipExceptions = (
+				FFMPEG/ffmpeg,
+			);
+		};
+		5EFC673F2EF2240B007ADC03 /* Exceptions for "ThirdParty" folder in "Embed Libraries" phase from "myUpscaler" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			attributesByRelativePath = {
+				libavcodec.62.23.101.dylib = (CodeSignOnCopy, );
+				libavcodec.62.dylib = (CodeSignOnCopy, );
+				libavcodec.dylib = (CodeSignOnCopy, );
+				libavfilter.11.10.101.dylib = (CodeSignOnCopy, );
+				libavfilter.11.dylib = (CodeSignOnCopy, );
+				libavfilter.dylib = (CodeSignOnCopy, );
+				libavformat.62.8.100.dylib = (CodeSignOnCopy, );
+				libavformat.62.dylib = (CodeSignOnCopy, );
+				libavformat.dylib = (CodeSignOnCopy, );
+				libavutil.60.20.100.dylib = (CodeSignOnCopy, );
+				libavutil.60.dylib = (CodeSignOnCopy, );
+				libavutil.dylib = (CodeSignOnCopy, );
+				libswresample.6.2.100.dylib = (CodeSignOnCopy, );
+				libswresample.6.dylib = (CodeSignOnCopy, );
+				libswresample.dylib = (CodeSignOnCopy, );
+				libswscale.9.3.100.dylib = (CodeSignOnCopy, );
+				libswscale.9.dylib = (CodeSignOnCopy, );
+				libswscale.dylib = (CodeSignOnCopy, );
+			};
+			buildPhase = 5EFC673E2EF2240B007ADC03 /* Embed Libraries */;
+			membershipExceptions = (
+				libavcodec.62.23.101.dylib,
+				libavcodec.62.dylib,
+				libavcodec.dylib,
+				libavfilter.11.10.101.dylib,
+				libavfilter.11.dylib,
+				libavfilter.dylib,
+				libavformat.62.8.100.dylib,
+				libavformat.62.dylib,
+				libavformat.dylib,
+				libavutil.60.20.100.dylib,
+				libavutil.60.dylib,
+				libavutil.dylib,
+				libswresample.6.2.100.dylib,
+				libswresample.6.dylib,
+				libswresample.dylib,
+				libswscale.9.3.100.dylib,
+				libswscale.9.dylib,
+				libswscale.dylib,
+			);
+		};
+		5EFC68062EF24B59007ADC03 /* Exceptions for "ThirdParty" folder in "Copy Files" phase from "myUpscaler" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			attributesByRelativePath = {
+				FFMPEG/ffmpeg = (CodeSignOnCopy, );
+			};
+			buildPhase = 5EFC68042EF24B3D007ADC03 /* CopyFiles */;
+			membershipExceptions = (
+				FFMPEG/ffmpeg,
 			);
 		};
 /* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
@@ -80,6 +165,17 @@
 			path = myUpscalerUITests;
 			sourceTree = "<group>";
 		};
+		5E6167E82EF1C96F0008FB42 /* ThirdParty */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				5EFC66EF2EF1FF31007ADC03 /* Exceptions for "ThirdParty" folder in "myUpscaler" target */,
+				5EFC66ED2EF1F7E1007ADC03 /* Exceptions for "ThirdParty" folder in "Copy Files" phase from "myUpscaler" target */,
+				5EFC673F2EF2240B007ADC03 /* Exceptions for "ThirdParty" folder in "Embed Libraries" phase from "myUpscaler" target */,
+				5EFC68062EF24B59007ADC03 /* Exceptions for "ThirdParty" folder in "Copy Files" phase from "myUpscaler" target */,
+			);
+			path = ThirdParty;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -87,21 +183,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				5E5365492EEB117900B2C59B /* AsyncAlgorithms in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		5E23E5102ED9AB0C008298B2 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		5E23E51A2ED9AB0C008298B2 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
+				5EFC67422EF232F7007ADC03 /* AsyncAlgorithms in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -115,18 +197,17 @@
 				5E23E5082ED9AB0B008298B2 /* myUpscaler */,
 				5E23E5162ED9AB0C008298B2 /* myUpscalerTests */,
 				5E23E5202ED9AB0C008298B2 /* myUpscalerUITests */,
-				5E23E5072ED9AB0B008298B2 /* Products */,
+				5E6167E82EF1C96F0008FB42 /* ThirdParty */,
+				5E6168012EF1CA700008FB42 /* Frameworks */,
+				5E6168322EF1CC540008FB42 /* myUpscaler.app */,
 			);
 			sourceTree = "<group>";
 		};
-		5E23E5072ED9AB0B008298B2 /* Products */ = {
+		5E6168012EF1CA700008FB42 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				5E23E5062ED9AB0B008298B2 /* myUpscaler.app */,
-				5E23E5132ED9AB0C008298B2 /* myUpscalerTests.xctest */,
-				5E23E51D2ED9AB0C008298B2 /* myUpscalerUITests.xctest */,
 			);
-			name = Products;
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -139,7 +220,10 @@
 				5E23E5022ED9AB0B008298B2 /* Sources */,
 				5E23E5032ED9AB0B008298B2 /* Frameworks */,
 				5E23E5042ED9AB0B008298B2 /* Resources */,
-				5E23E7C72ED9B1C8008298B2 /* Run Script */,
+				5E61682F2EF1CC100008FB42 /* Copy Files */,
+				5EFC66EE2EF1FDEC007ADC03 /* ShellScript */,
+				5EFC673E2EF2240B007ADC03 /* Embed Libraries */,
+				5EFC68042EF24B3D007ADC03 /* CopyFiles */,
 			);
 			buildRules = (
 			);
@@ -147,60 +231,15 @@
 			);
 			fileSystemSynchronizedGroups = (
 				5E23E5082ED9AB0B008298B2 /* myUpscaler */,
+				5E6167E82EF1C96F0008FB42 /* ThirdParty */,
 			);
 			name = myUpscaler;
 			packageProductDependencies = (
 				5E5365482EEB117900B2C59B /* AsyncAlgorithms */,
 			);
 			productName = myUpscaler;
-			productReference = 5E23E5062ED9AB0B008298B2 /* myUpscaler.app */;
+			productReference = 5E6168322EF1CC540008FB42 /* myUpscaler.app */;
 			productType = "com.apple.product-type.application";
-		};
-		5E23E5122ED9AB0C008298B2 /* myUpscalerTests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 5E23E52A2ED9AB0C008298B2 /* Build configuration list for PBXNativeTarget "myUpscalerTests" */;
-			buildPhases = (
-				5E23E50F2ED9AB0C008298B2 /* Sources */,
-				5E23E5102ED9AB0C008298B2 /* Frameworks */,
-				5E23E5112ED9AB0C008298B2 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				5E23E5152ED9AB0C008298B2 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				5E23E5162ED9AB0C008298B2 /* myUpscalerTests */,
-			);
-			name = myUpscalerTests;
-			packageProductDependencies = (
-			);
-			productName = myUpscalerTests;
-			productReference = 5E23E5132ED9AB0C008298B2 /* myUpscalerTests.xctest */;
-			productType = "com.apple.product-type.bundle.unit-test";
-		};
-		5E23E51C2ED9AB0C008298B2 /* myUpscalerUITests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 5E23E52D2ED9AB0C008298B2 /* Build configuration list for PBXNativeTarget "myUpscalerUITests" */;
-			buildPhases = (
-				5E23E5192ED9AB0C008298B2 /* Sources */,
-				5E23E51A2ED9AB0C008298B2 /* Frameworks */,
-				5E23E51B2ED9AB0C008298B2 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				5E23E51F2ED9AB0C008298B2 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				5E23E5202ED9AB0C008298B2 /* myUpscalerUITests */,
-			);
-			name = myUpscalerUITests;
-			packageProductDependencies = (
-			);
-			productName = myUpscalerUITests;
-			productReference = 5E23E51D2ED9AB0C008298B2 /* myUpscalerUITests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
 
@@ -215,15 +254,6 @@
 					5E23E5052ED9AB0B008298B2 = {
 						CreatedOnToolsVersion = 26.1.1;
 					};
-					5E23E5122ED9AB0C008298B2 = {
-						CreatedOnToolsVersion = 26.1.1;
-						TestTargetID = 5E23E5052ED9AB0B008298B2;
-					};
-					5E23E51C2ED9AB0C008298B2 = {
-						CreatedOnToolsVersion = 26.1.1;
-						LastSwiftMigration = 2610;
-						TestTargetID = 5E23E5052ED9AB0B008298B2;
-					};
 				};
 			};
 			buildConfigurationList = 5E23E5012ED9AB0B008298B2 /* Build configuration list for PBXProject "myUpscaler" */;
@@ -231,7 +261,6 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
-				Base,
 			);
 			mainGroup = 5E23E4FD2ED9AB0B008298B2;
 			minimizedProjectReferenceProxies = 1;
@@ -239,13 +268,11 @@
 				5E5365472EEB117900B2C59B /* XCRemoteSwiftPackageReference "swift-async-algorithms" */,
 			);
 			preferredProjectObjectVersion = 77;
-			productRefGroup = 5E23E5072ED9AB0B008298B2 /* Products */;
+			productRefGroup = 5E23E4FD2ED9AB0B008298B2;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				5E23E5052ED9AB0B008298B2 /* myUpscaler */,
-				5E23E5122ED9AB0C008298B2 /* myUpscalerTests */,
-				5E23E51C2ED9AB0C008298B2 /* myUpscalerUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -258,24 +285,10 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		5E23E5112ED9AB0C008298B2 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		5E23E51B2ED9AB0C008298B2 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		5E23E7C72ED9B1C8008298B2 /* Run Script */ = {
+		5EFC66EE2EF1FDEC007ADC03 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -283,29 +296,14 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
-				"${PROJECT_DIR}/myUpscaler/lib/libavcodec.62.dylib",
-				"${PROJECT_DIR}/myUpscaler/lib/libavformat.62.dylib",
-				"${PROJECT_DIR}/myUpscaler/lib/libavutil.60.dylib",
-				"${PROJECT_DIR}/myUpscaler/lib/libavfilter.11.dylib",
-				"${PROJECT_DIR}/myUpscaler/lib/libavdevice.62.dylib",
-				"${PROJECT_DIR}/myUpscaler/lib/libswscale.9.dylib",
-				"${PROJECT_DIR}/myUpscaler/lib/libswresample.6.dylib",
 			);
-			name = "Run Script";
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Frameworks/libavcodec.62.dylib",
-				"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Frameworks/libavformat.62.dylib",
-				"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Frameworks/libavutil.60.dylib",
-				"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Frameworks/libavfilter.11.dylib",
-				"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Frameworks/libavdevice.62.dylib",
-				"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Frameworks/libswscale.9.dylib",
-				"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Frameworks/libswresample.6.dylib",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\n\nAPP_BUNDLE=\"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app\"\nFRAMEWORKS_DIR=\"${APP_BUNDLE}/Contents/Frameworks\"\n\nmkdir -p \"${FRAMEWORKS_DIR}\"\n\necho \"📦 Copying FFmpeg libraries into .app bundle...\"\n\nFFLIBS=(\n  \"libavcodec.62.dylib\"\n  \"libavformat.62.dylib\"\n  \"libavutil.60.dylib\"\n  \"libavfilter.11.dylib\"\n  \"libavdevice.62.dylib\"\n  \"libswscale.9.dylib\"\n  \"libswresample.6.dylib\"\n)\n\nfor lib in \"${FFLIBS[@]}\"; do\n  SRC=\"${PROJECT_DIR}/myUpscaler/lib/${lib}\"\n  DST=\"${FRAMEWORKS_DIR}/${lib}\"\n  cp -f \"$SRC\" \"$DST\"\n  codesign --remove-signature \"$DST\" 2>/dev/null || true\n  codesign --force --sign - \"$DST\" 2>/dev/null || true\ndone\n\necho \"✅ FFmpeg libraries embedded (using library API, no binary needed).\"\n";
+			shellScript = "#!/bin/sh\n\nFFMPEG=\"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/MacOS/ThirdParty/FFmpeg/ffmpeg\"\nFRAMEWORKS_DIR=\"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Frameworks\"\n\n# Always succeed unless we explicitly decide otherwise\nEXIT_CODE=0\n\n# ffmpeg must exist\nif [ ! -f \"$FFMPEG\" ]; then\n  echo \"ffmpeg not found — skipping\"\n  exit 0\nfi\n\n# ---- Remove known rpaths (ignore failures) ----\n/usr/bin/install_name_tool -delete_rpath \"@executable_path/../Frameworks\" \"$FFMPEG\" 2>/dev/null || true\n/usr/bin/install_name_tool -delete_rpath \"@executable_path/../../../Frameworks\" \"$FFMPEG\" 2>/dev/null || true\n/usr/bin/install_name_tool -delete_rpath \"@loader_path/../Frameworks\" \"$FFMPEG\" 2>/dev/null || true\n\n# ---- Add rpath only if missing ----\nif ! /usr/bin/otool -l \"$FFMPEG\" | grep -q \"@executable_path/../../Frameworks\"; then\n  /usr/bin/install_name_tool -add_rpath \"@executable_path/../../Frameworks\" \"$FFMPEG\" || EXIT_CODE=1\nfi\n\n# ---- Codesign ffmpeg ----\nif [ -n \"$EXPANDED_CODE_SIGN_IDENTITY\" ]; then\n  /usr/bin/codesign --force --options runtime \\\n    --sign \"$EXPANDED_CODE_SIGN_IDENTITY\" \\\n    \"$FFMPEG\" || EXIT_CODE=1\nfi\n\n# ---- Codesign dylibs only if they exist ----\nif ls \"$FRAMEWORKS_DIR\"/*.dylib >/dev/null 2>&1; then\n  for dylib in \"$FRAMEWORKS_DIR\"/*.dylib; do\n    /usr/bin/codesign --force --options runtime \\\n      --sign \"$EXPANDED_CODE_SIGN_IDENTITY\" \\\n      \"$dylib\" || EXIT_CODE=1\n  done\nfi\n\nexit $EXIT_CODE\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -317,34 +315,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		5E23E50F2ED9AB0C008298B2 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		5E23E5192ED9AB0C008298B2 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXTargetDependency section */
-		5E23E5152ED9AB0C008298B2 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 5E23E5052ED9AB0B008298B2 /* myUpscaler */;
-			targetProxy = 5E23E5142ED9AB0C008298B2 /* PBXContainerItemProxy */;
-		};
-		5E23E51F2ED9AB0C008298B2 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 5E23E5052ED9AB0B008298B2 /* myUpscaler */;
-			targetProxy = 5E23E51E2ED9AB0C008298B2 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		5E23E5252ED9AB0C008298B2 /* Debug */ = {
@@ -381,8 +352,9 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = M48T7DC657;
+				ENABLE_DEBUG_DYLIB = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -409,7 +381,7 @@
 				MTLLINKER_FLAGS = "-fcikernel";
 				MTL_COMPILER_FLAGS = "-fcikernel";
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
-				MTL_FAST_MATH = YES;
+				MTL_FAST_MATH = NO;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
@@ -454,6 +426,7 @@
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = M48T7DC657;
+				ENABLE_DEBUG_DYLIB = YES;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -477,7 +450,7 @@
 				MTLLINKER_FLAGS = "-fcikernel";
 				MTL_COMPILER_FLAGS = "-fcikernel";
 				MTL_ENABLE_DEBUG_INFO = NO;
-				MTL_FAST_MATH = YES;
+				MTL_FAST_MATH = NO;
 				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -487,42 +460,75 @@
 		5E23E5282ED9AB0C008298B2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				AUTOMATION_APPLE_EVENTS = NO;
+				CODE_SIGN_IDENTITY = "Developer ID Application";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = M48T7DC657;
-				ENABLE_APP_SANDBOX = NO;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER = readwrite;
+				ENABLE_FILE_ACCESS_MOVIES_FOLDER = readwrite;
+				ENABLE_FILE_ACCESS_MUSIC_FOLDER = readwrite;
+				ENABLE_FILE_ACCESS_PICTURE_FOLDER = readwrite;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = NO;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readwrite;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(SRCROOT)/macos/Frameworks",
+					"$(inherited)",
+				);
+				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_STRICT_ALIASING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/myUpscaler/upscaler";
+				INFOPLIST_FILE = myUpscaler/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MyUpscaler;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.video";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)/myUpscaler/lib",
+					"$(SRCROOT)/myUpscaler/lib/**",
+					"$(PROJECT_DIR)/ThirdParty",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 14;
-				MARKETING_VERSION = "0.0.1 Public Beta";
-				"MARKETING_VERSION[sdk=macosx*]" = "0.0.1 Public Beta";
+				MACOSX_DEPLOYMENT_TARGET = 15.2;
+				MARKETING_VERSION = 0.1;
+				"MARKETING_VERSION[sdk=macosx*]" = 0.1;
 				MTL_COMPILER_FLAGS = "-fcikernel";
+				MTL_FAST_MATH = YES;
 				OTHER_LDFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = Ashrox.myUpscaler;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
+				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
+				RUNTIME_EXCEPTION_ALLOW_JIT = NO;
+				RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY = NO;
+				RUNTIME_EXCEPTION_DEBUGGING_TOOL = NO;
+				RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION = NO;
+				RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = myUpscaler/upscaler/Up60PBridging.h;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 			};
@@ -531,131 +537,71 @@
 		5E23E5292ED9AB0C008298B2 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = "";
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				"ASSETCATALOG_COMPILER_APPICON_NAME[sdk=macosx*]" = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_IDENTITY = "Developer ID Application";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
+				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = M48T7DC657;
-				ENABLE_APP_SANDBOX = NO;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER = readwrite;
+				ENABLE_FILE_ACCESS_MOVIES_FOLDER = readwrite;
+				ENABLE_FILE_ACCESS_MUSIC_FOLDER = readwrite;
+				ENABLE_FILE_ACCESS_PICTURE_FOLDER = readwrite;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = NO;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readwrite;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(SRCROOT)/macos/Frameworks",
+					"$(inherited)",
+				);
+				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_STRICT_ALIASING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/myUpscaler/upscaler";
+				INFOPLIST_FILE = myUpscaler/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MyUpscaler;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.video";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)/myUpscaler/lib",
+					"$(SRCROOT)/myUpscaler/lib/**",
+					"$(PROJECT_DIR)/ThirdParty",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 14;
-				MARKETING_VERSION = "0.0.1 Public Beta";
+				MACOSX_DEPLOYMENT_TARGET = 15.2;
+				MARKETING_VERSION = 0.1;
 				MTL_COMPILER_FLAGS = "-fcikernel";
+				MTL_FAST_MATH = YES;
 				OTHER_LDFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = Ashrox.myUpscaler;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
+				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
+				RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = myUpscaler/upscaler/Up60PBridging.h;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-			};
-			name = Release;
-		};
-		5E23E52B2ED9AB0C008298B2 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = M48T7DC657;
-				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 15.7;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = Ashrox.myUpscalerTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SUPPORTED_PLATFORMS = macosx;
-				SUPPORTS_MACCATALYST = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/myUpscaler.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/myUpscaler";
-			};
-			name = Debug;
-		};
-		5E23E52C2ED9AB0C008298B2 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = M48T7DC657;
-				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 15.7;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = Ashrox.myUpscalerTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SUPPORTED_PLATFORMS = macosx;
-				SUPPORTS_MACCATALYST = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/myUpscaler.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/myUpscaler";
-			};
-			name = Release;
-		};
-		5E23E52E2ED9AB0C008298B2 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = M48T7DC657;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = Ashrox.myUpscalerUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TEST_TARGET_NAME = myUpscaler;
-			};
-			name = Debug;
-		};
-		5E23E52F2ED9AB0C008298B2 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = M48T7DC657;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = Ashrox.myUpscalerUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TEST_TARGET_NAME = myUpscaler;
 			};
 			name = Release;
 		};
@@ -676,24 +622,6 @@
 			buildConfigurations = (
 				5E23E5282ED9AB0C008298B2 /* Debug */,
 				5E23E5292ED9AB0C008298B2 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		5E23E52A2ED9AB0C008298B2 /* Build configuration list for PBXNativeTarget "myUpscalerTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				5E23E52B2ED9AB0C008298B2 /* Debug */,
-				5E23E52C2ED9AB0C008298B2 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		5E23E52D2ED9AB0C008298B2 /* Build configuration list for PBXNativeTarget "myUpscalerUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				5E23E52E2ED9AB0C008298B2 /* Debug */,
-				5E23E52F2ED9AB0C008298B2 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

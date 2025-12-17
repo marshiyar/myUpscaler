@@ -217,3 +217,12 @@ dSYM/
 .tmp/
 xcuserdata/
 *.xcuserstate
+
+
+/ffmpeg-src
+/ThirdParty
+/ffmpegBuild
+
+/ffmpeg-src/*
+/ThirdParty/*
+/ffmpegBuild/*

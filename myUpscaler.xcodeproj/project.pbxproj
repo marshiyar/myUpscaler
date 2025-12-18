@@ -43,7 +43,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		5E6168322EF1CC540008FB42 /* myUpscaler.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = myUpscaler.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5E6168322EF1CC540008FB42 /* myUpscaler.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = myUpscaler.app; path = /Users/ash/Documents/myUpscaler/build/Debug/myUpscaler.app; sourceTree = "<absolute>"; };
 		5E6259532EE81EC9004D8958 /* myUpscaler.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = myUpscaler.xctestplan; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -60,13 +60,6 @@
 			);
 			target = 5E23E5052ED9AB0B008298B2 /* myUpscaler */;
 		};
-		5EFC66EF2EF1FF31007ADC03 /* Exceptions for "ThirdParty" folder in "myUpscaler" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				FFMPEG/ffmpeg,
-			);
-			target = 5E23E5052ED9AB0B008298B2 /* myUpscaler */;
-		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
@@ -77,70 +70,6 @@
 				upscaler/models/RealESRGAN_x2.mlpackage,
 				upscaler/models/RealESRGAN_x4.mlpackage,
 				upscaler/models/RealESRGAN_x8.mlpackage,
-			);
-		};
-		5EFC66ED2EF1F7E1007ADC03 /* Exceptions for "ThirdParty" folder in "Copy Files" phase from "myUpscaler" target */ = {
-			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
-			attributesByRelativePath = {
-				FFMPEG/ffmpeg = (CodeSignOnCopy, );
-			};
-			buildPhase = 5E61682F2EF1CC100008FB42 /* Copy Files */;
-			membershipExceptions = (
-				FFMPEG/ffmpeg,
-			);
-		};
-		5EFC673F2EF2240B007ADC03 /* Exceptions for "ThirdParty" folder in "Embed Libraries" phase from "myUpscaler" target */ = {
-			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
-			attributesByRelativePath = {
-				libavcodec.62.23.101.dylib = (CodeSignOnCopy, );
-				libavcodec.62.dylib = (CodeSignOnCopy, );
-				libavcodec.dylib = (CodeSignOnCopy, );
-				libavfilter.11.10.101.dylib = (CodeSignOnCopy, );
-				libavfilter.11.dylib = (CodeSignOnCopy, );
-				libavfilter.dylib = (CodeSignOnCopy, );
-				libavformat.62.8.100.dylib = (CodeSignOnCopy, );
-				libavformat.62.dylib = (CodeSignOnCopy, );
-				libavformat.dylib = (CodeSignOnCopy, );
-				libavutil.60.20.100.dylib = (CodeSignOnCopy, );
-				libavutil.60.dylib = (CodeSignOnCopy, );
-				libavutil.dylib = (CodeSignOnCopy, );
-				libswresample.6.2.100.dylib = (CodeSignOnCopy, );
-				libswresample.6.dylib = (CodeSignOnCopy, );
-				libswresample.dylib = (CodeSignOnCopy, );
-				libswscale.9.3.100.dylib = (CodeSignOnCopy, );
-				libswscale.9.dylib = (CodeSignOnCopy, );
-				libswscale.dylib = (CodeSignOnCopy, );
-			};
-			buildPhase = 5EFC673E2EF2240B007ADC03 /* Embed Libraries */;
-			membershipExceptions = (
-				libavcodec.62.23.101.dylib,
-				libavcodec.62.dylib,
-				libavcodec.dylib,
-				libavfilter.11.10.101.dylib,
-				libavfilter.11.dylib,
-				libavfilter.dylib,
-				libavformat.62.8.100.dylib,
-				libavformat.62.dylib,
-				libavformat.dylib,
-				libavutil.60.20.100.dylib,
-				libavutil.60.dylib,
-				libavutil.dylib,
-				libswresample.6.2.100.dylib,
-				libswresample.6.dylib,
-				libswresample.dylib,
-				libswscale.9.3.100.dylib,
-				libswscale.9.dylib,
-				libswscale.dylib,
-			);
-		};
-		5EFC68062EF24B59007ADC03 /* Exceptions for "ThirdParty" folder in "Copy Files" phase from "myUpscaler" target */ = {
-			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
-			attributesByRelativePath = {
-				FFMPEG/ffmpeg = (CodeSignOnCopy, );
-			};
-			buildPhase = 5EFC68042EF24B3D007ADC03 /* CopyFiles */;
-			membershipExceptions = (
-				FFMPEG/ffmpeg,
 			);
 		};
 /* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
@@ -231,7 +160,6 @@
 			);
 			fileSystemSynchronizedGroups = (
 				5E23E5082ED9AB0B008298B2 /* myUpscaler */,
-				5E6167E82EF1C96F0008FB42 /* ThirdParty */,
 			);
 			name = myUpscaler;
 			packageProductDependencies = (
@@ -583,6 +511,7 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(SRCROOT)/myUpscaler/lib/**",
 					"$(PROJECT_DIR)/ThirdParty",
+					"$(PROJECT_DIR)/myUpscaler/lib",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
 				MARKETING_VERSION = 0.1;

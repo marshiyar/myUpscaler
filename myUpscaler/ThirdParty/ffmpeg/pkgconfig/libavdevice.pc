@@ -1,0 +1,14 @@
+prefix=/Users/ash/Documents/myUpscaler/ffmpeg-build3/ffmpeg/build-arm64
+exec_prefix=${prefix}
+libdir=/Users/ash/Documents/myUpscaler/ffmpeg-build3/ffmpeg/build-arm64/lib
+includedir=/Users/ash/Documents/myUpscaler/ffmpeg-build3/ffmpeg/build-arm64/include
+
+Name: libavdevice
+Description: FFmpeg device handling library
+Version: 62.2.100
+Requires: 
+Requires.private: libavfilter >= 11.10.101, libswscale >= 9.3.100, libavformat >= 62.8.100, libavcodec >= 62.23.102, libswresample >= 6.2.100, libavutil >= 60.20.100
+Conflicts:
+Libs: -L${libdir}  -lavdevice 
+Libs.private: -framework Foundation -framework AudioToolbox -framework CoreAudio -lm -framework AVFoundation -framework CoreVideo -framework CoreMedia -framework CoreGraphics -L/opt/homebrew/Cellar/libxcb/1.17.0/lib -lxcb -L/opt/homebrew/Cellar/libxcb/1.17.0/lib -lxcb-shm -L/opt/homebrew/Cellar/libxcb/1.17.0/lib -lxcb-shape -L/opt/homebrew/Cellar/libxcb/1.17.0/lib -lxcb-xfixes -framework AudioToolbox -pthread
+Cflags: -I${includedir}

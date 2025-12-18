@@ -1,0 +1,14 @@
+prefix=/Users/ash/Documents/myUpscaler/ffmpeg-build3/ffmpeg/build-arm64
+exec_prefix=${prefix}
+libdir=/Users/ash/Documents/myUpscaler/ffmpeg-build3/ffmpeg/build-arm64/lib
+includedir=/Users/ash/Documents/myUpscaler/ffmpeg-build3/ffmpeg/build-arm64/include
+
+Name: libavcodec
+Description: FFmpeg codec library
+Version: 62.23.102
+Requires: 
+Requires.private: libswresample >= 6.2.100, libavutil >= 60.20.100
+Conflicts:
+Libs: -L${libdir}  -lavcodec 
+Libs.private: -liconv -lm -framework AudioToolbox -pthread -lz -framework VideoToolbox -framework CoreFoundation -framework CoreMedia -framework CoreVideo -framework CoreServices
+Cflags: -I${includedir}

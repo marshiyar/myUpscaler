@@ -17,34 +17,7 @@
     }
   },
   "testTargets" : [
-    {
-      "enabled" : false,
-      "parallelizable" : true,
-      "selectedTags" : {
-        "tags" : [
-          ".\/opt\/homebrew\/opt\/ffmpeg\/lib"
-        ]
-      },
-      "target" : {
-        "containerPath" : "container:myUpscaler.xcodeproj",
-        "identifier" : "5E23E5122ED9AB0C008298B2",
-        "name" : "myUpscalerTests"
-      }
-    },
-    {
-      "enabled" : false,
-      "parallelizable" : true,
-      "selectedTags" : {
-        "tags" : [
-          ".\/opt\/homebrew\/opt\/ffmpeg\/lib"
-        ]
-      },
-      "target" : {
-        "containerPath" : "container:myUpscaler.xcodeproj",
-        "identifier" : "5E23E51C2ED9AB0C008298B2",
-        "name" : "myUpscalerUITests"
-      }
-    }
+
   ],
   "version" : 1
 }

@@ -1,0 +1,14 @@
+prefix=/Users/ash/Documents/myUpscaler/ffmpeg-build3/ffmpeg/build-arm64
+exec_prefix=${prefix}
+libdir=/Users/ash/Documents/myUpscaler/ffmpeg-build3/ffmpeg/build-arm64/lib
+includedir=/Users/ash/Documents/myUpscaler/ffmpeg-build3/ffmpeg/build-arm64/include
+
+Name: libavutil
+Description: FFmpeg utility library
+Version: 60.20.100
+Requires: 
+Requires.private: 
+Conflicts:
+Libs: -L${libdir}  -lavutil 
+Libs.private: -lm -framework VideoToolbox -pthread -L/opt/homebrew/Cellar/libx11/1.8.12/lib -lX11 -framework CoreFoundation -framework CoreMedia -framework CoreVideo -framework CoreServices
+Cflags: -I${includedir}

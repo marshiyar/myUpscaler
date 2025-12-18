@@ -6,22 +6,8 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		5EFC67422EF232F7007ADC03 /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 5E5365482EEB117900B2C59B /* AsyncAlgorithms */; };
-/* End PBXBuildFile section */
-
 /* Begin PBXCopyFilesBuildPhase section */
-		5E61682F2EF1CC100008FB42 /* Copy Files */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = ThirdParty/FFmpeg;
-			dstSubfolderSpec = 6;
-			files = (
-			);
-			name = "Copy Files";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		5EFC673E2EF2240B007ADC03 /* Embed Libraries */ = {
+		5ECE7AD72EF2A1D500603DA9 /* Embed Libraries */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
@@ -31,7 +17,7 @@
 			name = "Embed Libraries";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		5EFC68042EF24B3D007ADC03 /* CopyFiles */ = {
+		5EE1645F2EF4C3690060947E /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
@@ -43,15 +29,24 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		5E6168322EF1CC540008FB42 /* myUpscaler.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = myUpscaler.app; path = /Users/ash/Documents/myUpscaler/build/Debug/myUpscaler.app; sourceTree = "<absolute>"; };
 		5E6259532EE81EC9004D8958 /* myUpscaler.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = myUpscaler.xctestplan; sourceTree = "<group>"; };
+		5ECE7BB52EF2A63C00603DA9 /* myUpscaler.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = myUpscaler.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
 		5E23E7C82ED9B256008298B2 /* Exceptions for "myUpscaler" folder in "myUpscaler" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Info.plist,
+				ThirdParty/ffmpeg/ffmpeg,
+				ThirdParty/ffmpeg/ffplay,
+				ThirdParty/ffmpeg/ffprobe,
+				ThirdParty/ffmpeg/pkgconfig/libavcodec.pc,
+				ThirdParty/ffmpeg/pkgconfig/libavdevice.pc,
+				ThirdParty/ffmpeg/pkgconfig/libavfilter.pc,
+				ThirdParty/ffmpeg/pkgconfig/libavformat.pc,
+				ThirdParty/ffmpeg/pkgconfig/libavutil.pc,
+				ThirdParty/ffmpeg/pkgconfig/libswresample.pc,
+				ThirdParty/ffmpeg/pkgconfig/libswscale.pc,
 				upscaler/CoreML_README.md,
 				upscaler/filters/README.md,
 				upscaler/models/RealESRGAN_x2.mlpackage,
@@ -72,6 +67,70 @@
 				upscaler/models/RealESRGAN_x8.mlpackage,
 			);
 		};
+		5EE164632EF4C3970060947E /* Exceptions for "myUpscaler" folder in "Copy Files" phase from "myUpscaler" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			attributesByRelativePath = {
+				ThirdParty/ffmpeg/ffmpeg = (CodeSignOnCopy, );
+				ThirdParty/ffmpeg/ffplay = (CodeSignOnCopy, );
+				ThirdParty/ffmpeg/ffprobe = (CodeSignOnCopy, );
+			};
+			buildPhase = 5EE1645F2EF4C3690060947E /* CopyFiles */;
+			membershipExceptions = (
+				ThirdParty/ffmpeg/ffmpeg,
+				ThirdParty/ffmpeg/ffplay,
+				ThirdParty/ffmpeg/ffprobe,
+			);
+		};
+		5EE164792EF4C53F0060947E /* Exceptions for "myUpscaler" folder in "Embed Libraries" phase from "myUpscaler" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			attributesByRelativePath = {
+				frameworks/libavcodec.62.23.102.dylib = (CodeSignOnCopy, );
+				frameworks/libavcodec.62.dylib = (CodeSignOnCopy, );
+				frameworks/libavcodec.dylib = (CodeSignOnCopy, );
+				frameworks/libavdevice.62.2.100.dylib = (CodeSignOnCopy, );
+				frameworks/libavdevice.62.dylib = (CodeSignOnCopy, );
+				frameworks/libavdevice.dylib = (CodeSignOnCopy, );
+				frameworks/libavfilter.11.10.101.dylib = (CodeSignOnCopy, );
+				frameworks/libavfilter.11.dylib = (CodeSignOnCopy, );
+				frameworks/libavfilter.dylib = (CodeSignOnCopy, );
+				frameworks/libavformat.62.8.100.dylib = (CodeSignOnCopy, );
+				frameworks/libavformat.62.dylib = (CodeSignOnCopy, );
+				frameworks/libavformat.dylib = (CodeSignOnCopy, );
+				frameworks/libavutil.60.20.100.dylib = (CodeSignOnCopy, );
+				frameworks/libavutil.60.dylib = (CodeSignOnCopy, );
+				frameworks/libavutil.dylib = (CodeSignOnCopy, );
+				frameworks/libswresample.6.2.100.dylib = (CodeSignOnCopy, );
+				frameworks/libswresample.6.dylib = (CodeSignOnCopy, );
+				frameworks/libswresample.dylib = (CodeSignOnCopy, );
+				frameworks/libswscale.9.3.100.dylib = (CodeSignOnCopy, );
+				frameworks/libswscale.9.dylib = (CodeSignOnCopy, );
+				frameworks/libswscale.dylib = (CodeSignOnCopy, );
+			};
+			buildPhase = 5ECE7AD72EF2A1D500603DA9 /* Embed Libraries */;
+			membershipExceptions = (
+				frameworks/libavcodec.62.23.102.dylib,
+				frameworks/libavcodec.62.dylib,
+				frameworks/libavcodec.dylib,
+				frameworks/libavdevice.62.2.100.dylib,
+				frameworks/libavdevice.62.dylib,
+				frameworks/libavdevice.dylib,
+				frameworks/libavfilter.11.10.101.dylib,
+				frameworks/libavfilter.11.dylib,
+				frameworks/libavfilter.dylib,
+				frameworks/libavformat.62.8.100.dylib,
+				frameworks/libavformat.62.dylib,
+				frameworks/libavformat.dylib,
+				frameworks/libavutil.60.20.100.dylib,
+				frameworks/libavutil.60.dylib,
+				frameworks/libavutil.dylib,
+				frameworks/libswresample.6.2.100.dylib,
+				frameworks/libswresample.6.dylib,
+				frameworks/libswresample.dylib,
+				frameworks/libswscale.9.3.100.dylib,
+				frameworks/libswscale.9.dylib,
+				frameworks/libswscale.dylib,
+			);
+		};
 /* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -79,7 +138,9 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				5E23E7C82ED9B256008298B2 /* Exceptions for "myUpscaler" folder in "myUpscaler" target */,
+				5EE164792EF4C53F0060947E /* Exceptions for "myUpscaler" folder in "Embed Libraries" phase from "myUpscaler" target */,
 				5E625D4D2EE872B1004D8958 /* Exceptions for "myUpscaler" folder in "Copy Bundle Resources" phase from "myUpscaler" target */,
+				5EE164632EF4C3970060947E /* Exceptions for "myUpscaler" folder in "Copy Files" phase from "myUpscaler" target */,
 			);
 			path = myUpscaler;
 			sourceTree = "<group>";
@@ -94,17 +155,6 @@
 			path = myUpscalerUITests;
 			sourceTree = "<group>";
 		};
-		5E6167E82EF1C96F0008FB42 /* ThirdParty */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				5EFC66EF2EF1FF31007ADC03 /* Exceptions for "ThirdParty" folder in "myUpscaler" target */,
-				5EFC66ED2EF1F7E1007ADC03 /* Exceptions for "ThirdParty" folder in "Copy Files" phase from "myUpscaler" target */,
-				5EFC673F2EF2240B007ADC03 /* Exceptions for "ThirdParty" folder in "Embed Libraries" phase from "myUpscaler" target */,
-				5EFC68062EF24B59007ADC03 /* Exceptions for "ThirdParty" folder in "Copy Files" phase from "myUpscaler" target */,
-			);
-			path = ThirdParty;
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -112,7 +162,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				5EFC67422EF232F7007ADC03 /* AsyncAlgorithms in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -126,13 +175,12 @@
 				5E23E5082ED9AB0B008298B2 /* myUpscaler */,
 				5E23E5162ED9AB0C008298B2 /* myUpscalerTests */,
 				5E23E5202ED9AB0C008298B2 /* myUpscalerUITests */,
-				5E6167E82EF1C96F0008FB42 /* ThirdParty */,
-				5E6168012EF1CA700008FB42 /* Frameworks */,
-				5E6168322EF1CC540008FB42 /* myUpscaler.app */,
+				5ECE7BB52EF2A63C00603DA9 /* myUpscaler.app */,
+				5EE1647A2EF4C5410060947E /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
-		5E6168012EF1CA700008FB42 /* Frameworks */ = {
+		5EE1647A2EF4C5410060947E /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 			);
@@ -148,11 +196,10 @@
 			buildPhases = (
 				5E23E5022ED9AB0B008298B2 /* Sources */,
 				5E23E5032ED9AB0B008298B2 /* Frameworks */,
+				5ECE7AD72EF2A1D500603DA9 /* Embed Libraries */,
 				5E23E5042ED9AB0B008298B2 /* Resources */,
-				5E61682F2EF1CC100008FB42 /* Copy Files */,
-				5EFC66EE2EF1FDEC007ADC03 /* ShellScript */,
-				5EFC673E2EF2240B007ADC03 /* Embed Libraries */,
-				5EFC68042EF24B3D007ADC03 /* CopyFiles */,
+				5EE1645F2EF4C3690060947E /* CopyFiles */,
+				5ECE7BC92EF2A82C00603DA9 /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -163,10 +210,9 @@
 			);
 			name = myUpscaler;
 			packageProductDependencies = (
-				5E5365482EEB117900B2C59B /* AsyncAlgorithms */,
 			);
 			productName = myUpscaler;
-			productReference = 5E6168322EF1CC540008FB42 /* myUpscaler.app */;
+			productReference = 5ECE7BB52EF2A63C00603DA9 /* myUpscaler.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -193,7 +239,6 @@
 			mainGroup = 5E23E4FD2ED9AB0B008298B2;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				5E5365472EEB117900B2C59B /* XCRemoteSwiftPackageReference "swift-async-algorithms" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5E23E4FD2ED9AB0B008298B2;
@@ -216,7 +261,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		5EFC66EE2EF1FDEC007ADC03 /* ShellScript */ = {
+		5ECE7BC92EF2A82C00603DA9 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -231,7 +276,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "#!/bin/sh\n\nFFMPEG=\"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/MacOS/ThirdParty/FFmpeg/ffmpeg\"\nFRAMEWORKS_DIR=\"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Frameworks\"\n\n# Always succeed unless we explicitly decide otherwise\nEXIT_CODE=0\n\n# ffmpeg must exist\nif [ ! -f \"$FFMPEG\" ]; then\n  echo \"ffmpeg not found — skipping\"\n  exit 0\nfi\n\n# ---- Remove known rpaths (ignore failures) ----\n/usr/bin/install_name_tool -delete_rpath \"@executable_path/../Frameworks\" \"$FFMPEG\" 2>/dev/null || true\n/usr/bin/install_name_tool -delete_rpath \"@executable_path/../../../Frameworks\" \"$FFMPEG\" 2>/dev/null || true\n/usr/bin/install_name_tool -delete_rpath \"@loader_path/../Frameworks\" \"$FFMPEG\" 2>/dev/null || true\n\n# ---- Add rpath only if missing ----\nif ! /usr/bin/otool -l \"$FFMPEG\" | grep -q \"@executable_path/../../Frameworks\"; then\n  /usr/bin/install_name_tool -add_rpath \"@executable_path/../../Frameworks\" \"$FFMPEG\" || EXIT_CODE=1\nfi\n\n# ---- Codesign ffmpeg ----\nif [ -n \"$EXPANDED_CODE_SIGN_IDENTITY\" ]; then\n  /usr/bin/codesign --force --options runtime \\\n    --sign \"$EXPANDED_CODE_SIGN_IDENTITY\" \\\n    \"$FFMPEG\" || EXIT_CODE=1\nfi\n\n# ---- Codesign dylibs only if they exist ----\nif ls \"$FRAMEWORKS_DIR\"/*.dylib >/dev/null 2>&1; then\n  for dylib in \"$FRAMEWORKS_DIR\"/*.dylib; do\n    /usr/bin/codesign --force --options runtime \\\n      --sign \"$EXPANDED_CODE_SIGN_IDENTITY\" \\\n      \"$dylib\" || EXIT_CODE=1\n  done\nfi\n\nexit $EXIT_CODE\n";
+			shellScript = "set +e\n\nENTITLEMENTS=\"${SRCROOT}/myUpscaler/myUpscaler.entitlements\"\nSIGN_IDENTITY=\"${EXPANDED_CODE_SIGN_IDENTITY}\"\n\nBINARIES=(\n  \"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/MacOS/Resources/ffmpeg\"\n  \"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/MacOS/Resources/ffprobe\"\n  \"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/MacOS/Resources/ffplay\"\n  \n  \"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources/ffmpeg\"\n  \"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources/ffprobe\"\n  \"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources/ffplay\"\n\n)\n\nfor BIN in \"${BINARIES[@]}\"; do\n  if [ -f \"$BIN\" ]; then\n    codesign --force \\\n      --entitlements \"$ENTITLEMENTS\" \\\n      --sign \"$SIGN_IDENTITY\" \\\n      \"$BIN\"\n  fi\ndone\n\nexit 0\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -435,6 +480,54 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(SRCROOT)/myUpscaler/lib/**",
 					"$(PROJECT_DIR)/ThirdParty",
+					"$(PROJECT_DIR)/lib",
+					"$(PROJECT_DIR)/myUpscaler/lib",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/frameworks",
+					"$(PROJECT_DIR)/myUpscaler/frameworks",
+					"$(PROJECT_DIR)/myUpscaler/ThirdParty/lib",
+					"$(PROJECT_DIR)/myUpscaler/ThirdParty/ffmpeg",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
 				MARKETING_VERSION = 0.1;
@@ -511,7 +604,54 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(SRCROOT)/myUpscaler/lib/**",
 					"$(PROJECT_DIR)/ThirdParty",
+					"$(PROJECT_DIR)/lib",
 					"$(PROJECT_DIR)/myUpscaler/lib",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/New\\ Folder/frameworks",
+					"$(PROJECT_DIR)/frameworks",
+					"$(PROJECT_DIR)/myUpscaler/frameworks",
+					"$(PROJECT_DIR)/myUpscaler/ThirdParty/lib",
+					"$(PROJECT_DIR)/myUpscaler/ThirdParty/ffmpeg",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
 				MARKETING_VERSION = 0.1;
@@ -556,25 +696,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		5E5365472EEB117900B2C59B /* XCRemoteSwiftPackageReference "swift-async-algorithms" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/apple/swift-async-algorithms.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.1.1;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		5E5365482EEB117900B2C59B /* AsyncAlgorithms */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 5E5365472EEB117900B2C59B /* XCRemoteSwiftPackageReference "swift-async-algorithms" */;
-			productName = AsyncAlgorithms;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 5E23E4FE2ED9AB0B008298B2 /* Project object */;
 }

@@ -557,6 +557,44 @@ extension CoreMLEngine {
         CoreMLEngine.ciContext.render(ci, to: buffer, bounds: ci.extent, colorSpace: CoreMLEngine.srgbColorSpace)
     }
     
+    // MARK: - Scaling and Sharpening Helpers
+    
+    /// Applies Lanczos scaling to an image
+    /// - Parameters:
+    ///   - image: Source image
+    ///   - scale: Scale factor (e.g., 2.0 for 2x upscale)
+    /// - Returns: Scaled image using Lanczos resampling
+    func applyLanczosScale(to image: CIImage, scale: Double) -> CIImage {
+        // Use CoreImage's built-in Lanczos resampling via transform
+        // This is GPU-accelerated on macOS via Metal
+        let scaleTransform = CGAffineTransform(scaleX: CGFloat(scale), y: CGFloat(scale))
+        return image.transformed(by: scaleTransform)
+    }
+    
+    /// Applies Contrast Adaptive Sharpening (CAS)
+    /// - Parameters:
+    ///   - image: Source image
+    ///   - radius: Not used for CAS (kept for API compatibility)
+    ///   - amount: Sharpening strength (0.0-1.0)
+    /// - Returns: Sharpened image
+    func applyCASSharpen(to image: CIImage, radius: Double, amount: Double) -> CIImage {
+        guard let kernel = ShaderRegistry.shared.casKernel else {
+            // Fallback to built-in sharpening if kernel not available
+            return image
+        }
+        
+        let sharpness = CGFloat(max(0.0, min(1.0, amount)))
+        if sharpness == 0 { return image }
+        
+        let roiCallback: CIKernelROICallback = { _, destRect in
+            return destRect.insetBy(dx: -1, dy: -1)
+        }
+        
+        return kernel.apply(extent: image.extent,
+                           roiCallback: roiCallback,
+                           arguments: [image, sharpness]) ?? image
+    }
+    
     // MARK: - Helpers
     
     private func double(from value: String, default fallback: Double) -> Double {

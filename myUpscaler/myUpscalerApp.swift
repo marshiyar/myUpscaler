@@ -1,75 +1,23 @@
 import SwiftUI
 import AppKit
 
-@main
-struct myUpscalerApp: App {
-    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    
-    var shouldRunTests: Bool {
-        CommandLine.arguments.contains("--test-all")
-    }
-    
-    var body: some Scene {
-        WindowGroup {
-#if DEBUG
-            if shouldRunTests {
-                TestDashboardView()
-                    .frame(minWidth: 800, minHeight: 600)
-                    .task {
-                        let vm = TestDashboardViewModel()
-                        await vm.runFuzzer()
-                        await vm.runPerformance()
-                    }
-            } else {
-                ContentView()
-                    .frame(minWidth: 800, minHeight: 600)
-            }
-#else
-            ContentView()
-                .frame(minWidth: 800, minHeight: 600)
-#endif
-        }
-        .defaultSize(width: 950, height: 800)
-        .windowResizability(.contentSize)
-        .commands {
-#if DEBUG
-            CommandMenu("Debug") {
-                Button("Open Test Dashboard") {
-                    openTestDashboard()
-                }
-            }
-#endif
-        }
-    }
-    
-    func openTestDashboard() {
-#if DEBUG
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 600, height: 500),
-            styleMask: [.titled, .closable, .resizable],
-            backing: .buffered, defer: false)
-        window.center()
-        window.title = "Test Dashboard"
-        window.contentView = NSHostingView(rootView: TestDashboardView())
-        window.makeKeyAndOrderFront(nil)
-#endif
-    }
-}
 
+@main
+//struct myUpscalerApp: App {
+//    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+//    
+//    var body: some Scene {
+//        WindowGroup {
+//            ContentView()
+//                .frame(minWidth: 800, minHeight: 600)
+//        }
+//        .defaultSize(width: 950, height: 800)
+//        .windowResizability(.contentSize)
+//    }
+//}
+//
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
-#if DEBUG
-        if getenv("UP60P_FFMPEG") == nil {
-            if let exeURL = Bundle.main.executableURL {
-                let ffmpegURL = exeURL
-                    .deletingLastPathComponent()
-                    .appendingPathComponent("ffmpeg")
-                if FileManager.default.isExecutableFile(atPath: ffmpegURL.path) {
-                    setenv("UP60P_FFMPEG", ffmpegURL.path, 1)
-                }
-            }
-        }
-#else
         if let exeURL = Bundle.main.executableURL {
             let ffmpegURL = exeURL
                 .deletingLastPathComponent()
@@ -78,7 +26,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 setenv("UP60P_FFMPEG", ffmpegURL.path, 1)
             }
         }
-#endif
         
         setenv("MTL_SHADER_VALIDATION", "0", 1)
         setenv("MTL_DEBUG_LAYER", "0", 1)

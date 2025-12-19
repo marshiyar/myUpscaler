@@ -42,11 +42,11 @@ private struct UI {
 // MARK: - Card background colour (platform safe)
 // ------------------------------------------------------------
 private var cardBackground: Color {
-    #if os(macOS)
+#if os(macOS)
     Color(NSColor.windowBackgroundColor)
-    #else
+#else
     Color(UIColor.secondarySystemBackground)
-    #endif
+#endif
 }
 
 // ------------------------------------------------------------
@@ -463,52 +463,52 @@ private struct InputSection: View {
 /// Color‑Equalizer card
 // MARK: - COMMENTED OUT: Bigger Color Equalizer Panel (keeping the small VerticalColorEqualizerPanel in DragDropView.swift)
 /*
-private struct ColorEqualizerPanel: View {
-    @ObservedObject var settings: UpscaleSettings
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Label("Color Equalizer", systemImage: "paintpalette")
-                    .font(.headline)
-                Spacer()
-            }
-            GroupBox {
-                VStack(spacing: UI.rowSpacing) {
-                    ParameterRow(title: "Contrast",
-                                 binding: $settings.eqContrast,
-                                 range: 0.5...2.0,
-                                 step: 0.005,
-                                 defaultValue: 1.03,
-                                 formatter: Formatters.twoFraction,
-                                 sliderAccessibility: "Contrast slider")
-                    { _ in settings.objectWillChange.send() }
-                    
-                    ParameterRow(title: "Brightness",
-                                 binding: $settings.eqBrightness,
-                                 range: -0.1...0.1,
-                                 step: 0.005,
-                                 defaultValue: 0.005,
-                                 formatter: Formatters.threeFraction,
-                                 sliderAccessibility: "Brightness slider")
-                    { _ in settings.objectWillChange.send() }
-                    
-                    ParameterRow(title: "Saturation",
-                                 binding: $settings.eqSaturation,
-                                 range: 0...2,
-                                 step: 0.005,
-                                 defaultValue: 1.06,
-                                 formatter: Formatters.twoFraction,
-                                 sliderAccessibility: "Saturation slider")
-                    { _ in settings.objectWillChange.send() }
-                }
-                .padding(UI.cardInnerPadding)
-            }
-            .cardStyle()
-        }
-    }
-}
-*/
+ private struct ColorEqualizerPanel: View {
+ @ObservedObject var settings: UpscaleSettings
+ 
+ var body: some View {
+ VStack(alignment: .leading, spacing: 8) {
+ HStack {
+ Label("Color Equalizer", systemImage: "paintpalette")
+ .font(.headline)
+ Spacer()
+ }
+ GroupBox {
+ VStack(spacing: UI.rowSpacing) {
+ ParameterRow(title: "Contrast",
+ binding: $settings.eqContrast,
+ range: 0.5...2.0,
+ step: 0.005,
+ defaultValue: 1.03,
+ formatter: Formatters.twoFraction,
+ sliderAccessibility: "Contrast slider")
+ { _ in settings.objectWillChange.send() }
+ 
+ ParameterRow(title: "Brightness",
+ binding: $settings.eqBrightness,
+ range: -0.1...0.1,
+ step: 0.005,
+ defaultValue: 0.005,
+ formatter: Formatters.threeFraction,
+ sliderAccessibility: "Brightness slider")
+ { _ in settings.objectWillChange.send() }
+ 
+ ParameterRow(title: "Saturation",
+ binding: $settings.eqSaturation,
+ range: 0...2,
+ step: 0.005,
+ defaultValue: 1.06,
+ formatter: Formatters.twoFraction,
+ sliderAccessibility: "Saturation slider")
+ { _ in settings.objectWillChange.send() }
+ }
+ .padding(UI.cardInnerPadding)
+ }
+ .cardStyle()
+ }
+ }
+ }
+ */
 
 
 // MARK: - Enlarged Color Equalizer Panel (full-screen style)
@@ -906,7 +906,7 @@ private struct RestorationFiltersPanel: View {
                                          sliderAccessibility: "Unsharp mask threshold slider",
                                          gradient: .usmThreshold)
                             { _ in settings.objectWillChange.send() }
-                            .transition(.opacity.combined(with: .move(edge: .top)))
+                                .transition(.opacity.combined(with: .move(edge: .top)))
                         }
                         .animation(.easeInOut(duration: 0.5), value: settings.deringActive)  // Animate changes
                     }
@@ -1732,26 +1732,26 @@ private struct HardwareEncodingPanel: View {
                             .padding(.vertical, 2)
                         
                         HStack {
-                           Text("Audio Bitrate")
-                               .font(.caption)
-                               .foregroundColor(.secondary)
-                           Spacer()
-                           TextField("192k", text: $settings.audioBitrate)
-                               .textFieldStyle(.roundedBorder)
-                               .frame(width: 60)
-                       }
-
-                        #if arch(arm64)
+                            Text("Audio Bitrate")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            TextField("192k", text: $settings.audioBitrate)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: 60)
+                        }
+                        
+#if arch(arm64)
                         Text("Apple Silicon default: VideoToolbox decode for speed without quality loss. Switch HW Acceleration to None if a file fails.")
                             .font(.caption2)
                             .foregroundColor(.secondary)
                             .padding(.top, 2)
-                        #else
+#else
                         Text("If hardware decode causes issues on this Mac, set HW Acceleration to None.")
                             .font(.caption2)
                             .foregroundColor(.secondary)
                             .padding(.top, 2)
-                        #endif
+#endif
                     }
                     
                     Divider()
@@ -1994,7 +1994,7 @@ private struct LogPanel: View {
                     }
                     .frame(height: 700)  // Reduced to make room for button
                     
-// note I have changed the height from 170 originally so More log is visible as this is a lazy way of accessing easier since the texts are copy eligble
+                    // note I have changed the height from 170 originally so More log is visible as this is a lazy way of accessing easier since the texts are copy eligble
                     
                     // MARK: - : Proccessing log (itself) end
                     
@@ -2422,7 +2422,7 @@ struct ContentView: View {
     @State private var showEnlargedColorEqualizer: Bool = false
     @State private var showPiPPreview: Bool = false
     @State private var editorState: EditorState? = nil
-
+    
     init(runner: UpscaleRunner = UpscaleRunner()) {
         _runner = StateObject(wrappedValue: runner)
     }
@@ -2436,27 +2436,27 @@ struct ContentView: View {
                         .zIndex(2)
                     
                     InputSection(inputPath: $runner.inputPath,
-                                chooseInput: chooseInput,
-                                settings: runner.settings,
-                                isProcessingFullUpscale: runner.isRunning,
-                                onFrameDoubleTap: { image in
-                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                        enlargedFrameImage = image
-                                    }
-                                },
-                                onRestorationFiltersDrag: {
-                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                        showEnlargedRestorationFilters = true
-                                    }
-                                },
-                                onColorEqualizerDrag: {
-                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                        showEnlargedColorEqualizer = true
-                                    }
-                                },
-                                onEditorStateAvailable: { state in
-                                    editorState = state
-                                })
+                                 chooseInput: chooseInput,
+                                 settings: runner.settings,
+                                 isProcessingFullUpscale: runner.isRunning,
+                                 onFrameDoubleTap: { image in
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            enlargedFrameImage = image
+                        }
+                    },
+                                 onRestorationFiltersDrag: {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            showEnlargedRestorationFilters = true
+                        }
+                    },
+                                 onColorEqualizerDrag: {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            showEnlargedColorEqualizer = true
+                        }
+                    },
+                                 onEditorStateAvailable: { state in
+                        editorState = state
+                    })
                     
                     // Responsive two-column layout
                     adaptiveColumnsLayout(geometry: geometry)
@@ -2494,74 +2494,74 @@ struct ContentView: View {
         }
         // MARK: -  ---------- ENLARGED FRAME OVERLAY (covers entire app) ----------
         .overlay(
-                Group {
-                    // Enlarged Color Equalizer Panel
-                    if showEnlargedColorEqualizer {
-                        EnlargedColorEqualizerPanel(settings: runner.settings, isPresented: $showEnlargedColorEqualizer)
-                    }
-                    
-                    // Enlarged Restoration Filters Panel
-                    if showEnlargedRestorationFilters {
-                        EnlargedRestorationFiltersPanel(settings: runner.settings, isPresented: $showEnlargedRestorationFilters)
-                    }
-                    
-                    // Enlarged Frame Image
-                    if let img = enlargedFrameImage {
-                        ZStack {
-                            // Semi-transparent background covering entire window
-                            Color.black.opacity(0.85)
-                                .ignoresSafeArea(.all)
+            Group {
+                // Enlarged Color Equalizer Panel
+                if showEnlargedColorEqualizer {
+                    EnlargedColorEqualizerPanel(settings: runner.settings, isPresented: $showEnlargedColorEqualizer)
+                }
+                
+                // Enlarged Restoration Filters Panel
+                if showEnlargedRestorationFilters {
+                    EnlargedRestorationFiltersPanel(settings: runner.settings, isPresented: $showEnlargedRestorationFilters)
+                }
+                
+                // Enlarged Frame Image
+                if let img = enlargedFrameImage {
+                    ZStack {
+                        // Semi-transparent background covering entire window
+                        Color.black.opacity(0.85)
+                            .ignoresSafeArea(.all)
+                            .onTapGesture(count: 2) {
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                    enlargedFrameImage = nil
+                                }
+                            }
+                        
+                        // Enlarged image centered
+                        VStack {
+                            Spacer()
+                            
+                            Image(nsImage: img)
+                                .resizable()
+                                .scaledToFit()
+                                .cornerRadius(12)
+                                .shadow(color: Color.black.opacity(0.5), radius: 20, x: 0, y: 10)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .padding(40)
                                 .onTapGesture(count: 2) {
                                     withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                                         enlargedFrameImage = nil
                                     }
                                 }
                             
-                            // Enlarged image centered
-                            VStack {
-                                Spacer()
-                                
-                                Image(nsImage: img)
-                                    .resizable()
-                                    .scaledToFit()
-                                    .cornerRadius(12)
-                                    .shadow(color: Color.black.opacity(0.5), radius: 20, x: 0, y: 10)
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                    .padding(40)
-                                    .onTapGesture(count: 2) {
-                                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                            enlargedFrameImage = nil
-                                        }
-                                    }
-                                
-                                Spacer()
-                                
-                                // Hint text
-                                HStack {
-                                    Text("Double-click to close")
-                                        .font(.caption)
-                                        .foregroundColor(.white.opacity(0.6))
-                                    Text("•")
-                                        .font(.caption)
-                                        .foregroundColor(.white.opacity(0.4))
-                                    Text("Press ESC")
-                                        .font(.caption)
-                                        .foregroundColor(.white.opacity(0.6))
-                                }
-                                .padding(.bottom, 20)
+                            Spacer()
+                            
+                            // Hint text
+                            HStack {
+                                Text("Double-click to close")
+                                    .font(.caption)
+                                    .foregroundColor(.white.opacity(0.6))
+                                Text("•")
+                                    .font(.caption)
+                                    .foregroundColor(.white.opacity(0.4))
+                                Text("Press ESC")
+                                    .font(.caption)
+                                    .foregroundColor(.white.opacity(0.6))
                             }
-                        }
-                        .transition(.opacity.combined(with: .scale(scale: 0.9)))
-                        .zIndex(10000)  // Very high z-index to ensure it's on top
-                        .focusable()
-                        .onKeyPress(.escape) {
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                enlargedFrameImage = nil
-                            }
-                            return .handled
+                            .padding(.bottom, 20)
                         }
                     }
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                    .zIndex(10000)  // Very high z-index to ensure it's on top
+                    .focusable()
+                    .onKeyPress(.escape) {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            enlargedFrameImage = nil
+                        }
+                        return .handled
+                    }
                 }
+            }
         )
         .onChange(of: runner.inputPath) { _, _ in
             // Reset enlarged frame, restoration filters, and color equalizer when new video is imported
@@ -2660,9 +2660,9 @@ struct ContentView: View {
             // Group 3: Output & Controls
             MatteCardGroup(spacing: 8) {
                 OutputPanel(outputMode: $runner.outputMode,
-                           customOutputFolder: $runner.customOutputFolder,
-                           predictedName: runner.predictedOutputName,
-                           chooseFolder: chooseOutputFolder)
+                            customOutputFolder: $runner.customOutputFolder,
+                            predictedName: runner.predictedOutputName,
+                            chooseFolder: chooseOutputFolder)
                 
                 // PiP Toggle Button
                 Button(action: {

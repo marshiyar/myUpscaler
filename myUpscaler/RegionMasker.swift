@@ -71,7 +71,7 @@ final class RegionMasker {
         }
         
         let url = URL(fileURLWithPath: inputPath)
-        let asset = AVAsset(url: url)
+        let asset = AVURLAsset(url: url)
         guard let track = asset.tracks(withMediaType: .video).first else {
             return RegionMaskOutput(context: nil, summary: RegionMaskSummary(edge: 0, noise: 0, block: 0, band: 0, text: 0), notes: ["Region masks skipped (no video track)."])
         }

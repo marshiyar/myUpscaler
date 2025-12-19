@@ -22,15 +22,10 @@
 #include <sys/select.h>
 #include <mach-o/dyld.h>
 #include <limits.h>
-
-
 #include "up60p.h"
 #include "Up60PBridging.h"
-//
-//#ifdef UP60P_LIBRARY_MODE
-//#else
-//
-//#endif
+
+
 
 static int execute_ffmpeg_command(char *const argv[]) {
     int stdout_pipe[2];
@@ -44,7 +39,7 @@ static int execute_ffmpeg_command(char *const argv[]) {
     
     pid = fork();
     if (pid == 0) {
-        // child
+        
         dup2(stdout_pipe[1], STDOUT_FILENO);
         dup2(stderr_pipe[1], STDERR_FILENO);
         
@@ -55,7 +50,6 @@ static int execute_ffmpeg_command(char *const argv[]) {
         
         execvp(argv[0], argv);
         
-        // exec failed
         fprintf(stderr, "execvp failed: %s (%d)\n", strerror(errno), errno);
         _exit(127);
     }
@@ -1561,7 +1555,9 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
         sb_fmt(&vf, "hqdn3d=%.2f:%.2f:%.2f:%.2f,", luma, chroma, luma_tmp, chroma_tmp);
     }
     
-    if (!S.no_denoise) {
+    /* denoise (skip heavy filters in preview mode for macOS performance) */
+    bool is_preview = S.preview != 0;
+    if (!S.no_denoise && !is_preview) {
         if (!strcmp(S.denoiser, "bm3d")) {
             if (!strcmp(S.denoise_strength, "auto")) sb_append(&vf, "bm3d=estim=final:planes=1,");
             else {
@@ -1583,7 +1579,8 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
     }
     
     
-    if (!img && !S.no_interpolate) {
+    /* temporal interpolation (skip in preview mode for macOS performance) */
+    if (!img && !S.no_interpolate && !is_preview) {
         if (!strcmp(S.fps, "source") || !strcmp(S.fps, "lock")) {
             sb_fmt(&vf, "minterpolate=mi_mode=%s:mc_mode=aobmc:me_mode=bidir:vsbmc=1,", S.mi_mode);
         } else {
@@ -1593,24 +1590,51 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
     
     
     
+    /* --- scaler selection (macOS / VideoToolbox only) --- */
     if (!strcmp(S.scaler, "zscale")) {
-        sb_fmt(&vf, "zscale=w=trunc(iw*%s/2)*2:h=trunc(ih*%s/2)*2:filter=lanczos:dither=error_diffusion,", S.scale_factor, S.scale_factor);
+        sb_fmt(&vf,
+               "zscale=w=trunc(iw*%s/2)*2:"
+               "h=trunc(ih*%s/2)*2:"
+               "filter=lanczos:dither=error_diffusion,",
+               S.scale_factor, S.scale_factor);
+
     } else if (!strcmp(S.scaler, "ai")) {
         if (!strcmp(S.ai_backend, "sr")) {
-            sb_fmt(&vf, "sr=dnn_backend=%s:model='%s'", S.dnn_backend, S.ai_model);
-            if (!strcmp(S.ai_model_type, "srcnn")) sb_fmt(&vf, ":scale_factor=%s", S.scale_factor);
+            sb_fmt(&vf, "sr=dnn_backend=%s:model='%s'",
+                   S.dnn_backend, S.ai_model);
+            if (!strcmp(S.ai_model_type, "srcnn"))
+                sb_fmt(&vf, ":scale_factor=%s", S.scale_factor);
             sb_append(&vf, ",");
         } else {
-            sb_fmt(&vf, "dnn_processing=dnn_backend=%s:model='%s':input=x:output=y,", S.dnn_backend, S.ai_model);
+            sb_fmt(&vf,
+                   "dnn_processing=dnn_backend=%s:model='%s':input=x:output=y,",
+                   S.dnn_backend, S.ai_model);
         }
+
     } else if (!strcmp(S.scaler, "hw")) {
-        if (!strcmp(S.hwaccel,"cuda")) {
-            sb_fmt(&vf, "scale_npp=trunc(iw*%s/2)*2:trunc(ih*%s/2)*2,", S.scale_factor, S.scale_factor);
+        /* macOS hardware scaling via VideoToolbox */
+        if (!strcmp(S.hwaccel, "videotoolbox")) {
+            sb_fmt(&vf,
+                   "scale_vt=w=trunc(iw*%s/2)*2:"
+                   "h=trunc(ih*%s/2)*2,",
+                   S.scale_factor, S.scale_factor);
+
         } else {
-            sb_fmt(&vf, "scale=trunc(iw*%s/2)*2:trunc(ih*%s/2)*2:flags=lanczos,", S.scale_factor, S.scale_factor);
+            /* fallback to CPU Lanczos */
+            sb_fmt(&vf,
+                   "scale=trunc(iw*%s/2)*2:"
+                   "trunc(ih*%s/2)*2:"
+                   "flags=lanczos+accurate_rnd,",
+                   S.scale_factor, S.scale_factor);
         }
+
     } else {
-        sb_fmt(&vf, "scale=trunc(iw*%s/2)*2:trunc(ih*%s/2)*2:flags=lanczos+accurate_rnd,", S.scale_factor, S.scale_factor);
+        /* default CPU Lanczos */
+        sb_fmt(&vf,
+               "scale=trunc(iw*%s/2)*2:"
+               "trunc(ih*%s/2)*2:"
+               "flags=lanczos+accurate_rnd,",
+               S.scale_factor, S.scale_factor);
     }
     
     
@@ -1675,7 +1699,7 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
         sb_fmt(&vf, "hqdn3d=%.2f:%.2f:%.2f:%.2f,", luma, chroma, luma_tmp, chroma_tmp);
     }
     
-    if (S.use_denoise_2 && !S.no_denoise) {
+    if (S.use_denoise_2 && !S.no_denoise && !is_preview) {
         if (!strcmp(S.denoiser_2, "bm3d")) {
             if (!strcmp(S.denoise_strength_2, "auto")) sb_append(&vf, "bm3d=estim=final:planes=1,");
             else {
@@ -1766,12 +1790,20 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
     
     char *args[128]; int a=0;
     args[a++] = (char*)ffmpeg; args[a++] = "-hide_banner"; args[a++] = "-loglevel"; args[a++] = "error"; args[a++] = "-stats"; args[a++] = "-y";
-    if (strcmp(S.hwaccel,"none")) {
-        args[a++] = "-hwaccel"; args[a++] = S.hwaccel;
+    /* --- hwaccel args (macOS only) --- */
+    if (strcmp(S.hwaccel, "none")) {
+        args[a++] = "-hwaccel";
+        args[a++] = S.hwaccel;
+
         if (!strcmp(S.hwaccel, "videotoolbox")) {
-            
-            
-            
+            /*
+             * On macOS, VideoToolbox decoding is usually negotiated automatically.
+             * Optionally you may set -hwaccel_output_format videotoolbox on recent FFmpeg
+             * builds, but it's commonly not required. Keep the comment for future.
+             *
+             * args[a++] = "-hwaccel_output_format";
+             * args[a++] = "videotoolbox";
+             */
         }
     }
     args[a++] = "-i"; args[a++] = (char*)in;

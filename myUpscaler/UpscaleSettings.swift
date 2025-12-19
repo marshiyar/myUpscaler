@@ -676,7 +676,7 @@ class UpscaleSettings: ObservableObject {
     }
     
     // Unsharp Mask specific ranges
-    var usmRadiusRange: ClosedRange<Double> { 3.0...23.0 }
+    var usmRadiusRange: ClosedRange<Double> { 3.0...12.0 }
     var usmRadiusDefault: Double { 5.0 }
     var usmRadiusStep: Double { 1.0 }
     
@@ -684,7 +684,7 @@ class UpscaleSettings: ObservableObject {
     var usmAmountDefault: Double { 1.0 }
     var usmAmountStep: Double { 0.01 }
     
-    var usmThresholdRange: ClosedRange<Double> { 0.0...1.0 }
+    var usmThresholdRange: ClosedRange<Double> { 0.0...0.03 }
     var usmThresholdDefault: Double { 0.03 }
     var usmThresholdStep: Double { 0.001 }
     

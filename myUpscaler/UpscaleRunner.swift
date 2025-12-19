@@ -19,8 +19,10 @@ class UpscaleRunner: ObservableObject {
     private let fileSystem: FileSystemProtocol
     private let engine: EngineProtocol
     private let assetLoader: AssetLoaderProtocol
-    private let qualityAnalyzer = QualityAnalyzer()
-    private let regionMasker = RegionMasker()
+    // DISABLED: Quality Analyzer feature (kept commented for reference)
+    // private let qualityAnalyzer = QualityAnalyzer()
+    // DISABLED: Region Masker feature (kept commented for reference)
+    // private let regionMasker = RegionMasker()
     
     // MARK: - Input/Output Configuration
     @Published var inputPath = ""
@@ -209,9 +211,15 @@ class UpscaleRunner: ObservableObject {
         content += "no_deband=\"\(s.noDeband ? 1 : 0)\"\n"
         content += "no_eq=\"\(s.noEq ? 1 : 0)\"\n"
         content += "no_grain=\"\(s.noGrain ? 1 : 0)\"\n"
-        content += "region_masks=\"\(s.regionMasksEnabled ? 1 : 0)\"\n"
-        content += "quality_analyzer=\"\(s.useQualityAnalyzer ? 1 : 0)\"\n"
-        content += "drift_guard=\"\(s.useDriftGuard ? 1 : 0)\"\n"
+        // DISABLED: Region Masks flag forced off
+        // content += "region_masks=\"\(s.regionMasksEnabled ? 1 : 0)\"\n"
+        content += "region_masks=\"0\"\n"
+        // DISABLED: Quality Analyzer flag forced off
+        // content += "quality_analyzer=\"\(s.useQualityAnalyzer ? 1 : 0)\"\n"
+        content += "quality_analyzer=\"0\"\n"
+        // DISABLED: Drift Guard flag forced off
+        // content += "drift_guard=\"\(s.useDriftGuard ? 1 : 0)\"\n"
+        content += "drift_guard=\"0\"\n"
         content += "pci_safe_mode=\"\(s.pciSafe ? 1 : 0)\"\n"
 
         _ = URL(fileURLWithPath: presetFile)
@@ -422,44 +430,21 @@ class UpscaleRunner: ObservableObject {
                 try Task.checkCancellation()
                 
                 var tunedSettings = capturedSettings
-                if await tunedSettings.useQualityAnalyzer {
-                    let analysis = await self.qualityAnalyzer.analyze(inputPath: capturedInputPath)
-                    tunedSettings = await tunedSettings.tuned(using: analysis)
-                    
-                    await MainActor.run {
-                        self.log.append("Quality Analyzer activated.\n")
-                        for line in analysis.summaryLines {
-                            self.log.append("  \(line)\n")
-                        }
-                        self.log.append("\n")
-                    }
-                } else {
-                    await MainActor.run {
-                        self.log.append("Quality Analyzer disabled.\n\n")
-                    }
+                tunedSettings.useQualityAnalyzer = false
+                tunedSettings.regionMasksEnabled = false
+                tunedSettings.useDriftGuard = false
+
+                // DISABLED: Quality Analyzer pipeline (kept off to avoid impacting other pipelines)
+                await MainActor.run {
+                    self.log.append("Quality Analyzer disabled globally.\n\n")
                 }
-                var regionContext: RegionMaskContext? = nil
-                if await tunedSettings.regionMasksEnabled {
-                    let maskOutput = await self.regionMasker.analyze(inputPath: capturedInputPath)
-                    tunedSettings = await tunedSettings.regionAdjusted(using: maskOutput.summary, enabled: true)
-                    
-                    await MainActor.run {
-                        self.log.append("Region Masker activated.\n")
-                        self.log.append(String(format: "  edge=%.3f noise=%.3f block=%.3f band=%.3f text=%.3f\n", maskOutput.summary.edge, maskOutput.summary.noise, maskOutput.summary.block, maskOutput.summary.band, maskOutput.summary.text))
-                        for note in maskOutput.notes {
-                            self.log.append("  \(note)\n")
-                        }
-                        self.log.append("\n")
-                    }
-                    
-                    regionContext = maskOutput.context
-                    if let core = selectedEngine as? CoreMLEngine {
-                        core.regionContext = regionContext
-                    }
-                } else {
-                    await MainActor.run {
-                        self.log.append("Region Masker disabled.\n\n")
-                    }
+
+                // DISABLED: Region Masker pipeline (kept off to avoid impacting other pipelines)
+                if let core = selectedEngine as? CoreMLEngine {
+                    core.regionContext = nil
+                }
+                await MainActor.run {
+                    self.log.append("Region Masker disabled globally.\n\n")
                 }
                 try await selectedEngine.process(
                     inputPath: capturedInputPath,

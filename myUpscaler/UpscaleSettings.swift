@@ -438,9 +438,12 @@ class UpscaleSettings: ObservableObject {
     @Published var noDeband: Bool = false
     @Published var noEq: Bool = false
     @Published var noGrain: Bool = false
-    @Published var regionMasksEnabled: Bool = true
-    @Published var useQualityAnalyzer: Bool = true
-    @Published var useDriftGuard: Bool = true
+    // DISABLED: Region Masks defaulted off
+    @Published var regionMasksEnabled: Bool = false
+    // DISABLED: Quality Analyzer defaulted off
+    @Published var useQualityAnalyzer: Bool = false
+    // DISABLED: Drift Guard defaulted off
+    @Published var useDriftGuard: Bool = false
     @Published var pciSafe: Bool = false
     @Published var dryRun: Bool = false
     @Published var preview: Bool = false
@@ -1158,9 +1161,10 @@ class UpscaleSettings: ObservableObject {
         noDeband = false
         noEq = false
         noGrain = false
-        regionMasksEnabled = true
-        useQualityAnalyzer = true
-        useDriftGuard = true
+        // DISABLED: keep advanced features off during resets
+        regionMasksEnabled = false
+        useQualityAnalyzer = false
+        useDriftGuard = false
         pciSafe = false
         dryRun = false
         preview = false

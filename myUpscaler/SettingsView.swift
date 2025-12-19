@@ -81,9 +81,12 @@ struct SettingsView: View {
                     Toggle(isOn: $settings.noDeband)  { Label("Disable Deband",  systemImage: "xmark.circle") }
                     Toggle(isOn: $settings.noEq)      { Label("Disable EQ",      systemImage: "xmark.circle") }
                     Toggle(isOn: $settings.noGrain)   { Label("Disable Grain",   systemImage: "xmark.circle") }
-                    Toggle(isOn: $settings.regionMasksEnabled) { Label("Region Masks", systemImage: "square.stack.3d.down.forward") }
-                    Toggle(isOn: $settings.useQualityAnalyzer) { Label("Quality Analyzer", systemImage: "waveform.path.ecg") }
-                    Toggle(isOn: $settings.useDriftGuard) { Label("Drift Guard (AI Stability)", systemImage: "shield.lefthalf.filled") }
+                    // DISABLED: Region Masks toggle removed to keep feature off
+                    // Toggle(isOn: $settings.regionMasksEnabled) { Label("Region Masks", systemImage: "square.stack.3d.down.forward") }
+                    // DISABLED: Quality Analyzer toggle removed to keep feature off
+                    // Toggle(isOn: $settings.useQualityAnalyzer) { Label("Quality Analyzer", systemImage: "waveform.path.ecg") }
+                    // DISABLED: Drift Guard toggle removed to keep feature off
+                    // Toggle(isOn: $settings.useDriftGuard) { Label("Drift Guard (AI Stability)", systemImage: "shield.lefthalf.filled") }
                     Toggle(isOn: $settings.pciSafe)   { Label("PCI Safe Mode",   systemImage: "shield") }
                 } header: {
                     Label("Advanced Toggles", systemImage: "slider.horizontal.below.rectangle")

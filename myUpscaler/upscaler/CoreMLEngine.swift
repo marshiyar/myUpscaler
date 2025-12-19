@@ -296,7 +296,8 @@ class CoreMLEngine: EngineProtocol {
     private var isCancelled = false
     private let driftGuard = DriftGuard()
     var regionContext: RegionMaskContext?
-    var driftGuardEnabled: Bool = true
+    // DISABLED: Drift Guard kept off globally
+    var driftGuardEnabled: Bool = false
     
     func setLogHandler(_ handler: @escaping (String) -> Void) {
         self.logHandler = handler
@@ -309,13 +310,40 @@ class CoreMLEngine: EngineProtocol {
     func cancel() {
         isCancelled = true
     }
+
+    private func logEffectiveKnobs(settings: UpscaleSettings) {
+        let shaderStages = [
+            settings.enableColorLinearize ? "linearize" : nil,
+            settings.enableToneMap ? "tone-map" : nil,
+            (!settings.noDenoise && settings.denoiseStrength != "0") ? "denoise" : nil,
+            (!settings.noDeband && settings.debandStrength != "0") ? "deband" : nil,
+            (!settings.noSharpen && settings.sharpenStrength != "0") ? (settings.sharpenMethod == "unsharp" ? "USM" : "CAS") : nil,
+            settings.useLaplacianSharpen ? "laplacian" : nil,
+            settings.useDehalo ? "dehalo" : nil,
+            settings.useMoireSuppress ? "moire" : nil,
+            settings.useTemporalSmoothing ? "temporal" : nil
+        ].compactMap { $0 }.joined(separator: ", ")
+
+        let feather = settings.tileFeatherMarginValue > 0
+        let featherNote = feather ? "\(settings.tileFeatherMarginValue)px \(settings.useCosineFeather ? "cosine" : "linear")" : "off"
+
+        log("CoreML honors: model=\(settings.coremlModelId.rawValue), scale=\(settings.scaleFactor)x, codec=\(settings.useHEVC ? "hevc" : "h264"), crf=\(Int(settings.crf)), tile feather=\(featherNote).\n")
+
+        let shaderNote = shaderStages.isEmpty ? "none (default pass-through)" : shaderStages
+        log("CoreML shader stages active: \(shaderNote).\n")
+
+        log("CoreML ignores FFmpeg-only toggles (deblock/dering/interpolate/decimate/eq/grain/dnn/backend presets), so changing those sliders will not affect CoreML output.\n")
+    }
     
     func process(inputPath: String, settings: UpscaleSettings, outputDirectory: String) async throws {
         isCancelled = false
         log("CoreML Engine: Starting processing...\n")
         let regionContext = self.regionContext
         self.regionContext = nil
-        let driftGuardEnabled = settings.useDriftGuard
+        // DISABLED: Drift Guard is force-disabled regardless of settings
+        let driftGuardEnabled = false
+        log("CoreML Notice: Drift Guard disabled and region masks cleared; CoreML will run without stabilization/region weighting.\n")
+        logEffectiveKnobs(settings: settings)
         let modelSpec = CoreMLModelRegistry.model(for: settings.coremlModelId)
         
         

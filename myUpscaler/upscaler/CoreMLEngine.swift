@@ -311,7 +311,7 @@ class CoreMLEngine: EngineProtocol {
         isCancelled = true
     }
 
-    private func logEffectiveKnobs(settings: UpscaleSettings) {
+    private func logEffectiveKnobs(settings: UpscaleSettings, useHEVC: Bool) {
         let shaderStages = [
             settings.enableColorLinearize ? "linearize" : nil,
             settings.enableToneMap ? "tone-map" : nil,
@@ -327,7 +327,7 @@ class CoreMLEngine: EngineProtocol {
         let feather = settings.tileFeatherMarginValue > 0
         let featherNote = feather ? "\(settings.tileFeatherMarginValue)px \(settings.useCosineFeather ? "cosine" : "linear")" : "off"
 
-        log("CoreML honors: model=\(settings.coremlModelId.rawValue), scale=\(settings.scaleFactor)x, codec=\(settings.useHEVC ? "hevc" : "h264"), crf=\(Int(settings.crf)), tile feather=\(featherNote).\n")
+        log("CoreML honors: model=\(settings.coremlModelId.rawValue), scale=\(settings.scaleFactor)x, codec=\(useHEVC ? "hevc" : "h264"), crf=\(Int(settings.crf)), tile feather=\(featherNote).\n")
 
         let shaderNote = shaderStages.isEmpty ? "none (default pass-through)" : shaderStages
         log("CoreML shader stages active: \(shaderNote).\n")
@@ -338,12 +338,16 @@ class CoreMLEngine: EngineProtocol {
     func process(inputPath: String, settings: UpscaleSettings, outputDirectory: String) async throws {
         isCancelled = false
         log("CoreML Engine: Starting processing...\n")
+        let codecDecision = CodecSupport.resolve(requestHEVC: settings.useHEVC)
+        if let message = codecDecision.message {
+            log(message)
+        }
         let regionContext = self.regionContext
         self.regionContext = nil
         // DISABLED: Drift Guard is force-disabled regardless of settings
         let driftGuardEnabled = false
         log("CoreML Notice: Drift Guard disabled and region masks cleared; CoreML will run without stabilization/region weighting.\n")
-        logEffectiveKnobs(settings: settings)
+        logEffectiveKnobs(settings: settings, useHEVC: codecDecision.useHEVC)
         let modelSpec = CoreMLModelRegistry.model(for: settings.coremlModelId)
         
         
@@ -456,7 +460,7 @@ class CoreMLEngine: EngineProtocol {
         log("User scale factor: \(userScaleFactor)x (Model native: \(Int(modelScaleFactor))x)\n")
         
         
-        let videoCodec: AVVideoCodecType = settings.useHEVC ? .hevc : .h264
+        let videoCodec: AVVideoCodecType = codecDecision.useHEVC ? .hevc : .h264
         
         
         
@@ -470,7 +474,7 @@ class CoreMLEngine: EngineProtocol {
         ]
         
         
-        if settings.useHEVC {
+        if codecDecision.useHEVC {
             
             compressionProperties[AVVideoQualityKey] = crfFactor
         }
@@ -483,7 +487,7 @@ class CoreMLEngine: EngineProtocol {
             AVVideoCompressionPropertiesKey: compressionProperties
         ]
         
-        log("Output codec: \(settings.useHEVC ? "HEVC" : "H.264"), Bitrate: \(targetBitrate / 1_000_000) Mbps, CRF: \(Int(settings.crf))\n")
+        log("Output codec: \(codecDecision.useHEVC ? "HEVC" : "H.264"), Bitrate: \(targetBitrate / 1_000_000) Mbps, CRF: \(Int(settings.crf))\n")
         
         let writerInput = AVAssetWriterInput(mediaType: .video, outputSettings: videoSettings)
         writerInput.expectsMediaDataInRealTime = false

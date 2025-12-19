@@ -164,6 +164,16 @@ final class Up60PEngine {
         
         isInitialized = true
     }
+
+    private func log(_ message: String) {
+        Up60PEngine.logHandlerQueue.sync {
+            if let handler = Up60PEngine.currentLogHandler {
+                DispatchQueue.main.async {
+                    handler(message)
+                }
+            }
+        }
+    }
     
     deinit {
         Up60PEngine.bridge.shutdownFunc()
@@ -310,8 +320,14 @@ final class Up60PEngine {
                  outputDirectory: String) async throws {
         // Cancel any existing process
         cancel()
-        
-        
+
+        let codecDecision = CodecSupport.resolve(requestHEVC: settings.useHEVC)
+        if let message = codecDecision.message {
+            log(message)
+        }
+        settings.useHEVC = codecDecision.useHEVC
+
+
         struct StackingSnapshot {
             let has: Bool
             let sharpen: Bool

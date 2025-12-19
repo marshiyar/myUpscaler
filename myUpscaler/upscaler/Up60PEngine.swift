@@ -35,6 +35,8 @@ struct Up60PBridge {
     )
 }
 
+// MARK: -
+
 final class Up60PEngine {
     private static var _shared: Up60PEngine?
     private var isInitialized = false
@@ -57,7 +59,7 @@ final class Up60PEngine {
             currentLogHandler = handler
         }
     }
-
+    
     private init() {
         // Don't initialize here - do it lazily on first use
     }
@@ -105,17 +107,32 @@ final class Up60PEngine {
                 }
             }
         }
-
-        // Fallback: if no env var and bundled ffmpeg likely missing, try common system locations
+        
+        // Resolve bundled ffmpeg relative to the app executable (Contents/MacOS/ffmpeg)
         if getenv("UP60P_FFMPEG") == nil {
-            let fm = FileManager.default
-            let candidates = ["/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg", "/usr/bin/ffmpeg"]
-            if let first = candidates.first(where: { fm.isExecutableFile(atPath: $0) }) {
-                setenv("UP60P_FFMPEG", first, 1)
-                Up60PEngine.logHandlerQueue.sync {
-                    if let handler = Up60PEngine.currentLogHandler {
-                        DispatchQueue.main.async {
-                            handler("UP60P_FFMPEG not set. Using detected ffmpeg: \(first)\n")
+            if let exeURL = Bundle.main.executableURL {
+                let ffmpegURL = exeURL
+                    .deletingLastPathComponent()
+                    .appendingPathComponent("ffmpeg")
+                
+                if FileManager.default.isExecutableFile(atPath: ffmpegURL.path) {
+                    ffmpegURL.path.withCString { cStr in
+                        setenv("UP60P_FFMPEG", cStr, 1)
+                    }
+                    
+                    Up60PEngine.logHandlerQueue.sync {
+                        if let handler = Up60PEngine.currentLogHandler {
+                            DispatchQueue.main.async {
+                                handler("Using bundled ffmpeg at: \(ffmpegURL.path)\n")
+                            }
+                        }
+                    }
+                } else {
+                    Up60PEngine.logHandlerQueue.sync {
+                        if let handler = Up60PEngine.currentLogHandler {
+                            DispatchQueue.main.async {
+                                handler("ERROR: Bundled ffmpeg not found or not executable at expected path.\n")
+                            }
                         }
                     }
                 }
@@ -150,10 +167,20 @@ final class Up60PEngine {
         isInitialized = true
     }
 
+    private func log(_ message: String) {
+        Up60PEngine.logHandlerQueue.sync {
+            if let handler = Up60PEngine.currentLogHandler {
+                DispatchQueue.main.async {
+                    handler(message)
+                }
+            }
+        }
+    }
+    
     deinit {
         Up60PEngine.bridge.shutdownFunc()
     }
-
+    
     private func mapError(_ code: up60p_error) -> Up60PEngineError? {
         switch code {
         case UP60P_ERR_INVALID_OPTIONS:   return .invalidOptions
@@ -166,7 +193,7 @@ final class Up60PEngine {
             return .unknownStatus(Int32(code.rawValue))
         }
     }
-
+    
     // Helper to write a Swift String into a fixed-size C char[] field
     private func setString<T>(_ field: inout T, _ capacity: Int, _ value: String) {
         withUnsafeMutableBytes(of: &field) { bytes in
@@ -180,7 +207,9 @@ final class Up60PEngine {
             }
         }
     }
-
+    
+    // MARK: - 
+    
     private func makeOptions(from settings: UpscaleSettings,
                              outputDir: String) throws -> up60p_options
     {
@@ -188,21 +217,21 @@ final class Up60PEngine {
         
         var opts = up60p_options()
         Up60PEngine.bridge.defaultOptionsFunc(&opts)    // start from engine defaults / active preset
-
+        
         // MARK: Core
         setString(&opts.codec, MemoryLayout.size(ofValue: opts.codec), settings.useHEVC ? "hevc" : "h264")
         setString(&opts.crf, MemoryLayout.size(ofValue: opts.crf), String(Int(settings.crf)))
         setString(&opts.preset, MemoryLayout.size(ofValue: opts.preset), settings.preset)
         setString(&opts.fps, MemoryLayout.size(ofValue: opts.fps), settings.fps)
         setString(&opts.scale_factor, MemoryLayout.size(ofValue: opts.scale_factor), String(format: "%.2f", settings.scaleFactor))
-
+        
         // MARK: Scaler / AI
         setString(&opts.scaler, MemoryLayout.size(ofValue: opts.scaler), settings.scaler)
         setString(&opts.ai_backend, MemoryLayout.size(ofValue: opts.ai_backend), settings.aiBackend)
         setString(&opts.ai_model, MemoryLayout.size(ofValue: opts.ai_model), settings.aiModelPath)
         setString(&opts.ai_model_type, MemoryLayout.size(ofValue: opts.ai_model_type), settings.aiModelType)
         setString(&opts.dnn_backend, MemoryLayout.size(ofValue: opts.dnn_backend), settings.dnnBackend)
-
+        
         // MARK: Filters – first set
         setString(&opts.denoiser, MemoryLayout.size(ofValue: opts.denoiser), settings.denoiser)
         setString(&opts.denoise_strength, MemoryLayout.size(ofValue: opts.denoise_strength), settings.denoiseStrength)
@@ -210,21 +239,21 @@ final class Up60PEngine {
         setString(&opts.deblock_thresh, MemoryLayout.size(ofValue: opts.deblock_thresh), settings.deblockThresh)
         opts.dering_active = settings.deringActive ? 1 : 0
         setString(&opts.dering_strength, MemoryLayout.size(ofValue: opts.dering_strength), settings.deringStrength)
-
+        
         setString(&opts.sharpen_method, MemoryLayout.size(ofValue: opts.sharpen_method), settings.sharpenMethod)
         setString(&opts.sharpen_strength, MemoryLayout.size(ofValue: opts.sharpen_strength), settings.sharpenStrength)
         setString(&opts.usm_radius, MemoryLayout.size(ofValue: opts.usm_radius), settings.usmRadius)
         setString(&opts.usm_amount, MemoryLayout.size(ofValue: opts.usm_amount), settings.usmAmount)
         setString(&opts.usm_threshold, MemoryLayout.size(ofValue: opts.usm_threshold), settings.usmThreshold)
-
+        
         setString(&opts.deband_method, MemoryLayout.size(ofValue: opts.deband_method), settings.debandMethod)
         setString(&opts.deband_strength, MemoryLayout.size(ofValue: opts.deband_strength), settings.debandStrength)
         setString(&opts.f3kdb_range, MemoryLayout.size(ofValue: opts.f3kdb_range), settings.f3kdbRange)
         setString(&opts.f3kdb_y, MemoryLayout.size(ofValue: opts.f3kdb_y), settings.f3kdbY)
         setString(&opts.f3kdb_cbcr, MemoryLayout.size(ofValue: opts.f3kdb_cbcr), settings.f3kdbCbCr)
-
+        
         setString(&opts.grain_strength, MemoryLayout.size(ofValue: opts.grain_strength), settings.grainStrength)
-
+        
         // MARK: Second set (using EFFECTIVE values for intelligent attenuation when stacking)
         setString(&opts.denoiser_2, MemoryLayout.size(ofValue: opts.denoiser_2), settings.denoiser2)
         // Use EFFECTIVE (attenuated) denoise strength for second set
@@ -233,30 +262,30 @@ final class Up60PEngine {
         setString(&opts.deblock_thresh_2, MemoryLayout.size(ofValue: opts.deblock_thresh_2), settings.deblockThresh2)
         opts.dering_active_2 = settings.deringActive2 ? 1 : 0
         setString(&opts.dering_strength_2, MemoryLayout.size(ofValue: opts.dering_strength_2), settings.deringStrength2)
-
+        
         setString(&opts.sharpen_method_2, MemoryLayout.size(ofValue: opts.sharpen_method_2), settings.sharpenMethod2)
         // Use EFFECTIVE (attenuated) values for second set to prevent over-processing when stacking
         setString(&opts.sharpen_strength_2, MemoryLayout.size(ofValue: opts.sharpen_strength_2), settings.effectiveSharpenStrength2)
         setString(&opts.usm_radius_2, MemoryLayout.size(ofValue: opts.usm_radius_2), settings.effectiveUsmRadius2)
         setString(&opts.usm_amount_2, MemoryLayout.size(ofValue: opts.usm_amount_2), settings.effectiveUsmAmount2)
         setString(&opts.usm_threshold_2, MemoryLayout.size(ofValue: opts.usm_threshold_2), settings.usmThreshold2)
-
+        
         setString(&opts.deband_method_2, MemoryLayout.size(ofValue: opts.deband_method_2), settings.debandMethod2)
         // Use EFFECTIVE (attenuated) deband values for second set
         setString(&opts.deband_strength_2, MemoryLayout.size(ofValue: opts.deband_strength_2), settings.effectiveDebandStrength2)
         setString(&opts.f3kdb_range_2, MemoryLayout.size(ofValue: opts.f3kdb_range_2), settings.f3kdbRange2)
         setString(&opts.f3kdb_y_2, MemoryLayout.size(ofValue: opts.f3kdb_y_2), settings.effectiveF3kdbY2)
         setString(&opts.f3kdb_cbcr_2, MemoryLayout.size(ofValue: opts.f3kdb_cbcr_2), settings.effectiveF3kdbCbCr2)
-
+        
         setString(&opts.grain_strength_2, MemoryLayout.size(ofValue: opts.grain_strength_2), settings.grainStrength2)
-
+        
         opts.use_denoise_2 = settings.useDenoise2 ? 1 : 0
         opts.use_deblock_2 = settings.useDeblock2 ? 1 : 0
         opts.use_dering_2  = settings.useDering2  ? 1 : 0
         opts.use_sharpen_2 = settings.useSharpen2 ? 1 : 0
         opts.use_deband_2  = settings.useDeband2  ? 1 : 0
         opts.use_grain_2   = settings.useGrain2   ? 1 : 0
-
+        
         // MARK: Other
         setString(&opts.mi_mode, MemoryLayout.size(ofValue: opts.mi_mode), settings.interpolation)
         setString(&opts.eq_contrast, MemoryLayout.size(ofValue: opts.eq_contrast), settings.eqContrast)
@@ -264,12 +293,12 @@ final class Up60PEngine {
         setString(&opts.eq_saturation, MemoryLayout.size(ofValue: opts.eq_saturation), settings.eqSaturation)
         setString(&opts.lut3d_file, MemoryLayout.size(ofValue: opts.lut3d_file), settings.lutPath)
         setString(&opts.x265_params, MemoryLayout.size(ofValue: opts.x265_params), settings.x265Params)
-
+        
         setString(&opts.outdir, MemoryLayout.size(ofValue: opts.outdir), outputDir)
         setString(&opts.audio_bitrate, MemoryLayout.size(ofValue: opts.audio_bitrate), settings.audioBitrate)
         setString(&opts.threads, MemoryLayout.size(ofValue: opts.threads), settings.threads)
         setString(&opts.movflags, MemoryLayout.size(ofValue: opts.movflags), settings.movflags)
-
+        
         opts.use10        = settings.use10Bit ? 1 : 0
         opts.preview      = settings.preview  ? 1 : 0
         opts.no_deblock   = settings.noDeblock ? 1 : 0
@@ -281,13 +310,13 @@ final class Up60PEngine {
         opts.no_eq        = settings.noEq ? 1 : 0
         opts.no_grain     = settings.noGrain ? 1 : 0
         opts.pci_safe_mode = settings.pciSafe ? 1 : 0
-
+        
         setString(&opts.hwaccel, MemoryLayout.size(ofValue: opts.hwaccel), settings.hwAccel)
         setString(&opts.encoder, MemoryLayout.size(ofValue: opts.encoder), settings.encoder)
-
+        
         return opts
     }
-
+    
     private var currentProcessTask: Task<Void, Never>?
     
     func process(inputPath: String,
@@ -295,7 +324,13 @@ final class Up60PEngine {
                  outputDirectory: String) async throws {
         // Cancel any existing process
         cancel()
-        
+
+        let codecDecision = CodecSupport.resolve(requestHEVC: settings.useHEVC)
+        if let message = codecDecision.message {
+            log(message)
+        }
+        settings.useHEVC = codecDecision.useHEVC
+
 
         struct StackingSnapshot {
             let has: Bool
@@ -306,7 +341,7 @@ final class Up60PEngine {
             let denoisePct: Int
             let debandPct: Int
         }
-
+        
         // Capture stacking info on the MainActor to avoid isolation issues later
         let stackingSnapshot = await MainActor.run { () -> StackingSnapshot in
             let has = settings.hasFilterStacking
@@ -412,10 +447,11 @@ final class Up60PEngine {
         guard let task = currentProcessTask else { return }
         Up60PEngine.bridge.cancelFunc()
         task.cancel()
-
-        Task.detached { [weak self] in
+        
+        let engine = self
+        Task.detached {
             await task.value
-
+            
             Up60PEngine.logHandlerQueue.sync {
                 if let handler = Up60PEngine.currentLogHandler {
                     DispatchQueue.main.async {
@@ -423,8 +459,10 @@ final class Up60PEngine {
                     }
                 }
             }
-
-            self?.currentProcessTask = nil
+            
+            await MainActor.run {
+                engine.currentProcessTask = nil
+            }
         }
     }
     
@@ -444,7 +482,7 @@ final class Up60PEngine {
     static func resetBridgeForTesting() {
         bridgeOverride = nil
     }
-
+    
     /// Expose error mapping for tests
     func mapErrorForTesting(_ code: up60p_error) -> Up60PEngineError? {
         mapError(code)

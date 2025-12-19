@@ -131,7 +131,7 @@ final class EditorState: ObservableObject {
             }
             .store(in: &cancellables)
 
-        // MARK: Sync from external settings if provided
+        // MARK: -  Sync from external settings if provided
         if let settings = settings {
             syncFromSettings(settings)
             
@@ -272,7 +272,7 @@ final class EditorState: ObservableObject {
             .store(in: &cancellables)
         }
 
-        // MARK: Real-time filter updates (throttled for performance)
+        // MARK: -  Real-time filter updates (throttled for performance)
         // Use throttle instead of debounce for immediate updates during dragging
         // First set
         let p1 = $contrast.map { _ in () }.eraseToAnyPublisher()
@@ -313,7 +313,7 @@ final class EditorState: ObservableObject {
             .store(in: &cancellables)
     }
     
-    // MARK: Sync from UpscaleSettings
+    // MARK: -  Sync from UpscaleSettings
     func syncFromSettings(_ settings: UpscaleSettings) {
         // First set
         contrast = Double(settings.eqContrast) ?? 1.03
@@ -342,7 +342,7 @@ final class EditorState: ObservableObject {
         usmThreshold2 = Double(settings.usmThreshold2) ?? 0.0
     }
 
-    // MARK: Reset
+    // MARK: -  Reset
     func reset() {
         thumbnailImage = nil
         originalThumbnail = nil
@@ -364,7 +364,7 @@ final class EditorState: ObservableObject {
         }
     }
 
-    // MARK: Load Thumbnail
+    // MARK: - Load Thumbnail
     func loadThumbnail(_ path: String) {
         let url = URL(fileURLWithPath: path)
         let ext = url.pathExtension.lowercased()
@@ -401,7 +401,7 @@ final class EditorState: ObservableObject {
         }
     }
 
-    // MARK: Load Timeline
+    // MARK: -  Load Timeline
     func loadTimeline(_ path: String) {
         let url = URL(fileURLWithPath: path)
         let ext = url.pathExtension.lowercased()
@@ -470,7 +470,7 @@ final class EditorState: ObservableObject {
         }
     }
 
-    // MARK: Load Full-Res Frame
+    // MARK: -  Load Full-Res Frame
     func loadFullResolutionFrame(at timeSeconds: Double) {
         if videoAsset == nil, !timelineFrames.isEmpty {
              if let original = originalThumbnail {
@@ -524,7 +524,7 @@ final class EditorState: ObservableObject {
         }
     }
 
-    // MARK: Filters
+    // MARK: -  Filters
     func applyFilters() {
         guard let original = originalThumbnail else { return }
         guard !isProcessingFullUpscale else { return } // Skip during full upscaling
@@ -631,7 +631,7 @@ final class EditorState: ObservableObject {
         guard let cg = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return image }
         var ci = CIImage(cgImage: cg)
 
-        // ===== FIRST SET =====
+        // MARK: -  ===== FIRST SET =====
         
         // ----- Denoise (1st) -----
         if params.denoiseStrength > 0,
@@ -675,7 +675,8 @@ final class EditorState: ObservableObject {
             }
         }
         
-        // ===== SECOND SET (applies after first set) =====
+        
+        // MARK: - SECOND SET (applies after first set)
         
         // ----- Denoise (2nd) -----
         if params.useDenoise2 && params.denoiseStrength2 > 0,
@@ -732,8 +733,9 @@ final class EditorState: ObservableObject {
         guard let out = context.createCGImage(ci, from: ci.extent) else { return image }
         return NSImage(cgImage: out, size: .zero)
     }
+    
 
-    // MARK: Time formatting
+    // MARK: - Timing
     func formatTime(_ s: Double) -> String {
         let m = Int(s) / 60
         let sec = Int(s) % 60

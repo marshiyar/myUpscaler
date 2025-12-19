@@ -638,46 +638,100 @@ static void load_preset_file(const char *name, bool quiet) {
     char line[2048], key[64], val[1024];
     while (fgets(line, sizeof(line), fp)) {
         if (sscanf(line, "%63[^=]=\"%1023[^\"]\"", key, val) == 2) {
-            if (!strcmp(key, "codec")) strcpy(S.codec, val); else if (!strcmp(key, "crf")) strcpy(S.crf, val);
-            else if (!strcmp(key, "preset")) strcpy(S.preset, val); else if (!strcmp(key, "fps")) strcpy(S.fps, val);
-            else if (!strcmp(key, "scale_factor")) strcpy(S.scale_factor, val); else if (!strcmp(key, "scaler")) strcpy(S.scaler, val);
-            else if (!strcmp(key, "ai_backend")) strcpy(S.ai_backend, val); else if (!strcmp(key, "ai_model")) strcpy(S.ai_model, val);
-            else if (!strcmp(key, "ai_model_type")) strcpy(S.ai_model_type, val); else if (!strcmp(key, "dnn_backend")) strcpy(S.dnn_backend, val);
-            else if (!strcmp(key, "denoiser")) strcpy(S.denoiser, val); else if (!strcmp(key, "denoise_strength")) strcpy(S.denoise_strength, val);
-            else if (!strcmp(key, "deblock_mode")) strcpy(S.deblock_mode, val); else if (!strcmp(key, "deblock_thresh")) strcpy(S.deblock_thresh, val);
-            else if (!strcmp(key, "dering_active")) S.dering_active = atoi(val); else if (!strcmp(key, "dering_strength")) strcpy(S.dering_strength, val);
-            else if (!strcmp(key, "sharpen_method")) strcpy(S.sharpen_method, val); else if (!strcmp(key, "sharpen_strength")) strcpy(S.sharpen_strength, val);
-            else if (!strcmp(key, "usm_radius")) strcpy(S.usm_radius, val); else if (!strcmp(key, "usm_amount")) strcpy(S.usm_amount, val); else if (!strcmp(key, "usm_threshold")) strcpy(S.usm_threshold, val);
-            else if (!strcmp(key, "deband_method")) strcpy(S.deband_method, val); else if (!strcmp(key, "deband_strength")) strcpy(S.deband_strength, val);
-            else if (!strcmp(key, "f3kdb_range")) strcpy(S.f3kdb_range, val); else if (!strcmp(key, "f3kdb_y")) strcpy(S.f3kdb_y, val); else if (!strcmp(key, "f3kdb_cbcr")) strcpy(S.f3kdb_cbcr, val);
-            else if (!strcmp(key, "grain_strength")) strcpy(S.grain_strength, val);
-            else if (!strcmp(key, "denoiser_2")) strcpy(S.denoiser_2, val); else if (!strcmp(key, "denoise_strength_2")) strcpy(S.denoise_strength_2, val);
-            else if (!strcmp(key, "deblock_mode_2")) strcpy(S.deblock_mode_2, val); else if (!strcmp(key, "deblock_thresh_2")) strcpy(S.deblock_thresh_2, val);
-            else if (!strcmp(key, "dering_active_2")) S.dering_active_2 = atoi(val); else if (!strcmp(key, "dering_strength_2")) strcpy(S.dering_strength_2, val);
-            else if (!strcmp(key, "sharpen_method_2")) strcpy(S.sharpen_method_2, val); else if (!strcmp(key, "sharpen_strength_2")) strcpy(S.sharpen_strength_2, val);
-            else if (!strcmp(key, "usm_radius_2")) strcpy(S.usm_radius_2, val); else if (!strcmp(key, "usm_amount_2")) strcpy(S.usm_amount_2, val); else if (!strcmp(key, "usm_threshold_2")) strcpy(S.usm_threshold_2, val);
-            else if (!strcmp(key, "deband_method_2")) strcpy(S.deband_method_2, val); else if (!strcmp(key, "deband_strength_2")) strcpy(S.deband_strength_2, val);
-            else if (!strcmp(key, "f3kdb_range_2")) strcpy(S.f3kdb_range_2, val); else if (!strcmp(key, "f3kdb_y_2")) strcpy(S.f3kdb_y_2, val); else if (!strcmp(key, "f3kdb_cbcr_2")) strcpy(S.f3kdb_cbcr_2, val);
-            else if (!strcmp(key, "grain_strength_2")) strcpy(S.grain_strength_2, val);
+            if (!strcmp(key, "codec")) safe_copy(S.codec, val, sizeof(S.codec));
+            else if (!strcmp(key, "crf")) safe_copy(S.crf, val, sizeof(S.crf));
+            else if (!strcmp(key, "preset")) safe_copy(S.preset, val, sizeof(S.preset));
+            else if (!strcmp(key, "fps")) safe_copy(S.fps, val, sizeof(S.fps));
+            else if (!strcmp(key, "scale_factor")) safe_copy(S.scale_factor, val, sizeof(S.scale_factor));
+            else if (!strcmp(key, "scaler")) safe_copy(S.scaler, val, sizeof(S.scaler));
+            else if (!strcmp(key, "ai_backend")) safe_copy(S.ai_backend, val, sizeof(S.ai_backend));
+            else if (!strcmp(key, "ai_model")) safe_copy(S.ai_model, val, sizeof(S.ai_model));
+            else if (!strcmp(key, "ai_model_type")) safe_copy(S.ai_model_type, val, sizeof(S.ai_model_type));
+            else if (!strcmp(key, "dnn_backend")) safe_copy(S.dnn_backend, val, sizeof(S.dnn_backend));
+            
+            else if (!strcmp(key, "denoiser")) safe_copy(S.denoiser, val, sizeof(S.denoiser));
+            else if (!strcmp(key, "denoise_strength")) safe_copy(S.denoise_strength, val, sizeof(S.denoise_strength));
+            else if (!strcmp(key, "deblock_mode")) safe_copy(S.deblock_mode, val, sizeof(S.deblock_mode));
+            else if (!strcmp(key, "deblock_thresh")) safe_copy(S.deblock_thresh, val, sizeof(S.deblock_thresh));
+            else if (!strcmp(key, "dering_active")) S.dering_active = atoi(val);
+            else if (!strcmp(key, "dering_strength")) safe_copy(S.dering_strength, val, sizeof(S.dering_strength));
+            
+            else if (!strcmp(key, "sharpen_method")) safe_copy(S.sharpen_method, val, sizeof(S.sharpen_method));
+            else if (!strcmp(key, "sharpen_strength")) safe_copy(S.sharpen_strength, val, sizeof(S.sharpen_strength));
+            else if (!strcmp(key, "usm_radius")) safe_copy(S.usm_radius, val, sizeof(S.usm_radius));
+            else if (!strcmp(key, "usm_amount")) safe_copy(S.usm_amount, val, sizeof(S.usm_amount));
+            else if (!strcmp(key, "usm_threshold")) safe_copy(S.usm_threshold, val, sizeof(S.usm_threshold));
+            
+            else if (!strcmp(key, "deband_method")) safe_copy(S.deband_method, val, sizeof(S.deband_method));
+            else if (!strcmp(key, "deband_strength")) safe_copy(S.deband_strength, val, sizeof(S.deband_strength));
+            else if (!strcmp(key, "f3kdb_range")) safe_copy(S.f3kdb_range, val, sizeof(S.f3kdb_range));
+            else if (!strcmp(key, "f3kdb_y")) safe_copy(S.f3kdb_y, val, sizeof(S.f3kdb_y));
+            else if (!strcmp(key, "f3kdb_cbcr")) safe_copy(S.f3kdb_cbcr, val, sizeof(S.f3kdb_cbcr));
+            
+            else if (!strcmp(key, "grain_strength")) safe_copy(S.grain_strength, val, sizeof(S.grain_strength));
+            
+            else if (!strcmp(key, "denoiser_2")) safe_copy(S.denoiser_2, val, sizeof(S.denoiser_2));
+            else if (!strcmp(key, "denoise_strength_2")) safe_copy(S.denoise_strength_2, val, sizeof(S.denoise_strength_2));
+            else if (!strcmp(key, "deblock_mode_2")) safe_copy(S.deblock_mode_2, val, sizeof(S.deblock_mode_2));
+            else if (!strcmp(key, "deblock_thresh_2")) safe_copy(S.deblock_thresh_2, val, sizeof(S.deblock_thresh_2));
+            else if (!strcmp(key, "dering_active_2")) S.dering_active_2 = atoi(val);
+            else if (!strcmp(key, "dering_strength_2")) safe_copy(S.dering_strength_2, val, sizeof(S.dering_strength_2));
+            
+            else if (!strcmp(key, "sharpen_method_2")) safe_copy(S.sharpen_method_2, val, sizeof(S.sharpen_method_2));
+            else if (!strcmp(key, "sharpen_strength_2")) safe_copy(S.sharpen_strength_2, val, sizeof(S.sharpen_strength_2));
+            else if (!strcmp(key, "usm_radius_2")) safe_copy(S.usm_radius_2, val, sizeof(S.usm_radius_2));
+            else if (!strcmp(key, "usm_amount_2")) safe_copy(S.usm_amount_2, val, sizeof(S.usm_amount_2));
+            else if (!strcmp(key, "usm_threshold_2")) safe_copy(S.usm_threshold_2, val, sizeof(S.usm_threshold_2));
+            
+            else if (!strcmp(key, "deband_method_2")) safe_copy(S.deband_method_2, val, sizeof(S.deband_method_2));
+            else if (!strcmp(key, "deband_strength_2")) safe_copy(S.deband_strength_2, val, sizeof(S.deband_strength_2));
+            else if (!strcmp(key, "f3kdb_range_2")) safe_copy(S.f3kdb_range_2, val, sizeof(S.f3kdb_range_2));
+            else if (!strcmp(key, "f3kdb_y_2")) safe_copy(S.f3kdb_y_2, val, sizeof(S.f3kdb_y_2));
+            else if (!strcmp(key, "f3kdb_cbcr_2")) safe_copy(S.f3kdb_cbcr_2, val, sizeof(S.f3kdb_cbcr_2));
+            
+            else if (!strcmp(key, "grain_strength_2")) safe_copy(S.grain_strength_2, val, sizeof(S.grain_strength_2));
+            
             else if (!strcmp(key, "use_denoise_2")) S.use_denoise_2 = atoi(val);
             else if (!strcmp(key, "use_deblock_2")) S.use_deblock_2 = atoi(val);
             else if (!strcmp(key, "use_dering_2")) S.use_dering_2 = atoi(val);
             else if (!strcmp(key, "use_sharpen_2")) S.use_sharpen_2 = atoi(val);
             else if (!strcmp(key, "use_deband_2")) S.use_deband_2 = atoi(val);
             else if (!strcmp(key, "use_grain_2")) S.use_grain_2 = atoi(val);
-            else if (!strcmp(key, "mi_mode")) strcpy(S.mi_mode, val);
-            else if (!strcmp(key, "eq_contrast")) strcpy(S.eq_contrast, val); else if (!strcmp(key, "eq_brightness")) strcpy(S.eq_brightness, val); else if (!strcmp(key, "eq_saturation")) strcpy(S.eq_saturation, val);
-            else if (!strcmp(key, "lut3d_file")) strcpy(S.lut3d_file, val); else if (!strcmp(key, "x265_params")) strcpy(S.x265_params, val);
-            else if (!strcmp(key, "outdir")) strcpy(S.outdir, val); else if (!strcmp(key, "audio_bitrate")) strcpy(S.audio_bitrate, val);
-            else if (!strcmp(key, "movflags")) strcpy(S.movflags, val); else if (!strcmp(key, "threads")) strcpy(S.threads, val); else if (!strcmp(key, "hwaccel")) strcpy(S.hwaccel, val);
-            else if (!strcmp(key, "encoder")) strcpy(S.encoder, val); else if (!strcmp(key, "use10")) S.use10 = atoi(val); else if (!strcmp(key, "preview")) S.preview = atoi(val);
-            else if (!strcmp(key, "no_deblock")) S.no_deblock = atoi(val); else if (!strcmp(key, "no_denoise")) S.no_denoise = atoi(val);
-            else if (!strcmp(key, "no_decimate")) S.no_decimate = atoi(val); else if (!strcmp(key, "no_interpolate")) S.no_interpolate = atoi(val);
-            else if (!strcmp(key, "no_sharpen")) S.no_sharpen = atoi(val); else if (!strcmp(key, "no_deband")) S.no_deband = atoi(val);
-            else if (!strcmp(key, "no_eq")) S.no_eq = atoi(val); else if (!strcmp(key, "no_grain")) S.no_grain = atoi(val);
+            
+            else if (!strcmp(key, "mi_mode")) safe_copy(S.mi_mode, val, sizeof(S.mi_mode));
+            
+            else if (!strcmp(key, "eq_contrast")) safe_copy(S.eq_contrast, val, sizeof(S.eq_contrast));
+            else if (!strcmp(key, "eq_brightness")) safe_copy(S.eq_brightness, val, sizeof(S.eq_brightness));
+            else if (!strcmp(key, "eq_saturation")) safe_copy(S.eq_saturation, val, sizeof(S.eq_saturation));
+            
+            else if (!strcmp(key, "lut3d_file")) safe_copy(S.lut3d_file, val, sizeof(S.lut3d_file));
+            else if (!strcmp(key, "x265_params")) safe_copy(S.x265_params, val, sizeof(S.x265_params));
+            
+            else if (!strcmp(key, "outdir")) safe_copy(S.outdir, val, sizeof(S.outdir));
+            else if (!strcmp(key, "audio_bitrate")) safe_copy(S.audio_bitrate, val, sizeof(S.audio_bitrate));
+            else if (!strcmp(key, "movflags")) safe_copy(S.movflags, val, sizeof(S.movflags));
+            else if (!strcmp(key, "threads")) safe_copy(S.threads, val, sizeof(S.threads));
+            
+            else if (!strcmp(key, "hwaccel")) safe_copy(S.hwaccel, val, sizeof(S.hwaccel));
+            else if (!strcmp(key, "encoder")) safe_copy(S.encoder, val, sizeof(S.encoder));
+            
+            else if (!strcmp(key, "use10")) S.use10 = atoi(val);
+            else if (!strcmp(key, "preview")) S.preview = atoi(val);
+            
+            else if (!strcmp(key, "no_deblock")) S.no_deblock = atoi(val);
+            else if (!strcmp(key, "no_denoise")) S.no_denoise = atoi(val);
+            else if (!strcmp(key, "no_decimate")) S.no_decimate = atoi(val);
+            else if (!strcmp(key, "no_interpolate")) S.no_interpolate = atoi(val);
+            
+            else if (!strcmp(key, "no_sharpen")) S.no_sharpen = atoi(val);
+            else if (!strcmp(key, "no_deband")) S.no_deband = atoi(val);
+            else if (!strcmp(key, "no_eq")) S.no_eq = atoi(val);
+            else if (!strcmp(key, "no_grain")) S.no_grain = atoi(val);
+            
             else if (!strcmp(key, "pci_safe_mode")) S.pci_safe_mode = atoi(val);
         }
-    } fclose(fp);
+    }
+    fclose(fp);
 }
 
 static void ensure_conf_dirs(void) {
@@ -1154,25 +1208,69 @@ static void settings_main_menu(void) {
 
 
 static int parse_command_line(char *command_line, char ***argv_out) {
-    int argc = 0; int max_args = 64;
-    char **argv = malloc(sizeof(char*) * max_args);
+    if (!command_line || !argv_out) return -1;
+    
+    int argc = 0;
+    int max_args = 64;
+    
+    char **argv = malloc(sizeof(char*) * (size_t)max_args);
+    if (!argv) return -1;
+    
     char *p = command_line;
     bool in_q = false, in_dq = false;
+    
     while (*p) {
         while (*p && isspace((unsigned char)*p) && !in_q && !in_dq) p++;
         if (!*p) break;
+        
         char *start = p;
         while (*p) {
-            if (*p == '\\' && p[1]) { memmove(p, p+1, strlen(p)); p++; }
-            else if (*p == '\'') { in_q = !in_q; memmove(p, p+1, strlen(p)); }
-            else if (*p == '"') { in_dq = !in_dq; memmove(p, p+1, strlen(p)); }
-            else if (isspace((unsigned char)*p) && !in_q && !in_dq) break;
-            else p++;
+            if (*p == '\\' && p[1]) {
+                memmove(p, p + 1, strlen(p));
+                p++;
+            }
+            else if (*p == '\'') {
+                in_q = !in_q;
+                memmove(p, p + 1, strlen(p));
+            }
+            else if (*p == '"') {
+                in_dq = !in_dq;
+                memmove(p, p + 1, strlen(p));
+            }
+            else if (isspace((unsigned char)*p) && !in_q && !in_dq) {
+                break;
+            }
+            else {
+                p++;
+            }
         }
+        
         if (*p) *p++ = 0;
-        argv[argc++] = strdup(start);
+        
+        if (argc >= max_args - 1) {
+            int new_max = max_args * 2;
+            char **tmp = realloc(argv, sizeof(char*) * (size_t)new_max);
+            if (!tmp) {
+                for (int i = 0; i < argc; i++) free(argv[i]);
+                free(argv);
+                return -1;
+            }
+            argv = tmp;
+            max_args = new_max;
+        }
+        
+        argv[argc] = strdup(start);
+        if (!argv[argc]) {
+            for (int i = 0; i < argc; i++) free(argv[i]);
+            free(argv);
+            return -1;
+        }
+        argc++;
     }
-    argv[argc] = NULL; *argv_out = argv; return argc;
+    
+    argv[argc] = NULL;
+    *argv_out = argv;
+    return argc;
 }
 
 static int process_cli_args(int argc, char **argv, const char *ffmpeg_path) {
@@ -1244,10 +1342,31 @@ static int process_cli_args(int argc, char **argv, const char *ffmpeg_path) {
 
 typedef struct { char *buf; size_t len, cap; } SB;
 static void sb_append(SB *s, const char *str) {
-    if (!s->buf) { s->cap=1024; s->buf=malloc(s->cap); s->len=0; }
+    if (!s || !str) return;
+    
+    if (!s->buf) {
+        s->cap = 1024;
+        s->buf = malloc(s->cap);
+        s->len = 0;
+        if (!s->buf) {
+            s->cap = 0;
+            return;
+        }
+        s->buf[0] = '\0';
+    }
+    
     size_t l = strlen(str);
-    if (s->len + l + 1 >= s->cap) { s->cap = (s->cap + l)*2; s->buf=realloc(s->buf, s->cap); }
-    strcpy(s->buf + s->len, str); s->len += l;
+    
+    if (s->len + l + 1 >= s->cap) {
+        size_t new_cap = (s->cap + l) * 2;
+        char *tmp = realloc(s->buf, new_cap);
+        if (!tmp) return;
+        s->buf = tmp;
+        s->cap = new_cap;
+    }
+    
+    memcpy(s->buf + s->len, str, l + 1);
+    s->len += l;
 }
 static void sb_fmt(SB *s, const char *fmt, ...) {
     va_list ap; va_start(ap, fmt);
@@ -1338,7 +1457,7 @@ static bool is_image(const char *path) {
     return false;
 }
 
-    //  MARK —--------------------
+//  MARK —--------------------
 
 #ifndef UP60P_LIBRARY_MODE
 //#include <spawn.h>
@@ -1347,18 +1466,18 @@ static bool is_image(const char *path) {
 //static int execute_ffmpeg_command(char **args) {
 //    pid_t pid;
 //    int status = 0;
-//    
+//
 //    int result = posix_spawn(&pid, args[0], NULL, NULL, args, environ);
 //    if (result != 0) {
 //        perror("posix_spawn");
 //        return result;
 //    }
-//    
+//
 //    if (waitpid(pid, &status, 0) == -1) {
 //        perror("waitpid");
 //        return 1;
 //    }
-//    
+//
 //    return WIFEXITED(status) ? WEXITSTATUS(status) : 1;
 //}
 
@@ -1387,9 +1506,21 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
     if (up60p_is_cancelled()) return;
     
     {
-        char t[PATH_MAX]; strcpy(t, in); char *b = basename(t); strcpy(base, b);
-        char *dot = strrchr(base, '.'); if(dot) *dot=0;
-        if (*S.outdir) strcpy(outdir, S.outdir); else { strcpy(t, in); strcpy(outdir, dirname(t)); }
+        char t[PATH_MAX];
+        safe_copy(t, in, sizeof(t));
+        char *b = basename(t);
+        safe_copy(base, b, sizeof(base));
+        
+        char *dot = strrchr(base, '.');
+        if (dot) *dot = 0;
+        
+        if (*S.outdir) {
+            safe_copy(outdir, S.outdir, sizeof(outdir));
+        } else {
+            safe_copy(t, in, sizeof(t));
+            char *d = dirname(t);
+            safe_copy(outdir, d, sizeof(outdir));
+        }
     }
     
     if (img) snprintf(out, sizeof(out), "%s/%s_[restored].png", outdir, base);
@@ -1647,32 +1778,32 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
     
     //  MARK —--------------------
     
-//    char complex_filter[8192];
-//    
-//    if (!vf.buf || vf.len == 0) {
-//        args[a++] = "-map"; args[a++] = "0:v:0";
-//        args[a++] = "-map"; args[a++] = "0:a?";
-//    }
-//    else if (S.preview) {
-//        snprintf(complex_filter, sizeof(complex_filter),
-//                 "[0:v]%s,split=2[main][prev]", vf.buf);
-//        args[a++] = "-filter_complex"; args[a++] = complex_filter;
-//        args[a++] = "-map"; args[a++] = "[main]";
-//        args[a++] = "-map"; args[a++] = "0:a?";
-//    }
-//    else {
-//        args[a++] = "-vf"; args[a++] = vf.buf;
-//        args[a++] = "-map"; args[a++] = "0:v:0";
-//        args[a++] = "-map"; args[a++] = "0:a?";
-//    }
-//    
-//    
-//    if (!img) {
-//        char *cod = "h264_videotoolbox";
-//        if (!strcmp(S.codec, "hevc")) {
-//            cod = "hevc_videotoolbox";
-//        }
-
+    //    char complex_filter[8192];
+    //
+    //    if (!vf.buf || vf.len == 0) {
+    //        args[a++] = "-map"; args[a++] = "0:v:0";
+    //        args[a++] = "-map"; args[a++] = "0:a?";
+    //    }
+    //    else if (S.preview) {
+    //        snprintf(complex_filter, sizeof(complex_filter),
+    //                 "[0:v]%s,split=2[main][prev]", vf.buf);
+    //        args[a++] = "-filter_complex"; args[a++] = complex_filter;
+    //        args[a++] = "-map"; args[a++] = "[main]";
+    //        args[a++] = "-map"; args[a++] = "0:a?";
+    //    }
+    //    else {
+    //        args[a++] = "-vf"; args[a++] = vf.buf;
+    //        args[a++] = "-map"; args[a++] = "0:v:0";
+    //        args[a++] = "-map"; args[a++] = "0:a?";
+    //    }
+    //
+    //
+    //    if (!img) {
+    //        char *cod = "h264_videotoolbox";
+    //        if (!strcmp(S.codec, "hevc")) {
+    //            cod = "hevc_videotoolbox";
+    //        }
+    
     char complex_filter[8192];
     if (S.preview) {
         snprintf(complex_filter, sizeof(complex_filter), "[0:v]%s,split=2[main][prev]", vf.buf);
@@ -1695,67 +1826,67 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
         
         //  MARK —--------------------
         //  MARK —--------------------
-//
-//        if (strstr(cod, "hevc") || strstr(cod, "265")) { args[a++] = "-tag:v"; args[a++] = "hvc1"; }
-//        args[a++] = "-pix_fmt"; args[a++] = (char*)pix;
-//        if (*S.threads) { args[a++] = "-threads"; args[a++] = S.threads; }
-//        
-//        
-//        char x265_fixed[256];
-//        const int is_x264 = strstr(cod, "libx264") != NULL;
-//        const int is_x265 = strstr(cod, "libx265") != NULL;
-//        const int is_vt   = strstr(cod, "videotoolbox") != NULL;
-//        
-//        if (is_x264 || is_x265) {
-//            args[a++] = "-preset"; args[a++] = S.preset;
-//            args[a++] = "-crf";    args[a++] = S.crf;
-//        } else if (is_vt) {
-//            // VideoToolbox encoders don't support -preset/-crf. Use bitrate instead.
-////            args[a++] = "-b:v"; args[a++] = "8000k";   // VideoToolbox needs bitrate (no -preset/-crf)
-//            // optionally:
-//             args[a++] = "-maxrate"; args[a++] = S.v_bitrate;
-//            // args[a++] = "-bufsize"; args[a++] = "16000k";
-//        }
-//        if (!strcmp(cod, "libx265") && *S.x265_params) {
-//            safe_copy(x265_fixed, S.x265_params, sizeof(x265_fixed));
-//            
-//            for (char *p = x265_fixed; *p; p++) {
-//                if (*p == ',') {
-//                    char *next = p + 1;
-//                    while (*next == ' ' || *next == '\t') next++;
-//                    int is_param_separator = 0;
-//                    char *check = next;
-//                    while (*check && *check != ',' && *check != ':') {
-//                        if (*check == '=') {
-//                            is_param_separator = 1;
-//                            break;
-//                        }
-//                        check++;
-//                    }
-//                    if (is_param_separator) {
-//                        *p = ':';
-//                    }
-//                    
-//                }
-//            }
-//            args[a++] = "-x265-params";
-//            args[a++] = x265_fixed;
-//        }
-//        
-//        args[a++] = "-c:a"; args[a++] = "aac"; args[a++] = "-b:a"; args[a++] = S.audio_bitrate;
-//        if (*S.movflags) { args[a++] = "-movflags"; args[a++] = S.movflags; }
-//    } else {
-//        args[a++] = "-frames:v"; args[a++] = "1";
-//    }
-//    args[a++] = out;
-//    
-//    if (S.preview) {
-//        args[a++] = "-map"; args[a++] = "[prev]";
-//        args[a++] = "-c:v"; args[a++] = "rawvideo";
-//        args[a++] = "-f"; args[a++] = "sdl";
-//        args[a++] = "Live Preview";
-//    }
-//    args[a] = NULL;
+        //
+        //        if (strstr(cod, "hevc") || strstr(cod, "265")) { args[a++] = "-tag:v"; args[a++] = "hvc1"; }
+        //        args[a++] = "-pix_fmt"; args[a++] = (char*)pix;
+        //        if (*S.threads) { args[a++] = "-threads"; args[a++] = S.threads; }
+        //
+        //
+        //        char x265_fixed[256];
+        //        const int is_x264 = strstr(cod, "libx264") != NULL;
+        //        const int is_x265 = strstr(cod, "libx265") != NULL;
+        //        const int is_vt   = strstr(cod, "videotoolbox") != NULL;
+        //
+        //        if (is_x264 || is_x265) {
+        //            args[a++] = "-preset"; args[a++] = S.preset;
+        //            args[a++] = "-crf";    args[a++] = S.crf;
+        //        } else if (is_vt) {
+        //            // VideoToolbox encoders don't support -preset/-crf. Use bitrate instead.
+        ////            args[a++] = "-b:v"; args[a++] = "8000k";   // VideoToolbox needs bitrate (no -preset/-crf)
+        //            // optionally:
+        //             args[a++] = "-maxrate"; args[a++] = S.v_bitrate;
+        //            // args[a++] = "-bufsize"; args[a++] = "16000k";
+        //        }
+        //        if (!strcmp(cod, "libx265") && *S.x265_params) {
+        //            safe_copy(x265_fixed, S.x265_params, sizeof(x265_fixed));
+        //
+        //            for (char *p = x265_fixed; *p; p++) {
+        //                if (*p == ',') {
+        //                    char *next = p + 1;
+        //                    while (*next == ' ' || *next == '\t') next++;
+        //                    int is_param_separator = 0;
+        //                    char *check = next;
+        //                    while (*check && *check != ',' && *check != ':') {
+        //                        if (*check == '=') {
+        //                            is_param_separator = 1;
+        //                            break;
+        //                        }
+        //                        check++;
+        //                    }
+        //                    if (is_param_separator) {
+        //                        *p = ':';
+        //                    }
+        //
+        //                }
+        //            }
+        //            args[a++] = "-x265-params";
+        //            args[a++] = x265_fixed;
+        //        }
+        //
+        //        args[a++] = "-c:a"; args[a++] = "aac"; args[a++] = "-b:a"; args[a++] = S.audio_bitrate;
+        //        if (*S.movflags) { args[a++] = "-movflags"; args[a++] = S.movflags; }
+        //    } else {
+        //        args[a++] = "-frames:v"; args[a++] = "1";
+        //    }
+        //    args[a++] = out;
+        //
+        //    if (S.preview) {
+        //        args[a++] = "-map"; args[a++] = "[prev]";
+        //        args[a++] = "-c:v"; args[a++] = "rawvideo";
+        //        args[a++] = "-f"; args[a++] = "sdl";
+        //        args[a++] = "Live Preview";
+        //    }
+        //    args[a] = NULL;
         
         if (strstr(cod, "hevc") || strstr(cod, "265")) { args[a++] = "-tag:v"; args[a++] = "hvc1"; }
         args[a++] = "-pix_fmt"; args[a++] = (char*)pix;
@@ -1803,7 +1934,7 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
         args[a++] = "Live Preview";
     }
     args[a] = NULL;
-
+    
     
     //  MARK —--------------------
     

@@ -7,23 +7,14 @@
 	objects = {
 
 /* Begin PBXCopyFilesBuildPhase section */
-		5ECE7AD72EF2A1D500603DA9 /* Embed Libraries */ = {
+		5EE164CF2EF4D83C0060947E /* Copy Files */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 10;
+			dstPath = ThirdParty/FFmpeg;
+			dstSubfolderSpec = 6;
 			files = (
 			);
-			name = "Embed Libraries";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		5EE1645F2EF4C3690060947E /* CopyFiles */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 7;
-			files = (
-			);
+			name = "Copy Files";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -37,16 +28,8 @@
 		5E23E7C82ED9B256008298B2 /* Exceptions for "myUpscaler" folder in "myUpscaler" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				FFmpeg.entitlements,
 				ThirdParty/ffmpeg/ffmpeg,
-				ThirdParty/ffmpeg/ffplay,
-				ThirdParty/ffmpeg/ffprobe,
-				ThirdParty/ffmpeg/pkgconfig/libavcodec.pc,
-				ThirdParty/ffmpeg/pkgconfig/libavdevice.pc,
-				ThirdParty/ffmpeg/pkgconfig/libavfilter.pc,
-				ThirdParty/ffmpeg/pkgconfig/libavformat.pc,
-				ThirdParty/ffmpeg/pkgconfig/libavutil.pc,
-				ThirdParty/ffmpeg/pkgconfig/libswresample.pc,
-				ThirdParty/ffmpeg/pkgconfig/libswscale.pc,
 				upscaler/CoreML_README.md,
 				upscaler/filters/README.md,
 				upscaler/models/RealESRGAN_x2.mlpackage,
@@ -67,68 +50,14 @@
 				upscaler/models/RealESRGAN_x8.mlpackage,
 			);
 		};
-		5EE164632EF4C3970060947E /* Exceptions for "myUpscaler" folder in "Copy Files" phase from "myUpscaler" target */ = {
+		5EE165832EF4F6950060947E /* Exceptions for "myUpscaler" folder in "Copy Files" phase from "myUpscaler" target */ = {
 			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
 			attributesByRelativePath = {
 				ThirdParty/ffmpeg/ffmpeg = (CodeSignOnCopy, );
-				ThirdParty/ffmpeg/ffplay = (CodeSignOnCopy, );
-				ThirdParty/ffmpeg/ffprobe = (CodeSignOnCopy, );
 			};
-			buildPhase = 5EE1645F2EF4C3690060947E /* CopyFiles */;
+			buildPhase = 5EE164CF2EF4D83C0060947E /* Copy Files */;
 			membershipExceptions = (
 				ThirdParty/ffmpeg/ffmpeg,
-				ThirdParty/ffmpeg/ffplay,
-				ThirdParty/ffmpeg/ffprobe,
-			);
-		};
-		5EE164792EF4C53F0060947E /* Exceptions for "myUpscaler" folder in "Embed Libraries" phase from "myUpscaler" target */ = {
-			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
-			attributesByRelativePath = {
-				frameworks/libavcodec.62.23.102.dylib = (CodeSignOnCopy, );
-				frameworks/libavcodec.62.dylib = (CodeSignOnCopy, );
-				frameworks/libavcodec.dylib = (CodeSignOnCopy, );
-				frameworks/libavdevice.62.2.100.dylib = (CodeSignOnCopy, );
-				frameworks/libavdevice.62.dylib = (CodeSignOnCopy, );
-				frameworks/libavdevice.dylib = (CodeSignOnCopy, );
-				frameworks/libavfilter.11.10.101.dylib = (CodeSignOnCopy, );
-				frameworks/libavfilter.11.dylib = (CodeSignOnCopy, );
-				frameworks/libavfilter.dylib = (CodeSignOnCopy, );
-				frameworks/libavformat.62.8.100.dylib = (CodeSignOnCopy, );
-				frameworks/libavformat.62.dylib = (CodeSignOnCopy, );
-				frameworks/libavformat.dylib = (CodeSignOnCopy, );
-				frameworks/libavutil.60.20.100.dylib = (CodeSignOnCopy, );
-				frameworks/libavutil.60.dylib = (CodeSignOnCopy, );
-				frameworks/libavutil.dylib = (CodeSignOnCopy, );
-				frameworks/libswresample.6.2.100.dylib = (CodeSignOnCopy, );
-				frameworks/libswresample.6.dylib = (CodeSignOnCopy, );
-				frameworks/libswresample.dylib = (CodeSignOnCopy, );
-				frameworks/libswscale.9.3.100.dylib = (CodeSignOnCopy, );
-				frameworks/libswscale.9.dylib = (CodeSignOnCopy, );
-				frameworks/libswscale.dylib = (CodeSignOnCopy, );
-			};
-			buildPhase = 5ECE7AD72EF2A1D500603DA9 /* Embed Libraries */;
-			membershipExceptions = (
-				frameworks/libavcodec.62.23.102.dylib,
-				frameworks/libavcodec.62.dylib,
-				frameworks/libavcodec.dylib,
-				frameworks/libavdevice.62.2.100.dylib,
-				frameworks/libavdevice.62.dylib,
-				frameworks/libavdevice.dylib,
-				frameworks/libavfilter.11.10.101.dylib,
-				frameworks/libavfilter.11.dylib,
-				frameworks/libavfilter.dylib,
-				frameworks/libavformat.62.8.100.dylib,
-				frameworks/libavformat.62.dylib,
-				frameworks/libavformat.dylib,
-				frameworks/libavutil.60.20.100.dylib,
-				frameworks/libavutil.60.dylib,
-				frameworks/libavutil.dylib,
-				frameworks/libswresample.6.2.100.dylib,
-				frameworks/libswresample.6.dylib,
-				frameworks/libswresample.dylib,
-				frameworks/libswscale.9.3.100.dylib,
-				frameworks/libswscale.9.dylib,
-				frameworks/libswscale.dylib,
 			);
 		};
 /* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
@@ -138,9 +67,8 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				5E23E7C82ED9B256008298B2 /* Exceptions for "myUpscaler" folder in "myUpscaler" target */,
-				5EE164792EF4C53F0060947E /* Exceptions for "myUpscaler" folder in "Embed Libraries" phase from "myUpscaler" target */,
 				5E625D4D2EE872B1004D8958 /* Exceptions for "myUpscaler" folder in "Copy Bundle Resources" phase from "myUpscaler" target */,
-				5EE164632EF4C3970060947E /* Exceptions for "myUpscaler" folder in "Copy Files" phase from "myUpscaler" target */,
+				5EE165832EF4F6950060947E /* Exceptions for "myUpscaler" folder in "Copy Files" phase from "myUpscaler" target */,
 			);
 			path = myUpscaler;
 			sourceTree = "<group>";
@@ -156,16 +84,6 @@
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
-
-/* Begin PBXFrameworksBuildPhase section */
-		5E23E5032ED9AB0B008298B2 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		5E23E4FD2ED9AB0B008298B2 = {
@@ -195,11 +113,9 @@
 			buildConfigurationList = 5E23E5272ED9AB0C008298B2 /* Build configuration list for PBXNativeTarget "myUpscaler" */;
 			buildPhases = (
 				5E23E5022ED9AB0B008298B2 /* Sources */,
-				5E23E5032ED9AB0B008298B2 /* Frameworks */,
-				5ECE7AD72EF2A1D500603DA9 /* Embed Libraries */,
 				5E23E5042ED9AB0B008298B2 /* Resources */,
-				5EE1645F2EF4C3690060947E /* CopyFiles */,
-				5ECE7BC92EF2A82C00603DA9 /* ShellScript */,
+				5EE164CF2EF4D83C0060947E /* Copy Files */,
+				5EE165482EF4EEB20060947E /* Run Script */,
 			);
 			buildRules = (
 			);
@@ -261,7 +177,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		5ECE7BC92EF2A82C00603DA9 /* ShellScript */ = {
+		5EE165482EF4EEB20060947E /* Run Script */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -270,13 +186,14 @@
 			);
 			inputPaths = (
 			);
+			name = "Run Script";
 			outputFileListPaths = (
 			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set +e\n\nENTITLEMENTS=\"${SRCROOT}/myUpscaler/myUpscaler.entitlements\"\nSIGN_IDENTITY=\"${EXPANDED_CODE_SIGN_IDENTITY}\"\n\nBINARIES=(\n  \"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/MacOS/Resources/ffmpeg\"\n  \"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/MacOS/Resources/ffprobe\"\n  \"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/MacOS/Resources/ffplay\"\n  \n  \"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources/ffmpeg\"\n  \"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources/ffprobe\"\n  \"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources/ffplay\"\n\n)\n\nfor BIN in \"${BINARIES[@]}\"; do\n  if [ -f \"$BIN\" ]; then\n    codesign --force \\\n      --entitlements \"$ENTITLEMENTS\" \\\n      --sign \"$SIGN_IDENTITY\" \\\n      \"$BIN\"\n  fi\ndone\n\nexit 0\n";
+			shellScript = "# 1. Define Paths\nFFMPEG_DIR=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/../MacOS/ThirdParty/FFmpeg\"\nENTITLEMENTS_PATH=\"${PROJECT_DIR}/myUpscaler/FFmpeg.entitlements\"\n\n# 2. Fix Permissions\n# (Still required so the OS allows them to run)\nchmod +x \"$FFMPEG_DIR/ffmpeg\"\n\n\n# 3. RE-SIGN with App Store Identity & Entitlements\n# We use EXPANDED_CODE_SIGN_IDENTITY so Xcode picks the correct cert automatically.\n# This makes the static binaries App Store compliant.\n\necho \"Re-signing Static FFmpeg with identity: ${EXPANDED_CODE_SIGN_IDENTITY}\"\n\ncodesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY}\" --entitlements \"${ENTITLEMENTS_PATH}\" --options runtime --timestamp \"$FFMPEG_DIR/ffmpeg\"\n\n\necho \"Static FFmpeg signing complete.\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -465,7 +382,7 @@
 				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readwrite;
 				FRAMEWORK_SEARCH_PATHS = (
-					"$(SRCROOT)/macos/Frameworks",
+					"$(SRCROOT)/MacOS/Frameworks",
 					"$(inherited)",
 				);
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -478,56 +395,12 @@
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				LIBRARY_SEARCH_PATHS = (
-					"$(SRCROOT)/myUpscaler/lib/**",
-					"$(PROJECT_DIR)/ThirdParty",
 					"$(PROJECT_DIR)/lib",
-					"$(PROJECT_DIR)/myUpscaler/lib",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
 					"$(PROJECT_DIR)/frameworks",
 					"$(PROJECT_DIR)/myUpscaler/frameworks",
-					"$(PROJECT_DIR)/myUpscaler/ThirdParty/lib",
-					"$(PROJECT_DIR)/myUpscaler/ThirdParty/ffmpeg",
+					"$(PROJECT_DIR)/myUpscaler/libs",
+					"$(PROJECT_DIR)/myUpscaler/Frameworks",
+					"$(PROJECT_DIR)/myUpscaler/Frameworks.bak",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
 				MARKETING_VERSION = 0.1;
@@ -589,7 +462,7 @@
 				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readwrite;
 				FRAMEWORK_SEARCH_PATHS = (
-					"$(SRCROOT)/macos/Frameworks",
+					"$(SRCROOT)/MacOS/Frameworks",
 					"$(inherited)",
 				);
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -602,56 +475,12 @@
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				LIBRARY_SEARCH_PATHS = (
-					"$(SRCROOT)/myUpscaler/lib/**",
-					"$(PROJECT_DIR)/ThirdParty",
 					"$(PROJECT_DIR)/lib",
-					"$(PROJECT_DIR)/myUpscaler/lib",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/myUpscalerUITests/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
-					"$(PROJECT_DIR)/New\\ Folder/frameworks",
 					"$(PROJECT_DIR)/frameworks",
 					"$(PROJECT_DIR)/myUpscaler/frameworks",
-					"$(PROJECT_DIR)/myUpscaler/ThirdParty/lib",
-					"$(PROJECT_DIR)/myUpscaler/ThirdParty/ffmpeg",
+					"$(PROJECT_DIR)/myUpscaler/libs",
+					"$(PROJECT_DIR)/myUpscaler/Frameworks",
+					"$(PROJECT_DIR)/myUpscaler/Frameworks.bak",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
 				MARKETING_VERSION = 0.1;

@@ -106,27 +106,31 @@ final class Up60PEngine {
             }
         }
         
-        // Fallback: if no env var and bundled ffmpeg likely missing, try common system locations
+        // Resolve bundled ffmpeg relative to the app executable (Contents/MacOS/ffmpeg)
         if getenv("UP60P_FFMPEG") == nil {
-            let fm = FileManager.default
-            let candidates = ["/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg", "/usr/bin/ffmpeg"]
-            if let first = candidates.first(where: { fm.isExecutableFile(atPath: $0) }) {
-                let setResult = first.withCString { cStr in
-                    setenv("UP60P_FFMPEG", cStr, 1)
-                }
-                if setResult != 0 {
+            if let exeURL = Bundle.main.executableURL {
+                let ffmpegURL = exeURL
+                    .deletingLastPathComponent()
+                    .appendingPathComponent("ffmpeg")
+                
+                if FileManager.default.isExecutableFile(atPath: ffmpegURL.path) {
+                    ffmpegURL.path.withCString { cStr in
+                        setenv("UP60P_FFMPEG", cStr, 1)
+                    }
+                    
                     Up60PEngine.logHandlerQueue.sync {
                         if let handler = Up60PEngine.currentLogHandler {
                             DispatchQueue.main.async {
-                                handler("ERROR: Failed to set UP60P_FFMPEG env var (errno: \(errno))\n")
+                                handler("Using bundled ffmpeg at: \(ffmpegURL.path)\n")
                             }
                         }
                     }
-                }
-                Up60PEngine.logHandlerQueue.sync {
-                    if let handler = Up60PEngine.currentLogHandler {
-                        DispatchQueue.main.async {
-                            handler("UP60P_FFMPEG not set. Using detected ffmpeg: \(first)\n")
+                } else {
+                    Up60PEngine.logHandlerQueue.sync {
+                        if let handler = Up60PEngine.currentLogHandler {
+                            DispatchQueue.main.async {
+                                handler("ERROR: Bundled ffmpeg not found or not executable at expected path.\n")
+                            }
                         }
                     }
                 }

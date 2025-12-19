@@ -128,7 +128,7 @@ static const char* get_bundled_ffmpeg_path(void) {
     
     char *exe_dir = dirname(exe_dir_buf);
     
-    snprintf(FFMPEG_PATH, sizeof(FFMPEG_PATH), "%s/../Resources/ffmpeg", exe_dir);
+    snprintf(FFMPEG_PATH, sizeof(FFMPEG_PATH), "%s/ThirdParty/FFmpeg/ffmpeg", exe_dir);
     
     if (access(FFMPEG_PATH, X_OK) != 0) {
         FFMPEG_PATH[0] = '\0';

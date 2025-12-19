@@ -114,6 +114,7 @@ static const char* get_bundled_ffmpeg_path(void) {
     if (FFMPEG_PATH[0] != '\0') {
         return FFMPEG_PATH;
     }
+    //  MARK —--------------------
     
     char exe_path[PATH_MAX];
     uint32_t size = sizeof(exe_path);
@@ -1337,28 +1338,47 @@ static bool is_image(const char *path) {
     return false;
 }
 
+    //  MARK —--------------------
+
 #ifndef UP60P_LIBRARY_MODE
-#include <spawn.h>
-extern char **environ;
+//#include <spawn.h>
+//extern char **environ;
+//
+//static int execute_ffmpeg_command(char **args) {
+//    pid_t pid;
+//    int status = 0;
+//    
+//    int result = posix_spawn(&pid, args[0], NULL, NULL, args, environ);
+//    if (result != 0) {
+//        perror("posix_spawn");
+//        return result;
+//    }
+//    
+//    if (waitpid(pid, &status, 0) == -1) {
+//        perror("waitpid");
+//        return 1;
+//    }
+//    
+//    return WIFEXITED(status) ? WEXITSTATUS(status) : 1;
+//}
+
 
 static int execute_ffmpeg_command(char **args) {
-    pid_t pid;
-    int status = 0;
-    
-    int result = posix_spawn(&pid, args[0], NULL, NULL, args, environ);
-    if (result != 0) {
-        perror("posix_spawn");
-        return result;
+    pid_t pid = fork();
+    if (pid < 0) return -1;
+    if (pid == 0) {
+        execvp(args[0], args);
+        perror("execvp");
+        _exit(1);
     }
-    
-    if (waitpid(pid, &status, 0) == -1) {
-        perror("waitpid");
-        return 1;
-    }
-    
+    int status;
+    waitpid(pid, &status, 0);
     return WIFEXITED(status) ? WEXITSTATUS(status) : 1;
 }
 #endif
+
+
+//  MARK —--------------------
 
 static void process_file(const char *in, const char *ffmpeg, bool batch) {
     (void)batch; char outdir[PATH_MAX], base[PATH_MAX], out[PATH_MAX];
@@ -1625,57 +1645,124 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
     }
     args[a++] = "-i"; args[a++] = (char*)in;
     
+    //  MARK —--------------------
     
+//    char complex_filter[8192];
+//    
+//    if (!vf.buf || vf.len == 0) {
+//        args[a++] = "-map"; args[a++] = "0:v:0";
+//        args[a++] = "-map"; args[a++] = "0:a?";
+//    }
+//    else if (S.preview) {
+//        snprintf(complex_filter, sizeof(complex_filter),
+//                 "[0:v]%s,split=2[main][prev]", vf.buf);
+//        args[a++] = "-filter_complex"; args[a++] = complex_filter;
+//        args[a++] = "-map"; args[a++] = "[main]";
+//        args[a++] = "-map"; args[a++] = "0:a?";
+//    }
+//    else {
+//        args[a++] = "-vf"; args[a++] = vf.buf;
+//        args[a++] = "-map"; args[a++] = "0:v:0";
+//        args[a++] = "-map"; args[a++] = "0:a?";
+//    }
+//    
+//    
+//    if (!img) {
+//        char *cod = "h264_videotoolbox";
+//        if (!strcmp(S.codec, "hevc")) {
+//            cod = "hevc_videotoolbox";
+//        }
+
     char complex_filter[8192];
-    
-    if (!vf.buf || vf.len == 0) {
-        args[a++] = "-map"; args[a++] = "0:v:0";
-        args[a++] = "-map"; args[a++] = "0:a?";
-    }
-    else if (S.preview) {
-        snprintf(complex_filter, sizeof(complex_filter),
-                 "[0:v]%s,split=2[main][prev]", vf.buf);
+    if (S.preview) {
+        snprintf(complex_filter, sizeof(complex_filter), "[0:v]%s,split=2[main][prev]", vf.buf);
         args[a++] = "-filter_complex"; args[a++] = complex_filter;
         args[a++] = "-map"; args[a++] = "[main]";
         args[a++] = "-map"; args[a++] = "0:a?";
-    }
-    else {
+    } else {
         args[a++] = "-vf"; args[a++] = vf.buf;
         args[a++] = "-map"; args[a++] = "0:v:0";
         args[a++] = "-map"; args[a++] = "0:a?";
     }
     
-    
     if (!img) {
-        char *cod = "h264_videotoolbox";
+        char *cod = "libx264";
         if (!strcmp(S.codec, "hevc")) {
-            cod = "hevc_videotoolbox";
-        }
-        
+            if (!strcmp(S.encoder, "nvenc")) cod = "hevc_nvenc"; else if (!strcmp(S.encoder, "qsv")) cod = "hevc_qsv"; else if (!strcmp(S.encoder, "vaapi")) cod = "hevc_vaapi"; else cod = "libx265";
+        } else { if (!strcmp(S.encoder, "nvenc")) cod = "h264_nvenc"; else if (!strcmp(S.encoder, "qsv")) cod = "h264_qsv"; else if (!strcmp(S.encoder, "vaapi")) cod = "h264_vaapi"; }
         
         args[a++] = "-c:v"; args[a++] = cod;
         
+        //  MARK —--------------------
+        //  MARK —--------------------
+//
+//        if (strstr(cod, "hevc") || strstr(cod, "265")) { args[a++] = "-tag:v"; args[a++] = "hvc1"; }
+//        args[a++] = "-pix_fmt"; args[a++] = (char*)pix;
+//        if (*S.threads) { args[a++] = "-threads"; args[a++] = S.threads; }
+//        
+//        
+//        char x265_fixed[256];
+//        const int is_x264 = strstr(cod, "libx264") != NULL;
+//        const int is_x265 = strstr(cod, "libx265") != NULL;
+//        const int is_vt   = strstr(cod, "videotoolbox") != NULL;
+//        
+//        if (is_x264 || is_x265) {
+//            args[a++] = "-preset"; args[a++] = S.preset;
+//            args[a++] = "-crf";    args[a++] = S.crf;
+//        } else if (is_vt) {
+//            // VideoToolbox encoders don't support -preset/-crf. Use bitrate instead.
+////            args[a++] = "-b:v"; args[a++] = "8000k";   // VideoToolbox needs bitrate (no -preset/-crf)
+//            // optionally:
+//             args[a++] = "-maxrate"; args[a++] = S.v_bitrate;
+//            // args[a++] = "-bufsize"; args[a++] = "16000k";
+//        }
+//        if (!strcmp(cod, "libx265") && *S.x265_params) {
+//            safe_copy(x265_fixed, S.x265_params, sizeof(x265_fixed));
+//            
+//            for (char *p = x265_fixed; *p; p++) {
+//                if (*p == ',') {
+//                    char *next = p + 1;
+//                    while (*next == ' ' || *next == '\t') next++;
+//                    int is_param_separator = 0;
+//                    char *check = next;
+//                    while (*check && *check != ',' && *check != ':') {
+//                        if (*check == '=') {
+//                            is_param_separator = 1;
+//                            break;
+//                        }
+//                        check++;
+//                    }
+//                    if (is_param_separator) {
+//                        *p = ':';
+//                    }
+//                    
+//                }
+//            }
+//            args[a++] = "-x265-params";
+//            args[a++] = x265_fixed;
+//        }
+//        
+//        args[a++] = "-c:a"; args[a++] = "aac"; args[a++] = "-b:a"; args[a++] = S.audio_bitrate;
+//        if (*S.movflags) { args[a++] = "-movflags"; args[a++] = S.movflags; }
+//    } else {
+//        args[a++] = "-frames:v"; args[a++] = "1";
+//    }
+//    args[a++] = out;
+//    
+//    if (S.preview) {
+//        args[a++] = "-map"; args[a++] = "[prev]";
+//        args[a++] = "-c:v"; args[a++] = "rawvideo";
+//        args[a++] = "-f"; args[a++] = "sdl";
+//        args[a++] = "Live Preview";
+//    }
+//    args[a] = NULL;
         
         if (strstr(cod, "hevc") || strstr(cod, "265")) { args[a++] = "-tag:v"; args[a++] = "hvc1"; }
         args[a++] = "-pix_fmt"; args[a++] = (char*)pix;
         if (*S.threads) { args[a++] = "-threads"; args[a++] = S.threads; }
         
-        
         char x265_fixed[256];
-        const int is_x264 = strstr(cod, "libx264") != NULL;
-        const int is_x265 = strstr(cod, "libx265") != NULL;
-        const int is_vt   = strstr(cod, "videotoolbox") != NULL;
-        
-        if (is_x264 || is_x265) {
-            args[a++] = "-preset"; args[a++] = S.preset;
-            args[a++] = "-crf";    args[a++] = S.crf;
-        } else if (is_vt) {
-            // VideoToolbox encoders don't support -preset/-crf. Use bitrate instead.
-            args[a++] = "-b:v"; args[a++] = "8000k";   // VideoToolbox needs bitrate (no -preset/-crf)
-            // optionally:
-            // args[a++] = "-maxrate"; args[a++] = S.v_bitrate;
-            // args[a++] = "-bufsize"; args[a++] = "16000k";
-        }
+        if (!strstr(cod, "vaapi")) { args[a++] = "-preset"; args[a++] = S.preset; args[a++] = "-crf"; args[a++] = S.crf; }
         if (!strcmp(cod, "libx265") && *S.x265_params) {
             safe_copy(x265_fixed, S.x265_params, sizeof(x265_fixed));
             
@@ -1716,6 +1803,9 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
         args[a++] = "Live Preview";
     }
     args[a] = NULL;
+
+    
+    //  MARK —--------------------
     
 #ifdef UP60P_LIBRARY_MODE
     log_message("Processing: %s\n", in);

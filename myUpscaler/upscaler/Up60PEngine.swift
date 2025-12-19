@@ -35,6 +35,8 @@ struct Up60PBridge {
     )
 }
 
+// MARK: -
+
 final class Up60PEngine {
     private static var _shared: Up60PEngine?
     private var isInitialized = false
@@ -205,6 +207,8 @@ final class Up60PEngine {
             }
         }
     }
+    
+    // MARK: - 
     
     private func makeOptions(from settings: UpscaleSettings,
                              outputDir: String) throws -> up60p_options

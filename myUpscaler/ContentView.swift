@@ -510,7 +510,8 @@ private struct ColorEqualizerPanel: View {
 }
 */
 
-/// Enlarged Color Equalizer Panel (full-screen style)
+
+// MARK: - Enlarged Color Equalizer Panel (full-screen style)
 private struct EnlargedColorEqualizerPanel: View {
     @ObservedObject var settings: UpscaleSettings
     @Binding var isPresented: Bool
@@ -626,7 +627,7 @@ private struct EnlargedColorEqualizerPanel: View {
     }
 }
 
-/// Enlarged Restoration Filters Panel (full-screen style)
+// MARK: - Enlarged Restoration Filters Panel (full-screen style)
 private struct EnlargedRestorationFiltersPanel: View {
     @ObservedObject var settings: UpscaleSettings
     @Binding var isPresented: Bool
@@ -803,7 +804,7 @@ private struct EnlargedRestorationFiltersPanel: View {
     }
 }
 
-/// Restoration‑Filters card (denoise, deringing, sharpen)
+// MARK: -  Restoration‑Filters card (denoise, deringing, sharpen)
 private struct RestorationFiltersPanel: View {
     @ObservedObject var settings: UpscaleSettings
     
@@ -917,7 +918,7 @@ private struct RestorationFiltersPanel: View {
     }
 }
 
-/// Quality & Scale panel (compact)
+// MARK: -  Quality & Scale panel (compact)
 private struct QualityScalePanel: View {
     @ObservedObject var settings: UpscaleSettings
     @State private var localCRF: Double? = nil
@@ -1010,7 +1011,7 @@ private struct QualityScalePanel: View {
     }
 }
 
-/// AI Engine panel (compact)
+// MARK: -  AI Engine panel (compact)
 private struct AIEnginePanel: View {
     @ObservedObject var settings: UpscaleSettings
     
@@ -1137,7 +1138,7 @@ private struct AIEnginePanel: View {
     }
 }
 
-/// Restoration (First Set) panel (compact)
+// MARK: -  Restoration (First Set) panel (compact)
 /// Contains elements missing from the VerticalRestorationFiltersPanel: Deblock, Unsharp Mask Threshold, Deband advanced params, Grain Strength, LUT
 private struct RestorationPanel: View {
     @ObservedObject var settings: UpscaleSettings
@@ -1277,7 +1278,7 @@ private struct RestorationPanel: View {
     }
 }
 
-/// Restoration (Second Set) panel (compact) - shown on main page
+// MARK: - Restoration (Second Set) panel (compact) - shown on main page
 private struct RestorationSecondSetPanel: View {
     @ObservedObject var settings: UpscaleSettings
     @State private var isExpanded: Bool = false
@@ -1569,7 +1570,7 @@ private struct RestorationSecondSetPanel: View {
     }
 }
 
-/// x265 Parameters panel (compact)
+// MARK: - x265 Parameters panel (compact)
 private struct X265ParametersPanel: View {
     @ObservedObject var settings: UpscaleSettings
     
@@ -1634,7 +1635,7 @@ private struct X265ParametersPanel: View {
     }
 }
 
-/// Hardware & Encoding panel (compact)
+// MARK: -  Hardware & Encoding panel (compact)
 private struct HardwareEncodingPanel: View {
     @ObservedObject var settings: UpscaleSettings
     
@@ -1792,7 +1793,7 @@ private struct HardwareEncodingPanel: View {
     }
 }
 
-/// Output panel (compact, destination picker + preview name)
+// MARK: - Output panel (compact, destination picker + preview name)
 private struct OutputPanel: View {
     @Binding var outputMode: UpscaleRunner.OutputMode
     @Binding var customOutputFolder: String
@@ -1877,7 +1878,7 @@ private struct OutputPanel: View {
     }
 }
 
-/// Run / Cancel buttons
+// MARK: - Run / Cancel buttons
 private struct ActionButtons: View {
     @ObservedObject var runner: UpscaleRunner
     
@@ -1949,7 +1950,7 @@ private struct ProgressDetails: View {
     }
 }
 
-// MARK : Processing Log (UI)
+// MARK: -  : Processing Log (UI)
 /// Log view – scrolls automatically to the bottom
 private struct LogPanel: View {
     @ObservedObject var runner: UpscaleRunner
@@ -1995,7 +1996,7 @@ private struct LogPanel: View {
                     
 // note I have changed the height from 170 originally so More log is visible as this is a lazy way of accessing easier since the texts are copy eligble
                     
-// MARK : Proccessing log (itself) end
+                    // MARK: - : Proccessing log (itself) end
                     
                     // Button to open completed video (uses completedOutputPath which is set correctly)
                     if !runner.isRunning, let outputPath = runner.completedOutputPath {
@@ -2090,7 +2091,7 @@ private struct LogPanel: View {
     }
 }
 
-/// Saved presets management panel
+// MARK: -  Saved presets management panel
 private struct SavedPresetsPanel: View {
     @ObservedObject var presetStore: PresetStore
     @ObservedObject var settings: UpscaleSettings
@@ -2168,7 +2169,7 @@ private struct SavedPresetsPanel: View {
     }
 }
 
-/// Single preset row with actions
+// MARK: -  Single preset row with actions
 private struct PresetRow: View {
     let preset: Preset
     let isProcessing: Bool
@@ -2491,7 +2492,7 @@ struct ContentView: View {
         .sheet(isPresented: $showAbout) {
             AboutView()
         }
-        // ---------- ENLARGED FRAME OVERLAY (covers entire app) ----------
+        // MARK: -  ---------- ENLARGED FRAME OVERLAY (covers entire app) ----------
         .overlay(
                 Group {
                     // Enlarged Color Equalizer Panel
@@ -2698,7 +2699,7 @@ struct ContentView: View {
     }
     
     // ------------------------------------------------------------------------
-    // MARK: – File‑picker helpers (UI only, MARKED @MainActor)
+    // MARK: -  File‑picker helpers (UI only, MARKED @MainActor)
     // ------------------------------------------------------------------------
     @MainActor
     private func chooseInput() {

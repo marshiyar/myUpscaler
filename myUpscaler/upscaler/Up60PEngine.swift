@@ -176,10 +176,10 @@ final class Up60PEngine {
             }
         }
     }
-    
-    deinit {
-        Up60PEngine.bridge.shutdownFunc()
-    }
+//    
+//    deinit {
+//        Up60PEngine.bridge.shutdownFunc()
+//    }
     
     private func mapError(_ code: up60p_error) -> Up60PEngineError? {
         switch code {
@@ -468,9 +468,9 @@ final class Up60PEngine {
     
     // MARK: - Testing Support
     
-    func setDryRun(_ enabled: Bool) {
-        Up60PEngine.bridge.setDryRunFunc(enabled ? 1 : 0)
-    }
+//    func setDryRun(_ enabled: Bool) {
+//        Up60PEngine.bridge.setDryRunFunc(enabled ? 1 : 0)
+//    }
     
 #if DEBUG
     /// Override the C bridge for deterministic testing

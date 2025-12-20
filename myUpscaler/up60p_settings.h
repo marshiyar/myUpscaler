@@ -2,6 +2,8 @@
 #define UP60P_SETTINGS_H
 
 #include "up60p_common.h"
+#include "up60p_cli.h"
+
 
 struct Settings {
     
@@ -79,7 +81,7 @@ void ensure_conf_dirs(void);
 // Preset Management
 void save_preset_file(const char *name);
 void load_preset_file(const char *name, bool quiet);
-void active_preset_name(char *out, size_t outsz);
+//void active_preset_name(char *out, size_t outsz);
 void set_active_preset(const char *name);
 void list_presets(char ***names, int *count);
 

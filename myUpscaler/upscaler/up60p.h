@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <limits.h>
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -18,10 +19,6 @@ typedef enum {
     UP60P_ERR_CANCELLED
 } up60p_error;
 
-/*
- * Public options struct – mirrors your Settings struct closely so
- * Swift can pass everything in one shot.
- */
 typedef struct {
     /* Core */
     char codec[8];
@@ -142,7 +139,6 @@ void        up60p_set_dry_run(int enable);
 void        up60p_request_cancel(void);
 
 void        up60p_shutdown(void);
-
 #ifdef __cplusplus
 }
 #endif

@@ -1,7 +1,6 @@
 #include "up60p_utils.h"
 #include "up60p_common.h"
 #include "up60p_cli.h"
-#include ""
 
 up60p_log_callback global_log_cb = NULL;
 
@@ -13,6 +12,12 @@ volatile sig_atomic_t cancel_requested = 0;
     mkdir(tmp, 0775);
 }
 
+
+void safe_copy(char *dst, const char *src, size_t size) {
+    if (size == 0) return;
+    strncpy(dst, src, size - 1);
+    dst[size - 1] = '\0';
+}
 
 void sanitize_path(char *p) {
     while (*p && isspace((unsigned char)*p)) p++;

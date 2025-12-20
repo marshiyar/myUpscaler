@@ -12,7 +12,7 @@ typedef struct {
 } SB;
 
 
-static void safe_copy(char *dst, const char *src, size_t size);
+void safe_copy(char *dst, const char *src, size_t size);
 
 void mkdir_p(const char *path);
 void sanitize_path(char *p);

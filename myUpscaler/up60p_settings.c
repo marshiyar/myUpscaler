@@ -1,4 +1,22 @@
+#include "up60p_settings.h"
+#include "up60p_utils.h"
+#include "up60p.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <dirent.h>
+#include <sys/stat.h>
 
+
+#include <limits.h>
+
+
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
+
+static char GPTPRO_PRESET_DIR[PATH_MAX];
+static char GPTPRO_ACTIVE_FILE[PATH_MAX];
 
 void up60p_options_from_settings(up60p_options *dst, const Settings *src) {
     if (!dst || !src) return;
@@ -317,8 +335,10 @@ void save_preset_file(const char *name) {
 
 void load_preset_file(const char *name, bool quiet) {
     if (strcmp(name, "factory") == 0) { S = DEF; return; }
-    char file[PATH_MAX]; snprintf(file, sizeof(file), "%s/%s.preset", GPTPRO_PRESET_DIR, name);
-    FILE *fp = fopen(file, "r"); if (!fp) { if(!quiet) printf("Preset not found: %s\n", name); return; }
+    char file[PATH_MAX];
+    snprintf(file, sizeof(file), "%s/%s.preset", GPTPRO_PRESET_DIR, name);
+    FILE *fp = fopen(file, "w"); if (!fp) return;
+    
     char line[2048], key[64], val[1024];
     while (fgets(line, sizeof(line), fp)) {
         if (sscanf(line, "%63[^=]=\"%1023[^\"]\"", key, val) == 2) {
@@ -438,7 +458,8 @@ void ensure_conf_dirs(void) {
 void active_preset_name(char *out, size_t outsz) {
     FILE *fp = fopen(GPTPRO_ACTIVE_FILE, "r");
     if (!fp || !fgets(out, (int)outsz, fp)) safe_copy(out, "default", outsz);
-    else { size_t n = strlen(out); while(n > 0 && isspace(out[n-1])) out[--n] = 0; }
+    else {
+    size_t n = strlen(out); while(n > 0 && isspace(out[n-1])) out[--n] = 0; }
     if (fp) fclose(fp);
 }
 

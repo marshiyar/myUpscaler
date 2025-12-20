@@ -58,8 +58,6 @@
 
 // MARK: COLOR -
 
-// This allows us to use "Settings" in other header files
-// before the struct is fully defined.
 typedef struct Settings Settings;
 
 

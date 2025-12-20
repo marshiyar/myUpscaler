@@ -1,5 +1,7 @@
 #include "up60p_settings.h"
 #include "up60p_utils.h"
+#include "up60p_text.h"
+#include "up60p_cli.h"
 #include "up60p.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,7 +15,7 @@ Settings S;
 static char GPTPRO_PRESET_DIR[PATH_MAX];
 static char GPTPRO_ACTIVE_FILE[PATH_MAX];
 
-static int execute_ffmpeg_command(char *const argv[]) {
+int execute_ffmpeg_command(char *const argv[]) {
     int stdout_pipe[2];
     int stderr_pipe[2];
     pid_t pid;
@@ -105,52 +107,6 @@ static const char* get_bundled_ffmpeg_path(void) {
     return FFMPEG_PATH;
 }
 
-
-
-static const char *HELP_TEXT =
-"%s v4.9 — The Ultimate AI Restoration Pipeline\n"
-"\n"
-"USAGE:\n"
-"  ./%s <input> [options]\n"
-"  ./%s --settings\n"
-"\n"
-"CODEC / RATE CONTROL:\n"
-"  --hevc                   Use HEVC/H.265 (default: H.264)\n"
-"  --crf <0-51>             Constant Rate Factor (default 16)\n"
-"  --preset <name>          Encoder preset (default slow)\n"
-"  --10bit                  Output yuv420p10le (or p010le for HW)\n"
-"  --x265-params <str>      Pass args to x265 (e.g. 'aq-mode=3:psy-rd=2.0')\n"
-"\n"
-"FRAME / SCALE:\n"
-"  --fps <1-240|source>     Target FPS (default: 60). Use 'source' to lock FPS.\n"
-"  --scale <0.1-10>         Upscale factor (default: 2).\n"
-"  --mi-mode <mci|blend>    Interpolation method (default: mci)\n"
-"\n"
-"AI UPSCALING:\n"
-"  --scaler <ai|lanczos|zscale|hw> Select upscaler (default: ai)\n"
-"  --ai-backend <sr|dnn>    AI filter choice (default: sr).\n"
-"  --ai-model <file>        Path to model (.pb/.model). Required for --scaler ai.\n"
-"  --dnn-backend <name>     native|tensorflow|openvino\n"
-"\n"
-"FILTERS (Denoise/Deblock/Sharpen):\n"
-"  --denoiser <bm3d|nlmeans|hqdn3d|atadenoise> (default: bm3d)\n"
-"  --denoise-strength <f|auto>  Sigma value or 'auto' (default: 2.5)\n"
-"  --dering                 Enable ringing artifact removal\n"
-"  --sharpen-method <cas|unsharp>\n"
-"  --usm-radius <3-23>      Unsharp Mask Radius (default: 5)\n"
-"  --deband-method <deband|gradfun|f3kdb>\n"
-"  --f3kdb-range <1-50>     F3KDB Range (default: 15)\n"
-"\n"
-"COLOR / I/O:\n"
-"  --lut <file>             Path to .cube 3D LUT\n"
-"  --movflags <flags>       MOV container flags (default: +faststart)\n"
-"  --preview                Enable Live View window during processing\n"
-"  --pci-safe               Force yuv420p 8-bit for compatibility\n"
-"\n"
-"SETTINGS MODE:\n"
-"  --settings               Launch interactive menu.\n";
-
-static const char *MANUAL_TEXT = "Refer to interactive settings for full documentation.\n";
 
 
 static void process_file(const char *in, const char *ffmpeg, bool batch);
@@ -253,7 +209,7 @@ static void submenu_edit_group(const char *title, const char **keys, char **vals
     }
 }
 
-static void submenu_toggle_group(const char *title, const char **keys, char **vals, int n) {
+void submenu_toggle_group(const char *title, const char **keys, char **vals, int n) {
     int cursor = 0;
     for (;;) {
         char **items = malloc((n+1)*sizeof(char*));
@@ -269,8 +225,9 @@ static void submenu_toggle_group(const char *title, const char **keys, char **va
     }
 }
 
-static void settings_main_menu(void) {
-    ensure_conf_dirs(); char current[128]; active_preset_name(current, sizeof(current));
+void settings_main_menu(void) {
+    ensure_conf_dirs(); char current[128];
+    active_preset_name(current, sizeof(current));
     load_preset_file(current, true); int cursor = 0;
     for(;;) {
         const char *opts[] = { "Codec & Rate", "Frame / Scale", "AI Upscaling", "Filters (Denoise/Deblock)", "Color / EQ / LUT", "Toggles", "Hardware", "I/O", "Load Preset", "Save Preset", "Reset Factory", "Exit & Save" };
@@ -652,7 +609,7 @@ static int parse_command_line(char *command_line, char ***argv_out) {
     return argc;
 }
 
-static int process_cli_args(int argc, char **argv, const char *ffmpeg_path) {
+int process_cli_args(int argc, char **argv, const char *ffmpeg_path) {
     char input_path[PATH_MAX]="";
     int opt, long_idx;
     
@@ -668,6 +625,7 @@ static int process_cli_args(int argc, char **argv, const char *ffmpeg_path) {
         {"sharpen-method",1,0,27}, {"deband-method",1,0,28},
         {0,0,0,0}
     };
+    
     optind = 1;
     while ((opt = getopt_long(argc, argv, "i:o:c:p:f:s:hm", long_opts, &long_idx)) != -1) {
         switch(opt) {
@@ -781,10 +739,7 @@ static void build_atadenoise_filter(SB *vf, const char *strength_str) {
     sb_fmt(vf, "atadenoise=s=%.2f:0a=%.3f:0b=%.3f,", threshold, param_a, param_b);
 }
 
-
-
-
-//  MARK —--------------------
+//  MARK: -
 
 static void process_file(const char *in, const char *ffmpeg, bool batch) {
     (void)batch; char outdir[PATH_MAX], base[PATH_MAX], out[PATH_MAX];
@@ -830,9 +785,6 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
     }
     
     if (S.dering_active) {
-        
-        
-        
         
         double dstr = parse_strength(S.dering_strength);
         if (dstr <= 0) dstr = 0.5;
@@ -1012,10 +964,6 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
         }
         else sb_fmt(&vf, "deband=1thr=%s:b=1,", S.deband_strength_2);
     }
-    
-    
-    
-    
     if (!S.no_grain) {
         if (S.use_grain_2) sb_fmt(&vf, "noise=alls=%s:allf=t,", S.grain_strength_2);
         else sb_fmt(&vf, "noise=alls=%s:allf=t,", S.grain_strength);
@@ -1029,9 +977,6 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
     if (!img) {
         
         sb_fmt(&vf, "format=%s,", pix);
-        
-        
-        
         if (S.use10 && !S.pci_safe_mode) {
             
             sb_append(&vf, "limiter=min=64:max=940:planes=15,");
@@ -1135,11 +1080,9 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
     
     if (global_log_cb) {
         // === MODE: LIBRARY (Swift App) ===
-        // Send the message to the App
         global_log_cb(msg_buf);
         
         if (DRY_RUN) {
-            // In Dry Run, build the command string and send it to the App
             char cmd_buf[8192];
             int pos = snprintf(cmd_buf, sizeof(cmd_buf), "CMD: ");
             for(int i=0; args[i]; i++) {
@@ -1148,16 +1091,13 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
             snprintf(cmd_buf + pos, sizeof(cmd_buf) - pos, "\n");
             global_log_cb(cmd_buf);
         } else {
-            // Run FFmpeg
             int result = execute_ffmpeg_command(args);
             
             if (result != 0) {
-                // Report Error to App
                 char err[128];
                 snprintf(err, sizeof(err), "FFmpeg failed with exit code %d\n", result);
                 global_log_cb(err);
             } else {
-                // Report Success to App
                 global_log_cb("Done.\n");
             }
         }
@@ -1174,8 +1114,6 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
         } else {
             // Check for cancellation (CLI specific safety)
             if (up60p_is_cancelled()) { free(vf.buf); return; }
-            
-            // Run FFmpeg
             int result = execute_ffmpeg_command(args);
             
             if (result == 0) {
@@ -1189,7 +1127,7 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
 }
 
 
-static void process_directory(const char *dir, const char *ffmpeg) {
+void process_directory(const char *dir, const char *ffmpeg) {
     DIR *d = opendir(dir); if (!d) return;
     struct dirent *e;
     while ((e = readdir(d))) {
@@ -1207,10 +1145,12 @@ static void process_directory(const char *dir, const char *ffmpeg) {
 int interactive_mode(const char *self_path) {
     char line[PATH_MAX];
     printf("\n" C_BOLD "up60p_restore_beast v4.9 COMPLETE" C_RESET "\n");
-    ensure_conf_dirs(); char ap[128]; active_preset_name(ap, sizeof(ap)); load_preset_file(ap, true);
+    ensure_conf_dirs(); char ap[128];
+    active_preset_name(ap, sizeof(ap));
+    load_preset_file(ap, true);
     
     for (;;) {
-        printf("\n────────────────────────────────────────────────────────────────\n");
+        printf("\n────────\n");
         printf("Drag video/folder here, 'settings', or 'q':\n" C_CYAN "> " C_RESET);
         if (!fgets(line, sizeof(line), stdin)) break;
         sanitize_path(line);
@@ -1238,8 +1178,6 @@ int interactive_mode(const char *self_path) {
 void up60p_set_dry_run(int enable) {
     DRY_RUN = enable;
 }
-
-
 
 up60p_error up60p_init(const char *app_support_dir, up60p_log_callback log_cb) {
     (void)app_support_dir;

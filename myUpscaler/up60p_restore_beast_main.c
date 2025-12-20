@@ -1,36 +1,6 @@
-#define _POSIX_C_SOURCE 200809L
-#include <ctype.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <getopt.h>
-#include <libgen.h>
-#include <stdarg.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <signal.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <termios.h>
-#include <time.h>
-#include <unistd.h>
-#include <dirent.h>
-#include <string.h>
-#include <strings.h>
-#include <sys/wait.h>
-#include <sys/select.h>
-#include <mach-o/dyld.h>
-#include <limits.h>
-
-
-#include "up60p.h"
-#include "Up60PBridging.h"
-//
-//#ifdef UP60P_LIBRARY_MODE
-//#else
-//
-//#endif
+#include "up60p_common.h"
+#include "up60p_utils.h"
+#include "up60p_settings.h"
 
 static int execute_ffmpeg_command(char *const argv[]) {
     int stdout_pipe[2];
@@ -92,10 +62,6 @@ static int execute_ffmpeg_command(char *const argv[]) {
 }
 
 
-#ifndef PATH_MAX
-#define PATH_MAX 4096
-#endif
-
 static volatile sig_atomic_t cancel_requested = 0;
 
 static const char *SCRIPT_NAME = "up60p_restore_beast";
@@ -104,11 +70,7 @@ static char FFMPEG_PATH[PATH_MAX] = {0};
 int DRY_RUN = 0;
 
 
-static void safe_copy(char *dst, const char *src, size_t size) {
-    if (size == 0) return;
-    strncpy(dst, src, size - 1);
-    dst[size - 1] = '\0';
-}
+
 
 static const char* get_bundled_ffmpeg_path(void) {
     if (FFMPEG_PATH[0] != '\0') {
@@ -138,19 +100,6 @@ static const char* get_bundled_ffmpeg_path(void) {
     
     return FFMPEG_PATH;
 }
-
-
-#ifndef PATH_MAX
-#define PATH_MAX 4096
-#endif
-#define ARR_LEN(a) ((int)(sizeof(a)/sizeof((a)[0])))
-
-#define C_RESET   "\033[0m"
-#define C_BOLD    "\033[1m"
-#define C_RED     "\033[31m"
-#define C_GREEN   "\033[32m"
-#define C_YELLOW  "\033[33m"
-#define C_CYAN    "\033[36m"
 
 
 
@@ -200,76 +149,9 @@ static const char *HELP_TEXT =
 static const char *MANUAL_TEXT = "Refer to interactive settings for full documentation.\n";
 
 
-typedef struct {
-    
-    char codec[8]; char crf[16]; char preset[32];
-    char fps[16];
-    char scale_factor[16];
-    
-    
-    char scaler[16]; char ai_backend[16]; char ai_model[PATH_MAX];
-    char ai_model_type[16]; char dnn_backend[32];
-    
-    
-    char denoiser[16]; char denoise_strength[16];
-    char deblock_mode[16]; char deblock_thresh[64];
-    int  dering_active; char dering_strength[16];
-    
-    char sharpen_method[16]; char sharpen_strength[32];
-    char usm_radius[16]; char usm_amount[16]; char usm_threshold[16];
-    
-    char deband_method[16];
-    char deband_strength[32];
-    char f3kdb_range[16]; char f3kdb_y[16]; char f3kdb_cbcr[16];
-    
-    char grain_strength[16];
-    
-    
-    char denoiser_2[16]; char denoise_strength_2[16];
-    char deblock_mode_2[16]; char deblock_thresh_2[64];
-    int  dering_active_2; char dering_strength_2[16];
-    
-    char sharpen_method_2[16]; char sharpen_strength_2[32];
-    char usm_radius_2[16]; char usm_amount_2[16]; char usm_threshold_2[16];
-    
-    char deband_method_2[16];
-    char deband_strength_2[32];
-    char f3kdb_range_2[16]; char f3kdb_y_2[16]; char f3kdb_cbcr_2[16];
-    
-    char grain_strength_2[16];
-    
-    
-    int use_denoise_2;
-    int use_deblock_2;
-    int use_dering_2;
-    int use_sharpen_2;
-    int use_deband_2;
-    int use_grain_2;
-    
-    char mi_mode[16];
-    
-    char eq_contrast[16]; char eq_brightness[16]; char eq_saturation[16];
-    char lut3d_file[PATH_MAX];
-    
-    char x265_params[256];
-    
-    
-    char outdir[PATH_MAX]; char audio_bitrate[32]; char threads[16];
-    char movflags[32];
-    int  use10;
-    int  preview;
-    
-    
-    int no_deblock, no_denoise, no_decimate, no_interpolate;
-    int no_sharpen, no_deband, no_eq, no_grain;
-    int pci_safe_mode;
-    
-    
-    char hwaccel[16]; char encoder[16];
-} Settings;
 
-static Settings DEF;
-static Settings S;
+Settings DEF;
+Settings S;
 
 static char GPTPRO_PRESET_DIR[PATH_MAX];
 static char GPTPRO_ACTIVE_FILE[PATH_MAX];
@@ -502,20 +384,9 @@ static void process_directory(const char *dir, const char *ffmpeg);
 static int ar_menu_choose(const char *prompt, const char **items, int n, int start_index);
 static void set_defaults(void);
 static void reset_to_factory(void);
-static inline bool up60p_is_cancelled(void) { return cancel_requested != 0; }
 
-static void sanitize_path(char *p) {
-    while (*p && isspace((unsigned char)*p)) p++;
-    size_t len = strlen(p);
-    while (len > 0 && isspace((unsigned char)p[len-1])) p[--len] = '\0';
-    if (len > 2 && ((p[0] == '"' && p[len-1] == '"') || (p[0] == '\'' && p[0] == p[len-1]))) {
-        memmove(p, p+1, len-2); p[len-2] = '\0'; len -= 2;
-    }
-    char *src = p, *dst = p;
-    while (*src) {
-        if (*src == '\\' && src[1] == ' ') { *dst++ = ' '; src += 2; } else *dst++ = *src++;
-    } *dst = '\0';
-}
+
+
 
 static void init_paths(void) {
     char xdg[PATH_MAX];
@@ -535,11 +406,6 @@ static void init_paths(void) {
     snprintf(GPTPRO_ACTIVE_FILE, sizeof(GPTPRO_ACTIVE_FILE), "%s/gptPro/active_preset", xdg);
 }
 
-static void mkdir_p(const char *path) {
-    char tmp[PATH_MAX]; snprintf(tmp, sizeof(tmp), "%s", path);
-    for (char *p = tmp + 1; *p; p++) { if (*p == '/') { *p = 0; mkdir(tmp, 0775); *p = '/'; } }
-    mkdir(tmp, 0775);
-}
 
 static void set_defaults(void) {
     memset(&S, 0, sizeof(S));
@@ -1340,49 +1206,13 @@ static int process_cli_args(int argc, char **argv, const char *ffmpeg_path) {
 }
 
 
-typedef struct { char *buf; size_t len, cap; } SB;
-static void sb_append(SB *s, const char *str) {
-    if (!s || !str) return;
-    
-    if (!s->buf) {
-        s->cap = 1024;
-        s->buf = malloc(s->cap);
-        s->len = 0;
-        if (!s->buf) {
-            s->cap = 0;
-            return;
-        }
-        s->buf[0] = '\0';
-    }
-    
-    size_t l = strlen(str);
-    
-    if (s->len + l + 1 >= s->cap) {
-        size_t new_cap = (s->cap + l) * 2;
-        char *tmp = realloc(s->buf, new_cap);
-        if (!tmp) return;
-        s->buf = tmp;
-        s->cap = new_cap;
-    }
-    
-    memcpy(s->buf + s->len, str, l + 1);
-    s->len += l;
-}
-static void sb_fmt(SB *s, const char *fmt, ...) {
-    va_list ap; va_start(ap, fmt);
-    char tmp[2048]; vsnprintf(tmp, sizeof(tmp), fmt, ap);
-    va_end(ap); sb_append(s, tmp);
-}
 
 
 
-static double parse_strength(const char *strength) {
-    if (!strength || !strcmp(strength, "auto")) return 0.0;
-    char *end;
-    double val = strtod(strength, &end);
-    if (*end != '\0' || val < 0) return 0.0;
-    return val;
-}
+
+
+
+
 
 
 static void build_hqdn3d_filter(SB *vf, const char *strength_str) {
@@ -1447,15 +1277,7 @@ static void build_atadenoise_filter(SB *vf, const char *strength_str) {
     sb_fmt(vf, "atadenoise=s=%.2f:0a=%.3f:0b=%.3f,", threshold, param_a, param_b);
 }
 
-static bool is_image(const char *path) {
-    const char *ext = strrchr(path, '.');
-    if (!ext) return false;
-    if (!strcasecmp(ext, ".png") || !strcasecmp(ext, ".jpg") ||
-        !strcasecmp(ext, ".jpeg") || !strcasecmp(ext, ".tif") ||
-        !strcasecmp(ext, ".tiff") || !strcasecmp(ext, ".bmp") ||
-        !strcasecmp(ext, ".webp")) return true;
-    return false;
-}
+
 
 //  MARK —--------------------
 
@@ -2035,10 +1857,6 @@ void up60p_set_dry_run(int enable) {
     DRY_RUN = enable;
 }
 
-
-void up60p_request_cancel(void) {
-    cancel_requested = 1;
-}
 
 
 up60p_error up60p_init(const char *app_support_dir, up60p_log_callback log_cb) {

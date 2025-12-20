@@ -1,7 +1,7 @@
 #ifndef UP60P_UTILS_H
 #define UP60P_UTILS_H
 
-
+#include "up60p.h"
 #include "up60p_common.h"
 
 
@@ -28,5 +28,8 @@ bool is_image(const char *path);
 
 bool up60p_is_cancelled(void);
 void up60p_request_cancel(void);
+
+
+extern up60p_log_callback global_log_cb;
 
 #endif

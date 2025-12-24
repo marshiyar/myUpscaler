@@ -28,8 +28,8 @@
 		5E23E7C82ED9B256008298B2 /* Exceptions for "myUpscaler" folder in "myUpscaler" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				FFmpeg.entitlements,
 				ThirdParty/ffmpeg/ffmpeg,
+				up60p_cli.c,
 				upscaler/CoreML_README.md,
 				upscaler/filters/README.md,
 				upscaler/models/RealESRGAN_x2.mlpackage,
@@ -403,8 +403,8 @@
 					"$(PROJECT_DIR)/myUpscaler/Frameworks.bak",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
-				MARKETING_VERSION = 0.1;
-				"MARKETING_VERSION[sdk=macosx*]" = 0.1;
+				MARKETING_VERSION = 0.0.2;
+				"MARKETING_VERSION[sdk=macosx*]" = 0.0.2;
 				MTL_COMPILER_FLAGS = "-fcikernel";
 				MTL_FAST_MATH = YES;
 				OTHER_LDFLAGS = "";
@@ -483,7 +483,7 @@
 					"$(PROJECT_DIR)/myUpscaler/Frameworks.bak",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
-				MARKETING_VERSION = 0.1;
+				MARKETING_VERSION = 0.0.2;
 				MTL_COMPILER_FLAGS = "-fcikernel";
 				MTL_FAST_MATH = YES;
 				OTHER_LDFLAGS = "";

@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <limits.h>
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -18,10 +19,6 @@ typedef enum {
     UP60P_ERR_CANCELLED
 } up60p_error;
 
-/*
- * Public options struct – mirrors your Settings struct closely so
- * Swift can pass everything in one shot.
- */
 typedef struct {
     /* Core */
     char codec[8];
@@ -122,32 +119,27 @@ typedef struct {
     char encoder[16];
 } up60p_options;
 
-/* Log callback type */
+
 typedef void (*up60p_log_callback)(const char *message);
 
 #ifdef UP60P_LIBRARY_MODE
 extern void (*global_log_cb)(const char *message);
 #endif
 
-/* Initialize engine (paths, defaults, presets). app_support_dir is optional. */
+
 up60p_error up60p_init(const char *app_support_dir, up60p_log_callback log_cb);
 
-/* Fill out_opts with engine defaults / active preset (strings). */
 void        up60p_default_options(up60p_options *out_opts);
 
-/* Process a single file or directory path according to opts. */
 up60p_error up60p_process_path(const char *input_path,
                                const up60p_options *opts);
 
-/* Enable or disable dry run mode (1=enabled, 0=disabled) */
 void        up60p_set_dry_run(int enable);
 
-/* Request cancellation of any in-flight processing. */
 void        up60p_request_cancel(void);
 
-/* Cleanup hook (currently mostly a no-op, but future-proof). */
 void        up60p_shutdown(void);
-
 #ifdef __cplusplus
 }
 #endif
+extern void (*global_log_cb)(const char *message);

@@ -88,8 +88,6 @@ protocol TestScenario {
     func run() async -> TestResult
 }
 
-// MARK: - Beginner Friendly Helpers
-
 extension TestEvent {
     static func boundaryError(parameter: String, value: String, min: String, max: String) -> TestEvent {
         return TestEvent(

@@ -2,7 +2,6 @@
 #define UP60P_CLI_H
 #include "up60p.h"
 
-
 int interactive_mode(const char *self_path);
 
 int process_cli_args(int argc, char **argv, const char *ffmpeg_path);
@@ -20,7 +19,6 @@ void list_presets(char ***names, int *count);
 
 
 void active_preset_name(char *out, size_t outsz);
-// ------------------------------------------
 
 
 #endif

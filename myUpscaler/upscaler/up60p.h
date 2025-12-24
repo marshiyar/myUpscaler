@@ -126,6 +126,10 @@ typedef void (*up60p_log_callback)(const char *message);
 extern void (*global_log_cb)(const char *message);
 #endif
 
+#ifdef UP60P_LIBRARY_MODE
+extern void (*global_log_cb)(const char *message);
+#endif
+
 
 up60p_error up60p_init(const char *app_support_dir, up60p_log_callback log_cb);
 

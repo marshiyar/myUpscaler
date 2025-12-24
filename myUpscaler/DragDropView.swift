@@ -14,7 +14,7 @@ struct TimelineView: View {
     @ObservedObject var state: EditorState
     @Namespace private var ns
     @State private var hoverIndex: Int?
-
+    
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView(.vertical) {
@@ -38,17 +38,17 @@ struct TimelineView: View {
                                              maxIndex: state.timelineFrames.count - 1,
                                              select: state.selectFrame))
     }
-
+    
     private func thumbnail(_ index: Int) -> some View {
         let selected = (index == state.selectedFrameIndex)
         return ZStack(alignment: .topLeading) {
-
+            
             Image(nsImage: state.timelineFrames[index])
                 .resizable()
                 .aspectRatio(contentMode: .fill)
                 .frame(width: 70, height: 45)
                 .cornerRadius(3)
-
+            
             RoundedRectangle(cornerRadius: 3)
                 .stroke(selected ? Color.accentColor : Color.gray.opacity(0.3),
                         lineWidth: selected ? 3 : 1)
@@ -56,7 +56,7 @@ struct TimelineView: View {
                 .frame(width: 70, height: 45)
                 .shadow(color: selected ? Color.accentColor.opacity(0.6) : .clear,
                         radius: selected ? 6 : 0)
-
+            
             Text("\(index + 1)")
                 .font(.system(size: 8, weight: .bold))
                 .foregroundColor(.white)
@@ -64,7 +64,7 @@ struct TimelineView: View {
                 .padding(.vertical, 1)
                 .background(selected ?
                             Color.accentColor.opacity(0.9) :
-                            Color.primary.opacity(0.7))
+                                Color.primary.opacity(0.7))
                 .cornerRadius(2)
                 .padding(4)
         }
@@ -120,7 +120,7 @@ struct TimelineView: View {
 struct DropArea: View {
     @Binding var isHovered: Bool
     @Binding var filePath: String
-
+    
     var body: some View {
         RoundedRectangle(cornerRadius: 8)
             .stroke(isHovered ? Color.accentColor : Color.secondary, lineWidth: 2)
@@ -129,11 +129,11 @@ struct DropArea: View {
                 return handleDrop(providers)
             }
     }
-   
+    
     // Helper to avoid closure capture issues with 'self'
     private func handleDrop(_ providers: [NSItemProvider]) -> Bool {
         guard let provider = providers.first else { return false }
-       
+        
         provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
             if let data = item as? Data,
                let url = URL(dataRepresentation: data, relativeTo: nil) {
@@ -155,14 +155,14 @@ struct LabeledSlider: View {
     @Binding var value: Double
     let range: ClosedRange<Double>
     var format: String = "%.2f"
-
+    
     init(_ title: String, value: Binding<Double>, range: ClosedRange<Double>, format: String = "%.2f") {
         self.title = title
         self._value = value
         self.range = range
         self.format = format
     }
-
+    
     var body: some View {
         VStack(alignment: .leading) {
             Text("\(title): \(String(format: format, value))")
@@ -177,7 +177,7 @@ struct KeyboardNavigationModifier: ViewModifier {
     @Binding var selectedIndex: Int
     let maxIndex: Int
     let select: (Int) -> Void
-
+    
     func body(content: Content) -> some View {
         content
             .focusable()
@@ -192,7 +192,7 @@ struct KeyPressHandler: ViewModifier {
     @Binding var selectedIndex: Int
     let maxIndex: Int
     let select: (Int) -> Void
-
+    
     @ViewBuilder
     func body(content: Content) -> some View {
         if #available(macOS 14.0, *) {
@@ -723,6 +723,7 @@ private struct VerticalRestorationFiltersPanel: View {
                         ModernDivider()
                             .padding(.vertical, DesignSystem.Spacing.xs)
                         
+                        // Sharpen method picker
                         Picker("Method", selection: $settings.sharpenMethod) {
                             Text("CAS").tag("cas")
                             Text("Unsharp").tag("unsharp")
@@ -853,7 +854,7 @@ struct DragDropView: View {
         self.onEditorStateAvailable = onEditorStateAvailable
         _state = StateObject(wrappedValue: EditorState(settings: settings))
     }
-
+    
     var body: some View {
         GeometryReader { geometry in
             let isCompact = geometry.size.width < 600
@@ -872,7 +873,7 @@ struct DragDropView: View {
                                 Button(action: chooseInput) {
                                     Label("Browse Files", systemImage: "folder.fill")
                                         .font(DesignSystem.Typography.caption1)
-                                    .frame(maxWidth: .infinity)
+                                        .frame(maxWidth: .infinity)
                                 }
                                 .buttonStyle(.bordered)
                                 .controlSize(.regular)
@@ -906,7 +907,8 @@ struct DragDropView: View {
                         }
                     }
                     .frame(minWidth: 0, maxWidth: .infinity, minHeight: 200)
-                    .layoutPriority(1)
+                    .layoutPriority(1) // Give center area priority for remaining space
+//                    .clipped() // Ensure nothing overflows
                     .background(
                         RoundedRectangle(cornerRadius: 10)
                             .fill(Color.black.opacity(0.25))

@@ -42,7 +42,7 @@ final class QualityAnalyzer {
         }
         
         let url = URL(fileURLWithPath: inputPath)
-        let asset = AVAsset(url: url)
+        let asset = AVURLAsset(url: url)
         guard let track = asset.tracks(withMediaType: .video).first else {
             return QualityAnalysis(metrics: QualityMetrics(noise: 0, blur: 0, blockiness: 0, banding: 0), notes: ["Quality scan skipped (no video track)."])
         }
@@ -190,7 +190,7 @@ final class QualityAnalyzer {
 
 extension UpscaleSettings {
     func tuned(using analysis: QualityAnalysis) -> UpscaleSettings {
-        var tuned = self
+        let tuned = self
         let m = analysis.metrics
         
         // Noise handling

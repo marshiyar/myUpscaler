@@ -2,6 +2,14 @@
  Shaders.ci.metal
  myUpscaler
 
+ Core Image Metal Kernels for High-Fidelity Video Restoration.
+ These kernels clone the behavior of industry-standard FFmpeg filters:
+ - cas_sharpen: Clones AMD Contrast Adaptive Sharpening (cas)
+ - deband_dither: Clones f3kdb/deband behavior
+ - bilateral_denoise: Clones hqdn3d/nlmeans behavior (lightweight)
+ - drift_guard: GPU DriftGuard blending AI and baseline
+
+ Designed for Apple Silicon (M-series) GPUs.
  */
 
 #include <metal_stdlib>

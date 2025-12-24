@@ -72,26 +72,23 @@ struct SettingsView: View {
     
     private var aiAndFiltersTab: some View {
         Form {
-            Section {
-                Toggle(isOn: $settings.noDeblock)  { Label("Disable Deblock",  systemImage: "xmark.circle") }
-                Toggle(isOn: $settings.noDenoise) { Label("Disable Denoise", systemImage: "xmark.circle") }
-                Toggle(isOn: $settings.noDecimate){ Label("Disable Decimate",systemImage: "xmark.circle") }
-                Toggle(isOn: $settings.noInterpolate){ Label("Disable Interpolate",systemImage: "xmark.circle") }
-                Toggle(isOn: $settings.noSharpen) { Label("Disable Sharpen", systemImage: "xmark.circle") }
-                Toggle(isOn: $settings.noDeband)  { Label("Disable Deband",  systemImage: "xmark.circle") }
-                Toggle(isOn: $settings.noEq)      { Label("Disable EQ",      systemImage: "xmark.circle") }
-                Toggle(isOn: $settings.noGrain)   { Label("Disable Grain",   systemImage: "xmark.circle") }
-                // DISABLED: Region Masks toggle removed to keep feature off
-                // Toggle(isOn: $settings.regionMasksEnabled) { Label("Region Masks", systemImage: "square.stack.3d.down.forward") }
-                // DISABLED: Quality Analyzer toggle removed to keep feature off
-                // Toggle(isOn: $settings.useQualityAnalyzer) { Label("Quality Analyzer", systemImage: "waveform.path.ecg") }
-                // DISABLED: Drift Guard toggle removed to keep feature off
-                // Toggle(isOn: $settings.useDriftGuard) { Label("Drift Guard (AI Stability)", systemImage: "shield.lefthalf.filled") }
-                Toggle(isOn: $settings.pciSafe)   { Label("PCI Safe Mode",   systemImage: "shield") }
-            } header: {
-                Label("Advanced Toggles", systemImage: "slider.horizontal.below.rectangle")
-                    .font(DesignSystem.Typography.headline)
-            }
+                Section {
+                    Toggle(isOn: $settings.noDeblock)  { Label("Disable Deblock",  systemImage: "xmark.circle") }
+                    Toggle(isOn: $settings.noDenoise) { Label("Disable Denoise", systemImage: "xmark.circle") }
+                    Toggle(isOn: $settings.noDecimate){ Label("Disable Decimate",systemImage: "xmark.circle") }
+                    Toggle(isOn: $settings.noInterpolate){ Label("Disable Interpolate",systemImage: "xmark.circle") }
+                    Toggle(isOn: $settings.noSharpen) { Label("Disable Sharpen", systemImage: "xmark.circle") }
+                    Toggle(isOn: $settings.noDeband)  { Label("Disable Deband",  systemImage: "xmark.circle") }
+                    Toggle(isOn: $settings.noEq)      { Label("Disable EQ",      systemImage: "xmark.circle") }
+                    Toggle(isOn: $settings.noGrain)   { Label("Disable Grain",   systemImage: "xmark.circle") }
+                    Toggle(isOn: $settings.regionMasksEnabled) { Label("Region Masks", systemImage: "square.stack.3d.down.forward") }
+                    Toggle(isOn: $settings.useQualityAnalyzer) { Label("Quality Analyzer", systemImage: "waveform.path.ecg") }
+                    Toggle(isOn: $settings.useDriftGuard) { Label("Drift Guard (AI Stability)", systemImage: "shield.lefthalf.filled") }
+                    Toggle(isOn: $settings.pciSafe)   { Label("PCI Safe Mode",   systemImage: "shield") }
+                } header: {
+                    Label("Advanced Toggles", systemImage: "slider.horizontal.below.rectangle")
+                        .font(DesignSystem.Typography.headline)
+                }
         }
         .formStyle(.grouped)
         .tabItem { Label("Toggles", systemImage: "switch.2") }

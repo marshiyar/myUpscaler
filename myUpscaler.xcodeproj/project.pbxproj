@@ -21,14 +21,12 @@
 
 /* Begin PBXFileReference section */
 		5E6259532EE81EC9004D8958 /* myUpscaler.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = myUpscaler.xctestplan; sourceTree = "<group>"; };
-		5ECE7BB52EF2A63C00603DA9 /* myUpscaler.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = myUpscaler.app; path = /Users/ash/Documents/myUpscaler/build/Debug/myUpscaler.app; sourceTree = "<absolute>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
 		5E23E7C82ED9B256008298B2 /* Exceptions for "myUpscaler" folder in "myUpscaler" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				ThirdParty/ffmpeg/ffmpeg,
 				upscaler/CoreML_README.md,
 				upscaler/filters/README.md,
 				upscaler/models/RealESRGAN_x2.mlpackage,
@@ -92,7 +90,18 @@
 				5E23E5082ED9AB0B008298B2 /* myUpscaler */,
 				5E23E5162ED9AB0C008298B2 /* myUpscalerTests */,
 				5E23E5202ED9AB0C008298B2 /* myUpscalerUITests */,
+				5E23E5072ED9AB0B008298B2 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		5E23E5072ED9AB0B008298B2 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				5E23E5062ED9AB0B008298B2 /* myUpscaler.app */,
+				5E23E5132ED9AB0C008298B2 /* myUpscalerTests.xctest */,
+				5E23E51D2ED9AB0C008298B2 /* myUpscalerUITests.xctest */,
+			);
+			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -371,8 +380,6 @@
 				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
 				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readwrite;
-				FRAMEWORK_SEARCH_PATHS = "";
-				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_STRICT_ALIASING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = "$(SRCROOT)/myUpscaler/upscaler";
@@ -380,11 +387,17 @@
 				INFOPLIST_KEY_CFBundleDisplayName = MyUpscaler;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.video";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
-				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/lib";
-				MACOSX_DEPLOYMENT_TARGET = 15.2;
-				MARKETING_VERSION = 0.1;
-				"MARKETING_VERSION[sdk=macosx*]" = 0.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/myUpscaler/lib",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14;
+				MARKETING_VERSION = "0.0.1 Public Beta";
+				"MARKETING_VERSION[sdk=macosx*]" = "0.0.1 Public Beta";
 				MTL_COMPILER_FLAGS = "-fcikernel";
 				MTL_FAST_MATH = YES;
 				OTHER_LDFLAGS = "";
@@ -441,8 +454,6 @@
 				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
 				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readwrite;
-				FRAMEWORK_SEARCH_PATHS = "";
-				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_STRICT_ALIASING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = "$(SRCROOT)/myUpscaler/upscaler";
@@ -450,10 +461,16 @@
 				INFOPLIST_KEY_CFBundleDisplayName = MyUpscaler;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.video";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
-				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/lib";
-				MACOSX_DEPLOYMENT_TARGET = 15.2;
-				MARKETING_VERSION = 0.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/myUpscaler/lib",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14;
+				MARKETING_VERSION = "0.0.1 Public Beta";
 				MTL_COMPILER_FLAGS = "-fcikernel";
 				MTL_FAST_MATH = YES;
 				OTHER_LDFLAGS = "";

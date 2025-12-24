@@ -459,58 +459,6 @@ private struct InputSection: View {
     
 }
 
-
-/// Color‑Equalizer card
-// MARK: - COMMENTED OUT: Bigger Color Equalizer Panel (keeping the small VerticalColorEqualizerPanel in DragDropView.swift)
-/*
- private struct ColorEqualizerPanel: View {
- @ObservedObject var settings: UpscaleSettings
- 
- var body: some View {
- VStack(alignment: .leading, spacing: 8) {
- HStack {
- Label("Color Equalizer", systemImage: "paintpalette")
- .font(.headline)
- Spacer()
- }
- GroupBox {
- VStack(spacing: UI.rowSpacing) {
- ParameterRow(title: "Contrast",
- binding: $settings.eqContrast,
- range: 0.5...2.0,
- step: 0.005,
- defaultValue: 1.03,
- formatter: Formatters.twoFraction,
- sliderAccessibility: "Contrast slider")
- { _ in settings.objectWillChange.send() }
- 
- ParameterRow(title: "Brightness",
- binding: $settings.eqBrightness,
- range: -0.1...0.1,
- step: 0.005,
- defaultValue: 0.005,
- formatter: Formatters.threeFraction,
- sliderAccessibility: "Brightness slider")
- { _ in settings.objectWillChange.send() }
- 
- ParameterRow(title: "Saturation",
- binding: $settings.eqSaturation,
- range: 0...2,
- step: 0.005,
- defaultValue: 1.06,
- formatter: Formatters.twoFraction,
- sliderAccessibility: "Saturation slider")
- { _ in settings.objectWillChange.send() }
- }
- .padding(UI.cardInnerPadding)
- }
- .cardStyle()
- }
- }
- }
- */
-
-
 // MARK: - Enlarged Color Equalizer Panel (full-screen style)
 private struct EnlargedColorEqualizerPanel: View {
     @ObservedObject var settings: UpscaleSettings
@@ -1992,11 +1940,7 @@ private struct LogPanel: View {
                             }
                         }
                     }
-                    .frame(height: 700)  // Reduced to make room for button
-                    
-                    // note I have changed the height from 170 originally so More log is visible as this is a lazy way of accessing easier since the texts are copy eligble
-                    
-                    // MARK: - : Proccessing log (itself) end
+                    .frame(height: 170)  // Reduced to make room for button
                     
                     // Button to open completed video (uses completedOutputPath which is set correctly)
                     if !runner.isRunning, let outputPath = runner.completedOutputPath {

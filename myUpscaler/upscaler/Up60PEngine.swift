@@ -61,33 +61,26 @@ final class Up60PEngine {
     }
     
     private init() {
-        // Don't initialize here - do it lazily on first use
     }
     
     private func ensureInitialized() throws {
         guard !isInitialized else { return }
         
-        // Set up the log callback that will forward to the current handler
         let callback: @convention(c) (UnsafePointer<CChar>?) -> Void = { message in
             guard let message = message else { return }
             let string = String(cString: message)
             
-            // Filter out Metal/AIR shader dumps and binary garbage
-            // Only filter if it looks like a large dump or IR code
             if string.count > 500 && (string.contains("air.") || string.contains("metal")) {
                 return
             }
-            // Filter specific noisy Metal compiler lines even if short
             if string.contains("air.compile") || string.contains("air.read") || string.contains("air.write") {
                 return
             }
             
-            // Clean up control characters if any (simple scan)
             let cleaned = string.filter { $0.isASCII || $0.isWhitespace || $0.isPunctuation }
             
             Up60PEngine.logHandlerQueue.sync {
                 if let handler = Up60PEngine.currentLogHandler {
-                    // Dispatch to main thread for UI updates
                     DispatchQueue.main.async {
                         handler(cleaned)
                     }
@@ -95,7 +88,6 @@ final class Up60PEngine {
             }
         }
         
-        // Log initialization start
         Up60PEngine.logHandlerQueue.sync {
             if let handler = Up60PEngine.currentLogHandler {
                 DispatchQueue.main.async {
@@ -108,7 +100,6 @@ final class Up60PEngine {
             }
         }
         
-        // Resolve bundled ffmpeg relative to the app executable (Contents/MacOS/ffmpeg)
         if getenv("UP60P_FFMPEG") == nil {
             if let exeURL = Bundle.main.executableURL {
                 let ffmpegURL = exeURL
@@ -139,12 +130,9 @@ final class Up60PEngine {
             }
         }
         
-        // We could pass an app support dir if the C side ever uses it.
-        // C functions don't throw, but we can still check the return value
         let result = Self.bridge.initFunc(nil, callback)
         
         if result != UP60P_OK {
-            // Log error before throwing
             Up60PEngine.logHandlerQueue.sync {
                 if let handler = Up60PEngine.currentLogHandler {
                     DispatchQueue.main.async {
@@ -155,7 +143,6 @@ final class Up60PEngine {
             throw mapError(result) ?? .unknownStatus(Int32(result.rawValue))
         }
         
-        // Log successful initialization
         Up60PEngine.logHandlerQueue.sync {
             if let handler = Up60PEngine.currentLogHandler {
                 DispatchQueue.main.async {
@@ -167,20 +154,10 @@ final class Up60PEngine {
         isInitialized = true
     }
 
-    private func log(_ message: String) {
-        Up60PEngine.logHandlerQueue.sync {
-            if let handler = Up60PEngine.currentLogHandler {
-                DispatchQueue.main.async {
-                    handler(message)
-                }
-            }
-        }
-    }
-    
     deinit {
         Up60PEngine.bridge.shutdownFunc()
     }
-    
+
     private func mapError(_ code: up60p_error) -> Up60PEngineError? {
         switch code {
         case UP60P_ERR_INVALID_OPTIONS:   return .invalidOptions
@@ -194,7 +171,6 @@ final class Up60PEngine {
         }
     }
     
-    // Helper to write a Swift String into a fixed-size C char[] field
     private func setString<T>(_ field: inout T, _ capacity: Int, _ value: String) {
         withUnsafeMutableBytes(of: &field) { bytes in
             let buffer = bytes.bindMemory(to: CChar.self)
@@ -216,7 +192,7 @@ final class Up60PEngine {
         try ensureInitialized()
         
         var opts = up60p_options()
-        Up60PEngine.bridge.defaultOptionsFunc(&opts)    // start from engine defaults / active preset
+        Up60PEngine.bridge.defaultOptionsFunc(&opts)   
         
         // MARK: Core
         setString(&opts.codec, MemoryLayout.size(ofValue: opts.codec), settings.useHEVC ? "hevc" : "h264")
@@ -468,9 +444,9 @@ final class Up60PEngine {
     
     // MARK: - Testing Support
     
-    func setDryRun(_ enabled: Bool) {
-        Up60PEngine.bridge.setDryRunFunc(enabled ? 1 : 0)
-    }
+//    func setDryRun(_ enabled: Bool) {
+//        Up60PEngine.bridge.setDryRunFunc(enabled ? 1 : 0)
+//    }
     
 #if DEBUG
     /// Override the C bridge for deterministic testing

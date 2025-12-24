@@ -680,101 +680,101 @@ private struct VerticalRestorationFiltersPanel: View {
                     GroupBox {
                         VStack(spacing: DesignSystem.Spacing.sm) {
                             // Denoise
+                        VerticalParameterRow(
+                            title: "Denoise",
+                            binding: $settings.denoiseStrength,
+                            range: settings.denoiseStrengthRange,
+                            step: settings.denoiseStrengthStep,
+                            defaultValue: settings.denoiseStrengthDefault,
+                            formatter: DragDropFormatters.oneFraction,
+                            gradient: .denoise
+                        )
+                        
+                        ModernDivider()
+                            .padding(.vertical, DesignSystem.Spacing.xs)
+                        
+                        // Deringing toggle
+                        HStack {
+                            Toggle(isOn: $settings.deringActive) {
+                                Text("Dering")
+                                    .font(DesignSystem.Typography.caption2)
+                                    .fontWeight(.medium)
+                            }
+                            .toggleStyle(.switch)
+                            .controlSize(.mini)
+                            Spacer()
+                        }
+                        .padding(.vertical, DesignSystem.Spacing.xs)
+                        
+                        if settings.deringActive {
                             VerticalParameterRow(
-                                title: "Denoise",
-                                binding: $settings.denoiseStrength,
-                                range: settings.denoiseStrengthRange,
-                                step: settings.denoiseStrengthStep,
-                                defaultValue: settings.denoiseStrengthDefault,
-                                formatter: DragDropFormatters.oneFraction,
-                                gradient: .denoise
+                                title: "Strength",
+                                binding: $settings.deringStrength,
+                                range: 0...10,
+                                step: 0.005,
+                                defaultValue: 0.5,
+                                formatter: DragDropFormatters.twoFraction,
+                                gradient: .dering
+                            )
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                            .animation(.easeInOut(duration: 0.2), value: settings.deringActive)
+                        }
+                        
+                        ModernDivider()
+                            .padding(.vertical, DesignSystem.Spacing.xs)
+                        
+                        // Sharpen method picker
+                        Picker("Method", selection: $settings.sharpenMethod) {
+                            Text("CAS").tag("cas")
+                            Text("Unsharp").tag("unsharp")
+                        }
+                        .pickerStyle(.menu)
+                        .controlSize(.mini)
+                        .font(DesignSystem.Typography.caption2)
+                        
+                        if settings.sharpenMethod == "cas" {
+                            VerticalParameterRow(
+                                title: "CAS Strength",
+                                binding: $settings.sharpenStrength,
+                                range: 0...1,
+                                step: 0.005,
+                                defaultValue: 0.25,
+                                formatter: DragDropFormatters.twoFraction,
+                                gradient: .sharpen
+                            )
+                        } else {
+                            VerticalParameterRow(
+                                title: "Radius",
+                                binding: $settings.usmRadius,
+                                range: 3...23,
+                                step: 1,
+                                defaultValue: 5,
+                                formatter: DragDropFormatters.integer,
+                                gradient: .usmRadius
                             )
                             
-                            ModernDivider()
-                                .padding(.vertical, DesignSystem.Spacing.xs)
+                            VerticalParameterRow(
+                                title: "Amount",
+                                binding: $settings.usmAmount,
+                                range: -2...5,
+                                step: 0.01,
+                                defaultValue: 1.0,
+                                formatter: DragDropFormatters.twoFraction,
+                                gradient: .usmAmount
+                            )
                             
-                            // Deringing toggle
-                            HStack {
-                                Toggle(isOn: $settings.deringActive) {
-                                    Text("Dering")
-                                        .font(DesignSystem.Typography.caption2)
-                                        .fontWeight(.medium)
-                                }
-                                .toggleStyle(.switch)
-                                .controlSize(.mini)
-                                Spacer()
-                            }
-                            .padding(.vertical, DesignSystem.Spacing.xs)
-                            
-                            if settings.deringActive {
-                                VerticalParameterRow(
-                                    title: "Strength",
-                                    binding: $settings.deringStrength,
-                                    range: 0...10,
-                                    step: 0.005,
-                                    defaultValue: 0.5,
-                                    formatter: DragDropFormatters.twoFraction,
-                                    gradient: .dering
-                                )
-                                .transition(.opacity.combined(with: .move(edge: .top)))
-                                .animation(.easeInOut(duration: 0.2), value: settings.deringActive)
-                            }
-                            
-                            ModernDivider()
-                                .padding(.vertical, DesignSystem.Spacing.xs)
-                            
-                            // Sharpen method picker
-                            Picker("Method", selection: $settings.sharpenMethod) {
-                                Text("CAS").tag("cas")
-                                Text("Unsharp").tag("unsharp")
-                            }
-                            .pickerStyle(.menu)
-                            .controlSize(.mini)
-                            .font(DesignSystem.Typography.caption2)
-                            
-                            if settings.sharpenMethod == "cas" {
-                                VerticalParameterRow(
-                                    title: "CAS Strength",
-                                    binding: $settings.sharpenStrength,
-                                    range: 0...1,
-                                    step: 0.005,
-                                    defaultValue: 0.25,
-                                    formatter: DragDropFormatters.twoFraction,
-                                    gradient: .sharpen
-                                )
-                            } else {
-                                VerticalParameterRow(
-                                    title: "Radius",
-                                    binding: $settings.usmRadius,
-                                    range: 3...23,
-                                    step: 1,
-                                    defaultValue: 5,
-                                    formatter: DragDropFormatters.integer,
-                                    gradient: .usmRadius
-                                )
-                                
-                                VerticalParameterRow(
-                                    title: "Amount",
-                                    binding: $settings.usmAmount,
-                                    range: -2...5,
-                                    step: 0.01,
-                                    defaultValue: 1.0,
-                                    formatter: DragDropFormatters.twoFraction,
-                                    gradient: .usmAmount
-                                )
-                                
-                                VerticalParameterRow(
-                                    title: "Threshold",
-                                    binding: $settings.usmThreshold,
-                                    range: 0...1,
-                                    step: 0.001,
-                                    defaultValue: 0.03,
-                                    formatter: DragDropFormatters.threeFraction,
-                                    gradient: .usmThreshold
-                                )
-                            }
+                            VerticalParameterRow(
+                                title: "Threshold",
+                                binding: $settings.usmThreshold,
+                                range: 0...1,
+                                step: 0.001,
+                                defaultValue: 0.03,
+                                formatter: DragDropFormatters.threeFraction,
+                                gradient: .usmThreshold
+                            )
                         }
-                        .padding(6)
+                    }
+                    .padding(6)
                     }
                     .background(Color(nsColor: NSColor.windowBackgroundColor))
                     .cornerRadius(8)
@@ -797,11 +797,10 @@ private struct VerticalRestorationFiltersPanel: View {
         }
         .frame(width: 140)
         .offset(x: dragOffset)
-        .scaleEffect(1.0 + min(abs(dragOffset) / 500.0, 0.3))  // Scale up as dragged, max 30% larger
+        .scaleEffect(1.0 + min(abs(dragOffset) / 500.0, 0.3))
         .gesture(
             DragGesture()
                 .onChanged { value in
-                    // Only allow dragging to the left (negative x)
                     if value.translation.width < 0 {
                         isDragging = true
                         // Rubber band effect: resistance increases as you drag further
@@ -863,14 +862,13 @@ struct DragDropView: View {
             let timelineWidth: CGFloat = isCompact ? 70 : 90
             
             VStack(spacing: DesignSystem.Spacing.sm) {
-                // Main content: color equalizer on left, image centered, restoration filters + timeline on right
+              
                 HStack(alignment: .center, spacing: DesignSystem.Spacing.sm) {
                     // Left side: Color Equalizer (centered vertically)
                     if let settings = settings {
                         VStack(alignment: .leading, spacing: 6) {
                             VerticalColorEqualizerPanel(settings: settings, onDragToEnlarge: onColorEqualizerDrag)
                             
-                            // Browse Files button under the color equalizer
                             if let chooseInput = chooseInput {
                                 Button(action: chooseInput) {
                                     Label("Browse Files", systemImage: "folder.fill")
@@ -887,9 +885,8 @@ struct DragDropView: View {
                         .fixedSize(horizontal: true, vertical: false)
                     }
                     
-                    // Center: Main display frame image (completely centered)
                     ZStack {
-                        // Main display frame image (centered both horizontally and vertically)
+                 
                         if let img = state.thumbnailImage {
                             Image(nsImage: img)
                                 .resizable()
@@ -911,16 +908,15 @@ struct DragDropView: View {
                     }
                     .frame(minWidth: 0, maxWidth: .infinity, minHeight: 200)
                     .layoutPriority(1) // Give center area priority for remaining space
-                    //                    .clipped() // Ensure nothing overflows
+//                    .clipped() // Ensure nothing overflows
                     .background(
                         RoundedRectangle(cornerRadius: 10)
-                            .fill(Color.black.opacity(0.25)) // Inner matte background for display area
+                            .fill(Color.black.opacity(0.25))
                     )
                     
-                    // Right side: Restoration Filters Panel and Timeline
                     if let settings = settings {
                         HStack(spacing: DesignSystem.Spacing.xs) {
-                            // Restoration Filters Panel (between video and timeline)
+                         
                             VerticalRestorationFiltersPanel(settings: settings, onDragToEnlarge: onRestorationFiltersDrag)
                                 .frame(width: sidePanelWidth)
                             
@@ -939,7 +935,7 @@ struct DragDropView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .clipped() // Ensure nothing overflows
+                .clipped()
             }
             .padding(DesignSystem.Spacing.sm)
         }
@@ -961,25 +957,22 @@ struct DragDropView: View {
             return true
         }
         .onChange(of: externalInputPath) { _, newPath in
-            // When external input path changes, update the internal state
+            
             if state.filePath != newPath {
                 state.filePath = newPath
             }
         }
         .onChange(of: state.filePath) { _, newPath in
-            // When internal state changes (from drag-drop), update external binding
+            
             if externalInputPath != newPath {
                 externalInputPath = newPath
             }
         }
         .onChange(of: isProcessingFullUpscale) { _, isProcessing in
-            // Freeze preview during full upscaling
             state.setProcessingFullUpscale(isProcessing)
         }
         .onAppear {
-            // Initialize processing state
             state.setProcessingFullUpscale(isProcessingFullUpscale)
-            // Notify parent about EditorState availability for PiP
             onEditorStateAvailable?(state)
         }
     }

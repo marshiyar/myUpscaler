@@ -215,3 +215,7 @@ dSYM/
 xcuserdata/
 *.xcuserstate
 
+myUpscaler/ThirdParty/ffmpeg/ffmpeg
+*.mlpackage/
+xcuserdata/
+*.xcbkptlist

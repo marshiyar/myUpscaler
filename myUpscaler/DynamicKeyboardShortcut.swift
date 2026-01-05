@@ -84,7 +84,6 @@ class KeyboardMonitorView: NSView {
         guard let action = action else { return }
         
         eventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { event in
-            // Check if this matches our shortcut
             let eventKey = event.charactersIgnoringModifiers?.lowercased() ?? ""
             var eventModifiers: EventModifiers = []
             

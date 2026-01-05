@@ -1,7 +1,3 @@
-//
-//  AboutView.swift
-
-
 import SwiftUI
 
 // MARK: - AboutView ----------------------------------------------------------
@@ -9,10 +5,9 @@ import SwiftUI
 struct AboutView: View {
 
     // MARK: - UI constants (using design system)
-
-
+    
     private let websiteURL = URL(string: "https://github.com/marshiyar/myUpscaler")!
-
+    
     @Environment(\.presentationMode) var presentationMode
 
     // MARK: - Body
@@ -84,7 +79,7 @@ struct AboutView: View {
                         .padding(.vertical, DesignSystem.Spacing.sm)
                     Spacer()
                 }
-                .contentShape(Rectangle()) // Make entire area tappable
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .background(Color.secondary.opacity(0.1))

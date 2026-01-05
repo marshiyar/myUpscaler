@@ -144,7 +144,6 @@ final class QualityAnalyzer {
         let gradMean = gradCount > 0 ? gradSum / Float(gradCount) : 0
         let blur = max(0, 0.12 - Double(gradMean) / 255.0) // higher grad → lower blur
         
-        // Blockiness: stronger differences on 8px boundaries vs interior
         var boundaryDiff: Float = 0
         var interiorDiff: Float = 0
         var boundaryCount = 0

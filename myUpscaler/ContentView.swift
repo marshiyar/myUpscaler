@@ -3,9 +3,9 @@ import Combine
 import AppKit
 import UniformTypeIdentifiers
 
-// ------------------------------------------------------------
+
 // MARK: - UI Constants (Apple‑native sizing)
-// ------------------------------------------------------------
+
 private struct UI {
     // Card‑style
     static let cardCornerRadius: CGFloat = 12         // softer than the default
@@ -33,14 +33,14 @@ private struct UI {
     static let windowMinHeight: CGFloat = 600
     
     // Controls
-    static let buttonHeight: CGFloat = 32           // system regular height
+    static let buttonHeight: CGFloat = 32
     static let resetButtonWidth: CGFloat = 38
     static let resetButtonStyle = BorderlessButtonStyle()
 }
 
-// ------------------------------------------------------------
+
 // MARK: - Card background colour (platform safe)
-// ------------------------------------------------------------
+
 private var cardBackground: Color {
     #if os(macOS)
     Color(NSColor.windowBackgroundColor)
@@ -49,9 +49,8 @@ private var cardBackground: Color {
     #endif
 }
 
-// ------------------------------------------------------------
+
 // MARK: - CardStyle Modifier (re‑usable visual style)
-// ------------------------------------------------------------
 private struct CardStyle: ViewModifier {
     func body(content: Content) -> some View {
         content
@@ -60,16 +59,14 @@ private struct CardStyle: ViewModifier {
             .shadow(color: Color.black.opacity(0.08),
                     radius: UI.cardShadowRadius,
                     x: 0, y: 0.5)
-            .padding(.horizontal, 8)                // keep the card away from the window edge
+            .padding(.horizontal, 8)
     }
 }
 private extension View {
     func cardStyle() -> some View { self.modifier(CardStyle()) }
 }
 
-// ------------------------------------------------------------
 // MARK: - NumberFormatters (static, reused)
-// ------------------------------------------------------------
 private enum Formatters {
     static let twoFraction: NumberFormatter = {
         let f = NumberFormatter()
@@ -100,17 +97,17 @@ private enum Formatters {
 // MARK: - Slider Gradient Colors
 // ------------------------------------------------------------
 private enum SliderGradient {
-    case crf          // Quality - deep blue to purple (professional)
-    case denoise      // Denoise - cool cyan to blue (clean, smooth)
-    case dering       // Deringing - teal to green (healing, correction)
-    case sharpen      // Sharpen - bright yellow to white (sharp, crisp)
-    case contrast     // Contrast - purple to pink (vibrant, dynamic)
-    case brightness   // Brightness - yellow to white (light, bright)
-    case saturation   // Saturation - rainbow colors (colorful, rich)
-    case scale        // Scale - blue to purple (growth, expansion)
-    case usmRadius    // Unsharp radius - orange to yellow (focused)
-    case usmAmount    // Unsharp amount - red to orange (intense)
-    case usmThreshold  // Unsharp threshold - pink to purple (precise)
+    case crf          // Quality
+    case denoise      // Denoise
+    case dering       // Deringing
+    case sharpen      // Sharpen
+    case contrast     // Contrast
+    case brightness   // Brightness
+    case saturation   // Saturation
+    case scale        // Scale
+    case usmRadius    // Unsharp radius
+    case usmAmount    // Unsharp amount
+    case usmThreshold  // Unsharp threshold
     
     var gradient: LinearGradient {
         switch self {
@@ -228,9 +225,7 @@ private enum SliderGradient {
     }
 }
 
-// ------------------------------------------------------------
-// MARK: - Luxurious Custom Slider
-// ------------------------------------------------------------
+// MARK: - Custom Slider
 private struct LuxuriousSlider: View {
     @Binding var value: Double
     let range: ClosedRange<Double>
@@ -251,7 +246,7 @@ private struct LuxuriousSlider: View {
                     .fill(Color.gray.opacity(0.2))
                     .frame(height: trackHeight)
                 
-                // Filled track with custom gradient (larger)
+                // Filled track withgradient (larger)
                 RoundedRectangle(cornerRadius: 4)
                     .fill(gradient.gradient)
                     .frame(width: max(0, min(geometry.size.width, thumbPosition)))
@@ -268,6 +263,7 @@ private struct LuxuriousSlider: View {
                     )
                     .offset(x: max(thumbSize/2, min(geometry.size.width - thumbSize/2, thumbPosition - thumbSize/2)))
             }
+            // TODO: REVIEW CODE
             .frame(height: trackHeight)
             .padding(.vertical, 8) // Extra padding for easier grabbing
             .drawingGroup() // Offload rendering to GPU to prevent Main Thread hangs
@@ -300,9 +296,7 @@ private struct LuxuriousSlider: View {
     }
 }
 
-// ------------------------------------------------------------
 // MARK: - ParameterRow (compact, native)
-// ------------------------------------------------------------
 private struct ParameterRow: View {
     let title: String
     let binding: Binding<String>
@@ -339,10 +333,9 @@ private struct ParameterRow: View {
                 .frame(width: 70, alignment: .leading)
                 .lineLimit(1)
             
-            // Luxurious custom slider
             LuxuriousSlider(value: sliderBinding, range: range, step: step, gradient: gradient, onEditingChanged: { editing in
                 if !editing {
-                    // Commit changes only when dragging ends
+                    // changes happen only when dragging ends
                     if let finalValue = localValue {
                         binding.wrappedValue = formatter.string(from: NSNumber(value: finalValue)) ?? "\(finalValue)"
                         onChange?(finalValue)
@@ -383,19 +376,13 @@ private struct ParameterRow: View {
     }
 }
 
-// ------------------------------------------------------------
 // MARK: - Sub‑views (each block is its own struct)
-// ------------------------------------------------------------
 
 /// Header – stays at the top of the scroll view
 private struct HeaderView: View {
     var body: some View {
         HStack {
             HStack(spacing: 10) {
-                Image(systemName: "wand.and.stars")
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(.accentColor)
-                
                 Text("MyUpscaler")
                     .font(.system(size: 22, weight: .semibold))
                     .foregroundColor(.primary)
@@ -436,7 +423,7 @@ private struct InputSection: View {
     
     private func dragDropView() -> some View {
         DragDropView(externalInputPath: $inputPath, settings: settings, chooseInput: chooseInput, isProcessingFullUpscale: isProcessingFullUpscale, onFrameDoubleTap: onFrameDoubleTap, onRestorationFiltersDrag: onRestorationFiltersDrag, onColorEqualizerDrag: onColorEqualizerDrag, onEditorStateAvailable: onEditorStateAvailable)
-            .cornerRadius(10) // Match the card corner radius
+            .cornerRadius(10)
             .overlay(
                 // Show overlay when processing to indicate preview is frozen
                 Group {
@@ -459,297 +446,297 @@ private struct InputSection: View {
     
 }
 // MARK: - Enlarged Color Equalizer Panel (full-screen style)
-private struct EnlargedColorEqualizerPanel: View {
-    @ObservedObject var settings: UpscaleSettings
-    @Binding var isPresented: Bool
-    
-    var body: some View {
-        ZStack {
-            // Semi-transparent background
-            Color.black.opacity(0.85)
-                .ignoresSafeArea(.all)
-                .onTapGesture(count: 2) {
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                        isPresented = false
-                    }
-                }
-            
-            // Enlarged panel
-            VStack {
-                Spacer()
-                
-                VStack(alignment: .leading, spacing: 20) {
-                    // Header
-                    HStack {
-                        Label("Color Equalizer", systemImage: "paintpalette")
-                            .font(.system(size: 28, weight: .semibold))
-                            .foregroundColor(.white)
-                        Spacer()
-                        
-                        Button(action: {
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                isPresented = false
-                            }
-                        }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 24))
-                                .foregroundColor(.white.opacity(0.7))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .padding(.bottom, 10)
-                    
-                    // Content with better spacing
-                    GroupBox {
-                        VStack(spacing: 20) {
-                            ParameterRow(title: "Contrast",
-                                         binding: $settings.eqContrast,
-                                         range: settings.eqContrastRange,
-                                         step: settings.eqContrastStep,
-                                         defaultValue: settings.eqContrastDefault,
-                                         formatter: Formatters.twoFraction,
-                                         sliderAccessibility: "Contrast slider",
-                                         gradient: .contrast)
-                            { _ in settings.objectWillChange.send() }
-                            
-                            Divider()
-                            
-                            ParameterRow(title: "Brightness",
-                                         binding: $settings.eqBrightness,
-                                         range: settings.eqBrightnessRange,
-                                         step: settings.eqBrightnessStep,
-                                         defaultValue: settings.eqBrightnessDefault,
-                                         formatter: Formatters.threeFraction,
-                                         sliderAccessibility: "Brightness slider",
-                                         gradient: .brightness)
-                            { _ in settings.objectWillChange.send() }
-                            
-                            Divider()
-                            
-                            ParameterRow(title: "Saturation",
-                                         binding: $settings.eqSaturation,
-                                         range: settings.eqSaturationRange,
-                                         step: settings.eqSaturationStep,
-                                         defaultValue: settings.eqSaturationDefault,
-                                         formatter: Formatters.twoFraction,
-                                         sliderAccessibility: "Saturation slider",
-                                         gradient: .saturation)
-                            { _ in settings.objectWillChange.send() }
-                        }
-                        .padding(24)
-                    }
-                    .frame(width: 600)
-                    .background(cardBackground)
-                    .cornerRadius(16)
-                    .shadow(color: Color.black.opacity(0.3), radius: 30, x: 0, y: 15)
-                }
-                .padding(40)
-                
-                Spacer()
-                
-                // Hint text
-                HStack {
-                    Text("Double-click background to close")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.6))
-                    Text("•")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.4))
-                    Text("Press ESC")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.6))
-                }
-                .padding(.bottom, 30)
-            }
-        }
-        .transition(.opacity.combined(with: .scale(scale: 0.9)))
-        .zIndex(10000)
-        .focusable()
-        .onKeyPress(.escape) {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                isPresented = false
-            }
-            return .handled
-        }
-    }
-}
+//private struct EnlargedColorEqualizerPanel: View {
+//    @ObservedObject var settings: UpscaleSettings
+//    @Binding var isPresented: Bool
+//    
+//    var body: some View {
+//        ZStack {
+//            // Semi-transparent background
+//            Color.black.opacity(0.85)
+//                .ignoresSafeArea(.all)
+//                .onTapGesture(count: 2) {
+//                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+//                        isPresented = false
+//                    }
+//                }
+//            
+//            // Enlarged panel
+//            VStack {
+//                Spacer()
+//                
+//                VStack(alignment: .leading, spacing: 20) {
+//                    // Header
+//                    HStack {
+//                        Label("Color Equalizer", systemImage: "paintpalette")
+//                            .font(.system(size: 28, weight: .semibold))
+//                            .foregroundColor(.white)
+//                        Spacer()
+//                        
+//                        Button(action: {
+//                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+//                                isPresented = false
+//                            }
+//                        }) {
+//                            Image(systemName: "xmark.circle.fill")
+//                                .font(.system(size: 24))
+//                                .foregroundColor(.white.opacity(0.7))
+//                        }
+//                        .buttonStyle(.plain)
+//                    }
+//                    .padding(.bottom, 10)
+//                    
+//                    //better spacing
+//                    GroupBox {
+//                        VStack(spacing: 20) {
+//                            ParameterRow(title: "Contrast",
+//                                         binding: $settings.eqContrast,
+//                                         range: settings.eqContrastRange,
+//                                         step: settings.eqContrastStep,
+//                                         defaultValue: settings.eqContrastDefault,
+//                                         formatter: Formatters.twoFraction,
+//                                         sliderAccessibility: "Contrast slider",
+//                                         gradient: .contrast)
+//                            { _ in settings.objectWillChange.send() }
+//                            
+//                            Divider()
+//                            
+//                            ParameterRow(title: "Brightness",
+//                                         binding: $settings.eqBrightness,
+//                                         range: settings.eqBrightnessRange,
+//                                         step: settings.eqBrightnessStep,
+//                                         defaultValue: settings.eqBrightnessDefault,
+//                                         formatter: Formatters.threeFraction,
+//                                         sliderAccessibility: "Brightness slider",
+//                                         gradient: .brightness)
+//                            { _ in settings.objectWillChange.send() }
+//                            
+//                            Divider()
+//                            
+//                            ParameterRow(title: "Saturation",
+//                                         binding: $settings.eqSaturation,
+//                                         range: settings.eqSaturationRange,
+//                                         step: settings.eqSaturationStep,
+//                                         defaultValue: settings.eqSaturationDefault,
+//                                         formatter: Formatters.twoFraction,
+//                                         sliderAccessibility: "Saturation slider",
+//                                         gradient: .saturation)
+//                            { _ in settings.objectWillChange.send() }
+//                        }
+//                        .padding(24)
+//                    }
+//                    .frame(width: 600)
+//                    .background(cardBackground)
+//                    .cornerRadius(16)
+//                    .shadow(color: Color.black.opacity(0.3), radius: 30, x: 0, y: 15)
+//                }
+//                .padding(40)
+//                
+//                Spacer()
+//                
+//                // Hint text
+//                HStack {
+//                    Text("Double-click background to close")
+//                        .font(.caption)
+//                        .foregroundColor(.white.opacity(0.6))
+//                    Text("•")
+//                        .font(.caption)
+//                        .foregroundColor(.white.opacity(0.4))
+//                    Text("Press ESC")
+//                        .font(.caption)
+//                        .foregroundColor(.white.opacity(0.6))
+//                }
+//                .padding(.bottom, 30)
+//            }
+//        }
+//        .transition(.opacity.combined(with: .scale(scale: 0.9)))
+//        .zIndex(10000)
+//        .focusable()
+//        .onKeyPress(.escape) {
+//            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+//                isPresented = false
+//            }
+//            return .handled
+//        }
+//    }
+//}
 
 // MARK: - Enlarged Restoration Filters Panel (full-screen style)
-private struct EnlargedRestorationFiltersPanel: View {
-    @ObservedObject var settings: UpscaleSettings
-    @Binding var isPresented: Bool
-    
-    var body: some View {
-        ZStack {
-            // Semi-transparent background
-            Color.black.opacity(0.85)
-                .ignoresSafeArea(.all)
-                .onTapGesture(count: 2) {
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                        isPresented = false
-                    }
-                }
-            
-            // Enlarged panel
-            VStack {
-                Spacer()
-                
-                VStack(alignment: .leading, spacing: 20) {
-                    // Header
-                    HStack {
-                        Label("Restoration Filters", systemImage: "wand.and.stars")
-                            .font(.system(size: 28, weight: .semibold))
-                            .foregroundColor(.white)
-                        Spacer()
-                        
-                        Button(action: {
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                isPresented = false
-                            }
-                        }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 24))
-                                .foregroundColor(.white.opacity(0.7))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .padding(.bottom, 10)
-                    
-                    // Content with better spacing
-                    GroupBox {
-                        VStack(spacing: 20) {
-                            // Denoise
-                            ParameterRow(title: "Denoise Strength",
-                                         binding: $settings.denoiseStrength,
-                                         range: settings.denoiseStrengthRange,
-                                         step: settings.denoiseStrengthStep,
-                                         defaultValue: settings.denoiseStrengthDefault,
-                                         formatter: Formatters.oneFraction,
-                                         sliderAccessibility: "Denoise strength slider",
-                                         gradient: .denoise)
-                            { _ in settings.objectWillChange.send() }
-                            
-                            Divider()
-                            
-                            // Deringing toggle + strength
-                            Toggle(isOn: $settings.deringActive) {
-                                Text("Deringing")
-                                    .font(.title3)
-                            }
-                            .toggleStyle(.switch)
-                            .padding(.vertical, 8)
-                            
-                            if settings.deringActive {
-                                ParameterRow(title: "Strength",
-                                             binding: $settings.deringStrength,
-                                             range: 0...10,
-                                             step: 0.005,
-                                             defaultValue: 0.5,
-                                             formatter: Formatters.twoFraction,
-                                             sliderAccessibility: "Deringing strength slider",
-                                             gradient: .dering)
-                                { _ in settings.objectWillChange.send() }
-                                    .transition(.opacity.combined(with: .move(edge: .top)))
-                                    .padding(.top, 8)
-                                    .animation(.easeInOut(duration: 0.2), value: settings.deringActive)
-                            }
-                            
-                            Divider()
-                            
-                            // Sharpen
-                            HStack {
-                                Text("Sharpen Method")
-                                    .font(.title3)
-                                Spacer()
-                                Picker("Method", selection: $settings.sharpenMethod) {
-                                    Text("CAS").tag("cas")
-                                    Text("Unsharp Mask").tag("unsharp")
-                                }
-                                .pickerStyle(.menu)
-                                .frame(width: 180)
-                            }
-                            
-                            if settings.sharpenMethod == "cas" {
-                                ParameterRow(title: "CAS Strength",
-                                             binding: $settings.sharpenStrength,
-                                             range: settings.sharpenStrengthRange,
-                                             step: settings.sharpenStrengthStep,
-                                             defaultValue: settings.sharpenStrengthDefault,
-                                             formatter: Formatters.twoFraction,
-                                             sliderAccessibility: "CAS sharpen strength slider",
-                                             gradient: .sharpen)
-                                { _ in settings.objectWillChange.send() }
-                            } else {
-                                VStack(alignment: .leading, spacing: 16) {
-                                    ParameterRow(title: "Radius",
-                                                 binding: $settings.usmRadius,
-                                                 range: settings.usmRadiusRange,
-                                                 step: settings.usmRadiusStep,
-                                                 defaultValue: settings.usmRadiusDefault,
-                                                 formatter: Formatters.integer,
-                                                 sliderAccessibility: "Unsharp mask radius slider",
-                                                 gradient: .usmRadius)
-                                    { _ in settings.objectWillChange.send() }
-                                    
-                                    ParameterRow(title: "Amount",
-                                                 binding: $settings.usmAmount,
-                                                 range: settings.usmAmountRange,
-                                                 step: settings.usmAmountStep,
-                                                 defaultValue: settings.usmAmountDefault,
-                                                 formatter: Formatters.twoFraction,
-                                                 sliderAccessibility: "Unsharp mask amount slider",
-                                                 gradient: .usmAmount)
-                                    { _ in settings.objectWillChange.send() }
-                                    
-                                    ParameterRow(title: "Threshold",
-                                                 binding: $settings.usmThreshold,
-                                                 range: settings.usmThresholdRange,
-                                                 step: settings.usmThresholdStep,
-                                                 defaultValue: settings.usmThresholdDefault,
-                                                 formatter: Formatters.threeFraction,
-                                                 sliderAccessibility: "Unsharp mask threshold slider",
-                                                 gradient: .usmThreshold)
-                                    { _ in settings.objectWillChange.send() }
-                                }
-                            }
-                        }
-                        .padding(24)
-                    }
-                    .frame(width: 600)
-                    .background(cardBackground)
-                    .cornerRadius(16)
-                    .shadow(color: Color.black.opacity(0.3), radius: 30, x: 0, y: 15)
-                }
-                .padding(40)
-                
-                Spacer()
-                
-                // Hint text
-                HStack {
-                    Text("Double-click background to close")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.6))
-                    Text("•")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.4))
-                    Text("Press ESC")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.6))
-                }
-                .padding(.bottom, 30)
-            }
-        }
-        .transition(.opacity.combined(with: .scale(scale: 0.9)))
-        .zIndex(10000)
-        .focusable()
-        .onKeyPress(.escape) {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                isPresented = false
-            }
-            return .handled
-        }
-    }
-}
+//private struct EnlargedRestorationFiltersPanel: View {
+//    @ObservedObject var settings: UpscaleSettings
+//    @Binding var isPresented: Bool
+//    
+//    var body: some View {
+//        ZStack {
+//            // Semi-transparent background
+//            Color.black.opacity(0.85)
+//                .ignoresSafeArea(.all)
+//                .onTapGesture(count: 2) {
+//                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+//                        isPresented = false
+//                    }
+//                }
+//            
+//            // Enlarged panel
+//            VStack {
+//                Spacer()
+//                
+//                VStack(alignment: .leading, spacing: 20) {
+//                    // Header
+//                    HStack {
+//                        Label("Restoration Filters", systemImage: "wand.and.stars")
+//                            .font(.system(size: 28, weight: .semibold))
+//                            .foregroundColor(.white)
+//                        Spacer()
+//                        
+//                        Button(action: {
+//                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+//                                isPresented = false
+//                            }
+//                        }) {
+//                            Image(systemName: "xmark.circle.fill")
+//                                .font(.system(size: 24))
+//                                .foregroundColor(.white.opacity(0.7))
+//                        }
+//                        .buttonStyle(.plain)
+//                    }
+//                    .padding(.bottom, 10)
+//                    
+//                    // Content with better spacing
+//                    GroupBox {
+//                        VStack(spacing: 20) {
+//                            // Denoise
+//                            ParameterRow(title: "Denoise Strength",
+//                                         binding: $settings.denoiseStrength,
+//                                         range: settings.denoiseStrengthRange,
+//                                         step: settings.denoiseStrengthStep,
+//                                         defaultValue: settings.denoiseStrengthDefault,
+//                                         formatter: Formatters.oneFraction,
+//                                         sliderAccessibility: "Denoise strength slider",
+//                                         gradient: .denoise)
+//                            { _ in settings.objectWillChange.send() }
+//                            
+//                            Divider()
+//                            
+//                            // Deringing toggle + strength
+//                            Toggle(isOn: $settings.deringActive) {
+//                                Text("Deringing")
+//                                    .font(.title3)
+//                            }
+//                            .toggleStyle(.switch)
+//                            .padding(.vertical, 8)
+//                            
+//                            if settings.deringActive {
+//                                ParameterRow(title: "Strength",
+//                                             binding: $settings.deringStrength,
+//                                             range: 0...10,
+//                                             step: 0.005,
+//                                             defaultValue: 0.5,
+//                                             formatter: Formatters.twoFraction,
+//                                             sliderAccessibility: "Deringing strength slider",
+//                                             gradient: .dering)
+//                                { _ in settings.objectWillChange.send() }
+//                                    .transition(.opacity.combined(with: .move(edge: .top)))
+//                                    .padding(.top, 8)
+//                                    .animation(.easeInOut(duration: 0.2), value: settings.deringActive)
+//                            }
+//                            
+//                            Divider()
+//                            
+//                            // Sharpen
+//                            HStack {
+//                                Text("Sharpen Method")
+//                                    .font(.title3)
+//                                Spacer()
+//                                Picker("Method", selection: $settings.sharpenMethod) {
+//                                    Text("CAS").tag("cas")
+//                                    Text("Unsharp Mask").tag("unsharp")
+//                                }
+//                                .pickerStyle(.menu)
+//                                .frame(width: 180)
+//                            }
+//                            
+//                            if settings.sharpenMethod == "cas" {
+//                                ParameterRow(title: "CAS Strength",
+//                                             binding: $settings.sharpenStrength,
+//                                             range: settings.sharpenStrengthRange,
+//                                             step: settings.sharpenStrengthStep,
+//                                             defaultValue: settings.sharpenStrengthDefault,
+//                                             formatter: Formatters.twoFraction,
+//                                             sliderAccessibility: "CAS sharpen strength slider",
+//                                             gradient: .sharpen)
+//                                { _ in settings.objectWillChange.send() }
+//                            } else {
+//                                VStack(alignment: .leading, spacing: 16) {
+//                                    ParameterRow(title: "Radius",
+//                                                 binding: $settings.usmRadius,
+//                                                 range: settings.usmRadiusRange,
+//                                                 step: settings.usmRadiusStep,
+//                                                 defaultValue: settings.usmRadiusDefault,
+//                                                 formatter: Formatters.integer,
+//                                                 sliderAccessibility: "Unsharp mask radius slider",
+//                                                 gradient: .usmRadius)
+//                                    { _ in settings.objectWillChange.send() }
+//                                    
+//                                    ParameterRow(title: "Amount",
+//                                                 binding: $settings.usmAmount,
+//                                                 range: settings.usmAmountRange,
+//                                                 step: settings.usmAmountStep,
+//                                                 defaultValue: settings.usmAmountDefault,
+//                                                 formatter: Formatters.twoFraction,
+//                                                 sliderAccessibility: "Unsharp mask amount slider",
+//                                                 gradient: .usmAmount)
+//                                    { _ in settings.objectWillChange.send() }
+//                                    
+//                                    ParameterRow(title: "Threshold",
+//                                                 binding: $settings.usmThreshold,
+//                                                 range: settings.usmThresholdRange,
+//                                                 step: settings.usmThresholdStep,
+//                                                 defaultValue: settings.usmThresholdDefault,
+//                                                 formatter: Formatters.threeFraction,
+//                                                 sliderAccessibility: "Unsharp mask threshold slider",
+//                                                 gradient: .usmThreshold)
+//                                    { _ in settings.objectWillChange.send() }
+//                                }
+//                            }
+//                        }
+//                        .padding(24)
+//                    }
+//                    .frame(width: 600)
+//                    .background(cardBackground)
+//                    .cornerRadius(16)
+//                    .shadow(color: Color.black.opacity(0.3), radius: 30, x: 0, y: 15)
+//                }
+//                .padding(40)
+//                
+//                Spacer()
+//                
+//                // Hint text
+//                HStack {
+//                    Text("Double-click background to close")
+//                        .font(.caption)
+//                        .foregroundColor(.white.opacity(0.6))
+//                    Text("•")
+//                        .font(.caption)
+//                        .foregroundColor(.white.opacity(0.4))
+//                    Text("Press ESC")
+//                        .font(.caption)
+//                        .foregroundColor(.white.opacity(0.6))
+//                }
+//                .padding(.bottom, 30)
+//            }
+//        }
+//        .transition(.opacity.combined(with: .scale(scale: 0.9)))
+//        .zIndex(10000)
+//        .focusable()
+//        .onKeyPress(.escape) {
+//            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+//                isPresented = false
+//            }
+//            return .handled
+//        }
+//    }
+//}
 
 // MARK: -  Restoration‑Filters card (denoise, deringing, sharpen)
 private struct RestorationFiltersPanel: View {
@@ -766,7 +753,6 @@ private struct RestorationFiltersPanel: View {
             
             GroupBox {
                 VStack(spacing: UI.rowSpacing) {
-                    // Denoise
                     ParameterRow(title: "Denoise Strength",
                                  binding: $settings.denoiseStrength,
                                  range: settings.denoiseStrengthRange,
@@ -798,7 +784,7 @@ private struct RestorationFiltersPanel: View {
                                      gradient: .dering)
                         { _ in settings.objectWillChange.send() }
                             .transition(.opacity.combined(with: .move(edge: .top)))
-                            .padding(.top, 8)  // Space above the dropdown content
+                            .padding(.top, 8)
                             .animation(.easeInOut(duration: 0.2), value: settings.deringActive)
                     }
                     
@@ -1511,8 +1497,8 @@ private struct RestorationSecondSetPanel: View {
                     }
                 }
             }
-            .groupBoxStyle(ModernGroupBoxStyle()) // Use modern style for consistent look
-            .cardStyle() // Apply card style to the whole container
+            .groupBoxStyle(ModernGroupBoxStyle())
+            .cardStyle()
         }
     }
 }
@@ -1689,12 +1675,12 @@ private struct HardwareEncodingPanel: View {
                        }
 
                         #if arch(arm64)
-                        Text("Apple Silicon default: VideoToolbox decode for speed without quality loss. Switch HW Acceleration to None if a file fails.")
+                        Text("VideoToolbox decode")
                             .font(.caption2)
                             .foregroundColor(.secondary)
                             .padding(.top, 2)
                         #else
-                        Text("If hardware decode causes issues on this Mac, set HW Acceleration to None.")
+                        Text("If hardware decode fails, set HW Acceleration to None.")
                             .font(.caption2)
                             .foregroundColor(.secondary)
                             .padding(.top, 2)
@@ -1704,7 +1690,6 @@ private struct HardwareEncodingPanel: View {
                     Divider()
                         .padding(.vertical, 2)
                     
-                    // Preset
                     HStack {
                         Text("Preset")
                             .font(.caption)
@@ -1721,7 +1706,6 @@ private struct HardwareEncodingPanel: View {
                     Divider()
                         .padding(.vertical, 2)
                     
-                    // Threads
                     HStack {
                         Text("Threads")
                             .font(.caption)
@@ -1758,7 +1742,6 @@ private struct OutputPanel: View {
             
             GroupBox {
                 VStack(alignment: .leading, spacing: 8) {
-                    // Destination picker
                     HStack {
                         Text("Location")
                             .font(.caption)
@@ -1771,12 +1754,11 @@ private struct OutputPanel: View {
                         .pickerStyle(.menu)
                         .controlSize(.small)
                         .frame(width: 120)
-                        .fixedSize()  // Prevents size changes
-                        .transition(.opacity)  // Smooth transition
+                        .fixedSize()
+                        .transition(.opacity)
                         .animation(.easeInOut(duration: 0.15), value: outputMode)
                     }
                     
-                    // Custom folder UI (only visible when needed)
                     if outputMode == .custom {
                         HStack {
                             Image(systemName: "folder")
@@ -1794,15 +1776,13 @@ private struct OutputPanel: View {
                         }
                         .padding(.horizontal, 4)
                         .padding(.vertical, 6)
-                        .background(cardBackground)  // Add background to ensure visibility
-                        .cornerRadius(6)  // Match your card style
-                        .zIndex(1)  // Ensure header stays on top
+                        .background(cardBackground)  // background to see easier
+                        .cornerRadius(6)
+                        .zIndex(1)
                     }
                     
                     Divider()
                         .padding(.vertical, 2)
-                    
-                    // Predicted output name
                     HStack {
                         Image(systemName: "doc.text.fill")
                             .foregroundColor(.accentColor)
@@ -1831,7 +1811,6 @@ private struct ActionButtons: View {
     
     var body: some View {
         HStack(spacing: 12) {
-            // Run
             Button(action: runner.run) {
                 HStack {
                     if runner.isRunning {
@@ -1853,7 +1832,6 @@ private struct ActionButtons: View {
                 if !runner.isRunning && !runner.inputPath.isEmpty { runner.run() }
             }
             
-            // Cancel
             Button(action: runner.cancel) {
                 Label("Cancel", systemImage: "stop.fill")
                     .frame(maxWidth: .infinity)
@@ -1898,7 +1876,6 @@ private struct ProgressDetails: View {
 }
 
 // MARK: -  : Processing Log (UI)
-/// Log view – scrolls automatically to the bottom
 private struct LogPanel: View {
     @ObservedObject var runner: UpscaleRunner
     
@@ -1939,13 +1916,13 @@ private struct LogPanel: View {
                             }
                         }
                     }
-                    .frame(height: 700)  // Reduced to make room for button
+                    .frame(height: 170)  // Reduced to make room for button
                     
 // note I have changed the height from 170 originally so More log is visible as this is a lazy way of accessing easier since the texts are copy eligble
+                    // UPDATE: i have changed back to (heigh: 170)
                     
                     // MARK: - : Proccessing log (itself) end
                     
-                    // Button to open completed video (uses completedOutputPath which is set correctly)
                     if !runner.isRunning, let outputPath = runner.completedOutputPath {
                         if FileManager.default.fileExists(atPath: outputPath),
                            let attributes = try? FileManager.default.attributesOfItem(atPath: outputPath),
@@ -1986,42 +1963,31 @@ private struct LogPanel: View {
         }
         .frame(maxWidth: .infinity)
         .onChange(of: runner.inputPath) { _, _ in
-            // Reset completed output path when new video is imported
             runner.completedOutputPath = nil
         }
     }
     
+    // Note: sandbox requirement securityScopedOutputURL
     private func openVideoFile(at path: String) {
         let url = URL(fileURLWithPath: path)
-        
-        // Under App Sandbox, we may need security-scoped access to open the file.
-        // Start accessing the security-scoped resource if available
         var needsStopAccess = false
         if let scopedURL = runner.securityScopedOutputURL {
             needsStopAccess = scopedURL.startAccessingSecurityScopedResource()
         }
-        
-        // Try to open with NSWorkspace
         let config = NSWorkspace.OpenConfiguration()
         config.activates = true
-        
-        // Capture the scoped URL for the completion handler
         let scopedURL = runner.securityScopedOutputURL
         
         NSWorkspace.shared.open(url, configuration: config) { _, error in
-            // Stop accessing the security-scoped resource after attempt
             if needsStopAccess, let url = scopedURL {
                 url.stopAccessingSecurityScopedResource()
             }
             
             if let error = error {
-                // If opening fails, fall back to revealing in Finder
                 DispatchQueue.main.async {
                     print("Failed to open video: \(error.localizedDescription)")
-                    // Show alert and reveal in Finder
                     let alert = NSAlert()
-                    alert.messageText = "Cannot Open Video"
-                    alert.informativeText = "The app doesn't have permission to open this file. The file will be revealed in Finder instead.\n\nYou can open it manually from there."
+                    alert.informativeText = "No path permission, revealed in Finder instead."
                     alert.alertStyle = .informational
                     alert.addButton(withTitle: "OK")
                     alert.runModal()
@@ -2210,7 +2176,6 @@ private struct PresetRow: View {
     }
 }
 
-// ------------------------------------------------------------
 // MARK: - Picture-in-Picture Preview
 // ------------------------------------------------------------
 private struct PictureInPicturePreview: View {
@@ -2225,7 +2190,6 @@ private struct PictureInPicturePreview: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Header bar
             HStack {
                 Image(systemName: "pip")
                     .foregroundColor(.secondary)
@@ -2442,15 +2406,15 @@ struct ContentView: View {
         // MARK: -  ---------- ENLARGED FRAME OVERLAY (covers entire app) ----------
         .overlay(
                 Group {
-                    // Enlarged Color Equalizer Panel
-                    if showEnlargedColorEqualizer {
-                        EnlargedColorEqualizerPanel(settings: runner.settings, isPresented: $showEnlargedColorEqualizer)
-                    }
-                    
-                    // Enlarged Restoration Filters Panel
-                    if showEnlargedRestorationFilters {
-                        EnlargedRestorationFiltersPanel(settings: runner.settings, isPresented: $showEnlargedRestorationFilters)
-                    }
+//                    // Enlarged Color Equalizer Panel
+//                    if showEnlargedColorEqualizer {
+//                        EnlargedColorEqualizerPanel(settings: runner.settings, isPresented: $showEnlargedColorEqualizer)
+//                    }
+//                    
+//                    // Enlarged Restoration Filters Panel
+//                    if showEnlargedRestorationFilters {
+//                        EnlargedRestorationFiltersPanel(settings: runner.settings, isPresented: $showEnlargedRestorationFilters)
+//                    }
                     
                     // Enlarged Frame Image
                     if let img = enlargedFrameImage {
@@ -2535,9 +2499,8 @@ struct ContentView: View {
         )
     }
     
-    // ------------------------------------------------------------------------
+    
     // MARK: – Responsive Layout Helpers
-    // ------------------------------------------------------------------------
     
     /// Calculates responsive horizontal padding based on window width
     private func responsiveHorizontalPadding(for width: CGFloat) -> CGFloat {
@@ -2645,9 +2608,7 @@ struct ContentView: View {
         }
     }
     
-    // ------------------------------------------------------------------------
     // MARK: -  File‑picker helpers (UI only, MARKED @MainActor)
-    // ------------------------------------------------------------------------
     @MainActor
     private func chooseInput() {
         let panel = NSOpenPanel()

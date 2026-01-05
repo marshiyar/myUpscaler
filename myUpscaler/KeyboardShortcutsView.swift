@@ -10,7 +10,7 @@ struct KeyboardShortcutsView: View {
     var body: some View {
         Form {
             Section {
-                Text("Click on an action and press your desired key combination to set a custom keyboard shortcut.")
+                Text("set a custom keyboard shortcut.")
                     .font(DesignSystem.Typography.caption1)
                     .foregroundColor(.secondary)
             } header: {

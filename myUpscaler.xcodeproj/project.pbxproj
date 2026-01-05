@@ -32,7 +32,6 @@
 				up60p_cli.c,
 				upscaler/models/RealESRGAN_x2.mlpackage,
 				upscaler/models/RealESRGAN_x4.mlpackage,
-				upscaler/models/RealESRGAN_x8.mlpackage,
 			);
 			target = 5E23E5052ED9AB0B008298B2 /* myUpscaler */;
 		};
@@ -45,7 +44,6 @@
 			membershipExceptions = (
 				upscaler/models/RealESRGAN_x2.mlpackage,
 				upscaler/models/RealESRGAN_x4.mlpackage,
-				upscaler/models/RealESRGAN_x8.mlpackage,
 			);
 		};
 		5EE165832EF4F6950060947E /* Exceptions for "myUpscaler" folder in "Copy Files" phase from "myUpscaler" target */ = {

@@ -42,7 +42,7 @@ class UpscaleRunner: ObservableObject {
     // MARK: - Execution State
     @Published var isRunning = false
     @Published var log = ""
-    @Published var completedOutputPath: String? = nil  // Path to completed output video
+    @Published var completedOutputPath: String? = nil
     
     // MARK: - Progress Stats
     @Published var progress: Double = 0.0

@@ -9,7 +9,6 @@ import Accelerate
 enum CoreMLModelID: String, CaseIterable, Codable, Hashable {
     case realESRGANx2 = "RealESRGAN_x2"
     case realESRGANx4 = "RealESRGAN_x4"
-    case realESRGANx8 = "RealESRGAN_x8"
 }
 
 struct CoreMLModelSpec: Identifiable, Hashable {
@@ -23,7 +22,6 @@ enum CoreMLModelRegistry {
     static let models: [CoreMLModelSpec] = [
         CoreMLModelSpec(id: .realESRGANx2, displayName: "Real-ESRGAN x2", resourceName: "RealESRGAN_x2", nativeScale: 2.0),
         CoreMLModelSpec(id: .realESRGANx4, displayName: "Real-ESRGAN x4", resourceName: "RealESRGAN_x4", nativeScale: 4.0),
-        CoreMLModelSpec(id: .realESRGANx8, displayName: "Real-ESRGAN x8", resourceName: "RealESRGAN_x8", nativeScale: 8.0)
     ]
     
     static var defaultModel: CoreMLModelSpec { models.first(where: { $0.id == .realESRGANx4 }) ?? models[0] }

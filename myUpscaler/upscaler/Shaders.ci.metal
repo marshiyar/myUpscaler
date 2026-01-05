@@ -1,9 +1,3 @@
-/*
- Shaders.ci.metal
- myUpscaler
- Designed for Apple Silicon (M-series) GPUs.
- */
-
 #include <metal_stdlib>
 #include <CoreImage/CoreImage.h>
 
@@ -33,8 +27,6 @@ static constant float kBilatDist2[kBilatKernelSize] = {
 };
 
 
-/// High-quality pseudo-random noise generator
-/// Hashes the pixel coordinate to produce deterministic monochromatic noise
 float hash12(float2 p) {
     float3 p3 = fract(float3(p.xyx) * .1031);
     p3 += dot(p3, p3.yzx + 33.33);

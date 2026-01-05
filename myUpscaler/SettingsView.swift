@@ -1,7 +1,3 @@
-//
-//  SettingsView.swift
-//  YourApp (SwiftUI)
-
 import SwiftUI
 import UniformTypeIdentifiers
 

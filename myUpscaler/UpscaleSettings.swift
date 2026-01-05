@@ -481,7 +481,7 @@ class UpscaleSettings: ObservableObject {
         return value.isEmpty || value == "0" || isZero(value)
     }
 
-    // Default fallbacks used when re-enabling filters that were auto-disabled at 0
+    // MARK: - Default fallbacks used when re-enabling filters that were auto-disabled at 0
     private var defaultDeringStrengthString: String { "0.5" }
     private var defaultDeblockThreshString: String { "0.5" }
     private var defaultDenoiseStrength2String: String { String(format: "%.2f", denoiseStrength2Default) }
@@ -1118,9 +1118,9 @@ class UpscaleSettings: ObservableObject {
         useGrain2 = false
         
         // Color / Equalization
-        eqContrast = "1.03"
-        eqBrightness = "0.005"
-        eqSaturation = "1.06"
+        eqContrast = "1.00"
+        eqBrightness = "0.000"
+        eqSaturation = "1.00"
         lutPath = ""
         
         // Metal Pre/Post

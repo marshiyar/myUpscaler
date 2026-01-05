@@ -210,7 +210,6 @@ class KeyCaptureNSView: NSView {
             return
         }
         
-        // Get the key character, ignoring modifiers
         var key = event.charactersIgnoringModifiers ?? ""
         
         // Handle special keys

@@ -537,7 +537,7 @@ final class PresetStore: ObservableObject {
     func apply(_ preset: Preset, to settings: UpscaleSettings) {
         preset.snapshot.apply(to: settings)
     }
-    
+    // TODO: REVIEW THIS PIECE
     private func load() {
         guard fileManager.fileExists(atPath: storageURL.path) else { return }
         do {
@@ -550,6 +550,7 @@ final class PresetStore: ObservableObject {
         }
     }
     
+    // TODO: REVIEW THIS PIECE
     private func persist() {
         do {
             let encoder = JSONEncoder()

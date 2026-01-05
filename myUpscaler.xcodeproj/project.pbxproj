@@ -30,8 +30,6 @@
 			membershipExceptions = (
 				ThirdParty/ffmpeg/ffmpeg,
 				up60p_cli.c,
-				upscaler/CoreML_README.md,
-				upscaler/filters/README.md,
 				upscaler/models/RealESRGAN_x2.mlpackage,
 				upscaler/models/RealESRGAN_x4.mlpackage,
 				upscaler/models/RealESRGAN_x8.mlpackage,
@@ -73,16 +71,6 @@
 			path = myUpscaler;
 			sourceTree = "<group>";
 		};
-		5E23E5162ED9AB0C008298B2 /* myUpscalerTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = myUpscalerTests;
-			sourceTree = "<group>";
-		};
-		5E23E5202ED9AB0C008298B2 /* myUpscalerUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = myUpscalerUITests;
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXGroup section */
@@ -91,8 +79,6 @@
 			children = (
 				5E6259532EE81EC9004D8958 /* myUpscaler.xctestplan */,
 				5E23E5082ED9AB0B008298B2 /* myUpscaler */,
-				5E23E5162ED9AB0C008298B2 /* myUpscalerTests */,
-				5E23E5202ED9AB0C008298B2 /* myUpscalerUITests */,
 				5ECE7BB52EF2A63C00603DA9 /* myUpscaler.app */,
 				5EE1647A2EF4C5410060947E /* Frameworks */,
 			);

@@ -465,27 +465,3 @@ final class Up60PEngine {
             }
         }
     }
-    
-    // MARK: - Testing Support
-    
-//    func setDryRun(_ enabled: Bool) {
-//        Up60PEngine.bridge.setDryRunFunc(enabled ? 1 : 0)
-//    }
-    
-#if DEBUG
-    /// Override the C bridge for deterministic testing
-    static func useBridgeForTesting(_ bridge: Up60PBridge) {
-        bridgeOverride = bridge
-    }
-    
-    /// Reset to the live bridge after tests
-    static func resetBridgeForTesting() {
-        bridgeOverride = nil
-    }
-    
-    /// Expose error mapping for tests
-    func mapErrorForTesting(_ code: up60p_error) -> Up60PEngineError? {
-        mapError(code)
-    }
-#endif
-}

@@ -24,7 +24,6 @@ struct DynamicKeyboardShortcut: ViewModifier {
     }
     
     private func setupKeyboardMonitor() {
-        // The actual monitoring is done in KeyboardShortcutHandler
     }
 }
 

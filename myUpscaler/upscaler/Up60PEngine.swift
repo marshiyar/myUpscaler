@@ -166,7 +166,7 @@ final class Up60PEngine {
         
         isInitialized = true
     }
-
+    
     private func log(_ message: String) {
         Up60PEngine.logHandlerQueue.sync {
             if let handler = Up60PEngine.currentLogHandler {
@@ -176,10 +176,10 @@ final class Up60PEngine {
             }
         }
     }
-//    
-//    deinit {
-//        Up60PEngine.bridge.shutdownFunc()
-//    }
+    //
+    //    deinit {
+    //        Up60PEngine.bridge.shutdownFunc()
+    //    }
     
     private func mapError(_ code: up60p_error) -> Up60PEngineError? {
         switch code {
@@ -208,7 +208,7 @@ final class Up60PEngine {
         }
     }
     
-    // MARK: - 
+    // MARK: -
     
     private func makeOptions(from settings: UpscaleSettings,
                              outputDir: String) throws -> up60p_options
@@ -324,14 +324,14 @@ final class Up60PEngine {
                  outputDirectory: String) async throws {
         // Cancel any existing process
         cancel()
-
+        
         let codecDecision = CodecSupport.resolve(requestHEVC: settings.useHEVC)
         if let message = codecDecision.message {
             log(message)
         }
         settings.useHEVC = codecDecision.useHEVC
-
-
+        
+        
         struct StackingSnapshot {
             let has: Bool
             let sharpen: Bool
@@ -406,7 +406,6 @@ final class Up60PEngine {
                     
                     let result = await Up60PEngine.bridge.processPathFunc(inputPath, &mutableOpts)
                     
-                    // Log result
                     Up60PEngine.logHandlerQueue.sync {
                         if let handler = Up60PEngine.currentLogHandler {
                             DispatchQueue.main.async {
@@ -465,3 +464,4 @@ final class Up60PEngine {
             }
         }
     }
+}

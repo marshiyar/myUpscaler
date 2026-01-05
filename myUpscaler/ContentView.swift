@@ -2672,9 +2672,3 @@ struct ContentView: View {
         }
     }
 }
-
-#if DEBUG
-#Preview {
-    ContentView(runner: .makePreview())
-}
-#endif

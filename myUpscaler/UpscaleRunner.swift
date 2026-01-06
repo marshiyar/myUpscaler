@@ -683,66 +683,66 @@ class UpscaleRunner: ObservableObject {
         }
     }
 }
-
-#if DEBUG
-// MARK: - Preview Helpers (DEBUG only)
-extension UpscaleRunner {
-    static func makePreview() -> UpscaleRunner {
-        let runner = UpscaleRunner(
-            fileSystem: PreviewFileSystem(),
-            engine: PreviewEngine(),
-            assetLoader: PreviewAssetLoader()
-        )
-        runner.inputPath = "/Preview/input.mp4"
-        runner.customOutputFolder = "/Preview/output"
-        runner.settings.crf = 18
-        runner.settings.scaleFactor = 2.0
-        runner.settings.fps = "60"
-        runner.log = "Preview mode — engine and file system are stubbed.\n"
-        runner.progress = 0.3
-        runner.fpsString = "60"
-        runner.timeString = "0:00"
-        runner.etaString = "--:--"
-        return runner
-    }
-}
-
-private final class PreviewFileSystem: FileSystemProtocol {
-    var homeDirectoryForCurrentUser: URL { URL(fileURLWithPath: "/Preview/Home") }
-    
-    func fileExists(atPath path: String) -> Bool { true }
-    
-    func attributesOfItem(atPath path: String) throws -> [FileAttributeKey : Any] {
-        return [.size: Int64(1_024)]
-    }
-    
-    func createDirectory(atPath path: String, withIntermediateDirectories createIntermediates: Bool, attributes: [FileAttributeKey : Any]?) throws {
-    }
-    
-    func urls(for directory: FileManager.SearchPathDirectory, in domainMask: FileManager.SearchPathDomainMask) -> [URL] {
-        return [URL(fileURLWithPath: "/Preview/Downloads")]
-    }
-}
-
-private final class PreviewEngine: EngineProtocol {
-    private var logHandler: ((String) -> Void)?
-    
-    func process(inputPath: String, settings: UpscaleSettings, outputDirectory: String) async throws {
-        logHandler?("Preview engine: skipping real processing.\n")
-        logHandler?("elapsed=00:00:01.00 fps=30.0 progress=1.00\n")
-    }
-    
-    func cancel() {
-    }
-    
-    func setLogHandler(_ handler: @escaping (String) -> Void) {
-        logHandler = handler
-    }
-}
-
-private final class PreviewAssetLoader: AssetLoaderProtocol {
-    func loadDuration(from path: String) async throws -> Double {
-        return 1.0
-    }
-}
-#endif
+//
+//#if DEBUG
+//// MARK: - Preview Helpers (DEBUG only)
+//extension UpscaleRunner {
+//    static func makePreview() -> UpscaleRunner {
+//        let runner = UpscaleRunner(
+//            fileSystem: PreviewFileSystem(),
+//            engine: PreviewEngine(),
+//            assetLoader: PreviewAssetLoader()
+//        )
+//        runner.inputPath = "/Preview/input.mp4"
+//        runner.customOutputFolder = "/Preview/output"
+//        runner.settings.crf = 18
+//        runner.settings.scaleFactor = 2.0
+//        runner.settings.fps = "60"
+//        runner.log = "Preview mode — engine and file system are stubbed.\n"
+//        runner.progress = 0.3
+//        runner.fpsString = "60"
+//        runner.timeString = "0:00"
+//        runner.etaString = "--:--"
+//        return runner
+//    }
+//}
+//
+//private final class PreviewFileSystem: FileSystemProtocol {
+//    var homeDirectoryForCurrentUser: URL { URL(fileURLWithPath: "/Preview/Home") }
+//    
+//    func fileExists(atPath path: String) -> Bool { true }
+//    
+//    func attributesOfItem(atPath path: String) throws -> [FileAttributeKey : Any] {
+//        return [.size: Int64(1_024)]
+//    }
+//    
+//    func createDirectory(atPath path: String, withIntermediateDirectories createIntermediates: Bool, attributes: [FileAttributeKey : Any]?) throws {
+//    }
+//    
+//    func urls(for directory: FileManager.SearchPathDirectory, in domainMask: FileManager.SearchPathDomainMask) -> [URL] {
+//        return [URL(fileURLWithPath: "/Preview/Downloads")]
+//    }
+//}
+//
+//private final class PreviewEngine: EngineProtocol {
+//    private var logHandler: ((String) -> Void)?
+//    
+//    func process(inputPath: String, settings: UpscaleSettings, outputDirectory: String) async throws {
+//        logHandler?("Preview engine: skipping real processing.\n")
+//        logHandler?("elapsed=00:00:01.00 fps=30.0 progress=1.00\n")
+//    }
+//    
+//    func cancel() {
+//    }
+//    
+//    func setLogHandler(_ handler: @escaping (String) -> Void) {
+//        logHandler = handler
+//    }
+//}
+//
+//private final class PreviewAssetLoader: AssetLoaderProtocol {
+//    func loadDuration(from path: String) async throws -> Double {
+//        return 1.0
+//    }
+//}
+//#endif

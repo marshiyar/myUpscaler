@@ -2511,7 +2511,6 @@ struct ContentView: View {
         }
     }
     
-    /// Adaptive columns layout that responds to window size
     @ViewBuilder
     private func adaptiveColumnsLayout(geometry: GeometryProxy) -> some View {
         let availableWidth = geometry.size.width - (2 * responsiveHorizontalPadding(for: geometry.size.width))

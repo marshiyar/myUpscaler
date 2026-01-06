@@ -925,13 +925,10 @@ class UpscaleSettings: ObservableObject {
             return 0.6   // Light: CAS + CAS is gentler
         }
     }
-    
     /// Attenuation factor for second set denoising
     var denoise2AttenuationFactor: Double {
         guard isDenoiseStacked else { return 1.0 }
-        
         // Double denoising can over-smooth, but it's less destructive than double sharpening
-        // Use consistent moderate attenuation
         return 0.55
     }
     
@@ -940,7 +937,6 @@ class UpscaleSettings: ObservableObject {
         guard isDebandStacked else { return 1.0 }
         return 0.6  // Debanding is gentler, light attenuation
     }
-    
     // MARK: - Effective Values (what actually gets sent to FFmpeg)
     // These apply attenuation when filters are stacked
     

@@ -1,7 +1,5 @@
 import SwiftUI
 
-// MARK: - AboutView ----------------------------------------------------------
-
 struct AboutView: View {
 
     // MARK: - UI constants (using design system)
@@ -9,7 +7,7 @@ struct AboutView: View {
     private let websiteURL = URL(string: "https://github.com/marshiyar/myUpscaler")!
     
     @Environment(\.presentationMode) var presentationMode
-
+    
     // MARK: - Body
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {

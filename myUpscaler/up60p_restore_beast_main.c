@@ -1106,27 +1106,27 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
             }
         }
     }
-    else {
-// MARK: -=== MODE: CLI (Terminal) ===
-        // Print the message to the console with Colors
-        printf(C_BOLD "%s" C_RESET, msg_buf);
-        
-        if (DRY_RUN) {
-            printf(C_YELLOW "CMD: ");
-            for(int i=0; args[i]; i++) printf("%s ", args[i]);
-            printf("\n" C_RESET);
-        } else {
-            // Check for cancellation (CLI specific safety)
-            if (up60p_is_cancelled()) { free(vf.buf); return; }
-            int result = execute_ffmpeg_command(args);
-            
-            if (result == 0) {
-                printf(C_GREEN "Done.\n" C_RESET);
-            } else {
-                printf(C_RED "Error: FFmpeg returned code %d\n" C_RESET, result);
-            }
-        }
-    }
+//    else {
+//// MARK: -=== MODE: CLI (Terminal) ===
+//        // Print the message to the console with Colors
+//        printf(C_BOLD "%s" C_RESET, msg_buf);
+//        
+//        if (DRY_RUN) {
+//            printf(C_YELLOW "CMD: ");
+//            for(int i=0; args[i]; i++) printf("%s ", args[i]);
+//            printf("\n" C_RESET);
+//        } else {
+//            // Check for cancellation (CLI specific safety)
+//            if (up60p_is_cancelled()) { free(vf.buf); return; }
+//            int result = execute_ffmpeg_command(args);
+//            
+//            if (result == 0) {
+//                printf(C_GREEN "Done.\n" C_RESET);
+//            } else {
+//                printf(C_RED "Error: FFmpeg returned code %d\n" C_RESET, result);
+//            }
+//        }
+//    }
     free(vf.buf);
 }
 

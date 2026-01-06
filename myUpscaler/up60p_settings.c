@@ -10,7 +10,6 @@
 
 #include <limits.h>
 
-
 #ifndef PATH_MAX
 #define PATH_MAX 4096
 #endif
@@ -18,7 +17,6 @@
 void up60p_options_from_settings(up60p_options *dst, const Settings *src) {
     if (!dst || !src) return;
     memset(dst, 0, sizeof(*dst));
-    
     
     snprintf(dst->codec,        sizeof(dst->codec),        "%s", src->codec);
     snprintf(dst->crf,          sizeof(dst->crf),          "%s", src->crf);
@@ -89,7 +87,6 @@ void up60p_options_from_settings(up60p_options *dst, const Settings *src) {
     snprintf(dst->eq_contrast,   sizeof(dst->eq_contrast),   "%s", src->eq_contrast);
     snprintf(dst->eq_brightness, sizeof(dst->eq_brightness), "%s", src->eq_brightness);
     snprintf(dst->eq_saturation, sizeof(dst->eq_saturation), "%s", src->eq_saturation);
-//    snprintf(dst->lut3d_file,    sizeof(dst->lut3d_file),    "%s", src->lut3d_file); // LUT DEACTIVATED
     
     snprintf(dst->x265_params,   sizeof(dst->x265_params),   "%s", src->x265_params);
     
@@ -120,8 +117,7 @@ void settings_from_up60p_options(Settings *dst, const up60p_options *src) {
     if (!dst || !src) return;
     
     *dst = DEF;
-    
-    
+
     snprintf(dst->codec,        sizeof(dst->codec),        "%s", src->codec);
     snprintf(dst->crf,          sizeof(dst->crf),          "%s", src->crf);
     snprintf(dst->preset,       sizeof(dst->preset),       "%s", src->preset);
@@ -275,7 +271,5 @@ void set_defaults(void) {
     S.preview = 0; S.pci_safe_mode = 0;
     DEF = S;
 }
-
-
 void reset_to_factory(void) { S = DEF; }
 

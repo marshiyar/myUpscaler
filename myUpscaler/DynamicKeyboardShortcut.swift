@@ -22,8 +22,6 @@ struct DynamicKeyboardShortcut: ViewModifier {
                 )
             )
     }
-    
-    // TODO: Empty function
     private func setupKeyboardMonitor() {
     }
 }
@@ -61,7 +59,6 @@ class KeyboardMonitorView: NSView {
     }
     
     func updateMonitor() {
-        // Remove old monitor
         if let monitor = eventMonitor {
             NSEvent.removeMonitor(monitor)
             eventMonitor = nil

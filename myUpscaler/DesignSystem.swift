@@ -10,7 +10,6 @@ struct DesignSystem {
         static let xxl: CGFloat = 40
         static let xxxl: CGFloat = 48
     }
-    
     struct Typography {
         static let largeTitle = Font.system(size: 34, weight: .bold, design: .default)
         static let title1 = Font.system(size: 28, weight: .bold, design: .default)
@@ -231,7 +230,6 @@ struct EmptyStateView: View {
         .frame(maxWidth: .infinity)
     }
 }
-
 struct LoadingView: View {
     var body: some View {
         ProgressView()

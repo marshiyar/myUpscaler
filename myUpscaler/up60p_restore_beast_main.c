@@ -102,8 +102,6 @@ static const char* get_bundled_ffmpeg_path(void) {
     return FFMPEG_PATH;
 }
 
-
-
 static void process_file(const char *in, const char *ffmpeg, bool batch);
 static void process_directory(const char *dir, const char *ffmpeg);
 static int ar_menu_choose(const char *prompt, const char **items, int n, int start_index);
@@ -126,53 +124,6 @@ static void play_ui_sound(const char *sound_name) {
     snprintf(cmd, sizeof(cmd), "afplay /System/Library/Sounds/%s.aiff > /dev/null 2>&1 &", sound_name);
     system(cmd);
 }
-//
-//static int ar_menu_choose(const char *prompt, const char **items, int n, int start_index) {
-//    int rfd = open("/dev/tty", O_RDONLY);
-//    int wfd = STDERR_FILENO;
-//    if (rfd < 0 || !isatty(wfd)) {
-//        dprintf(wfd, "%s\n", prompt);
-//        for(int i=0; i<n; i++) dprintf(wfd, "%d. %s\n", i+1, items[i]);
-//        return 0;
-//    }
-//    TermCtx ctx = term_enter_raw(rfd);
-//    int selected = (start_index >= 0 && start_index < n) ? start_index : 0;
-//    int width = 64; bool done = false, cancelled = false; char k[8];
-//    dprintf(wfd, "\033[?25l");
-//    
-//    while (!done) {
-//        dprintf(wfd, "\033[2J\033[H");
-//        dprintf(wfd, " ┌"); for (int i=0; i<width-2; i++) dprintf(wfd,"─"); dprintf(wfd, "┐\n");
-//        dprintf(wfd, " │ " C_BOLD "%-*s" C_RESET " │\n", width-4, prompt);
-//        dprintf(wfd, " ├"); for (int i=0; i<width-2; i++) dprintf(wfd,"─"); dprintf(wfd, "┤\n");
-//        
-//        for (int i = 0; i < n; i++) {
-//            char key[4];
-//            if (i < 9) snprintf(key, 4, "%d", i+1); else if (i == 9) strcpy(key, "0"); else snprintf(key, 4, "%c", 'A' + (i-10));
-//            if (i == selected) dprintf(wfd, " │ " C_CYAN "> %s. %-*s" C_RESET " │\n", key, width-8, items[i]);
-//            else dprintf(wfd, " │   %s. %-*s │\n", key, width-8, items[i]);
-//        }
-//        dprintf(wfd, " └"); for (int i=0; i<width-2; i++) dprintf(wfd,"─"); dprintf(wfd, "┘\n");
-//        
-//        memset(k, 0, sizeof(k));
-//        if (read(rfd, k, 1) <= 0) break;
-//        if (k[0] == 0x1b) {
-//            if (read(rfd, k+1, 1) > 0 && k[1] == '[') {
-//                read(rfd, k+2, 1);
-//                if (k[2] == 'A') { selected = (selected - 1 + n) % n; play_ui_sound("Tink"); }
-//                if (k[2] == 'B') { selected = (selected + 1) % n; play_ui_sound("Tink"); }
-//            } else { cancelled = true; break; }
-//        } else if (k[0] == '\n' || k[0] == '\r') { play_ui_sound("Hero"); done = true; }
-//        else {
-//            int idx = -1;
-//            if (k[0] >= '1' && k[0] <= '9') idx = k[0] - '1'; else if (k[0] == '0') idx = 9;
-//            else if (k[0] >= 'a' && k[0] <= 'z') idx = k[0] - 'a' + 10; else if (k[0] >= 'A' && k[0] <= 'Z') idx = k[0] - 'A' + 10;
-//            if (idx >= 0 && idx < n) { selected = idx; play_ui_sound("Hero"); done = true; }
-//        }
-//    }
-//    dprintf(wfd, "\033[?25h"); term_leave_raw(&ctx); close(rfd);
-//    return cancelled ? -1 : selected;
-//}
 
 static void prompt_edit(const char *name, char *buf, size_t sz) {
     fprintf(stderr, "Enter value for %s [current: %s]: ", name, buf);
@@ -203,25 +154,6 @@ static void submenu_edit_group(const char *title, const char **keys, char **vals
         cursor = sel; prompt_edit(keys[sel], vals[sel], sizes[sel]);
     }
 }
-
-//void submenu_toggle_group(const char *title, const char **keys, char **vals, int n) {
-//    int cursor = 0;
-//    for (;;) {
-//        char **items = malloc((n+1)*sizeof(char*));
-//        for(int i=0; i<n; i++) {
-//            items[i] = malloc(256); bool on = !strcmp(vals[i], "1");
-//            snprintf(items[i], 256, "%s %s", on ? C_GREEN "[ON] " C_RESET : "[OFF]", keys[i]);
-//        }
-//        items[n] = strdup("← Back");
-//        int sel = ar_menu_choose(title, (const char**)items, n+1, cursor);
-//        for(int i=0; i<=n; i++) free(items[i]); free(items);
-//        if (sel < 0 || sel == n) break;
-//        cursor = sel; if (!strcmp(vals[sel], "1")) strcpy(vals[sel], "0"); else strcpy(vals[sel], "1");
-//    }
-//}
-
-
-
 static int parse_command_line(char *command_line, char ***argv_out) {
     if (!command_line || !argv_out) return -1;
     
@@ -287,75 +219,6 @@ static int parse_command_line(char *command_line, char ***argv_out) {
     *argv_out = argv;
     return argc;
 }
-
-//int process_cli_args(int argc, char **argv, const char *ffmpeg_path) {
-//    char input_path[PATH_MAX]="";
-//    int opt, long_idx;
-//    
-//    struct option long_opts[] = {
-//        {"codec",1,0,1}, {"crf",1,0,'c'}, {"preset",1,0,'p'}, {"fps",1,0,'f'}, {"scale",1,0,'s'},
-//        {"scaler",1,0,2}, {"denoiser",1,0,3}, {"x265",1,0,5}, {"help",0,0,'h'},
-//        {"manual",0,0,'m'}, {"outdir",1,0,'o'}, {"no-deblock",0,0,10}, {"no-denoise",0,0,11}, {"dry-run",0,0,12},
-//        // WARNING: REMOVED {"lut",1,0,4}
-//        {"dering",0,0,13}, {"usm-radius",1,0,14}, {"usm-amount",1,0,15}, {"usm-threshold",1,0,16},
-//        {"f3kdb-range",1,0,17}, {"pci-safe",0,0,18}, {"preview",0,0,19},
-//        
-//        {"hevc",0,0,20}, {"10bit",0,0,21}, {"mi-mode",1,0,22}, {"ai-backend",1,0,23},
-//        {"ai-model",1,0,24}, {"dnn-backend",1,0,25}, {"denoise-strength",1,0,26},
-//        {"sharpen-method",1,0,27}, {"deband-method",1,0,28},
-//        {0,0,0,0}
-//    };
-//    
-//    optind = 1;
-//    while ((opt = getopt_long(argc, argv, "i:o:c:p:f:s:hm", long_opts, &long_idx)) != -1) {
-//        switch(opt) {
-//        case 'i': safe_copy(input_path, optarg, PATH_MAX); break;
-//        case 'o': safe_copy(S.outdir, optarg, PATH_MAX); break;
-//        case 'c': safe_copy(S.crf, optarg, 16); break;
-//        case 'p': safe_copy(S.preset, optarg, 32); break;
-//        case 'f': safe_copy(S.fps, optarg, 16); break;
-//        case 's': safe_copy(S.scale_factor, optarg, 16); break;
-//        case 1: safe_copy(S.codec, optarg, 8); break;
-//        case 2: safe_copy(S.scaler, optarg, 16); break;
-//        case 3: safe_copy(S.denoiser, optarg, 16); break;
-////        case 4: safe_copy(S.lut3d_file, optarg, PATH_MAX); break;
-//        case 5: safe_copy(S.x265_params, optarg, 256); break;
-//        case 10: S.no_deblock = 1; break;
-//        case 11: S.no_denoise = 1; break;
-//        case 12: DRY_RUN = 1; break;
-//        case 13: S.dering_active = 1; break;
-//        case 14: safe_copy(S.usm_radius, optarg, 16); strcpy(S.sharpen_method, "unsharp"); break;
-//        case 15: safe_copy(S.usm_amount, optarg, 16); break;
-//        case 16: safe_copy(S.usm_threshold, optarg, 16); break;
-//        case 17: safe_copy(S.f3kdb_range, optarg, 16); strcpy(S.deband_method, "f3kdb"); break;
-//        case 18: S.pci_safe_mode = 1; break;
-//        case 19: S.preview = 1; break;
-//            
-//        case 20: strcpy(S.codec, "hevc"); break;
-//        case 21: S.use10 = 1; break;
-//        case 22: safe_copy(S.mi_mode, optarg, 16); break;
-//        case 23: safe_copy(S.ai_backend, optarg, 16); break;
-//        case 24: safe_copy(S.ai_model, optarg, PATH_MAX); break;
-//        case 25: safe_copy(S.dnn_backend, optarg, 32); break;
-//        case 26: safe_copy(S.denoise_strength, optarg, 16); break;
-//        case 27: safe_copy(S.sharpen_method, optarg, 16); break;
-//        case 28: safe_copy(S.deband_method, optarg, 16); break;
-//            
-//        case 'h': printf("%s", HELP_TEXT); return 0;
-//        case 'm': printf("%s", MANUAL_TEXT); return 0;
-//        }
-//    }
-//    if (optind < argc && !*input_path) safe_copy(input_path, argv[optind], PATH_MAX);
-//    if (*input_path) {
-//        const char *ffmpeg = get_bundled_ffmpeg_path();
-//        if (!ffmpeg) {
-//            fprintf(stderr, "Error: bundled ffmpeg not found\n");
-//            return 1;
-//        }
-//        process_file(input_path, ffmpeg, false);
-//    }    return 0;
-//}
-
 
 static void build_hqdn3d_filter(SB *vf, const char *strength_str) {
     double strength = parse_strength(strength_str);
@@ -477,27 +340,12 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
         else sb_fmt(&vf, "deblock=filter=%s:block=8,", S.deblock_mode);
     }
     
-    //    // TODO: DERING DRY
-    //    if (S.dering_active) {
-    //
-    //        double dstr = parse_strength(S.dering_strength);
-    //        if (dstr <= 0) dstr = 0.5;
-    //
-    //        double luma = dstr * 8.0;
-    //        double chroma = luma * 0.75;
-    //        double luma_tmp = luma * 1.5;
-    //        double chroma_tmp = luma_tmp * 0.75;
-    //
-    //
-    //        if (luma > 15.0) luma = 15.0;
-    //
-    //        sb_fmt(&vf, "hqdn3d=%.2f:%.2f:%.2f:%.2f,", luma, chroma, luma_tmp, chroma_tmp);
-    //    }
+    
+    
     if (S.dering_active) {
         build_dering_filter(&vf, S.dering_strength);
     }
     
-    // TODO: DERING DRY
     
     
     
@@ -590,25 +438,11 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
         else sb_fmt(&vf, "deblock=filter=%s:block=8,", S.deblock_mode_2);
     }
     
-    // TODO: DERING DRY-
-    //    if (S.use_dering_2 && S.dering_active_2) {
-    //        double dstr = parse_strength(S.dering_strength_2);
-    //        if (dstr <= 0) dstr = 0.5;
-    //
-    //        double luma = dstr * 8.0;
-    //        double chroma = luma * 0.75;
-    //        double luma_tmp = luma * 1.5;
-    //        double chroma_tmp = luma_tmp * 0.75;
-    //        if (luma > 15.0) luma = 15.0;
-    //
-    //        sb_fmt(&vf, "hqdn3d=%.2f:%.2f:%.2f:%.2f,", luma, chroma, luma_tmp, chroma_tmp);
-//}
+
         if (S.use_dering_2 && S.dering_active_2) {
             build_dering_filter(&vf, S.dering_strength_2);
         }
     
-    
-    // TODO: DERING DRY-
     
     if (S.use_denoise_2 && !S.no_denoise) {
         if (!strcmp(S.denoiser_2, "bm3d")) {

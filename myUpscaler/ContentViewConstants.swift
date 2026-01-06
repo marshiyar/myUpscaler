@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - UI Constants (Apple‑native sizing)
 
-private struct UI {
+struct UI {
     // Card‑style
     static let cardCornerRadius: CGFloat = 12         // softer than the default
     static let cardShadowRadius: CGFloat = 3
@@ -37,7 +37,7 @@ private struct UI {
 
 // MARK: - Card background colour (platform safe)
 
-private var cardBackground: Color {
+var cardBackground: Color {
     #if os(macOS)
     Color(NSColor.windowBackgroundColor)
     #else
@@ -47,7 +47,7 @@ private var cardBackground: Color {
 
 
 // MARK: - CardStyle Modifier (re‑usable visual style)
-private struct CardStyle: ViewModifier {
+struct CardStyle: ViewModifier {
     func body(content: Content) -> some View {
         content
             .background(cardBackground)
@@ -58,12 +58,12 @@ private struct CardStyle: ViewModifier {
             .padding(.horizontal, 8)
     }
 }
-private extension View {
+extension View {
     func cardStyle() -> some View { self.modifier(CardStyle()) }
 }
 
 // MARK: - NumberFormatters (static, reused)
-private enum Formatters {
+enum Formatters {
     static let twoFraction: NumberFormatter = {
         let f = NumberFormatter()
         f.minimumFractionDigits = 2
@@ -90,7 +90,7 @@ private enum Formatters {
 }
 
 // MARK: - Slider Gradient Colors
-private enum SliderGradient {
+enum SliderGradient {
     case crf          // Quality
     case denoise      // Denoise
     case dering       // Deringing

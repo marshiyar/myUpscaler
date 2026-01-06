@@ -2,7 +2,7 @@
 import SwiftUI
 
 // MARK: - Custom Slider
-private struct LuxuriousSlider: View {
+struct LuxuriousSlider: View {
     @Binding var value: Double
     let range: ClosedRange<Double>
     let step: Double

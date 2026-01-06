@@ -2,9 +2,7 @@ import SwiftUI
 
 struct AboutView: View {
 
-    
     private let websiteURL = URL(string: "https://github.com/marshiyar/myUpscaler")!
-    
     @Environment(\.presentationMode) var presentationMode
     
     var body: some View {
@@ -87,11 +85,8 @@ struct AboutView: View {
         .frame(minWidth: 400, idealWidth: 450, minHeight: 450, idealHeight: 500)
         .background(Color.appBackground)
     }
-
 }
-
 // MARK: - Preview
-
 struct AboutView_Previews: PreviewProvider {
     static var previews: some View {
         Group {

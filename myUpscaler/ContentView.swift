@@ -2176,121 +2176,120 @@ private struct PresetRow: View {
 }
 
 // MARK: - Picture-in-Picture Preview
-// ------------------------------------------------------------
-private struct PictureInPicturePreview: View {
-    let thumbnailImage: NSImage?
-    let timelineFrames: [NSImage]
-    let selectedFrameIndex: Int
-    let onSelectFrame: (Int) -> Void
-    @Binding var isVisible: Bool
-    @State private var dragOffset: CGSize = .zero
-    @State private var accumulatedOffset: CGSize = .zero
-    @State private var isMinimized: Bool = false
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Image(systemName: "pip")
-                    .foregroundColor(.secondary)
-                Text("Preview")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.secondary)
-                Spacer()
-                
-                // Minimize button
-                Button(action: {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                        isMinimized.toggle()
-                    }
-                }) {
-                    Image(systemName: isMinimized ? "chevron.down" : "chevron.up")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(.secondary)
-                }
-                .buttonStyle(.plain)
-                
-                // Close button
-                Button(action: {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                        isVisible = false
-                    }
-                }) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(.secondary)
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(Color(NSColor.windowBackgroundColor).opacity(0.95))
-            .gesture(
-                DragGesture()
-                    .onChanged { value in
-                        dragOffset = value.translation
-                    }
-                    .onEnded { value in
-                        accumulatedOffset.width += value.translation.width
-                        accumulatedOffset.height += value.translation.height
-                        dragOffset = .zero
-                    }
-            )
-            
-            if !isMinimized {
-                // Preview image
-                if let image = thumbnailImage {
-                    Image(nsImage: image)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(maxWidth: 280, maxHeight: 160)
-                        .cornerRadius(6)
-                        .padding(8)
-                }
-                
-                // Mini timeline
-                if !timelineFrames.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 3) {
-                            ForEach(0..<min(timelineFrames.count, 20), id: \.self) { index in
-                                Image(nsImage: timelineFrames[index])
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .frame(width: 30, height: 20)
-                                    .clipped()
-                                    .cornerRadius(2)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 2)
-                                            .stroke(selectedFrameIndex == index ? Color.accentColor : Color.clear, lineWidth: 2)
-                                    )
-                                    .onTapGesture {
-                                        onSelectFrame(index)
-                                    }
-                            }
-                        }
-                        .padding(.horizontal, 8)
-                    }
-                    .frame(height: 28)
-                    .padding(.bottom, 8)
-                }
-            }
-        }
-        .frame(width: isMinimized ? 150 : 300)
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color(NSColor.windowBackgroundColor))
-                .shadow(color: Color.black.opacity(0.3), radius: 10, x: 0, y: 5)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-        )
-        .offset(x: accumulatedOffset.width + dragOffset.width,
-                y: accumulatedOffset.height + dragOffset.height)
-        .padding(14)
-    }
-}
+// Warning: PiP view has been deactivated 
+//private struct PictureInPicturePreview: View {
+//    let thumbnailImage: NSImage?
+//    let timelineFrames: [NSImage]
+//    let selectedFrameIndex: Int
+//    let onSelectFrame: (Int) -> Void
+//    @Binding var isVisible: Bool
+//    @State private var dragOffset: CGSize = .zero
+//    @State private var accumulatedOffset: CGSize = .zero
+//    @State private var isMinimized: Bool = false
+//    
+//    var body: some View {
+//        VStack(spacing: 0) {
+//            HStack {
+//                Image(systemName: "pip")
+//                    .foregroundColor(.secondary)
+//                Text("Preview")
+//                    .font(.system(size: 11, weight: .medium))
+//                    .foregroundColor(.secondary)
+//                Spacer()
+//                
+//                // Minimize button
+//                Button(action: {
+//                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+//                        isMinimized.toggle()
+//                    }
+//                }) {
+//                    Image(systemName: isMinimized ? "chevron.down" : "chevron.up")
+//                        .font(.system(size: 10, weight: .semibold))
+//                        .foregroundColor(.secondary)
+//                }
+//                .buttonStyle(.plain)
+//                
+//                // Close button
+//                Button(action: {
+//                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+//                        isVisible = false
+//                    }
+//                }) {
+//                    Image(systemName: "xmark")
+//                        .font(.system(size: 10, weight: .semibold))
+//                        .foregroundColor(.secondary)
+//                }
+//                .buttonStyle(.plain)
+//            }
+//            .padding(.horizontal, 10)
+//            .padding(.vertical, 6)
+//            .background(Color(NSColor.windowBackgroundColor).opacity(0.95))
+//            .gesture(
+//                DragGesture()
+//                    .onChanged { value in
+//                        dragOffset = value.translation
+//                    }
+//                    .onEnded { value in
+//                        accumulatedOffset.width += value.translation.width
+//                        accumulatedOffset.height += value.translation.height
+//                        dragOffset = .zero
+//                    }
+//            )
+//            
+//            if !isMinimized {
+//                // Preview image
+//                if let image = thumbnailImage {
+//                    Image(nsImage: image)
+//                        .resizable()
+//                        .aspectRatio(contentMode: .fit)
+//                        .frame(maxWidth: 280, maxHeight: 160)
+//                        .cornerRadius(6)
+//                        .padding(8)
+//                }
+//                
+//                // Mini timeline
+//                if !timelineFrames.isEmpty {
+//                    ScrollView(.horizontal, showsIndicators: false) {
+//                        HStack(spacing: 3) {
+//                            ForEach(0..<min(timelineFrames.count, 20), id: \.self) { index in
+//                                Image(nsImage: timelineFrames[index])
+//                                    .resizable()
+//                                    .aspectRatio(contentMode: .fill)
+//                                    .frame(width: 30, height: 20)
+//                                    .clipped()
+//                                    .cornerRadius(2)
+//                                    .overlay(
+//                                        RoundedRectangle(cornerRadius: 2)
+//                                            .stroke(selectedFrameIndex == index ? Color.accentColor : Color.clear, lineWidth: 2)
+//                                    )
+//                                    .onTapGesture {
+//                                        onSelectFrame(index)
+//                                    }
+//                            }
+//                        }
+//                        .padding(.horizontal, 8)
+//                    }
+//                    .frame(height: 28)
+//                    .padding(.bottom, 8)
+//                }
+//            }
+//        }
+//        .frame(width: isMinimized ? 150 : 300)
+//        .background(
+//            RoundedRectangle(cornerRadius: 10)
+//                .fill(Color(NSColor.windowBackgroundColor))
+//                .shadow(color: Color.black.opacity(0.3), radius: 10, x: 0, y: 5)
+//        )
+//        .overlay(
+//            RoundedRectangle(cornerRadius: 10)
+//                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+//        )
+//        .offset(x: accumulatedOffset.width + dragOffset.width,
+//                y: accumulatedOffset.height + dragOffset.height)
+//        .padding(14)
+//    }
+//}
 
-// ------------------------------------------------------------
 // MARK: - Matte Card Group Helper
 private struct MatteCardGroup<Content: View>: View {
     let content: Content
@@ -2480,22 +2479,22 @@ struct ContentView: View {
             showEnlargedColorEqualizer = false
         }
         // Picture-in-Picture Floating Preview
-        .overlay(
-            Group {
-                if showPiPPreview, let state = editorState {
-                    PictureInPicturePreview(
-                        thumbnailImage: state.thumbnailImage,
-                        timelineFrames: state.timelineFrames,
-                        selectedFrameIndex: state.selectedFrameIndex,
-                        onSelectFrame: { index in
-                            state.selectFrame(index)
-                        },
-                        isVisible: $showPiPPreview
-                    )
-                }
-            }
-            , alignment: .bottomTrailing
-        )
+//        .overlay(
+//            Group {
+//                if showPiPPreview, let state = editorState {
+//                    PictureInPicturePreview(
+//                        thumbnailImage: state.thumbnailImage,
+//                        timelineFrames: state.timelineFrames,
+//                        selectedFrameIndex: state.selectedFrameIndex,
+//                        onSelectFrame: { index in
+//                            state.selectFrame(index)
+//                        },
+//                        isVisible: $showPiPPreview
+//                    )
+//                }
+//            }
+//            , alignment: .bottomTrailing
+//        )
     }
     
     
@@ -2574,17 +2573,17 @@ struct ContentView: View {
                            chooseFolder: chooseOutputFolder)
                 
                 // PiP Toggle Button
-                Button(action: {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                        showPiPPreview.toggle()
-                    }
-                }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: showPiPPreview ? "pip.exit" : "pip.enter")
-                        Text(showPiPPreview ? "Hide PiP" : "Show PiP Preview")
-                    }
-                    .frame(maxWidth: .infinity)
-                }
+//                Button(action: {
+//                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+//                        showPiPPreview.toggle()
+//                    }
+//                }) {
+//                    HStack(spacing: 6) {
+//                        Image(systemName: showPiPPreview ? "pip.exit" : "pip.enter")
+//                        Text(showPiPPreview ? "Hide PiP" : "Show PiP Preview")
+//                    }
+//                    .frame(maxWidth: .infinity)
+//                }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 .disabled(runner.inputPath.isEmpty)

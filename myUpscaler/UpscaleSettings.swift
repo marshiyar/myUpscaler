@@ -289,7 +289,7 @@ class UpscaleSettings: ObservableObject {
     // --- Codec & Rate ---
     @Published var useHEVC: Bool = false
     @Published var crf: Double = 16.0
-    @Published var preset: String = "slow"
+    @Published var preset: String = "fast" // default change from slow to fast
     @Published var use10Bit: Bool = false
     
     // x265 Parameters - individual values
@@ -449,7 +449,7 @@ class UpscaleSettings: ObservableObject {
     @Published var preview: Bool = false
     
     // Constants
-    let presets = ["veryfast", "faster", "medium", "slow", "slower", "veryslow"]
+    let presets = ["veryfast", "faster", "medium",] // REMOVED  "slow", "slower", "veryslow"
     let interpolations = ["mci", "blend"]
     let scalers = ["ai", "lanczos", "zscale", "hw", "coreml"]
     let coremlModels = CoreMLModelRegistry.models

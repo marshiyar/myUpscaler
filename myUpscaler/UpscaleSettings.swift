@@ -2,9 +2,9 @@ import Foundation
 import Combine
 
 class UpscaleSettings: ObservableObject {
-    private var cancellables = Set<AnyCancellable>()
+     var cancellables = Set<AnyCancellable>()
     
-    private static var defaultHwAccel: String {
+     static var defaultHwAccel: String {
         #if arch(arm64)
         return "videotoolbox"
         #else
@@ -12,7 +12,7 @@ class UpscaleSettings: ObservableObject {
         #endif
     }
     
-    private static var defaultEncoder: String { "auto" }
+     static var defaultEncoder: String { "auto" }
     
     init() {
         setupValueObservers()
@@ -48,7 +48,7 @@ class UpscaleSettings: ObservableObject {
     }
     
     // MARK: - Auto-toggle management when values become 0
-    private func setupValueObservers() {
+     func setupValueObservers() {
         $denoiser
             .sink { [weak self] newDenoiser in
                 guard let self = self else { return }
@@ -289,7 +289,7 @@ class UpscaleSettings: ObservableObject {
     // --- Codec & Rate ---
     @Published var useHEVC: Bool = false
     @Published var crf: Double = 20.0 // CRF default
-    @Published var preset: String = "fast" // change from slow to fast, slow no longer exists
+    @Published var preset: String = "faster" // change from slow to fast, slow no longer exists
     @Published var use10Bit: Bool = false
     
     // x265 Parameters - individual values
@@ -482,18 +482,18 @@ class UpscaleSettings: ObservableObject {
     }
 
     // MARK: - Default fallbacks used when re-enabling filters that were auto-disabled at 0
-    private var defaultDeringStrengthString: String { "0.5" }
-    private var defaultDeblockThreshString: String { "0.5" }
-    private var defaultDenoiseStrength2String: String { String(format: "%.2f", denoiseStrength2Default) }
-    private var defaultSharpenStrength2String: String { "0.25" }
-    private var defaultUsmRadius2String: String { "5" }
-    private var defaultUsmAmount2String: String { "1.0" }
-    private var defaultUsmThreshold2String: String { "0.03" }
-    private var defaultDebandStrength2String: String { "0.015" }
-    private var defaultF3kdbRange2String: String { "15" }
-    private var defaultF3kdbY2String: String { "64" }
-    private var defaultF3kdbCbCr2String: String { "64" }
-    private var defaultGrainStrength2String: String { "1.0" }
+     var defaultDeringStrengthString: String { "0.5" }
+     var defaultDeblockThreshString: String { "0.5" }
+     var defaultDenoiseStrength2String: String { String(format: "%.2f", denoiseStrength2Default) }
+     var defaultSharpenStrength2String: String { "0.25" }
+     var defaultUsmRadius2String: String { "5" }
+     var defaultUsmAmount2String: String { "1.0" }
+     var defaultUsmThreshold2String: String { "0.03" }
+     var defaultDebandStrength2String: String { "0.015" }
+     var defaultF3kdbRange2String: String { "15" }
+     var defaultF3kdbY2String: String { "64" }
+     var defaultF3kdbCbCr2String: String { "64" }
+     var defaultGrainStrength2String: String { "1.0" }
     
     // MARK: - Denoiser-specific parameter ranges
     /**
@@ -603,11 +603,6 @@ class UpscaleSettings: ObservableObject {
         }
     }
     
-    /**
-     * Validates and clamps denoise strength value to the appropriate range for the selected denoiser.
-     * Returns the clamped value as a string.
-     * For bm3d, "auto" is a valid value and will be preserved.
-     */
     func validateDenoiseStrength(_ value: String, forDenoiser: String) -> String {
         // For bm3d, "auto" is a special valid value
         if forDenoiser == "bm3d" && value.lowercased() == "auto" {
@@ -1042,7 +1037,7 @@ class UpscaleSettings: ObservableObject {
         // Codec & Rate
         useHEVC = false
         crf = 20.0 // DEFAULT FROM 16 to 20
-        preset = "fast" // DEFAULT CHANGE TO FAST FROM SLOW — slow no longer exists MONDAY, JAN , 5th 2026 update
+        preset = "faster" // DEFAULT CHANGE TO FASTER FROM SLOW — slow no longer exists MONDAY, JAN , 5th 2026 update
         use10Bit = false
         
         // x265 Parameters
@@ -1157,8 +1152,6 @@ class UpscaleSettings: ObservableObject {
         noDeband = false
         noEq = false
         noGrain = false
-        // DISABLED: keep advanced features off during resets
-//        regionMasksEnabled = false
         useQualityAnalyzer = false
         useDriftGuard = false
         pciSafe = false

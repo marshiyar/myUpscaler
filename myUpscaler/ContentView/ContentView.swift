@@ -166,7 +166,7 @@ struct ContentView: View {
     }
     
     @ViewBuilder
-    private func adaptiveColumnsLayout(geometry: GeometryProxy) -> some View {
+     func adaptiveColumnsLayout(geometry: GeometryProxy) -> some View {
         let availableWidth = geometry.size.width - (2 * responsiveHorizontalPadding(for: geometry.size.width))
         let useStackedLayout = availableWidth < 680
         
@@ -197,7 +197,7 @@ struct ContentView: View {
     }
     
     /// Left column content - Configuration & AI panels
-    private var leftColumnContent: some View {
+    var leftColumnContent: some View {
         VStack(alignment: .leading, spacing: 14) {
             // Group 1: Configuration & Encoding
             MatteCardGroup(spacing: 8) {
@@ -205,7 +205,6 @@ struct ContentView: View {
                 HardwareEncodingPanel(settings: runner.settings)
                 X265ParametersPanel(settings: runner.settings)
             }
-            
             // Group 2: AI & Restoration
             MatteCardGroup(spacing: 8) {
                 AIEnginePanel(settings: runner.settings)
@@ -214,9 +213,7 @@ struct ContentView: View {
             }
         }
     }
-    
-    /// Right column content - Output, Progress & Presets
-    private var rightColumnContent: some View {
+    var rightColumnContent: some View {
         VStack(alignment: .leading, spacing: 14) {
             // Group 3: Output & Controls
             MatteCardGroup(spacing: 8) {

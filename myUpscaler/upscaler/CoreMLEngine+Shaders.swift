@@ -71,10 +71,9 @@ extension CoreMLEngine {
                 }
             }
             
-            // 2. Fallback: Load from source (Shaders.ci.metal) if provided as resource (Dev mode)
-            // This is useful if the build system didn't bundle the metallib correctly
+      
             if let url = Bundle.main.url(forResource: "Shaders", withExtension: "ci.metal"),
-               let code = try? String(contentsOf: url) {
+               let code = try? String(contentsOf: url, encoding: .utf8) {
                 do {
                     let kernels = try CIKernel.kernels(withMetalString: code)
                     for kernel in kernels {

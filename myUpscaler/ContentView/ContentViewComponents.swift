@@ -74,7 +74,7 @@ struct LuxuriousSlider: View {
 
 
 // MARK: - ParameterRow (compact, native)
-private struct ParameterRow: View {
+struct ParameterRow: View {
     let title: String
     let binding: Binding<String>
     let range: ClosedRange<Double>
@@ -155,7 +155,7 @@ private struct ParameterRow: View {
 
 
 // MARK: - Matte Card Group Helper
-private struct MatteCardGroup<Content: View>: View {
+struct MatteCardGroup<Content: View>: View {
     let content: Content
     let spacing: CGFloat
     

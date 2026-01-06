@@ -68,9 +68,9 @@ int execute_ffmpeg_command(char *const argv[]) {
 }
 
 static volatile sig_atomic_t cancel_requested = 0;
-
-static const char *SCRIPT_NAME = "up60p_restore_beast";
-static char NULL_BUF[PATH_MAX];
+//
+//static const char *SCRIPT_NAME = "up60p_restore_beast";
+//static char NULL_BUF[PATH_MAX];
 static char FFMPEG_PATH[PATH_MAX] = {0};
 int DRY_RUN = 0;
 
@@ -104,26 +104,26 @@ static const char* get_bundled_ffmpeg_path(void) {
 
 static void process_file(const char *in, const char *ffmpeg, bool batch);
 static void process_directory(const char *dir, const char *ffmpeg);
-static int ar_menu_choose(const char *prompt, const char **items, int n, int start_index);
+//static int ar_menu_choose(const char *prompt, const char **items, int n, int start_index);
 
 typedef struct { struct termios orig; int fd; bool ok; } TermCtx;
 
-static TermCtx term_enter_raw(int fd) {
-    TermCtx t = { .fd = fd, .ok=false };
-    if (!isatty(fd)) return t;
-    if (tcgetattr(fd, &t.orig)==-1) return t;
-    struct termios raw = t.orig;
-    raw.c_lflag &= ~(ICANON|ECHO); raw.c_cc[VMIN] = 1; raw.c_cc[VTIME] = 0;
-    if (tcsetattr(fd, TCSAFLUSH, &raw)==-1) return t;
-    t.ok=true; return t;
-}
-static void term_leave_raw(TermCtx *t) { if (t->ok) tcsetattr(t->fd, TCSAFLUSH, &t->orig); }
+//static TermCtx term_enter_raw(int fd) {
+//    TermCtx t = { .fd = fd, .ok=false };
+//    if (!isatty(fd)) return t;
+//    if (tcgetattr(fd, &t.orig)==-1) return t;
+//    struct termios raw = t.orig;
+//    raw.c_lflag &= ~(ICANON|ECHO); raw.c_cc[VMIN] = 1; raw.c_cc[VTIME] = 0;
+//    if (tcsetattr(fd, TCSAFLUSH, &raw)==-1) return t;
+//    t.ok=true; return t;
+////}
+//static void term_leave_raw(TermCtx *t) { if (t->ok) tcsetattr(t->fd, TCSAFLUSH, &t->orig); }
 
-static void play_ui_sound(const char *sound_name) {
-    char cmd[256];
-    snprintf(cmd, sizeof(cmd), "afplay /System/Library/Sounds/%s.aiff > /dev/null 2>&1 &", sound_name);
-    system(cmd);
-}
+//static void play_ui_sound(const char *sound_name) {
+//    char cmd[256];
+//    snprintf(cmd, sizeof(cmd), "afplay /System/Library/Sounds/%s.aiff > /dev/null 2>&1 &", sound_name);
+//    system(cmd);
+//}
 
 static void prompt_edit(const char *name, char *buf, size_t sz) {
     fprintf(stderr, "Enter value for %s [current: %s]: ", name, buf);
@@ -133,93 +133,93 @@ static void prompt_edit(const char *name, char *buf, size_t sz) {
         if (n > 0) snprintf(buf, sz, "%s", line);
     }
 }
-
-static void cycle_string(char *current, const char **options, int count) {
-    int idx = 0;
-    for (int i = 0; i < count; i++) {
-        if (!strcmp(current, options[i])) { idx = i; break; }
-    }
-    strcpy(current, options[(idx + 1) % count]);
-}
-
-static void submenu_edit_group(const char *title, const char **keys, char **vals, size_t *sizes, int n) {
-    int cursor = 0;
-    for (;;) {
-        char **items = malloc((n+1)*sizeof(char*));
-        for(int i=0; i<n; i++) { items[i] = malloc(256); snprintf(items[i], 256, "%s = '%s'", keys[i], vals[i]); }
-        items[n] = strdup("← Back");
-        int sel = ar_menu_choose(title, (const char**)items, n+1, cursor);
-        for(int i=0; i<=n; i++) free(items[i]); free(items);
-        if (sel < 0 || sel == n) break;
-        cursor = sel; prompt_edit(keys[sel], vals[sel], sizes[sel]);
-    }
-}
-
-static int parse_command_line(char *command_line, char ***argv_out) {
-    if (!command_line || !argv_out) return -1;
-    
-    int argc = 0;
-    int max_args = 64;
-    
-    char **argv = malloc(sizeof(char*) * (size_t)max_args);
-    if (!argv) return -1;
-    
-    char *p = command_line;
-    bool in_q = false, in_dq = false;
-    
-    while (*p) {
-        while (*p && isspace((unsigned char)*p) && !in_q && !in_dq) p++;
-        if (!*p) break;
-        
-        char *start = p;
-        while (*p) {
-            if (*p == '\\' && p[1]) {
-                memmove(p, p + 1, strlen(p));
-                p++;
-            }
-            else if (*p == '\'') {
-                in_q = !in_q;
-                memmove(p, p + 1, strlen(p));
-            }
-            else if (*p == '"') {
-                in_dq = !in_dq;
-                memmove(p, p + 1, strlen(p));
-            }
-            else if (isspace((unsigned char)*p) && !in_q && !in_dq) {
-                break;
-            }
-            else {
-                p++;
-            }
-        }
-        
-        if (*p) *p++ = 0;
-        
-        if (argc >= max_args - 1) {
-            int new_max = max_args * 2;
-            char **tmp = realloc(argv, sizeof(char*) * (size_t)new_max);
-            if (!tmp) {
-                for (int i = 0; i < argc; i++) free(argv[i]);
-                free(argv);
-                return -1;
-            }
-            argv = tmp;
-            max_args = new_max;
-        }
-        
-        argv[argc] = strdup(start);
-        if (!argv[argc]) {
-            for (int i = 0; i < argc; i++) free(argv[i]);
-            free(argv);
-            return -1;
-        }
-        argc++;
-    }
-    
-    argv[argc] = NULL;
-    *argv_out = argv;
-    return argc;
-}
+//
+//static void cycle_string(char *current, const char **options, int count) {
+//    int idx = 0;
+//    for (int i = 0; i < count; i++) {
+//        if (!strcmp(current, options[i])) { idx = i; break; }
+//    }
+//    strcpy(current, options[(idx + 1) % count]);
+//}
+//
+//static void submenu_edit_group(const char *title, const char **keys, char **vals, size_t *sizes, int n) {
+//    int cursor = 0;
+//    for (;;) {
+//        char **items = malloc((n+1)*sizeof(char*));
+//        for(int i=0; i<n; i++) { items[i] = malloc(256); snprintf(items[i], 256, "%s = '%s'", keys[i], vals[i]); }
+//        items[n] = strdup("← Back");
+//        int sel = ar_menu_choose(title, (const char**)items, n+1, cursor);
+//        for(int i=0; i<=n; i++) free(items[i]); free(items);
+//        if (sel < 0 || sel == n) break;
+//        cursor = sel; prompt_edit(keys[sel], vals[sel], sizes[sel]);
+//    }
+//}
+//
+//static int parse_command_line(char *command_line, char ***argv_out) {
+//    if (!command_line || !argv_out) return -1;
+//    
+//    int argc = 0;
+//    int max_args = 64;
+//    
+//    char **argv = malloc(sizeof(char*) * (size_t)max_args);
+//    if (!argv) return -1;
+//    
+//    char *p = command_line;
+//    bool in_q = false, in_dq = false;
+//    
+//    while (*p) {
+//        while (*p && isspace((unsigned char)*p) && !in_q && !in_dq) p++;
+//        if (!*p) break;
+//        
+//        char *start = p;
+//        while (*p) {
+//            if (*p == '\\' && p[1]) {
+//                memmove(p, p + 1, strlen(p));
+//                p++;
+//            }
+//            else if (*p == '\'') {
+//                in_q = !in_q;
+//                memmove(p, p + 1, strlen(p));
+//            }
+//            else if (*p == '"') {
+//                in_dq = !in_dq;
+//                memmove(p, p + 1, strlen(p));
+//            }
+//            else if (isspace((unsigned char)*p) && !in_q && !in_dq) {
+//                break;
+//            }
+//            else {
+//                p++;
+//            }
+//        }
+//        
+//        if (*p) *p++ = 0;
+//        
+//        if (argc >= max_args - 1) {
+//            int new_max = max_args * 2;
+//            char **tmp = realloc(argv, sizeof(char*) * (size_t)new_max);
+//            if (!tmp) {
+//                for (int i = 0; i < argc; i++) free(argv[i]);
+//                free(argv);
+//                return -1;
+//            }
+//            argv = tmp;
+//            max_args = new_max;
+//        }
+//        
+//        argv[argc] = strdup(start);
+//        if (!argv[argc]) {
+//            for (int i = 0; i < argc; i++) free(argv[i]);
+//            free(argv);
+//            return -1;
+//        }
+//        argc++;
+//    }
+//    
+//    argv[argc] = NULL;
+//    *argv_out = argv;
+//    return argc;
+//}
 
 static void build_hqdn3d_filter(SB *vf, const char *strength_str) {
     double strength = parse_strength(strength_str);
@@ -645,7 +645,7 @@ up60p_error up60p_init(const char *app_support_dir, up60p_log_callback log_cb) {
         return 1;
     }
     
-    char name[64];
+//    char name[64];
     
     return UP60P_OK;
 }

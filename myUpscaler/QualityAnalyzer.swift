@@ -189,7 +189,7 @@ final class QualityAnalyzer {
 
 extension UpscaleSettings {
     func tuned(using analysis: QualityAnalysis) -> UpscaleSettings {
-        var tuned = self
+        let tuned = self
         let m = analysis.metrics
         
         // Noise handling

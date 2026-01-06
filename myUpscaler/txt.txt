@@ -1,0 +1,20 @@
+
+/Users/ash/Documents/myUpscaler /myUpscaler/up60p_restore_beast_main.c:72:20 Unused variable 'SCRIPT_NAME'
+
+/Users/ash/Documents/myUpscaler /myUpscaler/up60p_restore_beast_main.c:73:13 Unused variable 'NULL_BUF'
+
+/Users/ash/Documents/myUpscaler /myUpscaler/up60p_restore_beast_main.c:107:12 Function 'ar_menu_choose' has internal linkage but is not defined
+
+/Users/ash/Documents/myUpscaler /myUpscaler/up60p_restore_beast_main.c:111:16 Unused function 'term_enter_raw'
+
+/Users/ash/Documents/myUpscaler /myUpscaler/up60p_restore_beast_main.c:120:13 Unused function 'term_leave_raw'
+
+/Users/ash/Documents/myUpscaler /myUpscaler/up60p_restore_beast_main.c:122:13 Unused function 'play_ui_sound'
+
+/Users/ash/Documents/myUpscaler /myUpscaler/up60p_restore_beast_main.c:137:13 Unused function 'cycle_string'
+
+/Users/ash/Documents/myUpscaler /myUpscaler/up60p_restore_beast_main.c:145:13 Unused function 'submenu_edit_group'
+
+/Users/ash/Documents/myUpscaler /myUpscaler/up60p_restore_beast_main.c:158:12 Unused function 'parse_command_line'
+
+/Users/ash/Documents/myUpscaler /myUpscaler/up60p_restore_beast_main.c:648:10 Unused variable 'name'

@@ -8,56 +8,6 @@ struct FFmpegProgressState {
     var newDuration: Double?
 }
 
-// class FFmpegParser {
-//     private static let durationRegex = try? NSRegularExpression(pattern: "Duration:\\s*([0-9:.]+)")
-//     // private static let frameRegex = try? NSRegularExpression(pattern: "frame=\\s*([0-9]+)")
-//     private static let fpsRegex = try? NSRegularExpression(pattern: "fps=([0-9\\.]+)")
-//     private static let timeRegex = try? NSRegularExpression(pattern: "time=([0-9:\\.]+)")
-    
-//     static func parse(line: String, currentDuration: Double) -> FFmpegProgressState {
-//         var state = FFmpegProgressState()
-        
-//         if currentDuration == 0 {
-//             if let durationStr = extract(durationRegex, from: line),
-//                let duration = parseTimeString(durationStr) {
-//                 state.newDuration = duration
-//             }
-//         }
-        
-//         if let timeStr = extract(timeRegex, from: line) {
-//             let fps = extract(fpsRegex, from: line)
-            
-//             state.fps = fps
-//             state.timeString = timeStr
-            
-//             if let currentTime = parseTimeString(timeStr) {
-//                 let duration = state.newDuration ?? currentDuration
-                
-//                 if duration > 0 {
-//                     let calculatedProgress = currentTime / duration
-//                     state.progress = min(max(calculatedProgress, 0.0), 1.0)
-                    
-//                     let remainingTime = max(0.0, duration - currentTime)
-//                     if let fpsVal = fps.flatMap({ Double($0) }), fpsVal > 0, remainingTime > 0 {
-//                         state.eta = formatTime(remainingTime)
-//                     } else if remainingTime <= 0 {
-//                         state.progress = 1.0
-//                         state.eta = "0:00"
-//                     } else {
-//                         state.eta = "--:--"
-//                     }
-//                 } else {
-//                     state.eta = "--:--"
-//                 }
-//             }
-//         }
-        
-//         return state
-//     }
-    
-// }
-
-
 class FFmpegParser {
     // Combined regex that captures duration, time, and fps in one pass
     private static let combinedRegex = try? NSRegularExpression(

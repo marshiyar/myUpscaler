@@ -128,16 +128,16 @@ extern void (*global_log_cb)(const char *message);
 
 up60p_error up60p_init(const char *app_support_dir, up60p_log_callback log_cb);
 
-void        up60p_default_options(up60p_options *out_opts);
+void up60p_default_options(up60p_options *out_opts);
 
 up60p_error up60p_process_path(const char *input_path,
                                const up60p_options *opts);
 
-void        up60p_set_dry_run(int enable);
+void up60p_set_dry_run(int enable);
 
-void        up60p_request_cancel(void);
+void up60p_request_cancel(void);
 
-void        up60p_shutdown(void);
+void up60p_shutdown(void);
 #ifdef __cplusplus
 }
 #endif

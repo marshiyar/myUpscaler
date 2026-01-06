@@ -10,14 +10,12 @@ enum CoreMLModelID: String, CaseIterable, Codable, Hashable {
     case realESRGANx2 = "RealESRGAN_x2"
     case realESRGANx4 = "RealESRGAN_x4"
 }
-
 struct CoreMLModelSpec: Identifiable, Hashable {
     let id: CoreMLModelID
     let displayName: String
     let resourceName: String
     let nativeScale: Double
 }
-
 enum CoreMLModelRegistry {
     static let models: [CoreMLModelSpec] = [
         CoreMLModelSpec(id: .realESRGANx2, displayName: "Real-ESRGAN x2", resourceName: "RealESRGAN_x2", nativeScale: 2.0),
@@ -220,7 +218,8 @@ class CoreMLEngine: EngineProtocol {
         let tilesY = max(1, Int(ceil(Double(Int(inputSize.height) - tileOverlap) / Double(effectiveTileSize))))
         
         let predictionOptions = MLPredictionOptions()
-        predictionOptions.usesCPUOnly = false
+        
+        
         
         var frameCount = 0
         var previousFrameBuffer: CVPixelBuffer? = nil
@@ -312,9 +311,8 @@ class CoreMLEngine: EngineProtocol {
         await writer.finishWriting()
         log("Done. Output saved to: \(outputURL.path)\n")
     }
-    
+
     // MARK: - Helper Methods
-    
     private func createPixelBuffer(width: Int, height: Int) throws -> CVPixelBuffer {
         var pixelBuffer: CVPixelBuffer?
         let options: [String: Any] = [

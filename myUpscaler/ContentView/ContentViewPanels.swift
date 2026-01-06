@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import Combine
 struct HeaderView: View {
     var body: some View {
         HStack {
@@ -654,7 +655,6 @@ struct X265ParametersPanel: View {
     }
 }
 
-
 // MARK: -  Hardware & Encoding panel (compact)
 struct HardwareEncodingPanel: View {
     @ObservedObject var settings: UpscaleSettings
@@ -933,8 +933,6 @@ struct ActionButtons: View {
         }
     }
 }
-
-/// Progress bar + FPS / time / ETA line
 struct ProgressDetails: View {
     @ObservedObject var runner: UpscaleRunner
     

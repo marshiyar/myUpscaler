@@ -284,7 +284,6 @@ final class Up60PEngine {
         setString(&opts.eq_contrast, MemoryLayout.size(ofValue: opts.eq_contrast), settings.eqContrast)
         setString(&opts.eq_brightness, MemoryLayout.size(ofValue: opts.eq_brightness), settings.eqBrightness)
         setString(&opts.eq_saturation, MemoryLayout.size(ofValue: opts.eq_saturation), settings.eqSaturation)
-//        setString(&opts.lut3d_file, MemoryLayout.size(ofValue: opts.lut3d_file), settings.lutPath)
         setString(&opts.x265_params, MemoryLayout.size(ofValue: opts.x265_params), settings.x265Params)
         
         setString(&opts.outdir, MemoryLayout.size(ofValue: opts.outdir), outputDir)
@@ -362,23 +361,29 @@ final class Up60PEngine {
                     await Task.yield()
                     Up60PEngine.logHandlerQueue.sync {
                         if let handler = Up60PEngine.currentLogHandler {
-                            DispatchQueue.main.async {
-                                handler("Starting video processing...\n")
-                            }
+                            Task {@MainActor in handler ("Starting Video Processing...\n")}
                         }
                     }
                     Up60PEngine.logHandlerQueue.sync {
+                        
                         if let handler = Up60PEngine.currentLogHandler {
-                            DispatchQueue.main.async {
-                                handler("NOTE: If this is the first run, AI initialization (Metal shader compilation) may take 1-2 minutes. Please wait...\n")
-                            }
+                            Task {@MainActor in handler("NOTE: If this is the first run, AI initialization (Metal shader compilation) may take 1-2 minutes. Please wait...\n")}
                         }
                     }
+                    
+                    
                     if stackingSnapshot.has {
-                        Up60PEngine.logHandlerQueue.sync {
-                            if let handler = Up60PEngine.currentLogHandler {
-                                DispatchQueue.main.async {
+                        let handler: ((String) -> Void )?
+                        let snapshot = stackingSnapshot
+                        
+                        handler = Up60PEngine.logHandlerQueue.sync {
+                            Up60PEngine.currentLogHandler
+                        }
+                       
+                            if let handler  {
+                                Task {@MainActor in
                                     handler("\n⚡ Filter Stacking Detected - Applying Smart Attenuation:\n")
+                                   
                                     if stackingSnapshot.sharpen {
                                         let factor = stackingSnapshot.sharpenPct
                                         handler("  • Sharpen 2nd set: reduced by \(factor)% to prevent over-sharpening\n")
@@ -395,7 +400,6 @@ final class Up60PEngine {
                                 }
                             }
                         }
-                    }
                     
                     let result = await Up60PEngine.bridge.processPathFunc(inputPath, &mutableOpts)
                     
@@ -441,18 +445,16 @@ final class Up60PEngine {
         task.cancel()
         
         let engine = self
+        let message = "Cancellation acknowledged by native engine.\n"
+        
         Task.detached {
             await task.value
             
-            Up60PEngine.logHandlerQueue.sync {
-                if let handler = Up60PEngine.currentLogHandler {
-                    DispatchQueue.main.async {
-                        handler("Cancellation acknowledged by native engine.\n")
-                    }
-                }
-            }
-            
+            // Retrieve handler inside MainActor context to avoid Sendable issues
             await MainActor.run {
+                Up60PEngine.logHandlerQueue.sync {
+                    Up60PEngine.currentLogHandler?(message)
+                }
                 engine.currentProcessTask = nil
             }
         }

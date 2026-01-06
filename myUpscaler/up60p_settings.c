@@ -230,7 +230,7 @@ void init_paths(void) {
 
 void set_defaults(void) {
     memset(&S, 0, sizeof(S));
-    strcpy(S.codec, "h264"); strcpy(S.crf, "20"); strcpy(S.preset, "fast"); strcpy(S.fps, "60"); strcpy(S.scale_factor, "2");
+    strcpy(S.codec, "h264"); strcpy(S.crf, "20"); strcpy(S.preset, "faster"); strcpy(S.fps, "60"); strcpy(S.scale_factor, "2");
     strcpy(S.scaler, "lanczos"); strcpy(S.ai_backend, "sr"); strcpy(S.ai_model_type, "espcn"); strcpy(S.dnn_backend, "tensorflow");
     
     strcpy(S.denoiser, "bm3d"); strcpy(S.denoise_strength, "2.5");

@@ -1,12 +1,6 @@
 {
   "configurations" : [
-    {
-      "id" : "1BC76DAE-B49F-44F8-93AA-4275D020C3F4",
-      "name" : "Test Scheme Action",
-      "options" : {
 
-      }
-    }
   ],
   "defaultOptions" : {
     "performanceAntipatternCheckerEnabled" : true,

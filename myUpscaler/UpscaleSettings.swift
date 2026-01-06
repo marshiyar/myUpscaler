@@ -288,7 +288,7 @@ class UpscaleSettings: ObservableObject {
     }
     // --- Codec & Rate ---
     @Published var useHEVC: Bool = false
-    @Published var crf: Double = 16.0
+    @Published var crf: Double = 20.0 // CRF default
     @Published var preset: String = "fast" // change from slow to fast, slow no longer exists
     @Published var use10Bit: Bool = false
     
@@ -449,7 +449,7 @@ class UpscaleSettings: ObservableObject {
     @Published var preview: Bool = false
     
     // Constants
-    let presets = ["veryfast", "faster", "medium",] // REMOVED  "slow", "slower", "veryslow"
+    let presets = ["veryfast", "faster", "medium"] // REMOVED  "slow", "slower", "veryslow"
     let interpolations = ["mci", "blend"]
     let scalers = ["ai", "lanczos", "zscale", "hw", "coreml"]
     let coremlModels = CoreMLModelRegistry.models

@@ -97,9 +97,8 @@ class KeyboardMonitorView: NSView {
                 DispatchQueue.main.async {
                     action()
                 }
-                return nil // Consume the event
+                return nil
             }
-            
             return event
         }
     }

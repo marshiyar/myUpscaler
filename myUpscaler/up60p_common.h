@@ -45,7 +45,6 @@
 #endif
 
 #define ARR_LEN(a) ((int)(sizeof(a)/sizeof((a)[0])))
-// MARK: Constants-
 
 // MARK: - COLOR
 

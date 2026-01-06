@@ -1,6 +1,6 @@
 #include "up60p_settings.h"
 #include "up60p_utils.h"
-#include "up60p_text.h"
+//#include "up60p_text.h"
 //#include "up60p_cli.h"
 #include "up60p.h"
 #include <stdio.h>
@@ -11,9 +11,8 @@
 
 Settings DEF;
 Settings S;
-
-static char GPTPRO_PRESET_DIR[PATH_MAX];
-static char GPTPRO_ACTIVE_FILE[PATH_MAX];
+//static char PTPRO_PRGESET_DIR[PATH_MAX];
+//static char GPTPRO_ACTIVE_FILE[PATH_MAX];
 
 int execute_ffmpeg_command(char *const argv[]) {
     int stdout_pipe[2];
@@ -1191,12 +1190,12 @@ up60p_error up60p_init(const char *app_support_dir, up60p_log_callback log_cb) {
         return 1;
     }
     
-    ensure_conf_dirs();
+//    ensure_conf_dirs();
     
     char name[64];
-    if (name[0] != '\0') {
-        load_preset_file(name, true);
-    }
+//    if (name[0] != '\0') {
+//        load_preset_file(name, true);
+//    }
     
     return UP60P_OK;
 }

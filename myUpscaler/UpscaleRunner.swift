@@ -19,10 +19,6 @@ class UpscaleRunner: ObservableObject {
     private let fileSystem: FileSystemProtocol
     private let engine: EngineProtocol
     private let assetLoader: AssetLoaderProtocol
-    // DISABLED: Quality Analyzer feature (kept commented for reference)
-    // private let qualityAnalyzer = QualityAnalyzer()
-    // DISABLED: Region Masker feature (kept commented for reference)
-    // private let regionMasker = RegionMasker()
     
     // MARK: - Input/Output Configuration
     @Published var inputPath = ""

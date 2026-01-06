@@ -89,7 +89,6 @@ class KeyboardShortcutsManager: ObservableObject {
         }
         shortcuts = decoded
     }
-    
     private func modifiersToStrings(_ modifiers: EventModifiers) -> [String] {
         var strings: [String] = []
         if modifiers.contains(.command) { strings.append("command") }
@@ -98,7 +97,6 @@ class KeyboardShortcutsManager: ObservableObject {
         if modifiers.contains(.control) { strings.append("control") }
         return strings
     }
-    
     private func stringsToModifiers(_ strings: [String]) -> EventModifiers {
         var modifiers: EventModifiers = []
         if strings.contains("command") { modifiers.insert(.command) }

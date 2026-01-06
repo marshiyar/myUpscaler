@@ -2,8 +2,6 @@
 #define UP60P_SETTINGS_H
 
 #include "up60p_common.h"
-//#include "up60p_cli.h"
-
 
 struct Settings {
     

@@ -166,7 +166,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# 1. Define Paths\nFFMPEG_DIR=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/../MacOS/ThirdParty/FFmpeg\"\nENTITLEMENTS_PATH=\"${PROJECT_DIR}/myUpscaler/FFmpeg.entitlements\"\n\n# 2. Fix Permissions\n# (Still required so the OS allows them to run)\nchmod +x \"$FFMPEG_DIR/ffmpeg\"\n\n\n# 3. RE-SIGN with App Store Identity & Entitlements\n# We use EXPANDED_CODE_SIGN_IDENTITY so Xcode picks the correct cert automatically.\n# This makes the static binaries App Store compliant.\n\necho \"Re-signing Static FFmpeg with identity: ${EXPANDED_CODE_SIGN_IDENTITY}\"\n\ncodesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY}\" --entitlements \"${ENTITLEMENTS_PATH}\" --options runtime --timestamp \"$FFMPEG_DIR/ffmpeg\"\n\n\necho \"Static FFmpeg signing complete.\"\n";
+			shellScript = "\nFFMPEG_DIR=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/../MacOS/ThirdParty/FFmpeg\"\nENTITLEMENTS_PATH=\"${PROJECT_DIR}/myUpscaler/FFmpeg.entitlements\"\n\n\nchmod +x \"$FFMPEG_DIR/ffmpeg\"\n\n\n\necho \"Re-signing Static FFmpeg with identity: ${EXPANDED_CODE_SIGN_IDENTITY}\"\n\ncodesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY}\" --entitlements \"${ENTITLEMENTS_PATH}\" --options runtime --timestamp \"$FFMPEG_DIR/ffmpeg\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -386,6 +386,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_HEADERS_RUN_UNIFDEF = YES;
+				COPY_PHASE_STRIP = YES;
 				COREML_CODEGEN_SWIFT_GLOBAL_MODULE = YES;
 				CREATE_INFOPLIST_SECTION_IN_BINARY = NO;
 				CURRENT_PROJECT_VERSION = 1;
@@ -415,7 +416,7 @@
 				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_TESTABILITY = NO;
 				ENABLE_USER_SELECTED_FILES = readwrite;
-				FRAMEWORK_SEARCH_PATHS = "$(SRCROOT)/MacOS/Frameworks";
+				FRAMEWORK_SEARCH_PATHS = "";
 				GCC_OPTIMIZATION_LEVEL = fast;
 				GCC_STRICT_ALIASING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -427,8 +428,8 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.video";
 				INFOPLIST_KEY_MetalCaptureEnabled = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
-				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/myUpscaler/libs";
+				LD_RUNPATH_SEARCH_PATHS = "";
+				LIBRARY_SEARCH_PATHS = "";
 				LINK_WITH_STANDARD_LIBRARIES = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
 				MARKETING_VERSION = 0.0.2;
@@ -495,6 +496,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_HEADERS_RUN_UNIFDEF = YES;
+				COPY_PHASE_STRIP = YES;
 				COREML_CODEGEN_SWIFT_GLOBAL_MODULE = YES;
 				CREATE_INFOPLIST_SECTION_IN_BINARY = NO;
 				CURRENT_PROJECT_VERSION = 1;
@@ -524,7 +526,7 @@
 				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_TESTABILITY = NO;
 				ENABLE_USER_SELECTED_FILES = readwrite;
-				FRAMEWORK_SEARCH_PATHS = "$(SRCROOT)/MacOS/Frameworks";
+				FRAMEWORK_SEARCH_PATHS = "";
 				GCC_OPTIMIZATION_LEVEL = fast;
 				GCC_STRICT_ALIASING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -536,8 +538,8 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.video";
 				INFOPLIST_KEY_MetalCaptureEnabled = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
-				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/myUpscaler/libs";
+				LD_RUNPATH_SEARCH_PATHS = "";
+				LIBRARY_SEARCH_PATHS = "";
 				LINK_WITH_STANDARD_LIBRARIES = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
 				MARKETING_VERSION = 0.0.2;

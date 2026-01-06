@@ -565,8 +565,6 @@ final class EditorState: ObservableObject {
             return
         }
         
-        // Move heavy filter calculations to background queue
-        // Capture context and params to avoid actor isolation issues
         let context = self.ciContext
         
         filterQueue.async { [weak self] in

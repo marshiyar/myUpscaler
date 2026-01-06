@@ -116,7 +116,7 @@ final class Up60PEngine {
                     .appendingPathComponent("ffmpeg")
                 
                 if FileManager.default.isExecutableFile(atPath: ffmpegURL.path) {
-                    ffmpegURL.path.withCString { cStr in
+                 _ = ffmpegURL.path.withCString { cStr in
                         setenv("UP60P_FFMPEG", cStr, 1)
                     }
                     
@@ -209,7 +209,7 @@ final class Up60PEngine {
         try ensureInitialized()
         
         var opts = up60p_options()
-        Up60PEngine.bridge.defaultOptionsFunc(&opts)    // start from engine defaults / active preset
+        Up60PEngine.bridge.defaultOptionsFunc(&opts)
         
         // MARK: Core
         setString(&opts.codec, MemoryLayout.size(ofValue: opts.codec), settings.useHEVC ? "hevc" : "h264")
@@ -314,15 +314,11 @@ final class Up60PEngine {
     func process(inputPath: String,
                  settings: UpscaleSettings,
                  outputDirectory: String) async throws {
-        // Cancel any existing process
         cancel()
         
         let codecDecision = CodecSupport.resolve(requestHEVC: settings.useHEVC)
-        if let message = codecDecision.message {
-            log(message)
-        }
+        if let message = codecDecision.message { log(message) }
         settings.useHEVC = codecDecision.useHEVC
-        
         
         struct StackingSnapshot {
             let has: Bool
@@ -334,7 +330,6 @@ final class Up60PEngine {
             let debandPct: Int
         }
         
-        // Capture stacking info on the MainActor to avoid isolation issues later
         let stackingSnapshot = await MainActor.run { () -> StackingSnapshot in
             let has = settings.hasFilterStacking
             let sharpen = settings.isSharpenStacked
@@ -343,77 +338,61 @@ final class Up60PEngine {
             let sharpenPct = Int((1.0 - settings.sharpen2AttenuationFactor) * 100)
             let denoisePct = Int((1.0 - settings.denoise2AttenuationFactor) * 100)
             let debandPct = Int((1.0 - settings.deband2AttenuationFactor) * 100)
-            return StackingSnapshot(has: has, sharpen: sharpen, denoise: denoise, deband: deband, sharpenPct: sharpenPct, denoisePct: denoisePct, debandPct: debandPct)
+            return StackingSnapshot(has: has, sharpen: sharpen, denoise: denoise, deband: deband,
+                                    sharpenPct: sharpenPct, denoisePct: denoisePct, debandPct: debandPct)
         }
+        
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             let task = Task.detached(priority: .userInitiated) { [weak self] in
-                guard let self = self else {
+                guard let self else {
                     continuation.resume(throwing: Up60PEngineError.internalError)
                     return
                 }
                 
                 do {
                     await Task.yield()
+                    
                     let opts = try await MainActor.run {
                         try self.makeOptions(from: settings, outputDir: outputDirectory)
                     }
                     var mutableOpts = opts
-                    await Task.yield()
-                    Up60PEngine.logHandlerQueue.sync {
-                        if let handler = Up60PEngine.currentLogHandler {
-                            Task {@MainActor in handler ("Starting Video Processing...\n")}
-                        }
-                    }
-                    Up60PEngine.logHandlerQueue.sync {
-                        
-                        if let handler = Up60PEngine.currentLogHandler {
-                            Task {@MainActor in handler("NOTE: If this is the first run, AI initialization (Metal shader compilation) may take 1-2 minutes. Please wait...\n")}
-                        }
-                    }
                     
+                    // Logging (safe)
+                    let handler = Up60PEngine.logHandlerQueue.sync { Up60PEngine.currentLogHandler }
+                    if handler != nil {
+                        await MainActor.run {
+                            Up60PEngine.currentLogHandler?("Starting Video Processing...\n")
+                            Up60PEngine.currentLogHandler?("NOTE: If this is the first run, AI initialization (Metal shader compilation) may take 1-2 minutes. Please wait...\n")
+                        }
+                    }
                     
                     if stackingSnapshot.has {
-                        let handler: ((String) -> Void )?
-                        let snapshot = stackingSnapshot
-                        
-                        handler = Up60PEngine.logHandlerQueue.sync {
-                            Up60PEngine.currentLogHandler
-                        }
-                       
-                            if let handler  {
-                                Task {@MainActor in
-                                    handler("\n⚡ Filter Stacking Detected - Applying Smart Attenuation:\n")
-                                   
-                                    if stackingSnapshot.sharpen {
-                                        let factor = stackingSnapshot.sharpenPct
-                                        handler("  • Sharpen 2nd set: reduced by \(factor)% to prevent over-sharpening\n")
-                                    }
-                                    if stackingSnapshot.denoise {
-                                        let factor = stackingSnapshot.denoisePct
-                                        handler("  • Denoise 2nd set: reduced by \(factor)% to prevent over-smoothing\n")
-                                    }
-                                    if stackingSnapshot.deband {
-                                        let factor = stackingSnapshot.debandPct
-                                        handler("  • Deband 2nd set: reduced by \(factor)% to prevent banding artifacts\n")
-                                    }
-                                    handler("\n")
-                                }
+                        await MainActor.run {
+                            Up60PEngine.currentLogHandler?("\n⚡ Filter Stacking Detected - Applying Smart Attenuation:\n")
+                            
+                            if stackingSnapshot.sharpen {
+                                Up60PEngine.currentLogHandler?("  • Sharpen 2nd set: reduced by \(stackingSnapshot.sharpenPct)% to prevent over-sharpening\n")
                             }
+                            if stackingSnapshot.denoise {
+                                Up60PEngine.currentLogHandler?("  • Denoise 2nd set: reduced by \(stackingSnapshot.denoisePct)% to prevent over-smoothing\n")
+                            }
+                            if stackingSnapshot.deband {
+                                Up60PEngine.currentLogHandler?("  • Deband 2nd set: reduced by \(stackingSnapshot.debandPct)% to prevent banding artifacts\n")
+                            }
+                            
+                            Up60PEngine.currentLogHandler?("\n")
                         }
+                    }
                     
                     let result = await Up60PEngine.bridge.processPathFunc(inputPath, &mutableOpts)
                     
-                    Up60PEngine.logHandlerQueue.sync {
-                        if let handler = Up60PEngine.currentLogHandler {
-                            DispatchQueue.main.async {
-                                if result == UP60P_ERR_CANCELLED || Task.isCancelled {
-                                    handler("Processing cancelled.\n")
-                                } else if result == UP60P_OK {
-                                    handler("Processing completed.\n")
-                                } else {
-                                    handler("Processing returned error code: \(result.rawValue)\n")
-                                }
-                            }
+                    await MainActor.run {
+                        if result == UP60P_ERR_CANCELLED || Task.isCancelled {
+                            Up60PEngine.currentLogHandler?("Processing cancelled.\n")
+                        } else if result == UP60P_OK {
+                            Up60PEngine.currentLogHandler?("Processing completed.\n")
+                        } else {
+                            Up60PEngine.currentLogHandler?("Processing returned error code: \(result.rawValue)\n")
                         }
                     }
                     
@@ -427,14 +406,12 @@ final class Up60PEngine {
                         }
                         continuation.resume(throwing: error)
                     }
+                    
                 } catch {
-                    if !Task.isCancelled {
-                        continuation.resume(throwing: error)
-                    } else {
-                        continuation.resume(throwing: CancellationError())
-                    }
+                    continuation.resume(throwing: Task.isCancelled ? CancellationError() : error)
                 }
             }
+            
             currentProcessTask = task
         }
     }

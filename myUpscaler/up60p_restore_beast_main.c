@@ -7,6 +7,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <termios.h>
+
 Settings DEF;
 Settings S;
 
@@ -65,7 +66,6 @@ int execute_ffmpeg_command(char *const argv[]) {
     
     return -1;
 }
-
 
 static volatile sig_atomic_t cancel_requested = 0;
 
@@ -154,6 +154,7 @@ static void submenu_edit_group(const char *title, const char **keys, char **vals
         cursor = sel; prompt_edit(keys[sel], vals[sel], sizes[sel]);
     }
 }
+
 static int parse_command_line(char *command_line, char ***argv_out) {
     if (!command_line || !argv_out) return -1;
     
@@ -294,7 +295,14 @@ static void build_dering_filter(SB *vf, const char *strength_str) {
     sb_fmt(vf, "hqdn3d=%.2f:%.2f:%.2f:%.2f,", luma, chroma, luma_tmp, chroma_tmp);
 }
 
-//  MARK: -
+static void build_deblock_filter(SB *vf, const char *mode, const char *thresh) {
+    if (*thresh) {
+        sb_fmt(vf, "deblock=filter=%s:block=8:%s,", mode, thresh);
+    } else {
+        sb_fmt(vf, "deblock=filter=%s:block=8,", mode);
+    }
+}
+
 
 static void process_file(const char *in, const char *ffmpeg, bool batch) {
     (void)batch; char outdir[PATH_MAX], base[PATH_MAX], out[PATH_MAX];
@@ -320,7 +328,6 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
         }
     }
     
-    
     if (img) snprintf(out, sizeof(out), "%s/%s_[restored].png", outdir, base);
     else snprintf(out, sizeof(out), "%s/%s_[restored].mp4", outdir, base);
     
@@ -334,20 +341,9 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
         if (!S.no_decimate) sb_append(&vf, "mpdecimate=hi=64*12,setpts=PTS,");
     }
     
-    
     if (!S.no_deblock) {
-        if (*S.deblock_thresh) sb_fmt(&vf, "deblock=filter=%s:block=8:%s,", S.deblock_mode, S.deblock_thresh);
-        else sb_fmt(&vf, "deblock=filter=%s:block=8,", S.deblock_mode);
+        build_deblock_filter(&vf, S.deblock_mode, S.deblock_thresh);
     }
-    
-    
-    
-    if (S.dering_active) {
-        build_dering_filter(&vf, S.dering_strength);
-    }
-    
-    
-    
     
     if (!S.no_denoise) {
         if (!strcmp(S.denoiser, "bm3d")) {
@@ -379,8 +375,6 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
         }
     }
     
-    
-    
     if (!strcmp(S.scaler, "zscale")) {
         sb_fmt(&vf, "zscale=w=trunc(iw*%s/2)*2:h=trunc(ih*%s/2)*2:filter=lanczos:dither=error_diffusion,", S.scale_factor, S.scale_factor);
     } else if (!strcmp(S.scaler, "ai")) {
@@ -401,7 +395,6 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
         sb_fmt(&vf, "scale=trunc(iw*%s/2)*2:trunc(ih*%s/2)*2:flags=lanczos+accurate_rnd,", S.scale_factor, S.scale_factor);
     }
     
-    
     if (!S.no_sharpen) {
         if (!strcmp(S.sharpen_method, "unsharp")) {
             sb_fmt(&vf, "unsharp=%s:%s:%s,", S.usm_radius, S.usm_radius, S.usm_amount);
@@ -420,7 +413,6 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
             double thr_y = y > 0 ? y / 2000.0 : 0.03;
             double thr_c = cb > 0 ? cb / 2000.0 : 0.015;
             
-            
             if (thr_y > 0.5) thr_y = 0.5;
             if (thr_c > 0.5) thr_c = 0.5;
             if (thr_y < 0.001) thr_y = 0.001;
@@ -432,18 +424,10 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
         }
         else sb_fmt(&vf, "deband=1thr=%s:b=1,", S.deband_strength);
     }
-    
-    if (S.use_deblock_2 && !S.no_deblock) {
-        if (*S.deblock_thresh_2) sb_fmt(&vf, "deblock=filter=%s:block=8:%s,", S.deblock_mode_2, S.deblock_thresh_2);
-        else sb_fmt(&vf, "deblock=filter=%s:block=8,", S.deblock_mode_2);
-    }
-    
-
         if (S.use_dering_2 && S.dering_active_2) {
             build_dering_filter(&vf, S.dering_strength_2);
         }
-    
-    
+        
     if (S.use_denoise_2 && !S.no_denoise) {
         if (!strcmp(S.denoiser_2, "bm3d")) {
             if (!strcmp(S.denoise_strength_2, "auto")) sb_append(&vf, "bm3d=estim=final:planes=1,");
@@ -661,7 +645,6 @@ up60p_error up60p_init(const char *app_support_dir, up60p_log_callback log_cb) {
         return 1;
     }
     
-    
     char name[64];
     
     return UP60P_OK;
@@ -694,8 +677,4 @@ up60p_error up60p_process_path(const char *input_path,
     return UP60P_ERR_INVALID_OPTIONS;
 }
 
-void up60p_shutdown(void) {
-    // no-op
-}
-
-
+void up60p_shutdown(void) {}

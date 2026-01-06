@@ -489,7 +489,6 @@ extern "C" float4 hann_feather_tile(coreimage::sampler src, float tileWidth, flo
 }
 
 // MARK: - Temporal Smoothing (Video)
-
 extern "C" float4 temporal_smooth(coreimage::sampler current,
                                   coreimage::sampler previous,
                                   float strength) {

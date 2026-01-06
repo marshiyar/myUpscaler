@@ -43,12 +43,6 @@ extension CoreMLEngine {
                let data = try? Data(contentsOf: url) {
                 
                 do {
-                    // Note: In production, you load specific kernels by name.
-                    // General kernels (color) vs Warp/Sampler kernels.
-                    // cas_sharpen uses sampler -> CIKernel (general)
-                    // deband_dither uses sampler -> CIKernel
-                    // bilateral_denoise uses sampler -> CIKernel
-                    
                     self.casKernel = try CIKernel(functionName: "cas_sharpen", fromMetalLibraryData: data)
                     self.debandKernel = try CIKernel(functionName: "deband_dither", fromMetalLibraryData: data)
                     self.bilateralKernel = try CIKernel(functionName: "bilateral_denoise", fromMetalLibraryData: data)

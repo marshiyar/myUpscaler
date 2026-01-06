@@ -64,7 +64,6 @@ struct AboutView: View {
                     }
             }
             
-            // ── Exit Button ────────────────────────────────────
             Button(action: {
                 presentationMode.wrappedValue.dismiss()
             }) {

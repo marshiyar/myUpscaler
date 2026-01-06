@@ -58,7 +58,7 @@ class ModelManager {
     }
     
     func prepareModel(spec: CoreMLModelSpec, progressHandler: ((Double) -> Void)? = nil) async throws -> MLModel {
-        var config = MLModelConfiguration()
+        let config = MLModelConfiguration()
         config.computeUnits = .all
         config.allowLowPrecisionAccumulationOnGPU = true
         

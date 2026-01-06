@@ -97,7 +97,6 @@ struct UpscaleSettingsSnapshot: Codable, Equatable {
     var eqContrast: String
     var eqBrightness: String
     var eqSaturation: String
-//    var lutPath: String
     
     var enableColorLinearize: Bool = true
     var colorExposure: String = "1.0"
@@ -214,7 +213,6 @@ struct UpscaleSettingsSnapshot: Codable, Equatable {
         eqContrast = settings.eqContrast
         eqBrightness = settings.eqBrightness
         eqSaturation = settings.eqSaturation
-//        lutPath = settings.lutPath
         
         enableColorLinearize = settings.enableColorLinearize
         colorExposure = settings.colorExposure
@@ -332,7 +330,6 @@ struct UpscaleSettingsSnapshot: Codable, Equatable {
         settings.eqContrast = eqContrast
         settings.eqBrightness = eqBrightness
         settings.eqSaturation = eqSaturation
-//        settings.lutPath = lutPath
         
         settings.enableColorLinearize = enableColorLinearize
         settings.colorExposure = colorExposure
@@ -453,7 +450,6 @@ struct UpscaleSettingsSnapshot: Codable, Equatable {
         eqContrast = try container.decodeIfPresent(String.self, forKey: .eqContrast) ?? defaults.eqContrast
         eqBrightness = try container.decodeIfPresent(String.self, forKey: .eqBrightness) ?? defaults.eqBrightness
         eqSaturation = try container.decodeIfPresent(String.self, forKey: .eqSaturation) ?? defaults.eqSaturation
-//        lutPath = try container.decodeIfPresent(String.self, forKey: .lutPath) ?? defaults.lutPath
         
         audioBitrate = try container.decodeIfPresent(String.self, forKey: .audioBitrate) ?? defaults.audioBitrate
         movflags = try container.decodeIfPresent(String.self, forKey: .movflags) ?? defaults.movflags

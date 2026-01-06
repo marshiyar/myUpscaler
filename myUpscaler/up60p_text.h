@@ -13,7 +13,7 @@ static const char *HELP_TEXT =
 "CODEC / RATE CONTROL:\n"
 "  --hevc                   Use HEVC/H.265 (default: H.264)\n"
 "  --crf <0-51>             Constant Rate Factor (default 16)\n"
-"  --preset <name>          Encoder preset (default slow)\n"
+"  --preset <name>          Encoder preset (default fast)\n"
 "  --10bit                  Output yuv420p10le (or p010le for HW)\n"
 "  --x265-params <str>      Pass args to x265 (e.g. 'aq-mode=3:psy-rd=2.0')\n"
 "\n"

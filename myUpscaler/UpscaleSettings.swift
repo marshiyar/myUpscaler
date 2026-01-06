@@ -289,7 +289,7 @@ class UpscaleSettings: ObservableObject {
     // --- Codec & Rate ---
     @Published var useHEVC: Bool = false
     @Published var crf: Double = 16.0
-    @Published var preset: String = "fast" // default change from slow to fast
+    @Published var preset: String = "fast" // change from slow to fast, slow no longer exists
     @Published var use10Bit: Bool = false
     
     // x265 Parameters - individual values
@@ -1045,8 +1045,8 @@ class UpscaleSettings: ObservableObject {
     func resetToDefaults() {
         // Codec & Rate
         useHEVC = false
-        crf = 16.0
-        preset = "slow"
+        crf = 20.0 // DEFAULT FROM 16 to 20
+        preset = "fast" // DEFAULT CHANGE TO FAST FROM SLOW — slow no longer exists MONDAY, JAN , 5th 2026 update
         use10Bit = false
         
         // x265 Parameters

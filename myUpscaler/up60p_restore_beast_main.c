@@ -249,7 +249,7 @@ void settings_main_menu(void) {
                 if(sidx<0 || sidx==4) break; sub_c=sidx;
                 if(sidx==0) { const char *opt[]={"h264","hevc"}; cycle_string(S.codec, opt, 2); }
                 else if(sidx==1) prompt_edit("CRF (0-51)", S.crf, sizeof(S.crf));
-                else if(sidx==2) { const char *opt[]={"veryfast","faster","medium","slow","slower","veryslow"}; cycle_string(S.preset, opt, 6); }
+                else if(sidx==2) { const char *opt[]={"veryfast","faster","medium"}; cycle_string(S.preset, opt, 6); } // REMOVED slow","slower","veryslow"
                 else if(sidx==3) prompt_edit("x265 Params", S.x265_params, sizeof(S.x265_params));
             }
         }

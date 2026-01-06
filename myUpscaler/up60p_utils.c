@@ -1,6 +1,6 @@
 #include "up60p_utils.h"
 #include "up60p_common.h"
-#include "up60p_cli.h"
+//#include "up60p_cli.h"
 
 up60p_log_callback global_log_cb = NULL;
 

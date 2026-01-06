@@ -453,15 +453,19 @@ class UpscaleRunner: ObservableObject {
                         self.startCompletionCheck()
                     }
                 }
-            } catch is CancellationError {
-                await MainActor.run {
-                    self.log.append("\n--- Process Cancelled ---\n")
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        self.isRunning = false
-                        self.currentTask = nil
-                    }
-                }
-            } catch let error as Up60PEngineError {
+            }
+            
+    // TODO: THIS catch errors at wrong scenario even when the generation completes.
+//            catch is CancellationError {
+//                await MainActor.run {
+//                    self.log.append("\n--- Process Cancelled ---\n")
+//                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+//                        self.isRunning = false
+//                        self.currentTask = nil
+//                    }
+//                }
+//            }
+            catch let error as Up60PEngineError {
                 await MainActor.run {
                     var errorMessage = "\n--- ERROR: "
                     switch error {

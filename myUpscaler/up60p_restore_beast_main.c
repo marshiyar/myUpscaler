@@ -419,6 +419,18 @@ static void build_atadenoise_filter(SB *vf, const char *strength_str) {
     sb_fmt(vf, "atadenoise=s=%.2f:0a=%.3f:0b=%.3f,", threshold, param_a, param_b);
 }
 
+
+static void build_dering_filter(SB *vf, const char *strength_str) {
+    double dstr = parse_strength(strength_str);
+    if (dstr <= 0) dstr = 0.5;
+    double luma = dstr * 8.0;
+    double chroma = luma * 0.75;
+    double luma_tmp = luma * 1.5;
+    double chroma_tmp = luma_tmp * 0.75;
+    if (luma > 15.0) luma = 15.0;
+    sb_fmt(vf, "hqdn3d=%.2f:%.2f:%.2f:%.2f,", luma, chroma, luma_tmp, chroma_tmp);
+}
+
 //  MARK: -
 
 static void process_file(const char *in, const char *ffmpeg, bool batch) {
@@ -445,6 +457,7 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
         }
     }
     
+    
     if (img) snprintf(out, sizeof(out), "%s/%s_[restored].png", outdir, base);
     else snprintf(out, sizeof(out), "%s/%s_[restored].mp4", outdir, base);
     
@@ -464,21 +477,29 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
         else sb_fmt(&vf, "deblock=filter=%s:block=8,", S.deblock_mode);
     }
     
+    //    // TODO: DERING DRY
+    //    if (S.dering_active) {
+    //
+    //        double dstr = parse_strength(S.dering_strength);
+    //        if (dstr <= 0) dstr = 0.5;
+    //
+    //        double luma = dstr * 8.0;
+    //        double chroma = luma * 0.75;
+    //        double luma_tmp = luma * 1.5;
+    //        double chroma_tmp = luma_tmp * 0.75;
+    //
+    //
+    //        if (luma > 15.0) luma = 15.0;
+    //
+    //        sb_fmt(&vf, "hqdn3d=%.2f:%.2f:%.2f:%.2f,", luma, chroma, luma_tmp, chroma_tmp);
+    //    }
     if (S.dering_active) {
-        
-        double dstr = parse_strength(S.dering_strength);
-        if (dstr <= 0) dstr = 0.5;
-        
-        double luma = dstr * 8.0;
-        double chroma = luma * 0.75;
-        double luma_tmp = luma * 1.5;
-        double chroma_tmp = luma_tmp * 0.75;
-        
-        
-        if (luma > 15.0) luma = 15.0;
-        
-        sb_fmt(&vf, "hqdn3d=%.2f:%.2f:%.2f:%.2f,", luma, chroma, luma_tmp, chroma_tmp);
+        build_dering_filter(&vf, S.dering_strength);
     }
+    
+    // TODO: DERING DRY
+    
+    
     
     if (!S.no_denoise) {
         if (!strcmp(S.denoiser, "bm3d")) {
@@ -544,12 +565,6 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
         if (!strcmp(S.deband_method, "gradfun")) sb_fmt(&vf, "gradfun=%s,", S.deband_strength);
         else if (!strcmp(S.deband_method, "f3kdb")) {
             
-            
-            
-            
-            
-            
-            
             double y = atof(S.f3kdb_y);
             double cb = atof(S.f3kdb_cbcr);
             double range = atof(S.f3kdb_range);
@@ -570,24 +585,30 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
         else sb_fmt(&vf, "deband=1thr=%s:b=1,", S.deband_strength);
     }
     
-    
     if (S.use_deblock_2 && !S.no_deblock) {
         if (*S.deblock_thresh_2) sb_fmt(&vf, "deblock=filter=%s:block=8:%s,", S.deblock_mode_2, S.deblock_thresh_2);
         else sb_fmt(&vf, "deblock=filter=%s:block=8,", S.deblock_mode_2);
     }
     
-    if (S.use_dering_2 && S.dering_active_2) {
-        double dstr = parse_strength(S.dering_strength_2);
-        if (dstr <= 0) dstr = 0.5;
-        
-        double luma = dstr * 8.0;
-        double chroma = luma * 0.75;
-        double luma_tmp = luma * 1.5;
-        double chroma_tmp = luma_tmp * 0.75;
-        if (luma > 15.0) luma = 15.0;
-        
-        sb_fmt(&vf, "hqdn3d=%.2f:%.2f:%.2f:%.2f,", luma, chroma, luma_tmp, chroma_tmp);
-    }
+    // TODO: DERING DRY-
+    //    if (S.use_dering_2 && S.dering_active_2) {
+    //        double dstr = parse_strength(S.dering_strength_2);
+    //        if (dstr <= 0) dstr = 0.5;
+    //
+    //        double luma = dstr * 8.0;
+    //        double chroma = luma * 0.75;
+    //        double luma_tmp = luma * 1.5;
+    //        double chroma_tmp = luma_tmp * 0.75;
+    //        if (luma > 15.0) luma = 15.0;
+    //
+    //        sb_fmt(&vf, "hqdn3d=%.2f:%.2f:%.2f:%.2f,", luma, chroma, luma_tmp, chroma_tmp);
+//}
+        if (S.use_dering_2 && S.dering_active_2) {
+            build_dering_filter(&vf, S.dering_strength_2);
+        }
+    
+    
+    // TODO: DERING DRY-
     
     if (S.use_denoise_2 && !S.no_denoise) {
         if (!strcmp(S.denoiser_2, "bm3d")) {
@@ -676,9 +697,6 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
     if (strcmp(S.hwaccel,"none")) {
         args[a++] = "-hwaccel"; args[a++] = S.hwaccel;
         if (!strcmp(S.hwaccel, "videotoolbox")) {
-            
-            
-            
         }
     }
     args[a++] = "-i"; args[a++] = (char*)in;
@@ -694,7 +712,6 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
         args[a++] = "-map"; args[a++] = "0:v:0";
         args[a++] = "-map"; args[a++] = "0:a?";
     }
-    
     if (!img) {
         char *cod = "libx264";
         if (!strcmp(S.codec, "hevc")) {

@@ -205,11 +205,6 @@ extension CoreMLEngine {
         return output
     }
     
-    /// Applies Bilateral Denoising
-    /// - Parameters:
-    ///   - input: Source image
-    ///   - sigmaSpatial: Spatial influence radius
-    ///   - sigmaRange: Color similarity threshold
     func applyDenoise(_ input: CIImage, sigmaSpatial: Double, sigmaRange: Double) -> CIImage {
         guard let kernel = ShaderRegistry.shared.bilateralKernel else {
             print("Warning: Bilateral Kernel not loaded")
@@ -220,8 +215,6 @@ extension CoreMLEngine {
         let sRange = CGFloat(sigmaRange)
         if sSpatial == 0 { return input }
         
-        // ROI Callback: 5x5 window needs 2 pixel margin
-        // If we increase kernel radius, this must match
         let radius = CGFloat(2.0)
         let roiCallback: CIKernelROICallback = { _, destRect in
             return destRect.insetBy(dx: -radius, dy: -radius)

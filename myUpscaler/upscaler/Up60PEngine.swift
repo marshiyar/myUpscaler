@@ -138,9 +138,6 @@ final class Up60PEngine {
                 }
             }
         }
-        
-        // We could pass an app support dir if the C side ever uses it.
-        // C functions don't throw, but we can still check the return value
         let result = Self.bridge.initFunc(nil, callback)
         
         if result != UP60P_OK {
@@ -176,10 +173,6 @@ final class Up60PEngine {
             }
         }
     }
-    //
-    //    deinit {
-    //        Up60PEngine.bridge.shutdownFunc()
-    //    }
     
     private func mapError(_ code: up60p_error) -> Up60PEngineError? {
         switch code {

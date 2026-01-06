@@ -1,6 +1,6 @@
 import SwiftUI
 import AppKit
-private struct HeaderView: View {
+struct HeaderView: View {
     var body: some View {
         HStack {
             HStack(spacing: 10) {
@@ -24,7 +24,7 @@ private struct HeaderView: View {
 }
 
 /// Input section (drag‑drop + browse button)
-private struct InputSection: View {
+struct InputSection: View {
     @Binding var inputPath: String
     let chooseInput: () -> Void
     let settings: UpscaleSettings
@@ -68,7 +68,7 @@ private struct InputSection: View {
 }
 
 // MARK: -  Restoration‑Filters card (denoise, deringing, sharpen)
-private struct RestorationFiltersPanel: View {
+struct RestorationFiltersPanel: View {
     @ObservedObject var settings: UpscaleSettings
     
     var body: some View {
@@ -181,7 +181,7 @@ private struct RestorationFiltersPanel: View {
 }
 
 // MARK: -  Restoration (First Set) panel (compact)
-private struct RestorationPanel: View {
+struct RestorationPanel: View {
     @ObservedObject var settings: UpscaleSettings
     
     var body: some View {
@@ -298,7 +298,7 @@ private struct RestorationPanel: View {
 }
 
 // MARK: - Restoration (Second Set) panel (compact) - shown on main page
-private struct RestorationSecondSetPanel: View {
+struct RestorationSecondSetPanel: View {
     @ObservedObject var settings: UpscaleSettings
     @State private var isExpanded: Bool = false
     
@@ -590,7 +590,7 @@ private struct RestorationSecondSetPanel: View {
 }
 
 // MARK: - x265 Parameters panel (compact)
-private struct X265ParametersPanel: View {
+struct X265ParametersPanel: View {
     @ObservedObject var settings: UpscaleSettings
     
     var body: some View {
@@ -656,7 +656,7 @@ private struct X265ParametersPanel: View {
 
 
 // MARK: -  Hardware & Encoding panel (compact)
-private struct HardwareEncodingPanel: View {
+struct HardwareEncodingPanel: View {
     @ObservedObject var settings: UpscaleSettings
     
     var body: some View {
@@ -812,7 +812,7 @@ private struct HardwareEncodingPanel: View {
 }
 
 // MARK: - Output panel (compact, destination picker + preview name)
-private struct OutputPanel: View {
+struct OutputPanel: View {
     @Binding var outputMode: UpscaleRunner.OutputMode
     @Binding var customOutputFolder: String
     let predictedName: String
@@ -893,7 +893,7 @@ private struct OutputPanel: View {
 }
 
 // MARK: - Run / Cancel buttons
-private struct ActionButtons: View {
+struct ActionButtons: View {
     @ObservedObject var runner: UpscaleRunner
     
     var body: some View {
@@ -935,7 +935,7 @@ private struct ActionButtons: View {
 }
 
 /// Progress bar + FPS / time / ETA line
-private struct ProgressDetails: View {
+struct ProgressDetails: View {
     @ObservedObject var runner: UpscaleRunner
     
     var body: some View {
@@ -963,7 +963,7 @@ private struct ProgressDetails: View {
 }
 
 // MARK: -  : Processing Log (UI)
-private struct LogPanel: View {
+struct LogPanel: View {
     @ObservedObject var runner: UpscaleRunner
     
     var body: some View {
@@ -1087,7 +1087,7 @@ private struct LogPanel: View {
 }
 
 // MARK: -  Saved presets management panel
-private struct SavedPresetsPanel: View {
+struct SavedPresetsPanel: View {
     @ObservedObject var presetStore: PresetStore
     @ObservedObject var settings: UpscaleSettings
     let isProcessing: Bool
@@ -1165,7 +1165,7 @@ private struct SavedPresetsPanel: View {
 }
 
 // MARK: -  Single preset row with actions
-private struct PresetRow: View {
+struct PresetRow: View {
     let preset: Preset
     let isProcessing: Bool
     let onApply: () -> Void
@@ -1258,7 +1258,7 @@ private struct PresetRow: View {
     }
 }
 // MARK: -  Quality & Scale panel (compact)
-private struct QualityScalePanel: View {
+struct QualityScalePanel: View {
     @ObservedObject var settings: UpscaleSettings
     @State private var localCRF: Double? = nil
     
@@ -1351,7 +1351,7 @@ private struct QualityScalePanel: View {
 }
 
 // MARK: -  AI Engine panel (compact)
-private struct AIEnginePanel: View {
+struct AIEnginePanel: View {
     @ObservedObject var settings: UpscaleSettings
     
     var body: some View {

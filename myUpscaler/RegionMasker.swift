@@ -58,11 +58,11 @@ struct RegionMaskContext {
     }
 }
 
-struct RegionMaskOutput {
-    let context: RegionMaskContext?
-    let summary: RegionMaskSummary
-    let notes: [String]
-}
+//struct RegionMaskOutput {
+//    let context: RegionMaskContext?
+//    let summary: RegionMaskSummary
+//    let notes: [String]
+//}
 
 //final class RegionMasker {
 //    func analyze(inputPath: String, maxSamples: Int = 8) -> RegionMaskOutput {

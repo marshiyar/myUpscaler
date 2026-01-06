@@ -101,7 +101,7 @@ class CoreMLEngine: EngineProtocol {
     
     private var logHandler: ((String) -> Void)?
     private var isCancelled = false
-    var regionContext: RegionMaskContext?
+//    var regionContext: RegionMaskContext?
     var driftGuardEnabled: Bool = false
     
     func setLogHandler(_ handler: @escaping (String) -> Void) {

@@ -2,13 +2,11 @@ import SwiftUI
 
 struct AboutView: View {
 
-    // MARK: - UI constants (using design system)
     
     private let websiteURL = URL(string: "https://github.com/marshiyar/myUpscaler")!
     
     @Environment(\.presentationMode) var presentationMode
     
-    // MARK: - Body
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
 
@@ -93,7 +91,7 @@ struct AboutView: View {
 
 }
 
-// MARK: - Preview ------------------------------------------------------------
+// MARK: - Preview
 
 struct AboutView_Previews: PreviewProvider {
     static var previews: some View {

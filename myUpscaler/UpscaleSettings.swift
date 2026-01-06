@@ -439,7 +439,7 @@ class UpscaleSettings: ObservableObject {
     @Published var noEq: Bool = false
     @Published var noGrain: Bool = false
     // DISABLED: Region Masks defaulted off
-    @Published var regionMasksEnabled: Bool = false
+//    @Published var regionMasksEnabled: Bool = false
     // DISABLED: Quality Analyzer defaulted off
     @Published var useQualityAnalyzer: Bool = false
     // DISABLED: Drift Guard defaulted off
@@ -1158,7 +1158,7 @@ class UpscaleSettings: ObservableObject {
         noEq = false
         noGrain = false
         // DISABLED: keep advanced features off during resets
-        regionMasksEnabled = false
+//        regionMasksEnabled = false
         useQualityAnalyzer = false
         useDriftGuard = false
         pciSafe = false

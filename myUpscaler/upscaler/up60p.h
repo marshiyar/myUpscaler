@@ -1,4 +1,3 @@
-// up60p.h
 #pragma once
 
 #include <stddef.h>

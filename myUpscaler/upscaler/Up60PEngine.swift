@@ -291,7 +291,7 @@ final class Up60PEngine {
         setString(&opts.eq_contrast, MemoryLayout.size(ofValue: opts.eq_contrast), settings.eqContrast)
         setString(&opts.eq_brightness, MemoryLayout.size(ofValue: opts.eq_brightness), settings.eqBrightness)
         setString(&opts.eq_saturation, MemoryLayout.size(ofValue: opts.eq_saturation), settings.eqSaturation)
-        setString(&opts.lut3d_file, MemoryLayout.size(ofValue: opts.lut3d_file), settings.lutPath)
+//        setString(&opts.lut3d_file, MemoryLayout.size(ofValue: opts.lut3d_file), settings.lutPath)
         setString(&opts.x265_params, MemoryLayout.size(ofValue: opts.x265_params), settings.x265Params)
         
         setString(&opts.outdir, MemoryLayout.size(ofValue: opts.outdir), outputDir)

@@ -1072,7 +1072,6 @@ private struct AIEnginePanel: View {
 }
 
 // MARK: -  Restoration (First Set) panel (compact)
-/// Contains elements missing from the VerticalRestorationFiltersPanel: Deblock, Unsharp Mask Threshold, Deband advanced params, Grain Strength, LUT
 private struct RestorationPanel: View {
     @ObservedObject var settings: UpscaleSettings
     
@@ -1182,26 +1181,26 @@ private struct RestorationPanel: View {
                         .padding(.vertical, 2)
                     
                     // LUT Path
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("LUT Path (.cube)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        HStack {
-                            TextField("", text: $settings.lutPath)
-                                .textFieldStyle(.roundedBorder)
-                            Button("Browse") {
-                                let panel = NSOpenPanel()
-                                if let cubeType = UTType(filenameExtension: "cube") {
-                                    panel.allowedContentTypes = [cubeType]
-                                }
-                                if panel.runModal() == .OK, let url = panel.url {
-                                    settings.lutPath = url.path
-                                }
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                        }
-                    }
+//                    VStack(alignment: .leading, spacing: 4) {
+//                        Text("LUT Path (.cube)")
+//                            .font(.caption)
+//                            .foregroundColor(.secondary)
+//                        HStack {
+//                            TextField("", text: $settings.lutPath)
+//                                .textFieldStyle(.roundedBorder)
+//                            Button("Browse") {
+//                                let panel = NSOpenPanel()
+//                                if let cubeType = UTType(filenameExtension: "cube") {
+//                                    panel.allowedContentTypes = [cubeType]
+//                                }
+//                                if panel.runModal() == .OK, let url = panel.url {
+//                                    settings.lutPath = url.path
+//                                }
+//                            }
+//                            .buttonStyle(.bordered)
+//                            .controlSize(.small)
+//                        }
+//                    }l
                 }
                 .padding(8)
             }

@@ -85,12 +85,12 @@ typedef struct {
     int use_deband_2;
     int use_grain_2;
     
-    /* Interpolation / EQ / LUT */
+    /* Interpolation / EQ  */
     char mi_mode[16];
     char eq_contrast[16];
     char eq_brightness[16];
     char eq_saturation[16];
-    char lut3d_file[PATH_MAX];
+//    char lut3d_file[PATH_MAX];
     
     /* Encoder extra */
     char x265_params[256];

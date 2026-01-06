@@ -51,7 +51,7 @@ extension UpscaleSettings {
         mock.f3kdbCbCr         = "64"
         mock.debandStrength    = "0.015"
         mock.grainStrength     = "1.0"
-        mock.lutPath           = ""
+//        mock.lutPath           = "" // LUT DEACTIVATED
 
         mock.useDenoise2       = false
         mock.denoiser2         = mock.denoisers.first ?? "none"

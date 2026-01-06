@@ -230,7 +230,7 @@ void settings_main_menu(void) {
     active_preset_name(current, sizeof(current));
     load_preset_file(current, true); int cursor = 0;
     for(;;) {
-        const char *opts[] = { "Codec & Rate", "Frame / Scale", "AI Upscaling", "Filters (Denoise/Deblock)", "Color / EQ / LUT", "Toggles", "Hardware", "I/O", "Load Preset", "Save Preset", "Reset Factory", "Exit & Save" };
+        const char *opts[] = { "Codec & Rate", "Frame / Scale", "AI Upscaling", "Filters (Denoise/Deblock)", "Color / EQ", "Toggles", "Hardware", "I/O", "Load Preset", "Save Preset", "Reset Factory", "Exit & Save" };
         char head[256]; snprintf(head, sizeof(head), "Settings — Active: %s", current);
         int sel = ar_menu_choose(head, opts, ARR_LEN(opts), cursor);
         if (sel < 0) return; cursor = sel;
@@ -477,11 +477,11 @@ void settings_main_menu(void) {
                 }
             }
         }
-        else if(sel==4){
-            const char *k[]={"contrast (1.0=norm)","brightness","saturation (1.0=norm)","lut3d_file"};
-            char *v[]={S.eq_contrast,S.eq_brightness,S.eq_saturation,S.lut3d_file};
-            size_t s[]={16,16,16,PATH_MAX}; submenu_edit_group("Color", k, v, s, 4);
-        }
+//        else if(sel==4){
+//            const char *k[]={"contrast (1.0=norm)","brightness","saturation (1.0=norm)","lut3d_file"};
+//            char *v[]={S.eq_contrast,S.eq_brightness,S.eq_saturation,S.lut3d_file};
+//            size_t s[]={16,16,16,PATH_MAX}; submenu_edit_group("Color", k, v, s, 4);
+//        }
         else if(sel==5){
             const char *k[]={"no_deblock","no_denoise","no_decimate","no_interpolate","no_sharpen","no_deband","no_eq","no_grain","pci_safe_mode"};
             char b[9][16]; char *v[9]; for(int i=0;i<9;i++) v[i]=b[i];
@@ -615,8 +615,9 @@ int process_cli_args(int argc, char **argv, const char *ffmpeg_path) {
     
     struct option long_opts[] = {
         {"codec",1,0,1}, {"crf",1,0,'c'}, {"preset",1,0,'p'}, {"fps",1,0,'f'}, {"scale",1,0,'s'},
-        {"scaler",1,0,2}, {"denoiser",1,0,3}, {"lut",1,0,4}, {"x265",1,0,5}, {"help",0,0,'h'},
+        {"scaler",1,0,2}, {"denoiser",1,0,3}, {"x265",1,0,5}, {"help",0,0,'h'},
         {"manual",0,0,'m'}, {"outdir",1,0,'o'}, {"no-deblock",0,0,10}, {"no-denoise",0,0,11}, {"dry-run",0,0,12},
+        // WARNING: REMOVED {"lut",1,0,4}
         {"dering",0,0,13}, {"usm-radius",1,0,14}, {"usm-amount",1,0,15}, {"usm-threshold",1,0,16},
         {"f3kdb-range",1,0,17}, {"pci-safe",0,0,18}, {"preview",0,0,19},
         
@@ -638,7 +639,7 @@ int process_cli_args(int argc, char **argv, const char *ffmpeg_path) {
         case 1: safe_copy(S.codec, optarg, 8); break;
         case 2: safe_copy(S.scaler, optarg, 16); break;
         case 3: safe_copy(S.denoiser, optarg, 16); break;
-        case 4: safe_copy(S.lut3d_file, optarg, PATH_MAX); break;
+//        case 4: safe_copy(S.lut3d_file, optarg, PATH_MAX); break;
         case 5: safe_copy(S.x265_params, optarg, 256); break;
         case 10: S.no_deblock = 1; break;
         case 11: S.no_denoise = 1; break;
@@ -892,11 +893,12 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
         }
         else sb_fmt(&vf, "deband=1thr=%s:b=1,", S.deband_strength);
     }
-    
-    if (!S.no_eq) {
-        sb_fmt(&vf, "eq=contrast=%s:brightness=%s:saturation=%s,", S.eq_contrast, S.eq_brightness, S.eq_saturation);
-        if (*S.lut3d_file) sb_fmt(&vf, "lut3d=file='%s',", S.lut3d_file);
-    }
+    // WARNING: LUT DEACTIVATED
+//
+//    if (!S.no_eq) {
+//        sb_fmt(&vf, "eq=contrast=%s:brightness=%s:saturation=%s,", S.eq_contrast, S.eq_brightness, S.eq_saturation);
+//        if (*S.lut3d_file) sb_fmt(&vf, "lut3d=file='%s',", S.lut3d_file);
+//    }
     
     
     if (S.use_deblock_2 && !S.no_deblock) {

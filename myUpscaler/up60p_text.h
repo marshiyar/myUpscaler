@@ -38,7 +38,7 @@ static const char *HELP_TEXT =
 "  --f3kdb-range <1-50>     F3KDB Range (default: 15)\n"
 "\n"
 "COLOR / I/O:\n"
-"  --lut <file>             Path to .cube 3D LUT\n"
+//"  --lut <file>             Path to .cube 3D LUT\n" // LUT DEACTIVATED
 "  --movflags <flags>       MOV container flags (default: +faststart)\n"
 "  --preview                Enable Live View window during processing\n"
 "  --pci-safe               Force yuv420p 8-bit for compatibility\n"

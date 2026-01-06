@@ -398,7 +398,7 @@ class UpscaleSettings: ObservableObject {
     @Published var eqContrast: String = "1.03"
     @Published var eqBrightness: String = "0.005"
     @Published var eqSaturation: String = "1.06"
-    @Published var lutPath: String = ""
+//    @Published var lutPath: String = "" // LUT DEACTIVATED
 
     // --- Metal Pre/Post Processing ---
     @Published var enableColorLinearize: Bool = true
@@ -1121,7 +1121,7 @@ class UpscaleSettings: ObservableObject {
         eqContrast = "1.00"
         eqBrightness = "0.000"
         eqSaturation = "1.00"
-        lutPath = ""
+//        lutPath = "" // LUT DEACTIVATED
         
         // Metal Pre/Post
         enableColorLinearize = true

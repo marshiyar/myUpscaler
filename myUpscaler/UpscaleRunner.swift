@@ -193,7 +193,7 @@ class UpscaleRunner: ObservableObject {
         content += "eq_contrast=\"\(s.eqContrast)\"\n"
         content += "eq_brightness=\"\(s.eqBrightness)\"\n"
         content += "eq_saturation=\"\(s.eqSaturation)\"\n"
-        content += "lut3d_file=\"\(s.lutPath)\"\n"
+//        content += "lut3d_file=\"\(s.lutPath)\"\n" // LUT DEACTIVATED
         content += "x265_params=\"\(s.x265Params)\"\n"
         content += "outdir=\"\(outputFolder())\"\n"
         content += "audio_bitrate=\"\(s.audioBitrate)\"\n"

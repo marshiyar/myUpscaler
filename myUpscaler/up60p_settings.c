@@ -92,7 +92,7 @@ void up60p_options_from_settings(up60p_options *dst, const Settings *src) {
     snprintf(dst->eq_contrast,   sizeof(dst->eq_contrast),   "%s", src->eq_contrast);
     snprintf(dst->eq_brightness, sizeof(dst->eq_brightness), "%s", src->eq_brightness);
     snprintf(dst->eq_saturation, sizeof(dst->eq_saturation), "%s", src->eq_saturation);
-    snprintf(dst->lut3d_file,    sizeof(dst->lut3d_file),    "%s", src->lut3d_file);
+//    snprintf(dst->lut3d_file,    sizeof(dst->lut3d_file),    "%s", src->lut3d_file); // LUT DEACTIVATED
     
     snprintf(dst->x265_params,   sizeof(dst->x265_params),   "%s", src->x265_params);
     
@@ -194,7 +194,7 @@ void settings_from_up60p_options(Settings *dst, const up60p_options *src) {
     snprintf(dst->eq_contrast,   sizeof(dst->eq_contrast),   "%s", src->eq_contrast);
     snprintf(dst->eq_brightness, sizeof(dst->eq_brightness), "%s", src->eq_brightness);
     snprintf(dst->eq_saturation, sizeof(dst->eq_saturation), "%s", src->eq_saturation);
-    snprintf(dst->lut3d_file,    sizeof(dst->lut3d_file),    "%s", src->lut3d_file);
+//    snprintf(dst->lut3d_file,    sizeof(dst->lut3d_file),    "%s", src->lut3d_file); LUT DEACTIVATED
     
     snprintf(dst->x265_params,   sizeof(dst->x265_params),   "%s", src->x265_params);
     
@@ -320,7 +320,7 @@ void save_preset_file(const char *name) {
     fprintf(fp, "use_denoise_2=\"%d\"\nuse_deblock_2=\"%d\"\nuse_dering_2=\"%d\"\n", S.use_denoise_2, S.use_deblock_2, S.use_dering_2);
     fprintf(fp, "use_sharpen_2=\"%d\"\nuse_deband_2=\"%d\"\nuse_grain_2=\"%d\"\n", S.use_sharpen_2, S.use_deband_2, S.use_grain_2);
     fprintf(fp, "mi_mode=\"%s\"\neq_contrast=\"%s\"\neq_brightness=\"%s\"\neq_saturation=\"%s\"\n", S.mi_mode, S.eq_contrast, S.eq_brightness, S.eq_saturation);
-    fprintf(fp, "lut3d_file=\"%s\"\nx265_params=\"%s\"\n", S.lut3d_file, S.x265_params);
+//    fprintf(fp, "lut3d_file=\"%s\"\nx265_params=\"%s\"\n", S.lut3d_file, S.x265_params); // LUT DEACTIVATED
     fprintf(fp, "outdir=\"%s\"\naudio_bitrate=\"%s\"\nmovflags=\"%s\"\nthreads=\"%s\"\n", S.outdir, S.audio_bitrate, S.movflags, S.threads);
     fprintf(fp, "use10=\"%d\"\nhwaccel=\"%s\"\nencoder=\"%s\"\npreview=\"%d\"\n", S.use10, S.hwaccel, S.encoder, S.preview);
     
@@ -408,7 +408,7 @@ void load_preset_file(const char *name, bool quiet) {
             else if (!strcmp(key, "eq_brightness")) safe_copy(S.eq_brightness, val, sizeof(S.eq_brightness));
             else if (!strcmp(key, "eq_saturation")) safe_copy(S.eq_saturation, val, sizeof(S.eq_saturation));
             
-            else if (!strcmp(key, "lut3d_file")) safe_copy(S.lut3d_file, val, sizeof(S.lut3d_file));
+//            else if (!strcmp(key, "lut3d_file")) safe_copy(S.lut3d_file, val, sizeof(S.lut3d_file)); LUT DEACTIVATED
             else if (!strcmp(key, "x265_params")) safe_copy(S.x265_params, val, sizeof(S.x265_params));
             
             else if (!strcmp(key, "outdir")) safe_copy(S.outdir, val, sizeof(S.outdir));

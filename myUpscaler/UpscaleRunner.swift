@@ -7,32 +7,27 @@ class UpscaleRunner: ObservableObject {
     
     enum OutputMode { case same, custom }
     
-    private static let isAppleSilicon: Bool = {
-        #if arch(arm64)
+     static let isAppleSilicon: Bool = {
+#if arch(arm64)
         return true
-        #else
+#else
         return false
-        #endif
+#endif
     }()
     
     // MARK: - Dependencies
-    private let fileSystem: FileSystemProtocol
-    private let engine: EngineProtocol
-    private let assetLoader: AssetLoaderProtocol
-    // DISABLED: Quality Analyzer feature (kept commented for reference)
-    // private let qualityAnalyzer = QualityAnalyzer()
-    // DISABLED: Region Masker feature (kept commented for reference)
-    // private let regionMasker = RegionMasker()
-    
+     let fileSystem: FileSystemProtocol
+     let engine: EngineProtocol
+     let assetLoader: AssetLoaderProtocol
     // MARK: - Input/Output Configuration
     @Published var inputPath = ""
     @Published var outputMode: OutputMode = .custom
     @Published var customOutputFolder = ""
     
-    private var activeOutputFolder: String? = nil
+     var activeOutputFolder: String? = nil
     
-    private var expectedOutputPath: String? = nil
-    private var activeEngine: EngineProtocol?
+     var expectedOutputPath: String? = nil
+     var activeEngine: EngineProtocol?
     
     var securityScopedOutputURL: URL? = nil
     
@@ -42,25 +37,27 @@ class UpscaleRunner: ObservableObject {
     // MARK: - Execution State
     @Published var isRunning = false
     @Published var log = ""
-    @Published var completedOutputPath: String? = nil  // Path to completed output video
+    @Published var completedOutputPath: String? = nil
     
     // MARK: - Progress Stats
     @Published var progress: Double = 0.0
     @Published var fpsString = "0"
     @Published var timeString = "0:00"
     @Published var etaString = "--:--"
-
+    
     var videoDuration: Double = 0.0
     
-    private var currentTask: Task<Void, Never>?
-    private var completionCheckTask: Task<Void, Never>?
-    private var lastFileSize: Int64 = 0
-    private var fileSizeCheckCount: Int = 0
-
-    private var logBuffer: String = ""
-    private var lastLogFlushTime: TimeInterval = 0
-    private let logFlushInterval: TimeInterval = 0.1
-    private var lastErrorLogLine: String?
+     var currentTask: Task<Void, Never>?
+     var completionCheckTask: Task<Void, Never>?
+     var lastFileSize: Int64 = 0
+     var fileSizeCheckCount: Int = 0
+    
+     var logBuffer: String = ""
+     var lastLogFlushTime: TimeInterval = 0
+     let logFlushInterval: TimeInterval = 1.0  // Flush logs every 3 seconds to reduce performance overhead
+     var lastLogBufferTime: TimeInterval = 0
+     let logBufferInterval: TimeInterval = 0.1  // Only buffer messages every {x} seconds to reduce string concatenation overhead
+     var lastErrorLogLine: String?
     
     // MARK: - Initialization
     
@@ -103,135 +100,17 @@ class UpscaleRunner: ObservableObject {
         }
     }
     
-    // MARK: - Preset Management
-    
-    private func getPresetDirectory() -> String {
-        let home = fileSystem.homeDirectoryForCurrentUser.path
-        let configDir = "\(home)/.config/gptPro/presets"
-        return configDir
-    }
-    
-    private func getActivePresetFile() -> String {
-        let home = fileSystem.homeDirectoryForCurrentUser.path
-        return "\(home)/.config/gptPro/active_preset"
-    }
-    
-    private func ensurePresetDirectories() {
-        let presetDir = getPresetDirectory()
-        try? fileSystem.createDirectory(atPath: presetDir, withIntermediateDirectories: true, attributes: nil)
-    }
-    private func cloneSettings(_ settings: UpscaleSettings) -> UpscaleSettings {
+     func cloneSettings(_ settings: UpscaleSettings) -> UpscaleSettings {
         let snapshot = UpscaleSettingsSnapshot(settings: settings)
         let cloned = UpscaleSettings()
         snapshot.apply(to: cloned)
         return cloned
     }
     
-    private func savePresetToFile(_ presetName: String) {
-        ensurePresetDirectories()
-        let presetFile = "\(getPresetDirectory())/\(presetName).preset"
-        let s = settings
-        
-        var content = ""
-        content += "codec=\"\(s.useHEVC ? "hevc" : "h264")\"\n"
-        content += "crf=\"\(Int(s.crf))\"\n"
-        content += "preset=\"\(s.preset)\"\n"
-        content += "fps=\"\(s.fps)\"\n"
-        content += "scale_factor=\"\(s.scaleFactor)\"\n"
-        content += "scaler=\"\(s.scaler)\"\n"
-        content += "coreml_model=\"\(s.coremlModelId.rawValue)\"\n"
-        content += "ai_backend=\"\(s.aiBackend)\"\n"
-        content += "ai_model=\"\(s.aiModelPath)\"\n"
-        content += "ai_model_type=\"\(s.aiModelType)\"\n"
-        content += "dnn_backend=\"\(s.dnnBackend)\"\n"
-        
-        // First set of filters
-        content += "denoiser=\"\(s.denoiser)\"\n"
-        content += "denoise_strength=\"\(s.denoiseStrength)\"\n"
-        content += "deblock_mode=\"\(s.deblockMode)\"\n"
-        content += "deblock_thresh=\"\(s.deblockThresh)\"\n"
-        content += "dering_active=\"\(s.deringActive ? 1 : 0)\"\n"
-        content += "dering_strength=\"\(s.deringStrength)\"\n"
-        content += "sharpen_method=\"\(s.sharpenMethod)\"\n"
-        content += "sharpen_strength=\"\(s.sharpenStrength)\"\n"
-        content += "usm_radius=\"\(s.usmRadius)\"\n"
-        content += "usm_amount=\"\(s.usmAmount)\"\n"
-        content += "usm_threshold=\"\(s.usmThreshold)\"\n"
-        content += "deband_method=\"\(s.debandMethod)\"\n"
-        content += "deband_strength=\"\(s.debandStrength)\"\n"
-        content += "f3kdb_range=\"\(s.f3kdbRange)\"\n"
-        content += "f3kdb_y=\"\(s.f3kdbY)\"\n"
-        content += "f3kdb_cbcr=\"\(s.f3kdbCbCr)\"\n"
-        content += "grain_strength=\"\(s.grainStrength)\"\n"
-        
-        // Second set of filters
-        content += "denoiser_2=\"\(s.denoiser2)\"\n"
-        content += "denoise_strength_2=\"\(s.denoiseStrength2)\"\n"
-        content += "deblock_mode_2=\"\(s.deblockMode2)\"\n"
-        content += "deblock_thresh_2=\"\(s.deblockThresh2)\"\n"
-        content += "dering_active_2=\"\(s.deringActive2 ? 1 : 0)\"\n"
-        content += "dering_strength_2=\"\(s.deringStrength2)\"\n"
-        content += "sharpen_method_2=\"\(s.sharpenMethod2)\"\n"
-        content += "sharpen_strength_2=\"\(s.sharpenStrength2)\"\n"
-        content += "usm_radius_2=\"\(s.usmRadius2)\"\n"
-        content += "usm_amount_2=\"\(s.usmAmount2)\"\n"
-        content += "usm_threshold_2=\"\(s.usmThreshold2)\"\n"
-        content += "deband_method_2=\"\(s.debandMethod2)\"\n"
-        content += "deband_strength_2=\"\(s.debandStrength2)\"\n"
-        content += "f3kdb_range_2=\"\(s.f3kdbRange2)\"\n"
-        content += "f3kdb_y_2=\"\(s.f3kdbY2)\"\n"
-        content += "f3kdb_cbcr_2=\"\(s.f3kdbCbCr2)\"\n"
-        content += "grain_strength_2=\"\(s.grainStrength2)\"\n"
-        content += "use_denoise_2=\"\(s.useDenoise2 ? 1 : 0)\"\n"
-        content += "use_deblock_2=\"\(s.useDeblock2 ? 1 : 0)\"\n"
-        content += "use_dering_2=\"\(s.useDering2 ? 1 : 0)\"\n"
-        content += "use_sharpen_2=\"\(s.useSharpen2 ? 1 : 0)\"\n"
-        content += "use_deband_2=\"\(s.useDeband2 ? 1 : 0)\"\n"
-        content += "use_grain_2=\"\(s.useGrain2 ? 1 : 0)\"\n"
-        
-        content += "mi_mode=\"\(s.interpolation)\"\n"
-        content += "eq_contrast=\"\(s.eqContrast)\"\n"
-        content += "eq_brightness=\"\(s.eqBrightness)\"\n"
-        content += "eq_saturation=\"\(s.eqSaturation)\"\n"
-        content += "lut3d_file=\"\(s.lutPath)\"\n"
-        content += "x265_params=\"\(s.x265Params)\"\n"
-        content += "outdir=\"\(outputFolder())\"\n"
-        content += "audio_bitrate=\"\(s.audioBitrate)\"\n"
-        content += "movflags=\"\(s.movflags)\"\n"
-        content += "threads=\"\(s.threads)\"\n"
-        content += "use10=\"\(s.use10Bit ? 1 : 0)\"\n"
-        content += "hwaccel=\"\(s.hwAccel)\"\n"
-        content += "encoder=\"\(s.encoder)\"\n"
-        content += "preview=\"\(s.preview ? 1 : 0)\"\n"
-        content += "no_deblock=\"\(s.noDeblock ? 1 : 0)\"\n"
-        content += "no_denoise=\"\(s.noDenoise ? 1 : 0)\"\n"
-        content += "no_decimate=\"\(s.noDecimate ? 1 : 0)\"\n"
-        content += "no_interpolate=\"\(s.noInterpolate ? 1 : 0)\"\n"
-        content += "no_sharpen=\"\(s.noSharpen ? 1 : 0)\"\n"
-        content += "no_deband=\"\(s.noDeband ? 1 : 0)\"\n"
-        content += "no_eq=\"\(s.noEq ? 1 : 0)\"\n"
-        content += "no_grain=\"\(s.noGrain ? 1 : 0)\"\n"
-
-        content += "region_masks=\"0\"\n"
-        content += "quality_analyzer=\"0\"\n"
-        content += "drift_guard=\"0\"\n"
-        content += "pci_safe_mode=\"\(s.pciSafe ? 1 : 0)\"\n"
-
-        _ = URL(fileURLWithPath: presetFile)
-        try? content.write(toFile: presetFile, atomically: true, encoding: .utf8)
-        
-        let activeFile = getActivePresetFile()
-        let activeDir = (activeFile as NSString).deletingLastPathComponent
-        try? fileSystem.createDirectory(atPath: activeDir, withIntermediateDirectories: true, attributes: nil)
-        try? (presetName + "\n").write(toFile: activeFile, atomically: true, encoding: .utf8)
-    }
-    
     // MARK: - Execution Logic
-    
-
-    private class SafeDuration {
-        private var _duration: Double = 0.0
-        private let lock = NSLock()
+    class SafeDuration {
+         var _duration: Double = 0.0
+         let lock = NSLock()
         
         var duration: Double {
             get {
@@ -273,6 +152,7 @@ class UpscaleRunner: ObservableObject {
         
         logBuffer = ""
         lastLogFlushTime = Date().timeIntervalSince1970
+        lastLogBufferTime = Date().timeIntervalSince1970
         
         if !UpscaleRunner.isAppleSilicon && settings.hwAccel == "videotoolbox" {
             settings.hwAccel = "none"
@@ -285,12 +165,11 @@ class UpscaleRunner: ObservableObject {
             log.append("--- Starting CoreML Engine ---\n")
         } else {
             selectedEngine = self.engine
-        log.append("--- Starting C Engine ---\n")
+            log.append("--- Starting C Engine ---\n")
         }
         self.activeEngine = selectedEngine
         if settings.hasFilterStacking {
             log.append("\n⚡ SMART FILTER ⚡\n")
-            log.append("Multi filter detected. Values auto-adjusted:\n")
             if settings.isSharpenStacked {
                 let factor = Int((1.0 - settings.sharpen2AttenuationFactor) * 100)
                 log.append("  • Sharpen 2nd set: −\(factor)%")
@@ -332,29 +211,38 @@ class UpscaleRunner: ObservableObject {
             }
             
             Task { @MainActor in
-                // Append to local buffer
-                self.logBuffer.append(message)
-                
+                let now = Date().timeIntervalSince1970
                 let lower = message.lowercased()
-                if lower.contains("error") || lower.contains("fail") {
+                let isError = lower.contains("error") || lower.contains("fail")
+                
+                // Always track errors immediately
+                if isError {
                     self.lastErrorLogLine = message
                 }
                 
-                // Apply parsed state
+                let shouldBuffer = isError || (now - self.lastLogBufferTime >= self.logBufferInterval)
+                
+                if shouldBuffer {
+                    self.logBuffer.append(message)
+                    if !isError {
+                        self.lastLogBufferTime = now
+                    }
+                }
+                
+                // Apply parsed state - update UI stats
                 if let newDur = parseState.newDuration {
                     self.videoDuration = newDur
                 }
                 if let fps = parseState.fps { self.fpsString = fps }
                 if let time = parseState.timeString { self.timeString = time }
-                if let prog = parseState.progress { 
-
+                if let eta = parseState.eta { self.etaString = eta }
+                if let prog = parseState.progress {
                     if prog > self.progress {
                         self.progress = prog
                     }
                 }
-                if let eta = parseState.eta { self.etaString = eta }
                 
-                let now = Date().timeIntervalSince1970
+                // Flush buffer periodically
                 if now - self.lastLogFlushTime >= self.logFlushInterval {
                     self.flushLogBuffer()
                     self.lastLogFlushTime = now
@@ -415,7 +303,7 @@ class UpscaleRunner: ObservableObject {
             activeOutputFolder = nil
             return
         }
-
+        
         currentTask = Task.detached(priority: .userInitiated) { [weak self] in
             guard let self = self else { return }
             defer { accessStopper?() }
@@ -424,23 +312,7 @@ class UpscaleRunner: ObservableObject {
                 await Task.yield()
                 try Task.checkCancellation()
                 
-                var tunedSettings = capturedSettings
-                tunedSettings.useQualityAnalyzer = false
-                tunedSettings.regionMasksEnabled = false
-                tunedSettings.useDriftGuard = false
-
-                // DISABLED: Quality Analyzer pipeline (kept off to avoid impacting other pipelines)
-                await MainActor.run {
-                    self.log.append("Quality Analyzer disabled globally.\n\n")
-                }
-
-                // DISABLED: Region Masker pipeline (kept off to avoid impacting other pipelines)
-                if let core = selectedEngine as? CoreMLEngine {
-                    core.regionContext = nil
-                }
-                await MainActor.run {
-                    self.log.append("Region Masker disabled globally.\n\n")
-                }
+                let tunedSettings = capturedSettings
                 try await selectedEngine.process(
                     inputPath: capturedInputPath,
                     settings: tunedSettings,
@@ -453,23 +325,13 @@ class UpscaleRunner: ObservableObject {
                         self.startCompletionCheck()
                     }
                 }
-            } catch is CancellationError {
-                await MainActor.run {
-                    self.log.append("\n--- Process Cancelled ---\n")
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        self.isRunning = false
-                        self.currentTask = nil
-                    }
-                }
-            } catch let error as Up60PEngineError {
+            }
+            catch let error as Up60PEngineError {
                 await MainActor.run {
                     var errorMessage = "\n--- ERROR: "
                     switch error {
                     case .ffmpegNotFound:
                         errorMessage += "FFmpeg executable not found.\n"
-                        errorMessage += "Please install FFmpeg via Homebrew:\n"
-                        errorMessage += "  brew install ffmpeg\n"
-                        errorMessage += "Or set UP60P_FFMPEG environment variable to point to FFmpeg executable.\n"
                     case .invalidOptions:
                         errorMessage += "Invalid options provided.\n"
                     case .io:
@@ -511,9 +373,9 @@ class UpscaleRunner: ObservableObject {
         if let engine = activeEngine {
             engine.cancel()
         } else {
-        engine.cancel()
+            engine.cancel()
         }
-
+        
         currentTask?.cancel()
         currentTask = nil
         completionCheckTask?.cancel()
@@ -523,7 +385,7 @@ class UpscaleRunner: ObservableObject {
         completedOutputPath = nil
         expectedOutputPath = nil
         activeOutputFolder = nil
-
+        
         log.append("\n--- User Canceled Process ---\n")
         
         objectWillChange.send()
@@ -531,7 +393,7 @@ class UpscaleRunner: ObservableObject {
     
     // MARK: - Video Duration Loading
     
-    private func loadVideoDuration() {
+    func loadVideoDuration() {
         guard !inputPath.isEmpty else {
             videoDuration = 0.0
             return
@@ -562,7 +424,7 @@ class UpscaleRunner: ObservableObject {
                let fileSize = attributes[.size] as? Int64,
                fileSize > 0 {
                 completedOutputPath = outputPath
-
+                
                 return
             }
         }
@@ -574,7 +436,7 @@ class UpscaleRunner: ObservableObject {
         }
     }
     
-    private func checkForCompletedOutputDelayed() {
+    func checkForCompletedOutputDelayed() {
         guard let outputPath = expectedOutputPath ?? Optional(outputVideoPath) else { return }
         
         if fileSystem.fileExists(atPath: outputPath) {
@@ -588,7 +450,7 @@ class UpscaleRunner: ObservableObject {
     
     // MARK: - Completion Detection
     
-    private func startCompletionCheck() {
+func startCompletionCheck() {
         completionCheckTask?.cancel()
         
         completionCheckTask = Task { [weak self] in
@@ -624,7 +486,7 @@ class UpscaleRunner: ObservableObject {
                         }
                     }
                 }
-            
+                
                 if i > 10 {
                     await MainActor.run {
                         if self.fileSystem.fileExists(atPath: outputPath) {
@@ -648,7 +510,7 @@ class UpscaleRunner: ObservableObject {
         }
     }
     
-    private func markAsComplete(outputPath: String?) {
+    func markAsComplete(outputPath: String?) {
         guard isRunning else { return }
         progress = 1.0
         if videoDuration > 0 {
@@ -673,7 +535,7 @@ class UpscaleRunner: ObservableObject {
         completionCheckTask = nil
     }
     
-    private func flushLogBuffer() {
+    func flushLogBuffer() {
         guard !logBuffer.isEmpty else { return }
         
         log.append(logBuffer)
@@ -683,66 +545,3 @@ class UpscaleRunner: ObservableObject {
         }
     }
 }
-
-#if DEBUG
-// MARK: - Preview Helpers (DEBUG only)
-extension UpscaleRunner {
-    static func makePreview() -> UpscaleRunner {
-        let runner = UpscaleRunner(
-            fileSystem: PreviewFileSystem(),
-            engine: PreviewEngine(),
-            assetLoader: PreviewAssetLoader()
-        )
-        runner.inputPath = "/Preview/input.mp4"
-        runner.customOutputFolder = "/Preview/output"
-        runner.settings.crf = 18
-        runner.settings.scaleFactor = 2.0
-        runner.settings.fps = "60"
-        runner.log = "Preview mode — engine and file system are stubbed.\n"
-        runner.progress = 0.3
-        runner.fpsString = "60"
-        runner.timeString = "0:00"
-        runner.etaString = "--:--"
-        return runner
-    }
-}
-
-private final class PreviewFileSystem: FileSystemProtocol {
-    var homeDirectoryForCurrentUser: URL { URL(fileURLWithPath: "/Preview/Home") }
-    
-    func fileExists(atPath path: String) -> Bool { true }
-    
-    func attributesOfItem(atPath path: String) throws -> [FileAttributeKey : Any] {
-        return [.size: Int64(1_024)]
-    }
-    
-    func createDirectory(atPath path: String, withIntermediateDirectories createIntermediates: Bool, attributes: [FileAttributeKey : Any]?) throws {
-    }
-    
-    func urls(for directory: FileManager.SearchPathDirectory, in domainMask: FileManager.SearchPathDomainMask) -> [URL] {
-        return [URL(fileURLWithPath: "/Preview/Downloads")]
-    }
-}
-
-private final class PreviewEngine: EngineProtocol {
-    private var logHandler: ((String) -> Void)?
-    
-    func process(inputPath: String, settings: UpscaleSettings, outputDirectory: String) async throws {
-        logHandler?("Preview engine: skipping real processing.\n")
-        logHandler?("elapsed=00:00:01.00 fps=30.0 progress=1.00\n")
-    }
-    
-    func cancel() {
-    }
-    
-    func setLogHandler(_ handler: @escaping (String) -> Void) {
-        logHandler = handler
-    }
-}
-
-private final class PreviewAssetLoader: AssetLoaderProtocol {
-    func loadDuration(from path: String) async throws -> Double {
-        return 1.0
-    }
-}
-#endif

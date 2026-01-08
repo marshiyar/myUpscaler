@@ -130,8 +130,6 @@ Temporary Items
 *.o
 *.so
 
-# Ignore .dylib files except in lib/ directory (FFmpeg libraries are project dependencies)
-
 
 # Environment and secrets
 .env

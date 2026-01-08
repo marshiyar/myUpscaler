@@ -10,7 +10,7 @@ struct KeyboardShortcutsView: View {
     var body: some View {
         Form {
             Section {
-                Text("Click on an action and press your desired key combination to set a custom keyboard shortcut.")
+                Text("set a custom keyboard shortcut.")
                     .font(DesignSystem.Typography.caption1)
                     .foregroundColor(.secondary)
             } header: {
@@ -107,7 +107,6 @@ struct KeyboardShortcutsView: View {
                         
                         Button(action: {
                             if editingActionId == action.id {
-                                // Save the shortcut
                                 if let key = capturedKey, !key.isEmpty {
                                     manager.setShortcut(for: action.id, key: key.lowercased(), modifiers: capturedModifiers)
                                 }
@@ -115,7 +114,6 @@ struct KeyboardShortcutsView: View {
                                 capturedKey = nil
                                 capturedModifiers = []
                             } else {
-                                // Start editing
                                 editingActionId = action.id
                                 if let shortcut = manager.shortcuts[action.id] {
                                     capturedKey = shortcut.key
@@ -210,7 +208,6 @@ class KeyCaptureNSView: NSView {
             return
         }
         
-        // Get the key character, ignoring modifiers
         var key = event.charactersIgnoringModifiers ?? ""
         
         // Handle special keys
@@ -226,7 +223,6 @@ class KeyCaptureNSView: NSView {
             case 125: key = "down"
             case 126: key = "up"
             default:
-                // Try to get character from key code
                 if let char = event.characters?.first {
                     key = String(char)
                 }

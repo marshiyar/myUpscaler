@@ -2,8 +2,6 @@
 #define UP60P_SETTINGS_H
 
 #include "up60p_common.h"
-#include "up60p_cli.h"
-
 
 struct Settings {
     
@@ -54,7 +52,7 @@ struct Settings {
     char mi_mode[16];
     
     char eq_contrast[16]; char eq_brightness[16]; char eq_saturation[16];
-    char lut3d_file[PATH_MAX];
+//    char lut3d_file[PATH_MAX]; // LUT DEACTIVATED
     
     char x265_params[256];
     
@@ -76,14 +74,7 @@ struct Settings {
 void init_paths(void);
 void set_defaults(void);
 void reset_to_factory(void);
-void ensure_conf_dirs(void);
 
-// Preset Management
-void save_preset_file(const char *name);
-void load_preset_file(const char *name, bool quiet);
-//void active_preset_name(char *out, size_t outsz);
-void set_active_preset(const char *name);
-void list_presets(char ***names, int *count);
 
 void up60p_options_from_settings(up60p_options *dst, const Settings *src);
 

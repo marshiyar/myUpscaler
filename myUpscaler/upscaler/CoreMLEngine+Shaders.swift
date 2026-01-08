@@ -43,12 +43,6 @@ extension CoreMLEngine {
                let data = try? Data(contentsOf: url) {
                 
                 do {
-                    // Note: In production, you load specific kernels by name.
-                    // General kernels (color) vs Warp/Sampler kernels.
-                    // cas_sharpen uses sampler -> CIKernel (general)
-                    // deband_dither uses sampler -> CIKernel
-                    // bilateral_denoise uses sampler -> CIKernel
-                    
                     self.casKernel = try CIKernel(functionName: "cas_sharpen", fromMetalLibraryData: data)
                     self.debandKernel = try CIKernel(functionName: "deband_dither", fromMetalLibraryData: data)
                     self.bilateralKernel = try CIKernel(functionName: "bilateral_denoise", fromMetalLibraryData: data)
@@ -77,10 +71,9 @@ extension CoreMLEngine {
                 }
             }
             
-            // 2. Fallback: Load from source (Shaders.ci.metal) if provided as resource (Dev mode)
-            // This is useful if the build system didn't bundle the metallib correctly
+      
             if let url = Bundle.main.url(forResource: "Shaders", withExtension: "ci.metal"),
-               let code = try? String(contentsOf: url) {
+               let code = try? String(contentsOf: url, encoding: .utf8) {
                 do {
                     let kernels = try CIKernel.kernels(withMetalString: code)
                     for kernel in kernels {
@@ -211,11 +204,6 @@ extension CoreMLEngine {
         return output
     }
     
-    /// Applies Bilateral Denoising
-    /// - Parameters:
-    ///   - input: Source image
-    ///   - sigmaSpatial: Spatial influence radius
-    ///   - sigmaRange: Color similarity threshold
     func applyDenoise(_ input: CIImage, sigmaSpatial: Double, sigmaRange: Double) -> CIImage {
         guard let kernel = ShaderRegistry.shared.bilateralKernel else {
             print("Warning: Bilateral Kernel not loaded")
@@ -226,8 +214,6 @@ extension CoreMLEngine {
         let sRange = CGFloat(sigmaRange)
         if sSpatial == 0 { return input }
         
-        // ROI Callback: 5x5 window needs 2 pixel margin
-        // If we increase kernel radius, this must match
         let radius = CGFloat(2.0)
         let roiCallback: CIKernelROICallback = { _, destRect in
             return destRect.insetBy(dx: -radius, dy: -radius)

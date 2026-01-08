@@ -15,7 +15,7 @@ struct CodecSupport {
         }
 
         guard isHEVCHardwareEncodeAvailable else {
-            return Decision(useHEVC: false, message: "HEVC encoding is not available on this Mac. Falling back to H.264 instead.\n")
+            return Decision(useHEVC: false, message: "HEVC not available. Using H.264 instead.\n")
         }
 
         return Decision(useHEVC: true, message: nil)

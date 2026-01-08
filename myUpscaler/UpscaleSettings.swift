@@ -2,9 +2,9 @@ import Foundation
 import Combine
 
 class UpscaleSettings: ObservableObject {
-    private var cancellables = Set<AnyCancellable>()
+     var cancellables = Set<AnyCancellable>()
     
-    private static var defaultHwAccel: String {
+     static var defaultHwAccel: String {
         #if arch(arm64)
         return "videotoolbox"
         #else
@@ -12,7 +12,7 @@ class UpscaleSettings: ObservableObject {
         #endif
     }
     
-    private static var defaultEncoder: String { "auto" }
+     static var defaultEncoder: String { "auto" }
     
     init() {
         setupValueObservers()
@@ -48,7 +48,7 @@ class UpscaleSettings: ObservableObject {
     }
     
     // MARK: - Auto-toggle management when values become 0
-    private func setupValueObservers() {
+     func setupValueObservers() {
         $denoiser
             .sink { [weak self] newDenoiser in
                 guard let self = self else { return }
@@ -288,8 +288,8 @@ class UpscaleSettings: ObservableObject {
     }
     // --- Codec & Rate ---
     @Published var useHEVC: Bool = false
-    @Published var crf: Double = 16.0
-    @Published var preset: String = "slow"
+    @Published var crf: Double = 20.0 // CRF default
+    @Published var preset: String = "faster" // change from slow to fast, slow no longer exists
     @Published var use10Bit: Bool = false
     
     // x265 Parameters - individual values
@@ -398,7 +398,7 @@ class UpscaleSettings: ObservableObject {
     @Published var eqContrast: String = "1.03"
     @Published var eqBrightness: String = "0.005"
     @Published var eqSaturation: String = "1.06"
-    @Published var lutPath: String = ""
+//    @Published var lutPath: String = "" // LUT DEACTIVATED
 
     // --- Metal Pre/Post Processing ---
     @Published var enableColorLinearize: Bool = true
@@ -439,7 +439,7 @@ class UpscaleSettings: ObservableObject {
     @Published var noEq: Bool = false
     @Published var noGrain: Bool = false
     // DISABLED: Region Masks defaulted off
-    @Published var regionMasksEnabled: Bool = false
+//    @Published var regionMasksEnabled: Bool = false
     // DISABLED: Quality Analyzer defaulted off
     @Published var useQualityAnalyzer: Bool = false
     // DISABLED: Drift Guard defaulted off
@@ -449,7 +449,7 @@ class UpscaleSettings: ObservableObject {
     @Published var preview: Bool = false
     
     // Constants
-    let presets = ["veryfast", "faster", "medium", "slow", "slower", "veryslow"]
+    let presets = ["veryfast", "faster", "medium"] // REMOVED  "slow", "slower", "veryslow"
     let interpolations = ["mci", "blend"]
     let scalers = ["ai", "lanczos", "zscale", "hw", "coreml"]
     let coremlModels = CoreMLModelRegistry.models
@@ -481,19 +481,19 @@ class UpscaleSettings: ObservableObject {
         return value.isEmpty || value == "0" || isZero(value)
     }
 
-    // Default fallbacks used when re-enabling filters that were auto-disabled at 0
-    private var defaultDeringStrengthString: String { "0.5" }
-    private var defaultDeblockThreshString: String { "0.5" }
-    private var defaultDenoiseStrength2String: String { String(format: "%.2f", denoiseStrength2Default) }
-    private var defaultSharpenStrength2String: String { "0.25" }
-    private var defaultUsmRadius2String: String { "5" }
-    private var defaultUsmAmount2String: String { "1.0" }
-    private var defaultUsmThreshold2String: String { "0.03" }
-    private var defaultDebandStrength2String: String { "0.015" }
-    private var defaultF3kdbRange2String: String { "15" }
-    private var defaultF3kdbY2String: String { "64" }
-    private var defaultF3kdbCbCr2String: String { "64" }
-    private var defaultGrainStrength2String: String { "1.0" }
+    // MARK: - Default fallbacks used when re-enabling filters that were auto-disabled at 0
+     var defaultDeringStrengthString: String { "0.5" }
+     var defaultDeblockThreshString: String { "0.5" }
+     var defaultDenoiseStrength2String: String { String(format: "%.2f", denoiseStrength2Default) }
+     var defaultSharpenStrength2String: String { "0.25" }
+     var defaultUsmRadius2String: String { "5" }
+     var defaultUsmAmount2String: String { "1.0" }
+     var defaultUsmThreshold2String: String { "0.03" }
+     var defaultDebandStrength2String: String { "0.015" }
+     var defaultF3kdbRange2String: String { "15" }
+     var defaultF3kdbY2String: String { "64" }
+     var defaultF3kdbCbCr2String: String { "64" }
+     var defaultGrainStrength2String: String { "1.0" }
     
     // MARK: - Denoiser-specific parameter ranges
     /**
@@ -603,11 +603,6 @@ class UpscaleSettings: ObservableObject {
         }
     }
     
-    /**
-     * Validates and clamps denoise strength value to the appropriate range for the selected denoiser.
-     * Returns the clamped value as a string.
-     * For bm3d, "auto" is a valid value and will be preserved.
-     */
     func validateDenoiseStrength(_ value: String, forDenoiser: String) -> String {
         // For bm3d, "auto" is a special valid value
         if forDenoiser == "bm3d" && value.lowercased() == "auto" {
@@ -925,13 +920,10 @@ class UpscaleSettings: ObservableObject {
             return 0.6   // Light: CAS + CAS is gentler
         }
     }
-    
     /// Attenuation factor for second set denoising
     var denoise2AttenuationFactor: Double {
         guard isDenoiseStacked else { return 1.0 }
-        
         // Double denoising can over-smooth, but it's less destructive than double sharpening
-        // Use consistent moderate attenuation
         return 0.55
     }
     
@@ -940,7 +932,6 @@ class UpscaleSettings: ObservableObject {
         guard isDebandStacked else { return 1.0 }
         return 0.6  // Debanding is gentler, light attenuation
     }
-    
     // MARK: - Effective Values (what actually gets sent to FFmpeg)
     // These apply attenuation when filters are stacked
     
@@ -1045,8 +1036,8 @@ class UpscaleSettings: ObservableObject {
     func resetToDefaults() {
         // Codec & Rate
         useHEVC = false
-        crf = 16.0
-        preset = "slow"
+        crf = 20.0 // DEFAULT FROM 16 to 20
+        preset = "faster" // DEFAULT CHANGE TO FASTER FROM SLOW — slow no longer exists MONDAY, JAN , 5th 2026 update
         use10Bit = false
         
         // x265 Parameters
@@ -1118,10 +1109,10 @@ class UpscaleSettings: ObservableObject {
         useGrain2 = false
         
         // Color / Equalization
-        eqContrast = "1.03"
-        eqBrightness = "0.005"
-        eqSaturation = "1.06"
-        lutPath = ""
+        eqContrast = "1.00"
+        eqBrightness = "0.000"
+        eqSaturation = "1.00"
+//        lutPath = "" // LUT DEACTIVATED
         
         // Metal Pre/Post
         enableColorLinearize = true
@@ -1161,8 +1152,6 @@ class UpscaleSettings: ObservableObject {
         noDeband = false
         noEq = false
         noGrain = false
-        // DISABLED: keep advanced features off during resets
-        regionMasksEnabled = false
         useQualityAnalyzer = false
         useDriftGuard = false
         pciSafe = false

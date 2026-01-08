@@ -1,21 +1,10 @@
-//
-//  AboutView.swift
-
-
 import SwiftUI
-
-// MARK: - AboutView ----------------------------------------------------------
 
 struct AboutView: View {
 
-    // MARK: - UI constants (using design system)
-
-
     private let websiteURL = URL(string: "https://github.com/marshiyar/myUpscaler")!
-
     @Environment(\.presentationMode) var presentationMode
-
-    // MARK: - Body
+    
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
 
@@ -73,7 +62,6 @@ struct AboutView: View {
                     }
             }
             
-            // ── Exit Button ────────────────────────────────────
             Button(action: {
                 presentationMode.wrappedValue.dismiss()
             }) {
@@ -84,7 +72,7 @@ struct AboutView: View {
                         .padding(.vertical, DesignSystem.Spacing.sm)
                     Spacer()
                 }
-                .contentShape(Rectangle()) // Make entire area tappable
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .background(Color.secondary.opacity(0.1))
@@ -97,11 +85,8 @@ struct AboutView: View {
         .frame(minWidth: 400, idealWidth: 450, minHeight: 450, idealHeight: 500)
         .background(Color.appBackground)
     }
-
 }
-
-// MARK: - Preview ------------------------------------------------------------
-
+// MARK: - Preview
 struct AboutView_Previews: PreviewProvider {
     static var previews: some View {
         Group {

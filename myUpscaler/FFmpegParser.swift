@@ -9,25 +9,60 @@ struct FFmpegProgressState {
 }
 
 class FFmpegParser {
-    private static let durationRegex = try? NSRegularExpression(pattern: "Duration:\\s*([0-9:.]+)")
-    private static let frameRegex = try? NSRegularExpression(pattern: "frame=\\s*([0-9]+)")
-    private static let fpsRegex = try? NSRegularExpression(pattern: "fps=([0-9\\.]+)")
-    private static let timeRegex = try? NSRegularExpression(pattern: "time=([0-9:\\.]+)")
+    // Combined regex that captures duration, time, and fps in one pass
+    private static let combinedRegex = try? NSRegularExpression(
+        pattern: "(?:Duration:\\s*([0-9:.]+))|(?:time=([0-9:\\.]+))|(?:fps=([0-9\\.]+))"
+    )
     
     static func parse(line: String, currentDuration: Double) -> FFmpegProgressState {
         var state = FFmpegProgressState()
         
-        if currentDuration == 0 {
-            if let durationStr = extract(durationRegex, from: line),
-               let duration = parseTimeString(durationStr) {
-                state.newDuration = duration
+        guard let regex = combinedRegex else { return state }
+        let nsString = line as NSString
+        let range = NSRange(location: 0, length: nsString.length)
+        
+        // Single pass: find all matches
+        let matches = regex.matches(in: line, options: [], range: range)
+        
+        var durationStr: String?
+        var timeStr: String?
+        var fpsStr: String?
+        
+        for match in matches {
+            // Group 1: Duration
+            if match.numberOfRanges > 1 {
+                let durationRange = match.range(at: 1)
+                if durationRange.location != NSNotFound {
+                    durationStr = nsString.substring(with: durationRange)
+                }
+            }
+            
+            // Group 2: Time
+            if match.numberOfRanges > 2 {
+                let timeRange = match.range(at: 2)
+                if timeRange.location != NSNotFound {
+                    timeStr = nsString.substring(with: timeRange)
+                }
+            }
+            
+            // Group 3: FPS
+            if match.numberOfRanges > 3 {
+                let fpsRange = match.range(at: 3)
+                if fpsRange.location != NSNotFound {
+                    fpsStr = nsString.substring(with: fpsRange)
+                }
             }
         }
         
-        if let timeStr = extract(timeRegex, from: line) {
-            let fps = extract(fpsRegex, from: line)
-            
-            state.fps = fps
+        // Process duration
+        if currentDuration == 0, let durationStr = durationStr,
+           let duration = parseTimeString(durationStr) {
+            state.newDuration = duration
+        }
+        
+        // Process time and fps
+        if let timeStr = timeStr {
+            state.fps = fpsStr
             state.timeString = timeStr
             
             if let currentTime = parseTimeString(timeStr) {
@@ -38,7 +73,7 @@ class FFmpegParser {
                     state.progress = min(max(calculatedProgress, 0.0), 1.0)
                     
                     let remainingTime = max(0.0, duration - currentTime)
-                    if let fpsVal = fps.flatMap({ Double($0) }), fpsVal > 0, remainingTime > 0 {
+                    if let fpsVal = fpsStr.flatMap({ Double($0) }), fpsVal > 0, remainingTime > 0 {
                         state.eta = formatTime(remainingTime)
                     } else if remainingTime <= 0 {
                         state.progress = 1.0
@@ -54,7 +89,7 @@ class FFmpegParser {
         
         return state
     }
-    
+
     private static func extract(_ regex: NSRegularExpression?, from text: String) -> String? {
         guard let regex = regex else { return nil }
         let nsString = text as NSString
@@ -92,7 +127,6 @@ class FFmpegParser {
         
         return totalSeconds > 0 ? totalSeconds : nil
     }
-    
     static func formatTime(_ seconds: Double) -> String {
         let totalSeconds = Int(seconds)
         let hours = totalSeconds / 3600
@@ -106,4 +140,3 @@ class FFmpegParser {
         }
     }
 }
-

@@ -116,7 +116,7 @@ final class Up60PEngine {
                     .appendingPathComponent("ffmpeg")
                 
                 if FileManager.default.isExecutableFile(atPath: ffmpegURL.path) {
-                    ffmpegURL.path.withCString { cStr in
+                 _ = ffmpegURL.path.withCString { cStr in
                         setenv("UP60P_FFMPEG", cStr, 1)
                     }
                     
@@ -138,9 +138,6 @@ final class Up60PEngine {
                 }
             }
         }
-        
-        // We could pass an app support dir if the C side ever uses it.
-        // C functions don't throw, but we can still check the return value
         let result = Self.bridge.initFunc(nil, callback)
         
         if result != UP60P_OK {
@@ -166,7 +163,7 @@ final class Up60PEngine {
         
         isInitialized = true
     }
-
+    
     private func log(_ message: String) {
         Up60PEngine.logHandlerQueue.sync {
             if let handler = Up60PEngine.currentLogHandler {
@@ -176,10 +173,6 @@ final class Up60PEngine {
             }
         }
     }
-//    
-//    deinit {
-//        Up60PEngine.bridge.shutdownFunc()
-//    }
     
     private func mapError(_ code: up60p_error) -> Up60PEngineError? {
         switch code {
@@ -208,7 +201,7 @@ final class Up60PEngine {
         }
     }
     
-    // MARK: - 
+    // MARK: -
     
     private func makeOptions(from settings: UpscaleSettings,
                              outputDir: String) throws -> up60p_options
@@ -216,7 +209,7 @@ final class Up60PEngine {
         try ensureInitialized()
         
         var opts = up60p_options()
-        Up60PEngine.bridge.defaultOptionsFunc(&opts)    // start from engine defaults / active preset
+        Up60PEngine.bridge.defaultOptionsFunc(&opts)
         
         // MARK: Core
         setString(&opts.codec, MemoryLayout.size(ofValue: opts.codec), settings.useHEVC ? "hevc" : "h264")
@@ -291,7 +284,6 @@ final class Up60PEngine {
         setString(&opts.eq_contrast, MemoryLayout.size(ofValue: opts.eq_contrast), settings.eqContrast)
         setString(&opts.eq_brightness, MemoryLayout.size(ofValue: opts.eq_brightness), settings.eqBrightness)
         setString(&opts.eq_saturation, MemoryLayout.size(ofValue: opts.eq_saturation), settings.eqSaturation)
-        setString(&opts.lut3d_file, MemoryLayout.size(ofValue: opts.lut3d_file), settings.lutPath)
         setString(&opts.x265_params, MemoryLayout.size(ofValue: opts.x265_params), settings.x265Params)
         
         setString(&opts.outdir, MemoryLayout.size(ofValue: opts.outdir), outputDir)
@@ -322,16 +314,12 @@ final class Up60PEngine {
     func process(inputPath: String,
                  settings: UpscaleSettings,
                  outputDirectory: String) async throws {
-        // Cancel any existing process
         cancel()
-
+        
         let codecDecision = CodecSupport.resolve(requestHEVC: settings.useHEVC)
-        if let message = codecDecision.message {
-            log(message)
-        }
+        if let message = codecDecision.message { log(message) }
         settings.useHEVC = codecDecision.useHEVC
-
-
+        
         struct StackingSnapshot {
             let has: Bool
             let sharpen: Bool
@@ -342,7 +330,6 @@ final class Up60PEngine {
             let debandPct: Int
         }
         
-        // Capture stacking info on the MainActor to avoid isolation issues later
         let stackingSnapshot = await MainActor.run { () -> StackingSnapshot in
             let has = settings.hasFilterStacking
             let sharpen = settings.isSharpenStacked
@@ -351,73 +338,61 @@ final class Up60PEngine {
             let sharpenPct = Int((1.0 - settings.sharpen2AttenuationFactor) * 100)
             let denoisePct = Int((1.0 - settings.denoise2AttenuationFactor) * 100)
             let debandPct = Int((1.0 - settings.deband2AttenuationFactor) * 100)
-            return StackingSnapshot(has: has, sharpen: sharpen, denoise: denoise, deband: deband, sharpenPct: sharpenPct, denoisePct: denoisePct, debandPct: debandPct)
+            return StackingSnapshot(has: has, sharpen: sharpen, denoise: denoise, deband: deband,
+                                    sharpenPct: sharpenPct, denoisePct: denoisePct, debandPct: debandPct)
         }
+        
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             let task = Task.detached(priority: .userInitiated) { [weak self] in
-                guard let self = self else {
+                guard let self else {
                     continuation.resume(throwing: Up60PEngineError.internalError)
                     return
                 }
                 
                 do {
                     await Task.yield()
+                    
                     let opts = try await MainActor.run {
                         try self.makeOptions(from: settings, outputDir: outputDirectory)
                     }
                     var mutableOpts = opts
-                    await Task.yield()
-                    Up60PEngine.logHandlerQueue.sync {
-                        if let handler = Up60PEngine.currentLogHandler {
-                            DispatchQueue.main.async {
-                                handler("Starting video processing...\n")
-                            }
+                    
+                    // Logging (safe)
+                    let handler = Up60PEngine.logHandlerQueue.sync { Up60PEngine.currentLogHandler }
+                    if handler != nil {
+                        await MainActor.run {
+                            Up60PEngine.currentLogHandler?("Starting Video Processing...\n")
+                            Up60PEngine.currentLogHandler?("NOTE: If this is the first run, AI initialization (Metal shader compilation) may take 1-2 minutes. Please wait...\n")
                         }
                     }
-                    Up60PEngine.logHandlerQueue.sync {
-                        if let handler = Up60PEngine.currentLogHandler {
-                            DispatchQueue.main.async {
-                                handler("NOTE: If this is the first run, AI initialization (Metal shader compilation) may take 1-2 minutes. Please wait...\n")
-                            }
-                        }
-                    }
+                    
                     if stackingSnapshot.has {
-                        Up60PEngine.logHandlerQueue.sync {
-                            if let handler = Up60PEngine.currentLogHandler {
-                                DispatchQueue.main.async {
-                                    handler("\n⚡ Filter Stacking Detected - Applying Smart Attenuation:\n")
-                                    if stackingSnapshot.sharpen {
-                                        let factor = stackingSnapshot.sharpenPct
-                                        handler("  • Sharpen 2nd set: reduced by \(factor)% to prevent over-sharpening\n")
-                                    }
-                                    if stackingSnapshot.denoise {
-                                        let factor = stackingSnapshot.denoisePct
-                                        handler("  • Denoise 2nd set: reduced by \(factor)% to prevent over-smoothing\n")
-                                    }
-                                    if stackingSnapshot.deband {
-                                        let factor = stackingSnapshot.debandPct
-                                        handler("  • Deband 2nd set: reduced by \(factor)% to prevent banding artifacts\n")
-                                    }
-                                    handler("\n")
-                                }
+                        await MainActor.run {
+                            Up60PEngine.currentLogHandler?("\n⚡ Filter Stacking Detected - Applying Smart Attenuation:\n")
+                            
+                            if stackingSnapshot.sharpen {
+                                Up60PEngine.currentLogHandler?("  • Sharpen 2nd set: reduced by \(stackingSnapshot.sharpenPct)% to prevent over-sharpening\n")
                             }
+                            if stackingSnapshot.denoise {
+                                Up60PEngine.currentLogHandler?("  • Denoise 2nd set: reduced by \(stackingSnapshot.denoisePct)% to prevent over-smoothing\n")
+                            }
+                            if stackingSnapshot.deband {
+                                Up60PEngine.currentLogHandler?("  • Deband 2nd set: reduced by \(stackingSnapshot.debandPct)% to prevent banding artifacts\n")
+                            }
+                            
+                            Up60PEngine.currentLogHandler?("\n")
                         }
                     }
                     
                     let result = await Up60PEngine.bridge.processPathFunc(inputPath, &mutableOpts)
                     
-                    // Log result
-                    Up60PEngine.logHandlerQueue.sync {
-                        if let handler = Up60PEngine.currentLogHandler {
-                            DispatchQueue.main.async {
-                                if result == UP60P_ERR_CANCELLED || Task.isCancelled {
-                                    handler("Processing cancelled.\n")
-                                } else if result == UP60P_OK {
-                                    handler("Processing completed.\n")
-                                } else {
-                                    handler("Processing returned error code: \(result.rawValue)\n")
-                                }
-                            }
+                    await MainActor.run {
+                        if result == UP60P_ERR_CANCELLED || Task.isCancelled {
+                            Up60PEngine.currentLogHandler?("Processing cancelled.\n")
+                        } else if result == UP60P_OK {
+                            Up60PEngine.currentLogHandler?("Processing completed.\n")
+                        } else {
+                            Up60PEngine.currentLogHandler?("Processing returned error code: \(result.rawValue)\n")
                         }
                     }
                     
@@ -431,14 +406,12 @@ final class Up60PEngine {
                         }
                         continuation.resume(throwing: error)
                     }
+                    
                 } catch {
-                    if !Task.isCancelled {
-                        continuation.resume(throwing: error)
-                    } else {
-                        continuation.resume(throwing: CancellationError())
-                    }
+                    continuation.resume(throwing: Task.isCancelled ? CancellationError() : error)
                 }
             }
+            
             currentProcessTask = task
         }
     }
@@ -449,43 +422,18 @@ final class Up60PEngine {
         task.cancel()
         
         let engine = self
+        let message = "Cancellation acknowledged by native engine.\n"
+        
         Task.detached {
             await task.value
             
-            Up60PEngine.logHandlerQueue.sync {
-                if let handler = Up60PEngine.currentLogHandler {
-                    DispatchQueue.main.async {
-                        handler("Cancellation acknowledged by native engine.\n")
-                    }
-                }
-            }
-            
+            // Retrieve handler inside MainActor context to avoid Sendable issues
             await MainActor.run {
+                Up60PEngine.logHandlerQueue.sync {
+                    Up60PEngine.currentLogHandler?(message)
+                }
                 engine.currentProcessTask = nil
             }
         }
     }
-    
-    // MARK: - Testing Support
-    
-//    func setDryRun(_ enabled: Bool) {
-//        Up60PEngine.bridge.setDryRunFunc(enabled ? 1 : 0)
-//    }
-    
-#if DEBUG
-    /// Override the C bridge for deterministic testing
-    static func useBridgeForTesting(_ bridge: Up60PBridge) {
-        bridgeOverride = bridge
-    }
-    
-    /// Reset to the live bridge after tests
-    static func resetBridgeForTesting() {
-        bridgeOverride = nil
-    }
-    
-    /// Expose error mapping for tests
-    func mapErrorForTesting(_ code: up60p_error) -> Up60PEngineError? {
-        mapError(code)
-    }
-#endif
 }

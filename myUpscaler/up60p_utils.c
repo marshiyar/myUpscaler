@@ -1,6 +1,5 @@
 #include "up60p_utils.h"
 #include "up60p_common.h"
-#include "up60p_cli.h"
 
 up60p_log_callback global_log_cb = NULL;
 
@@ -63,16 +62,11 @@ void sb_append(SB *s, const char *str) {
 }
 
 
-
-
 void sb_fmt(SB *s, const char *fmt, ...) {
     va_list ap; va_start(ap, fmt);
     char tmp[2048]; vsnprintf(tmp, sizeof(tmp), fmt, ap);
     va_end(ap); sb_append(s, tmp);
 }
-
-
-
 
 double parse_strength(const char *strength) {
     if (!strength || !strcmp(strength, "auto")) return 0.0;
@@ -81,7 +75,6 @@ double parse_strength(const char *strength) {
     if (*end != '\0' || val < 0) return 0.0;
     return val;
 }
-
 
 
 bool is_image(const char *path) {

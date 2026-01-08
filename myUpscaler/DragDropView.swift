@@ -7,8 +7,6 @@ import Metal
 import MetalKit
 import UniformTypeIdentifiers
 
-// EditorState moved to EditorState.swift
-
 // MARK: - TIMELINE VIEW
 struct TimelineView: View {
     @ObservedObject var state: EditorState
@@ -77,44 +75,6 @@ struct TimelineView: View {
     }
 }
 
-//// MARK: - FILTER PANEL
-//struct FilterPanel: View {
-//    @ObservedObject var state: EditorState
-//
-//    var body: some View {
-//        Form {
-//            Section(header: Text("Color")) {
-//                LabeledSlider("Contrast", value: $state.contrast, range: 0.5...2.0)
-//                LabeledSlider("Brightness", value: $state.brightness, range: -0.3...0.3, format: "%.3f")
-//                LabeledSlider("Saturation", value: $state.saturation, range: 0...2)
-//            }
-//
-//            Section(header: Text("Noise")) {
-//                LabeledSlider("Denoise", value: $state.denoiseStrength, range: 0...5)
-//                Toggle("Ring-removal", isOn: $state.deringActive)
-//                if state.deringActive {
-//                    LabeledSlider("Ring strength", value: $state.deringStrength, range: 0...1)
-//                }
-//            }
-//
-//            Section(header: Text("Sharpen")) {
-//                Picker("Method", selection: $state.sharpenMethod) {
-//                    Text("CAS").tag("cas")
-//                    Text("Unsharp").tag("unsharp")
-//                }
-//                .pickerStyle(.segmented)
-//
-//                LabeledSlider("Strength", value: $state.sharpenStrength, range: 0...1)
-//
-//                if state.sharpenMethod == "unsharp" {
-//                    LabeledSlider("Radius", value: $state.usmRadius, range: 0...10)
-//                    LabeledSlider("Amount", value: $state.usmAmount, range: 0...3)
-//                }
-//            }
-//        }
-//        .frame(maxHeight: 350)
-//    }
-//}
 
 // MARK: - SUPPORT VIEWS
 struct DropArea: View {
@@ -240,15 +200,15 @@ private enum DragDropFormatters {
 
 // MARK: - Slider Gradient Colors (for DragDropView)
 private enum CompactSliderGradient {
-    case denoise      // Denoise - cool cyan to blue (clean, smooth)
-    case dering       // Deringing - teal to green (healing, correction)
-    case sharpen      // Sharpen - bright yellow to white (sharp, crisp)
-    case contrast     // Contrast - purple to pink (vibrant, dynamic)
-    case brightness   // Brightness - yellow to white (light, bright)
-    case saturation   // Saturation - rainbow colors (colorful, rich)
-    case usmRadius    // Unsharp radius - orange to yellow (focused)
-    case usmAmount    // Unsharp amount - red to orange (intense)
-    case usmThreshold  // Unsharp threshold - pink to purple (precise)
+    case denoise
+    case dering
+    case sharpen
+    case contrast
+    case brightness
+    case saturation
+    case usmRadius
+    case usmAmount
+    case usmThreshold
     
     var gradient: LinearGradient {
         switch self {

@@ -4,7 +4,6 @@
 #include "up60p.h"
 #include "up60p_common.h"
 
-
 typedef struct {
     char *buf;
     size_t len,

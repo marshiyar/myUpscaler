@@ -22,12 +22,9 @@ struct DynamicKeyboardShortcut: ViewModifier {
                 )
             )
     }
-    
     private func setupKeyboardMonitor() {
-        // The actual monitoring is done in KeyboardShortcutHandler
     }
 }
-
 struct KeyboardShortcutHandler: NSViewRepresentable {
     let actionId: String
     let action: () -> Void
@@ -40,7 +37,6 @@ struct KeyboardShortcutHandler: NSViewRepresentable {
         view.manager = manager
         return view
     }
-    
     func updateNSView(_ nsView: KeyboardMonitorView, context: Context) {
         nsView.actionId = actionId
         nsView.action = action
@@ -48,7 +44,6 @@ struct KeyboardShortcutHandler: NSViewRepresentable {
         nsView.updateMonitor()
     }
 }
-
 class KeyboardMonitorView: NSView {
     var actionId: String = ""
     var action: (() -> Void)?
@@ -61,12 +56,10 @@ class KeyboardMonitorView: NSView {
     }
     
     func updateMonitor() {
-        // Remove old monitor
         if let monitor = eventMonitor {
             NSEvent.removeMonitor(monitor)
             eventMonitor = nil
         }
-        
         guard let manager = manager,
               let shortcut = manager.shortcuts[actionId],
               let keyChar = shortcut.key.first else {
@@ -80,12 +73,10 @@ class KeyboardMonitorView: NSView {
         let modifiers = manager.getModifiers(for: actionId)
         setupMonitor(key: String(keyChar), modifiers: modifiers)
     }
-    
     private func setupMonitor(key: String, modifiers: EventModifiers) {
         guard let action = action else { return }
         
         eventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { event in
-            // Check if this matches our shortcut
             let eventKey = event.charactersIgnoringModifiers?.lowercased() ?? ""
             var eventModifiers: EventModifiers = []
             
@@ -98,20 +89,17 @@ class KeyboardMonitorView: NSView {
                 DispatchQueue.main.async {
                     action()
                 }
-                return nil // Consume the event
+                return nil
             }
-            
             return event
         }
     }
-    
     deinit {
         if let monitor = eventMonitor {
             NSEvent.removeMonitor(monitor)
         }
     }
 }
-
 extension View {
     func dynamicKeyboardShortcut(actionId: String, action: @escaping () -> Void) -> some View {
         self.modifier(DynamicKeyboardShortcut(actionId: actionId, action: action))

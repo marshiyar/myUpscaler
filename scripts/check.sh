@@ -4,6 +4,7 @@ cd "$(dirname "$0")/.."
 python3 scripts/check-source-budget.py
 python3 -m unittest discover -s tests -p 'test_bundled_ffmpeg*.py'
 python3 -m unittest discover -s tests -p 'test_fps_endpoints.py'
+bash tests/test-shortcuts.sh
 bash tests/test-editor-state.sh
 bash tests/test-processing-lifecycle.sh
 bash tests/apple-api/run.sh

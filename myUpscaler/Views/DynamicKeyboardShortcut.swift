@@ -1,108 +1,53 @@
 import SwiftUI
-import AppKit
 
-struct DynamicKeyboardShortcut: ViewModifier {
-    let actionId: String
-    let action: () -> Void
-    @ObservedObject var manager = KeyboardShortcutsManager.shared
-
-    func body(content: Content) -> some View {
-        content
-            .onAppear {
-                setupKeyboardMonitor()
-            }
-            .onChange(of: Array(manager.shortcuts.keys)) {
-                setupKeyboardMonitor()
-            }
-            .background(
-                KeyboardShortcutHandler(
-                    actionId: actionId,
-                    action: action,
-                    manager: manager
-                )
-            )
-    }
-    private func setupKeyboardMonitor() {
+private struct CommandDispatcherKey: FocusedValueKey { typealias Value = CommandDispatcher }
+extension FocusedValues {
+    var commandDispatcher: CommandDispatcher? {
+        get { self[CommandDispatcherKey.self] }
+        set { self[CommandDispatcherKey.self] = newValue }
     }
 }
-struct KeyboardShortcutHandler: NSViewRepresentable {
-    let actionId: String
-    let action: () -> Void
+
+/// Native menus own shortcut routing, including active-window and disabled state.
+struct UpscalerCommands: Commands {
+    @FocusedValue(\.commandDispatcher) private var dispatcher
+    @ObservedObject private var manager = KeyboardShortcutsManager.shared
+    var body: some Commands {
+        CommandMenu("Video") {
+            if let dispatcher {
+                CommandMenuItems(dispatcher: dispatcher, manager: manager)
+            } else {
+                ForEach(AppCommand.allCases) { command in Button(command.name) {}.disabled(true) }
+            }
+        }
+    }
+}
+
+private struct CommandMenuItems: View {
+    @ObservedObject var dispatcher: CommandDispatcher
     @ObservedObject var manager: KeyboardShortcutsManager
-
-    func makeNSView(context: Context) -> KeyboardMonitorView {
-        let view = KeyboardMonitorView()
-        view.actionId = actionId
-        view.action = action
-        view.manager = manager
-        return view
-    }
-    func updateNSView(_ nsView: KeyboardMonitorView, context: Context) {
-        nsView.actionId = actionId
-        nsView.action = action
-        nsView.manager = manager
-        nsView.updateMonitor()
+    var body: some View {
+        ForEach(AppCommand.allCases) { command in
+            Button(command.name) { dispatcher.perform(command) }
+                .keyboardShortcut(manager.binding(for: command).native)
+                .disabled(!dispatcher.canPerform(command))
+        }
     }
 }
-class KeyboardMonitorView: NSView {
-    var actionId: String = ""
-    var action: (() -> Void)?
-    var manager: KeyboardShortcutsManager?
-    var eventMonitor: Any?
 
-    override func viewDidMoveToWindow() {
-        super.viewDidMoveToWindow()
-        updateMonitor()
-    }
-
-    func updateMonitor() {
-        if let monitor = eventMonitor {
-            NSEvent.removeMonitor(monitor)
-            eventMonitor = nil
-        }
-        guard let manager = manager,
-              let shortcut = manager.shortcuts[actionId],
-              let keyChar = shortcut.key.first else {
-            // Use default
-            if let action = manager?.availableActions.first(where: { $0.id == actionId }) {
-                setupMonitor(key: action.defaultKey, modifiers: action.defaultModifiers)
-            }
-            return
-        }
-
-        let modifiers = manager.getModifiers(for: actionId)
-        setupMonitor(key: String(keyChar), modifiers: modifiers)
-    }
-    private func setupMonitor(key: String, modifiers: EventModifiers) {
-        guard let action = action else { return }
-
-        eventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { event in
-            let eventKey = event.charactersIgnoringModifiers?.lowercased() ?? ""
-            var eventModifiers: EventModifiers = []
-
-            if event.modifierFlags.contains(.command) { eventModifiers.insert(.command) }
-            if event.modifierFlags.contains(.shift) { eventModifiers.insert(.shift) }
-            if event.modifierFlags.contains(.option) { eventModifiers.insert(.option) }
-            if event.modifierFlags.contains(.control) { eventModifiers.insert(.control) }
-
-            if eventKey == key.lowercased() && eventModifiers == modifiers {
-                DispatchQueue.main.async {
-                    action()
-                }
-                return nil
-            }
-            return event
-        }
-    }
-    deinit {
-        if let monitor = eventMonitor {
-            NSEvent.removeMonitor(monitor)
-        }
+// Transitional native binding used by existing button sites until the workspace
+// switches to the focused command menu in the following UI commit.
+private struct ExistingCommandShortcut: ViewModifier {
+    @ObservedObject private var manager = KeyboardShortcutsManager.shared
+    let command: AppCommand
+    func body(content: Content) -> some View {
+        content.keyboardShortcut(manager.binding(for: command).native)
     }
 }
 extension View {
-    func dynamicKeyboardShortcut(actionId: String, action: @escaping () -> Void) -> some View {
-        self.modifier(DynamicKeyboardShortcut(actionId: actionId, action: action))
+    @ViewBuilder func dynamicKeyboardShortcut(actionId: String, action: @escaping () -> Void) -> some View {
+        if let command = AppCommand(rawValue: actionId) {
+            modifier(ExistingCommandShortcut(command: command))
+        } else { self }
     }
 }
-

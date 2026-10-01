@@ -3,250 +3,126 @@ import AppKit
 
 struct KeyboardShortcutsView: View {
     @ObservedObject var manager = KeyboardShortcutsManager.shared
-    @State private var editingActionId: String? = nil
-    @State private var capturedKey: String? = nil
-    @State private var capturedModifiers: EventModifiers = []
+    private struct Edit { let command: AppCommand; var binding: ShortcutBinding }
+    @State private var edit: Edit?
+    @State private var errorMessage: String?
 
     var body: some View {
         Form {
             Section {
-                Text("set a custom keyboard shortcut.")
-                    .font(DesignSystem.Typography.caption1)
-                    .foregroundColor(.secondary)
-            } header: {
-                Label("Instructions", systemImage: "info.circle.fill")
-                    .sectionHeader()
+                Text("Edit a command, press its new combination, then Save. Escape cancels recording. Use Swap to exchange two bindings.")
+                    .foregroundStyle(.secondary)
+                if let errorMessage { Text(errorMessage).foregroundStyle(.red) }
+                ForEach(manager.loadWarnings, id: \.self) { Text($0).foregroundStyle(.orange) }
             }
-
-            Section {
-                ForEach(manager.availableActions) { action in
+            Section("Commands") {
+                ForEach(manager.availableActions) { command in
                     HStack {
-                        Text(action.name)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-
+                        Text(command.name)
                         Spacer()
-
-                        if editingActionId == action.id {
-                            HStack(spacing: DesignSystem.Spacing.xs) {
-                                if capturedModifiers.contains(.command) {
-                                    Text("⌘")
-                                        .font(DesignSystem.Typography.caption1)
-                                        .foregroundColor(.secondary)
-                                }
-                                if capturedModifiers.contains(.shift) {
-                                    Text("⇧")
-                                        .font(DesignSystem.Typography.caption1)
-                                        .foregroundColor(.secondary)
-                                }
-                                if capturedModifiers.contains(.option) {
-                                    Text("⌥")
-                                        .font(DesignSystem.Typography.caption1)
-                                        .foregroundColor(.secondary)
-                                }
-                                if capturedModifiers.contains(.control) {
-                                    Text("⌃")
-                                        .font(DesignSystem.Typography.caption1)
-                                        .foregroundColor(.secondary)
-                                }
-                                if let key = capturedKey {
-                                    Text(key.uppercased())
-                                        .font(DesignSystem.Typography.caption1)
-                                        .fontWeight(.medium)
-                                } else {
-                                    Text("Press keys...")
-                                        .font(DesignSystem.Typography.caption1)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                            .padding(.horizontal, DesignSystem.Spacing.sm)
-                            .padding(.vertical, DesignSystem.Spacing.xs)
-                            .background {
-                                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.small)
-                                    .fill(Color.accentColor.opacity(0.1))
-                            }
+                        ShortcutBadge(binding: edit?.command == command ? edit!.binding : manager.binding(for: command))
+                        if edit?.command == command {
+                            Button("Save") { saveEdit() }
+                            Button("Cancel") { edit = nil; errorMessage = nil }
                         } else {
-                            HStack(spacing: DesignSystem.Spacing.xs) {
-                                let modifiers = manager.getModifiers(for: action.id)
-                                if modifiers.contains(.command) {
-                                    Text("⌘")
-                                        .font(DesignSystem.Typography.caption1)
-                                        .foregroundColor(.secondary)
-                                }
-                                if modifiers.contains(.shift) {
-                                    Text("⇧")
-                                        .font(DesignSystem.Typography.caption1)
-                                        .foregroundColor(.secondary)
-                                }
-                                if modifiers.contains(.option) {
-                                    Text("⌥")
-                                        .font(DesignSystem.Typography.caption1)
-                                        .foregroundColor(.secondary)
-                                }
-                                if modifiers.contains(.control) {
-                                    Text("⌃")
-                                        .font(DesignSystem.Typography.caption1)
-                                        .foregroundColor(.secondary)
-                                }
-                                if let shortcut = manager.shortcuts[action.id] {
-                                    Text(shortcut.key.uppercased())
-                                        .font(DesignSystem.Typography.caption1)
-                                        .fontWeight(.medium)
-                                } else {
-                                    Text(action.defaultKey.uppercased())
-                                        .font(DesignSystem.Typography.caption1)
-                                        .fontWeight(.medium)
+                            Button("Edit") {
+                                edit = Edit(command: command, binding: manager.binding(for: command))
+                                errorMessage = nil
+                            }
+                            Menu("Swap") {
+                                ForEach(manager.availableActions.filter { $0 != command }) { other in
+                                    Button(other.name) {
+                                        update { try manager.swapBindings(command, other) }
+                                    }
                                 }
                             }
-                            .padding(.horizontal, DesignSystem.Spacing.sm)
-                            .padding(.vertical, DesignSystem.Spacing.xs)
-                            .background {
-                                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.small)
-                                    .fill(Color.appSecondaryBackground)
-                            }
-                        }
-
-                        Button(action: {
-                            if editingActionId == action.id {
-                                if let key = capturedKey, !key.isEmpty {
-                                    manager.setShortcut(for: action.id, key: key.lowercased(), modifiers: capturedModifiers)
-                                }
-                                editingActionId = nil
-                                capturedKey = nil
-                                capturedModifiers = []
-                            } else {
-                                editingActionId = action.id
-                                if let shortcut = manager.shortcuts[action.id] {
-                                    capturedKey = shortcut.key
-                                    capturedModifiers = manager.getModifiers(for: action.id)
-                                } else {
-                                    capturedKey = action.defaultKey
-                                    capturedModifiers = action.defaultModifiers
-                                }
-                            }
-                        }) {
-                            Text(editingActionId == action.id ? "Done" : "Edit")
-                                .font(DesignSystem.Typography.caption1)
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                    }
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        if editingActionId != action.id {
-                            editingActionId = action.id
-                            if let shortcut = manager.shortcuts[action.id] {
-                                capturedKey = shortcut.key
-                                capturedModifiers = manager.getModifiers(for: action.id)
-                            } else {
-                                capturedKey = action.defaultKey
-                                capturedModifiers = action.defaultModifiers
-                            }
+                            .fixedSize()
                         }
                     }
-                    .background(
-                        KeyCaptureView(
-                            isActive: editingActionId == action.id,
-                            onKeyCaptured: { key, modifiers in
-                                capturedKey = key
-                                capturedModifiers = modifiers
-                            }
-                        )
-                    )
                 }
-            } header: {
-                Label("Actions", systemImage: "keyboard.fill")
-                    .sectionHeader()
             }
-
             Section {
-                Button(action: {
-                    manager.resetToDefaults()
-                }) {
-                    Label("Reset to Defaults", systemImage: "arrow.counterclockwise")
-                        .font(DesignSystem.Typography.subheadline)
+                Button("Reset shortcuts to defaults", systemImage: "arrow.counterclockwise") {
+                    edit = nil
+                    update { try manager.resetToDefaults() }
                 }
             }
         }
         .formStyle(.grouped)
-    }
-}
-
-struct KeyCaptureView: NSViewRepresentable {
-    let isActive: Bool
-    let onKeyCaptured: (String, EventModifiers) -> Void
-
-    func makeNSView(context: Context) -> KeyCaptureNSView {
-        let view = KeyCaptureNSView()
-        view.onKeyCaptured = onKeyCaptured
-        return view
-    }
-
-    func updateNSView(_ nsView: KeyCaptureNSView, context: Context) {
-        nsView.isActive = isActive
-    }
-}
-
-class KeyCaptureNSView: NSView {
-    var isActive: Bool = false {
-        didSet {
-            if isActive {
-                window?.makeFirstResponder(self)
+        .background {
+            if edit != nil {
+                ShortcutRecorder(onCapture: { binding in edit?.binding = binding; errorMessage = nil },
+                                 onCancel: { edit = nil; errorMessage = nil })
+                    .frame(width: 0, height: 0)
             }
         }
+        .onDisappear { edit = nil }
     }
-    var onKeyCaptured: ((String, EventModifiers) -> Void)?
 
+    private func saveEdit() {
+        guard let edit else { return }
+        update { try manager.setShortcut(for: edit.command, binding: edit.binding) }
+        if errorMessage == nil { self.edit = nil }
+    }
+    private func update(_ operation: () throws -> Void) {
+        do { try operation(); errorMessage = nil }
+        catch { errorMessage = error.localizedDescription }
+    }
+}
+
+private struct ShortcutBadge: View {
+    let binding: ShortcutBinding
+    var body: some View {
+        Text(binding.display)
+            .font(.body.monospaced())
+            .padding(.horizontal, 8).padding(.vertical, 4)
+            .background(Color.appSecondaryBackground, in: RoundedRectangle(cornerRadius: 6))
+            .accessibilityLabel(binding.display)
+    }
+}
+
+/// Only the active edit owns a recorder; app shortcut routing remains native.
+struct ShortcutRecorder: NSViewRepresentable {
+    let onCapture: (ShortcutBinding) -> Void
+    let onCancel: () -> Void
+    func makeNSView(context: Context) -> ShortcutRecorderView { ShortcutRecorderView() }
+    func updateNSView(_ view: ShortcutRecorderView, context: Context) {
+        view.onCapture = onCapture
+        view.onCancel = onCancel
+        view.takeFocus()
+    }
+    static func dismantleNSView(_ view: ShortcutRecorderView, coordinator: ()) { view.restoreFocus() }
+}
+
+final class ShortcutRecorderView: NSView {
+    var onCapture: ((ShortcutBinding) -> Void)?
+    var onCancel: (() -> Void)?
+    private weak var previousResponder: NSResponder?
     override var acceptsFirstResponder: Bool { true }
-
-    override func becomeFirstResponder() -> Bool {
-        return isActive
+    override func viewDidMoveToWindow() { super.viewDidMoveToWindow(); takeFocus() }
+    func takeFocus() {
+        guard let window, window.firstResponder !== self else { return }
+        if previousResponder == nil { previousResponder = window.firstResponder }
+        window.makeFirstResponder(self)
     }
-
-    override func keyDown(with event: NSEvent) {
-        guard isActive else {
-            super.keyDown(with: event)
-            return
-        }
-
-        var key = event.charactersIgnoringModifiers ?? ""
-
-        // Handle special keys
-        if key.isEmpty {
-            switch event.keyCode {
-            case 36: key = "return"
-            case 48: key = "tab"
-            case 49: key = "space"
-            case 51: key = "delete"
-            case 53: key = "escape"
-            case 123: key = "left"
-            case 124: key = "right"
-            case 125: key = "down"
-            case 126: key = "up"
-            default:
-                if let char = event.characters?.first {
-                    key = String(char)
-                }
-            }
-        }
-
-        var modifiers: EventModifiers = []
-
-        if event.modifierFlags.contains(.command) {
-            modifiers.insert(.command)
-        }
-        if event.modifierFlags.contains(.shift) {
-            modifiers.insert(.shift)
-        }
-        if event.modifierFlags.contains(.option) {
-            modifiers.insert(.option)
-        }
-        if event.modifierFlags.contains(.control) {
-            modifiers.insert(.control)
-        }
-
-        if !key.isEmpty {
-            onKeyCaptured?(key, modifiers)
+    func restoreFocus() {
+        if window?.firstResponder === self { window?.makeFirstResponder(previousResponder) }
+        previousResponder = nil
+        onCapture = nil
+        onCancel = nil
+    }
+    override func keyDown(with event: NSEvent) { record(event) }
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        guard window?.firstResponder === self else { return false }
+        record(event)
+        return true
+    }
+    private func record(_ event: NSEvent) {
+        guard window?.firstResponder === self, !event.isARepeat else { return }
+        if event.keyCode == 53 && ShortcutModifiers.fromEvent(event.modifierFlags).isEmpty {
+            onCancel?()
+        } else if let binding = ShortcutBinding.capture(event) {
+            onCapture?(binding)
         }
     }
 }
-

@@ -10,24 +10,31 @@ import SwiftUI
     private let defaults: UserDefaults
     private let storageKey = "customKeyboardShortcuts"
     private var overrides: [AppCommand: ShortcutBinding] = [:]
-    // Keep records from newer versions without exposing or executing their IDs.
-    private var unknownRecords: [String: ShortcutInfo] = [:]
+    // Preserve unknown schemas and malformed entries without executing their IDs.
+    private var retainedRecords: [String: Any] = [:]
+    private var unreadablePayload: Data?
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         shortcuts = Dictionary(uniqueKeysWithValues: AppCommand.allCases.map { ($0, $0.defaultBinding) })
         guard let data = defaults.data(forKey: storageKey) else { return }
-        guard let records = try? JSONDecoder().decode([String: ShortcutInfo].self, from: data) else {
+        guard let records = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
+            unreadablePayload = data
             loadWarnings = ["Stored shortcuts could not be read; defaults are active."]
             return
         }
-        for (id, record) in records.sorted(by: { $0.key < $1.key }) {
-            guard let command = AppCommand(rawValue: id) else { unknownRecords[id] = record; continue }
+        for (id, rawRecord) in records.sorted(by: { $0.key < $1.key }) {
+            guard let command = AppCommand(rawValue: id) else { retainedRecords[id] = rawRecord; continue }
             do {
+                let recordData = try JSONSerialization.data(withJSONObject: rawRecord, options: [.fragmentsAllowed])
+                let record = try JSONDecoder().decode(ShortcutInfo.self, from: recordData)
                 let binding = try ShortcutBinding(info: record)
                 guard !binding.isReserved else { throw ShortcutError.reserved }
                 overrides[command] = binding
-            } catch { loadWarnings.append("\(command.name): \(error.localizedDescription)") }
+            } catch {
+                retainedRecords[id] = rawRecord
+                loadWarnings.append("\(command.name): \(error.localizedDescription)")
+            }
         }
         // Validate the whole migrated mapping, so valid swaps survive loading.
         for _ in AppCommand.allCases {
@@ -64,19 +71,39 @@ import SwiftUI
         try commit(next)
     }
 
-    func resetToDefaults() throws { try commit([:]) }
+    func resetToDefaults() throws { try commit([:], resetKnownRecords: true) }
 
     private func resolved() -> [AppCommand: ShortcutBinding] {
         Dictionary(uniqueKeysWithValues: availableActions.map { ($0, overrides[$0] ?? $0.defaultBinding) })
     }
 
-    private func commit(_ next: [AppCommand: ShortcutBinding]) throws {
-        var records = unknownRecords
-        for (command, binding) in next { records[command.rawValue] = binding.info }
-        let encoded = try JSONEncoder().encode(records)
+    private func commit(_ next: [AppCommand: ShortcutBinding], resetKnownRecords: Bool = false) throws {
+        var retained = retainedRecords
+        if resetKnownRecords {
+            retained = retained.filter { AppCommand(rawValue: $0.key) == nil }
+        }
+        for command in next.keys { retained.removeValue(forKey: command.rawValue) }
+        var records = retained
+        for (command, binding) in next {
+            let recordData = try JSONEncoder().encode(binding.info)
+            records[command.rawValue] = try JSONSerialization.jsonObject(with: recordData)
+        }
+        // Finish every fallible conversion before changing storage or published state.
+        let encoded = try JSONSerialization.data(withJSONObject: records, options: [.sortedKeys])
+        if let unreadablePayload {
+            let recoveryKey = storageKey + ".unreadableBackups"
+            var backups = defaults.array(forKey: recoveryKey) as? [Data] ?? []
+            if !backups.contains(unreadablePayload) { backups.append(unreadablePayload) }
+            defaults.set(backups, forKey: recoveryKey)
+        }
         defaults.set(encoded, forKey: storageKey)
+        unreadablePayload = nil
+        retainedRecords = retained
         overrides = next
         shortcuts = resolved()
-        loadWarnings = []
+        loadWarnings = retained.keys.sorted().compactMap { id in
+            guard let command = AppCommand(rawValue: id) else { return nil }
+            return "\(command.name): invalid stored record preserved; defaults are active."
+        }
     }
 }

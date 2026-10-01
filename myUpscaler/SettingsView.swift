@@ -1,32 +1,10 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-private struct ZeroValueIndicator: ViewModifier {
-    let isZero: Bool
-    
-    func body(content: Content) -> some View {
-        content
-            .overlay(
-                RoundedRectangle(cornerRadius: 6)
-                    .stroke(isZero ? Color.orange.opacity(0.8) : Color.clear, lineWidth: 2)
-            )
-            .background(
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(isZero ? Color.orange.opacity(0.1) : Color.clear)
-            )
-    }
-}
-
-private extension View {
-    func zeroValueIndicator(isZero: Bool) -> some View {
-        self.modifier(ZeroValueIndicator(isZero: isZero))
-    }
-}
-
-
 struct SettingsView: View {
     @ObservedObject var settings: UpscaleSettings
     @Environment(\.dismiss) private var dismiss
+    @State private var selectedTab = 0
     
     private struct UI {
         static let cornerRadius: CGFloat = 12
@@ -39,20 +17,22 @@ struct SettingsView: View {
     }
     
     var body: some View {
-        TabView {
-            aiAndFiltersTab
-            shortcutsTab
+        TabView(selection: $selectedTab) {
+            aiAndFiltersTab.tag(0)
+            shortcutsTab.tag(1)
         }
         .frame(minWidth: UI.minWidth, idealWidth: UI.idealWidth, minHeight: UI.minHeight, idealHeight: UI.idealHeight)
         .background(Color.appBackground)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button {
-                    settings.resetToDefaults()
-                } label: {
-                    Label("Reset", systemImage: "arrow.counterclockwise")
+                if selectedTab == 0 {
+                    Button {
+                        settings.resetToDefaults()
+                    } label: {
+                        Label("Reset processing settings", systemImage: "arrow.counterclockwise")
+                    }
+                    .help("Reset all processing settings to their defaults")
                 }
-                .help("Reset all settings to default values")
             }
             
             ToolbarItem(placement: .confirmationAction) {
@@ -66,25 +46,33 @@ struct SettingsView: View {
         }
     }
     
+    private func enabled(_ disabled: Binding<Bool>) -> Binding<Bool> {
+        Binding(get: { !disabled.wrappedValue }, set: { disabled.wrappedValue = !$0 })
+    }
+
     private var aiAndFiltersTab: some View {
         Form {
                 Section {
-                    Toggle(isOn: $settings.noDeblock)  { Label("Disable Deblock",  systemImage: "xmark.circle") }
-                    Toggle(isOn: $settings.noDenoise) { Label("Disable Denoise", systemImage: "xmark.circle") }
-                    Toggle(isOn: $settings.noDecimate){ Label("Disable Decimate",systemImage: "xmark.circle") }
-                    Toggle(isOn: $settings.noInterpolate){ Label("Disable Interpolate",systemImage: "xmark.circle") }
-                    Toggle(isOn: $settings.noSharpen) { Label("Disable Sharpen", systemImage: "xmark.circle") }
-                    Toggle(isOn: $settings.noDeband)  { Label("Disable Deband",  systemImage: "xmark.circle") }
-                    Toggle(isOn: $settings.noEq)      { Label("Disable EQ",      systemImage: "xmark.circle") }
-                    Toggle(isOn: $settings.noGrain)   { Label("Disable Grain",   systemImage: "xmark.circle") }
-                    Toggle(isOn: $settings.pciSafe)   { Label("PCI Safe Mode",   systemImage: "shield") }
+                    Toggle("Deblock", isOn: enabled($settings.noDeblock)).disabled(settings.scaler == "coreml")
+                    Toggle("Denoise", isOn: enabled($settings.noDenoise))
+                    Toggle("Decimate", isOn: enabled($settings.noDecimate)).disabled(settings.scaler == "coreml")
+                    Toggle("Frame interpolation", isOn: enabled($settings.noInterpolate)).disabled(settings.scaler == "coreml")
+                    Toggle("Sharpen", isOn: enabled($settings.noSharpen))
+                    Toggle("Deband", isOn: enabled($settings.noDeband))
+                    Toggle("Color equalizer", isOn: enabled($settings.noEq)).disabled(settings.scaler == "coreml")
+                    Toggle("Grain", isOn: enabled($settings.noGrain)).disabled(settings.scaler == "coreml")
+                    Toggle(isOn: $settings.pciSafe) { Label("PCI Safe Mode", systemImage: "shield") }
+                        .disabled(settings.scaler == "coreml")
+                        .help("Forces 8-bit pixel output in FFmpeg")
                 } header: {
-                    Label("Advanced Toggles", systemImage: "slider.horizontal.below.rectangle")
+                    Label("Enabled processing stages", systemImage: "slider.horizontal.below.rectangle")
                         .font(DesignSystem.Typography.headline)
+                } footer: {
+                    Text(settings.scaler == "coreml" ? "Core ML supports primary denoise, sharpen, and deband. Other stages apply to FFmpeg only." : "A stage is applied only when enabled. Its parameters are available in the video workspace.")
                 }
         }
         .formStyle(.grouped)
-        .tabItem { Label("Toggles", systemImage: "switch.2") }
+        .tabItem { Label("Processing", systemImage: "switch.2") }
     }
     
     private var shortcutsTab: some View {

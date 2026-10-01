@@ -13,14 +13,43 @@ ditto "$app" "$probe_app"
 cat > "$work_dir/probe.c" <<'C'
 #include "up60p.h"
 #include <stdio.h>
+#include <string.h>
+#include <stdatomic.h>
+#include <pthread.h>
+#include <time.h>
+#include "up60p_process.h"
 extern int execute_ffmpeg_command(char *const argv[]);
-static void log_message(const char *message) { fputs(message, stdout); }
+static atomic_bool render_started = false;
+static void log_message(const char *message) {
+    fputs(message, stdout);
+    if (strstr(message, "frame=")) atomic_store(&render_started, true);
+}
+static void *cancel_render(void *unused) {
+    (void)unused;
+    struct timespec pause = {0, 10000000};
+    for (int i = 0; i < 500 && !atomic_load(&render_started); i++) nanosleep(&pause, NULL);
+    up60p_request_cancel();
+    return NULL;
+}
 int main(void) {
     if (up60p_init(NULL, log_message) != UP60P_OK) return 1;
     char *args[] = {(char *)up60p_bundled_ffmpeg_path(), "-version", NULL};
     int result = execute_ffmpeg_command(args);
+    if (result != 0) return 1;
+    char *render[] = {(char *)up60p_bundled_ffmpeg_path(), "-nostdin", "-hide_banner",
+        "-loglevel", "error", "-progress", "pipe:1", "-f", "lavfi", "-i",
+        "color=size=16x16:rate=1", "-f", "null", "-", NULL};
+    pthread_t controller;
+    if (pthread_create(&controller, NULL, cancel_render, NULL) != 0) return 1;
+    result = execute_ffmpeg_command(render);
+    pthread_join(controller, NULL);
     up60p_shutdown();
-    return result == 0 ? 0 : 1;
+    if (!atomic_load(&render_started) || result != UP60P_PROCESS_CANCELLED) {
+        fprintf(stderr, "Sandboxed FFmpeg cancellation failed: %d\n", result);
+        return 1;
+    }
+    puts("Sandboxed bundled FFmpeg render and cancellation passed.");
+    return 0;
 }
 C
 xcrun clang -std=gnu11 -D_XOPEN_SOURCE=700 -I "$repo_dir/myUpscaler/upscaler" \
@@ -39,4 +68,7 @@ cmp "$app/Contents/MacOS/ThirdParty/FFmpeg/ffmpeg" \
 cmp "$app/Contents/MacOS/up60p-ffmpeg-supervisor" \
     "$probe_app/Contents/MacOS/up60p-ffmpeg-supervisor"
 codesign --verify --strict "$probe_app"
-"$probe_app/Contents/MacOS/myUpscaler"
+python3 - "$probe_app/Contents/MacOS/myUpscaler" <<'PYTEST'
+import subprocess, sys
+subprocess.run([sys.argv[1]], check=True, timeout=20)
+PYTEST

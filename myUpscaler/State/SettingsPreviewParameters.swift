@@ -53,13 +53,13 @@ extension UpscaleSettings {
             usmRadius: primaryUnsharp ? Self.unsharpMatrixSize(primary.usmRadius.text) : 0,
             usmAmount: primaryUnsharp ? finite(primary.usmAmount.text, fallback: 0) : 0, usmThreshold: 0,
             useDenoise2: supportsSecondStage && secondary.useDenoise,
-            denoiseStrength2: supportsSecondStage && secondary.useDenoise ? finite(effectiveDenoiseStrength2, fallback: 0) : 0,
+            denoiseStrength2: supportsSecondStage && secondary.useDenoise ? finite(secondary.denoiseStrength.text, fallback: 0) : 0,
             useDering2: secondDering, deringActive2: secondDering,
             deringStrength2: secondDering ? finite(secondary.deringStrength.text, fallback: 0) : 0,
             useSharpen2: secondSharpen, sharpenMethod2: secondSharpen ? secondary.sharpenMethod : "cas",
-            sharpenStrength2: secondSharpen && !secondUnsharp ? finite(effectiveSharpenStrength2, fallback: 0) : 0,
-            usmRadius2: secondUnsharp ? Self.unsharpMatrixSize(effectiveUsmRadius2) : 0,
-            usmAmount2: secondUnsharp ? finite(effectiveUsmAmount2, fallback: 0) : 0, usmThreshold2: 0)
+            sharpenStrength2: secondSharpen && !secondUnsharp ? finite(secondary.sharpenStrength.text, fallback: 0) : 0,
+            usmRadius2: secondUnsharp ? Self.unsharpMatrixSize(secondary.usmRadius.text) : 0,
+            usmAmount2: secondUnsharp ? finite(secondary.usmAmount.text, fallback: 0) : 0, usmThreshold2: 0)
     }
     private func finite(_ text: String, fallback: Double) -> Double {
         NumericDraft(text: text).finiteValue ?? fallback

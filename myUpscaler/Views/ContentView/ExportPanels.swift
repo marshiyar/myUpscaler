@@ -81,6 +81,7 @@ struct OutputPanel: View {
                 }
                 .padding(8)
             }
+            .groupBoxStyle(ModernGroupBoxStyle())
             .cardStyle()
         }
         .frame(maxWidth: .infinity)

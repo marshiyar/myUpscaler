@@ -8,6 +8,7 @@ bash tests/test-shortcuts.sh
 bash tests/test-shortcuts-persistence.sh
 bash tests/test-upscale-settings.sh
 bash tests/test-restoration-controls.sh
+bash tests/test-finishing-strengths.sh
 bash tests/test-editor-state.sh
 bash tests/test-timeline.sh
 bash tests/test-workspace-actions.sh

@@ -559,14 +559,14 @@ int main(void) {
             self.assertNotIn(token, result.stdout)
 
     @unittest.skipUnless(shutil.which("ffmpeg"), "requires local FFmpeg")
-    def test_real_finishing_sharpen_and_reduction_change_pixels(self):
+    def test_real_finishing_sharpen_strength_changes_pixels(self):
         ffmpeg = shutil.which("ffmpeg")
         shutil.copy2(ffmpeg, self.bundled)
         image = self.root / "input.png"
         subprocess.run([ffmpeg, "-v", "error", "-f", "lavfi", "-i",
                         "testsrc2=size=64x64", "-frames:v", "1", "-y", str(image)], check=True, timeout=8)
         pixels = []
-        for mode, strength in (("off", "0"), ("sharpen", "0"), ("sharpen", "0.6"), ("sharpen", "0.36")):
+        for mode, strength in (("off", "0"), ("sharpen", "0"), ("sharpen", "0.6"), ("sharpen", "0.4")):
             result = self.run_engine("finishing", mode, str(image), strength)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             raw = subprocess.check_output([ffmpeg, "-v", "error", "-i",
@@ -575,7 +575,7 @@ int main(void) {
             pixels.append(raw)
         self.assertEqual(pixels[0], pixels[1], "zero CAS must match bypass")
         self.assertNotEqual(pixels[0], pixels[2], "independent finishing sharpen must affect pixels")
-        self.assertNotEqual(pixels[2], pixels[3], "fixed strength reduction must affect pixels")
+        self.assertNotEqual(pixels[2], pixels[3], "different entered strengths must affect pixels")
 
     def busy_bundle(self, ignore_term=False, descendant_file=None, once=False):
         pidfile = self.root / "ffmpeg.pid"

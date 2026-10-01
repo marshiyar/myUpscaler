@@ -7,8 +7,6 @@ struct RestorationSharpenControls: View {
     @Binding var stage: RestorationStage
     @ObservedObject var settings: UpscaleSettings
     var presentation: Presentation
-    var effectiveStrength: String? = nil
-    var effectiveAmount: String? = nil
 
     var body: some View {
         switch presentation {
@@ -79,17 +77,6 @@ struct RestorationSharpenControls: View {
                             .textFieldStyle(.roundedBorder)
                             .frame(width: 35)
                     }
-                    // Show effective values if attenuated
-                    if let effectiveAmount {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("→")
-                                .font(.caption)
-                                .foregroundColor(.orange)
-                            Text("\(effectiveAmount)")
-                                .font(.caption)
-                                .foregroundColor(.orange)
-                        }
-                    }
                 }
                 .padding(.leading, 8)
             } else {
@@ -102,12 +89,6 @@ struct RestorationSharpenControls: View {
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 50)
 
-                    // Show effective value if attenuated
-                    if let effectiveStrength {
-                        Text("→\(effectiveStrength)")
-                            .font(.caption)
-                            .foregroundColor(.orange)
-                    }
                 }
                 .padding(.leading, 8)
             }

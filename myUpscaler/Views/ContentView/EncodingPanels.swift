@@ -65,6 +65,7 @@ struct X265ParametersPanel: View {
                 }
                 .padding(8)
             }
+            .groupBoxStyle(ModernGroupBoxStyle())
             .cardStyle()
         }
         .frame(maxWidth: .infinity)
@@ -227,6 +228,7 @@ struct HardwareEncodingPanel: View {
                 }
                 .padding(8)
             }
+            .groupBoxStyle(ModernGroupBoxStyle())
             .cardStyle()
         }
         .frame(maxWidth: .infinity)

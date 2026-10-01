@@ -42,12 +42,6 @@ struct RestorationSecondSetPanel: View {
                                 .textFieldStyle(.roundedBorder)
                                     .frame(width: 50)
 
-                                // Show effective value if attenuated
-                                if settings.isDenoiseStacked {
-                                    Text("→\(settings.effectiveDenoiseStrength2)")
-                                        .font(.caption)
-                                        .foregroundColor(.orange)
-                                }
                             } else {
                                 Spacer()
                             }
@@ -85,9 +79,7 @@ struct RestorationSecondSetPanel: View {
 
                         if settings.secondary.useSharpen {
                             RestorationSharpenControls(stage: $settings.secondary, settings: settings,
-                                                       presentation: .compact,
-                                                       effectiveStrength: settings.isSharpenStacked ? settings.effectiveSharpenStrength2 : nil,
-                                                       effectiveAmount: settings.isSharpenStacked ? settings.effectiveUsmAmount2 : nil)
+                                                       presentation: .compact)
 
                         }
 
@@ -115,11 +107,6 @@ struct RestorationSecondSetPanel: View {
                                         .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                                         .frame(width: 55)
-                                    if settings.isDebandStacked {
-                                        Text("→\(settings.effectiveDebandStrength2)")
-                                            .font(.caption)
-                                            .foregroundStyle(.orange)
-                                    }
                                 }
                                 .padding(.leading, 8)
                             }
@@ -150,23 +137,6 @@ struct RestorationSecondSetPanel: View {
                 } label: {
                     Label("Finishing filters (FFmpeg)", systemImage: "wand.and.stars.inverse")
                         .font(.subheadline)
-                    // Filter stacking indicator
-                    if settings.hasFilterStacking {
-                        HStack(spacing: 4) {
-                            Image(systemName: "bolt.fill")
-                                .foregroundColor(.orange)
-                                .font(.system(size: 10))
-                            Text("Fixed strength reduction")
-                                .font(.system(size: 9, weight: .medium))
-                                .foregroundColor(.orange)
-                        }
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(Color.orange.opacity(0.15))
-                        )
-                    }
                 }
             }
             .groupBoxStyle(ModernGroupBoxStyle())

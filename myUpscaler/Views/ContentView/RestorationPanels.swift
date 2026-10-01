@@ -67,6 +67,7 @@ struct RestorationFiltersPanel: View {
                 }
                 .padding(.top, 16)
             }
+            .groupBoxStyle(ModernGroupBoxStyle())
             .cardStyle()
         }
     }
@@ -186,6 +187,7 @@ struct RestorationPanel: View {
                 }
                 .padding(8)
             }
+            .groupBoxStyle(ModernGroupBoxStyle())
             .cardStyle()
         }
         .frame(maxWidth: .infinity)

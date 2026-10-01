@@ -172,28 +172,6 @@ class UpscaleRunner: ObservableObject {
             log.append("--- Starting C Engine ---\n")
         }
         self.activeEngine = selectedEngine
-        if settings.hasFilterStacking {
-            log.append("\nFixed finishing-filter strength reduction\n")
-            if settings.isSharpenStacked {
-                let factor = Int((1.0 - settings.sharpen2AttenuationFactor) * 100)
-                log.append("  • Sharpen 2nd set: −\(factor)%")
-                if settings.secondary.sharpenMethod == "cas" {
-                    log.append(" (CAS \(settings.secondary.sharpenStrength.text) → \(settings.effectiveSharpenStrength2))\n")
-                } else {
-                    log.append(" (Unsharp amount \(settings.secondary.usmAmount.text) → \(settings.effectiveUsmAmount2))\n")
-                }
-            }
-            if settings.isDenoiseStacked {
-                let factor = Int((1.0 - settings.denoise2AttenuationFactor) * 100)
-                log.append("  • Denoise 2nd set: −\(factor)% (\(settings.secondary.denoiseStrength.text) → \(settings.effectiveDenoiseStrength2))\n")
-            }
-            if settings.isDebandStacked {
-                let factor = Int((1.0 - settings.deband2AttenuationFactor) * 100)
-                log.append("  • Deband 2nd set: −\(factor)% (\(settings.secondary.debandStrength.text) → \(settings.effectiveDebandStrength2))\n")
-            }
-            log.append("Fixed multipliers; no image analysis or quality guarantee.\n\n")
-        }
-
         let isBatch = (try? fileSystem.attributesOfItem(atPath: inputPath)[.type] as? FileAttributeType) == .typeDirectory
         log.append("Input: \(inputPath)\n")
         log.append("Output: \(outputFolder())\n\n")

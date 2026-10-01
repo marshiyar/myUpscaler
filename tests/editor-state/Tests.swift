@@ -48,32 +48,30 @@ import Combine
         settings.secondary.useDering = false
         precondition(!settings.secondary.useDering, "legacy alias must update authoritative state")
         settings.secondary.useSharpen = true
-        precondition(!settings.hasFilterStacking, "disabled primary filters must not attenuate")
-        precondition(settings.effectiveSharpenStrength2 == settings.secondary.sharpenStrength.text)
         settings.primary.useSharpen = !(false)
         settings.primary.sharpenMethod = "cas"
         settings.primary.sharpenStrength.text = "0.5"
         settings.secondary.sharpenMethod = "unsharp"
         settings.secondary.usmRadius.text = "7"
-        precondition(Int(settings.effectiveUsmRadius2)! % 2 == 1, "FFmpeg unsharp requires an odd matrix size")
+        precondition(Int(String(Int(UpscaleSettings.unsharpMatrixSize(settings.secondary.usmRadius.text))))! % 2 == 1, "FFmpeg unsharp requires an odd matrix size")
         for value in ["nan", "inf", "1e300"] {
             settings.secondary.usmRadius.text = value
-            precondition(["3", "23"].contains(settings.effectiveUsmRadius2), "invalid radius must not trap")
+            precondition(["3", "23"].contains(String(Int(UpscaleSettings.unsharpMatrixSize(settings.secondary.usmRadius.text)))), "invalid radius must not trap")
         }
         settings.secondary.debandMethod = "gradfun"
         precondition(Double(settings.secondary.debandStrength.text)! >= 0.51)
         settings.secondary.debandMethod = "deband"
         precondition(Double(settings.secondary.debandStrength.text)! <= 0.1)
         settings.upscaling.scaler = "coreml"
-        precondition(!settings.hasFilterStacking, "Core ML does not export finishing filters")
+        precondition(!settings.makePreviewFilterParameters().useSharpen2, "Core ML does not export finishing filters")
         settings.upscaling.scaler = "lanczos"
         settings.primary.useSharpen = !(true)
         settings.secondary.useSharpen = false
         settings.secondary.denoiseStrength.text = "auto"
         settings.secondary.useDenoise = true
         settings.primary.useDenoise = !(false)
-        precondition(settings.effectiveDenoiseStrength2 == "auto" && !settings.isDenoiseStacked,
-                     "auto denoise is unchanged; do not claim a numeric reduction")
+        precondition(settings.secondary.denoiseStrength.text == "auto",
+                     "auto denoise remains an explicit draft")
         settings.secondary.useDenoise = false
         settings.primary.useDenoise = !(true)
         let editor = EditorState(settings: settings)
@@ -128,12 +126,12 @@ import Combine
         observed.secondary.useDenoise = true
         observed.secondary.denoiseStrength.text = "2"
         try await settle()
-        precondition(probe.last!.denoiseStrength2 == Double(observed.effectiveDenoiseStrength2),
-                     "preview must consume authoritative attenuation once")
+        precondition(probe.last!.denoiseStrength2 == 2,
+                     "preview must use the entered finishing strength with both stages enabled")
         observed.primary.useDenoise = false
         try await settle()
         precondition(probe.last!.noDenoise && probe.last!.denoiseStrength2 == 2,
-                     "primary toggle must restore secondary strength")
+                     "primary toggle must not alter finishing strength")
         coalesced.setProcessingFullUpscale(true)
         let pausedCount = probe.count
         observed.color.noEq = false
@@ -176,7 +174,7 @@ import Combine
                      "busy renderer must process only the latest pending snapshot")
         let key = PreviewRequestKey(frameGeneration: UUID(), parameters: observed.makePreviewFilterParameters())
         precondition(PreviewCacheKey(key) == PreviewCacheKey(key), "typed cache equality must compare values")
-        print("PASS preview snapshots, burst coalescing, inactive equality, attenuation, pause/resume, stale media, cache cost")
+        print("PASS preview snapshots, burst coalescing, inactive equality, independent finishing strengths, pause/resume, stale media, cache cost")
     }
 }
 

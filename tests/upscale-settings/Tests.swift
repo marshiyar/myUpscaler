@@ -202,7 +202,7 @@ import Combine
         source.primary.sharpenMethod = "cas"
         source.primary.useSharpen = true
         source.secondary.sharpenStrength.text = "0.6"
-        precondition(abs(source.makePreviewFilterParameters().sharpenStrength2 - 0.36) < 0.00001)
+        precondition(abs(source.makePreviewFilterParameters().sharpenStrength2 - 0.6) < 0.00001)
         source.primary.useSharpen = false
         precondition(source.makePreviewFilterParameters().sharpenStrength2 == 0.6)
         let before = source.makePreviewFilterParameters()
@@ -250,6 +250,6 @@ import Combine
             withExtendedLifetime(observation) {}
         }
         withExtendedLifetime(subscription) {}
-        print("PASS typed groups, preserved drafts, transactional normalization, single-publication reset/preset, legacy JSON/target-independent zero preset identity, effective preview attenuation/radius")
+        print("PASS typed groups, preserved drafts, transactional normalization, single-publication reset/preset, legacy JSON/target-independent zero preset identity, explicit preview strengths/legal radius")
     }
 }

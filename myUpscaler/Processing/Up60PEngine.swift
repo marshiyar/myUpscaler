@@ -197,28 +197,25 @@ final class Up60PEngine {
 
         setString(&opts.grain_strength, MemoryLayout.size(ofValue: opts.grain_strength), settings.primary.grainStrength.text)
 
-        // MARK: Second set (using EFFECTIVE values for intelligent attenuation when stacking)
+        // MARK: Second set (explicit stage values)
         setString(&opts.denoiser_2, MemoryLayout.size(ofValue: opts.denoiser_2), settings.secondary.denoiser)
-        // Use EFFECTIVE (attenuated) denoise strength for second set
-        setString(&opts.denoise_strength_2, MemoryLayout.size(ofValue: opts.denoise_strength_2), settings.effectiveDenoiseStrength2)
+        setString(&opts.denoise_strength_2, MemoryLayout.size(ofValue: opts.denoise_strength_2), settings.secondary.denoiseStrength.text)
         setString(&opts.deblock_mode_2, MemoryLayout.size(ofValue: opts.deblock_mode_2), settings.secondary.deblockMode)
         setString(&opts.deblock_thresh_2, MemoryLayout.size(ofValue: opts.deblock_thresh_2), settings.secondary.deblockThresh.text)
         opts.dering_active_2 = settings.secondary.useDering ? 1 : 0
         setString(&opts.dering_strength_2, MemoryLayout.size(ofValue: opts.dering_strength_2), settings.secondary.deringStrength.text)
 
         setString(&opts.sharpen_method_2, MemoryLayout.size(ofValue: opts.sharpen_method_2), settings.secondary.sharpenMethod)
-        // Use EFFECTIVE (attenuated) values for second set to prevent over-processing when stacking
-        setString(&opts.sharpen_strength_2, MemoryLayout.size(ofValue: opts.sharpen_strength_2), settings.effectiveSharpenStrength2)
-        setString(&opts.usm_radius_2, MemoryLayout.size(ofValue: opts.usm_radius_2), settings.effectiveUsmRadius2)
-        setString(&opts.usm_amount_2, MemoryLayout.size(ofValue: opts.usm_amount_2), settings.effectiveUsmAmount2)
+        setString(&opts.sharpen_strength_2, MemoryLayout.size(ofValue: opts.sharpen_strength_2), settings.secondary.sharpenStrength.text)
+        setString(&opts.usm_radius_2, MemoryLayout.size(ofValue: opts.usm_radius_2), String(Int(UpscaleSettings.unsharpMatrixSize(settings.secondary.usmRadius.text))))
+        setString(&opts.usm_amount_2, MemoryLayout.size(ofValue: opts.usm_amount_2), settings.secondary.usmAmount.text)
         setString(&opts.usm_threshold_2, MemoryLayout.size(ofValue: opts.usm_threshold_2), settings.secondary.usmThreshold.text)
 
         setString(&opts.deband_method_2, MemoryLayout.size(ofValue: opts.deband_method_2), settings.secondary.debandMethod)
-        // Use EFFECTIVE (attenuated) deband values for second set
-        setString(&opts.deband_strength_2, MemoryLayout.size(ofValue: opts.deband_strength_2), settings.effectiveDebandStrength2)
+        setString(&opts.deband_strength_2, MemoryLayout.size(ofValue: opts.deband_strength_2), settings.secondary.debandStrength.text)
         setString(&opts.f3kdb_range_2, MemoryLayout.size(ofValue: opts.f3kdb_range_2), settings.secondary.f3kdbRange.text)
-        setString(&opts.f3kdb_y_2, MemoryLayout.size(ofValue: opts.f3kdb_y_2), settings.effectiveF3kdbY2)
-        setString(&opts.f3kdb_cbcr_2, MemoryLayout.size(ofValue: opts.f3kdb_cbcr_2), settings.effectiveF3kdbCbCr2)
+        setString(&opts.f3kdb_y_2, MemoryLayout.size(ofValue: opts.f3kdb_y_2), settings.secondary.f3kdbY.text)
+        setString(&opts.f3kdb_cbcr_2, MemoryLayout.size(ofValue: opts.f3kdb_cbcr_2), settings.secondary.f3kdbCbCr.text)
 
         setString(&opts.grain_strength_2, MemoryLayout.size(ofValue: opts.grain_strength_2), settings.secondary.grainStrength.text)
 
@@ -274,28 +271,6 @@ final class Up60PEngine {
         if let message = codecDecision.message { log(message) }
         settings.codec.useHEVC = codecDecision.useHEVC
 
-        struct StackingSnapshot {
-            let has: Bool
-            let sharpen: Bool
-            let denoise: Bool
-            let deband: Bool
-            let sharpenPct: Int
-            let denoisePct: Int
-            let debandPct: Int
-        }
-
-        let stackingSnapshot = await MainActor.run { () -> StackingSnapshot in
-            let has = settings.hasFilterStacking
-            let sharpen = settings.isSharpenStacked
-            let denoise = settings.isDenoiseStacked
-            let deband = settings.isDebandStacked
-            let sharpenPct = Int((1.0 - settings.sharpen2AttenuationFactor) * 100)
-            let denoisePct = Int((1.0 - settings.denoise2AttenuationFactor) * 100)
-            let debandPct = Int((1.0 - settings.deband2AttenuationFactor) * 100)
-            return StackingSnapshot(has: has, sharpen: sharpen, denoise: denoise, deband: deband,
-                                    sharpenPct: sharpenPct, denoisePct: denoisePct, debandPct: debandPct)
-        }
-
         // Freeze UI-owned settings before the detached native worker starts.
         let options = try makeOptions(from: settings, outputDir: outputDirectory)
         let inspectSourceTiming = !settings.modes.noInterpolate && settings.video.interpolation != "dup" &&
@@ -334,24 +309,6 @@ final class Up60PEngine {
                     if handler != nil {
                         await MainActor.run {
                             Up60PEngine.currentLogHandler?("Starting Video Processing...\n")
-                        }
-                    }
-
-                    if stackingSnapshot.has {
-                        await MainActor.run {
-                            Up60PEngine.currentLogHandler?("\nFixed finishing-filter strength reduction:\n")
-
-                            if stackingSnapshot.sharpen {
-                                Up60PEngine.currentLogHandler?("  • Sharpen 2nd set: reduced by \(stackingSnapshot.sharpenPct)%\n")
-                            }
-                            if stackingSnapshot.denoise {
-                                Up60PEngine.currentLogHandler?("  • Denoise 2nd set: reduced by \(stackingSnapshot.denoisePct)%\n")
-                            }
-                            if stackingSnapshot.deband {
-                                Up60PEngine.currentLogHandler?("  • Deband 2nd set: reduced by \(stackingSnapshot.debandPct)%\n")
-                            }
-
-                            Up60PEngine.currentLogHandler?("\n")
                         }
                     }
 

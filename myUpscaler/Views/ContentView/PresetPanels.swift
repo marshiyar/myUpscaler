@@ -65,6 +65,7 @@ struct SavedPresetsPanel: View {
                 }
                 .padding(8)
             }
+            .groupBoxStyle(ModernGroupBoxStyle())
             .cardStyle()
         }
     }

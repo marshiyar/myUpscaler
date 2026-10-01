@@ -78,6 +78,7 @@ struct ContentView: View {
         .onChange(of: settings.upscalingUnavailableReason) { _, _ in dispatcher.refreshAvailability() }
         .onChange(of: showSettings) { _, _ in dispatcher.refreshAvailability() }
         .onChange(of: showAbout) { _, _ in dispatcher.refreshAvailability() }
+        .onChange(of: enlargedFrameImage != nil) { _, _ in dispatcher.refreshAvailability() }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if !runner.inputPath.isEmpty || runner.isRunning {
                 HStack(spacing: 20) {
@@ -169,7 +170,7 @@ struct ContentView: View {
     }
 
     private func configureCommands() {
-        let workspaceAvailable = { !showSettings && !showAbout && NSApplication.shared.modalWindow == nil }
+        let workspaceAvailable = { !showSettings && !showAbout && enlargedFrameImage == nil && NSApplication.shared.modalWindow == nil }
         dispatcher.configure([
             .runUpscaler: .init(isEnabled: { workspaceAvailable() && !runner.isRunning && !runner.inputPath.isEmpty && settings.upscalingUnavailableReason == nil }, perform: runner.run),
             .cancel: .init(isEnabled: { runner.isRunning && !runner.isCancelling }, perform: runner.cancel),

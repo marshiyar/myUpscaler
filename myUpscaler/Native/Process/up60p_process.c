@@ -15,6 +15,7 @@
 
 extern char **environ;
 static pthread_mutex_t execution_lock = PTHREAD_MUTEX_INITIALIZER;
+static bool execution_active = false;
 static pthread_mutex_t state_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t stopped = PTHREAD_COND_INITIALIZER;
 static pid_t active_supervisor = 0;
@@ -47,7 +48,14 @@ void up60p_stop_processes(void) {
 }
 
 int up60p_execute_owned_process(const char *supervisor, char *const argv[], up60p_log_callback callback) {
-    if (pthread_mutex_trylock(&execution_lock) != 0) return -1;
+    // Claim one invocation without holding a mutex across I/O or callbacks.
+    pthread_mutex_lock(&execution_lock);
+    if (execution_active) {
+        pthread_mutex_unlock(&execution_lock);
+        return -1;
+    }
+    execution_active = true;
+    pthread_mutex_unlock(&execution_lock);
     int owner[2] = {-1, -1}, output[2] = {-1, -1}, errors[2] = {-1, -1};
     int result = -1;
     size_t count = 0;
@@ -126,6 +134,9 @@ cleanup:
     close_pipe(owner);
     close_pipe(output);
     close_pipe(errors);
+    // The claim outlives child reaping and all local resource cleanup.
+    pthread_mutex_lock(&execution_lock);
+    execution_active = false;
     pthread_mutex_unlock(&execution_lock);
     return result;
 }

@@ -588,6 +588,60 @@ int main(void) {
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("PASS four setup failures", result.stdout)
 
+    def test_execution_claim_rejects_reentrant_and_concurrent_callback_jobs(self):
+        source = self.root / "process-claim.c"
+        source.write_text(r"""
+#define _DARWIN_C_SOURCE 1
+#define _POSIX_C_SOURCE 200809L
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <sys/wait.h>
+bool up60p_is_cancelled(void) { return false; }
+#include "up60p_process.c"
+static int callback_count;
+static void *concurrent(void *unused) {
+    (void)unused;
+    char *arguments[] = {"/usr/bin/true", NULL};
+    return (void *)(intptr_t)up60p_execute_owned_process("/usr/bin/true", arguments, NULL);
+}
+static void reentrant_log(const char *message) {
+    (void)message;
+    callback_count++;
+    // The ownership claim is active, but log handling must not hold its mutex.
+    if (pthread_mutex_trylock(&execution_lock) != 0) exit(20);
+    pthread_mutex_unlock(&execution_lock);
+    char *arguments[] = {"/usr/bin/true", NULL};
+    if (up60p_execute_owned_process("/usr/bin/true", arguments, NULL) != -1) exit(21);
+    pthread_t thread;
+    void *result = NULL;
+    if (pthread_create(&thread, NULL, concurrent, NULL) != 0) exit(22);
+    if (pthread_join(thread, &result) != 0 || (intptr_t)result != -1) exit(23);
+}
+int main(void) {
+    char *arguments[] = {"/bin/echo", "log callback", NULL};
+    if (up60p_execute_owned_process("/bin/echo", arguments, reentrant_log) != 0) return 24;
+    if (callback_count == 0) return 25;
+    char *next[] = {"/usr/bin/true", NULL};
+    if (up60p_execute_owned_process("/usr/bin/true", next, NULL) != 0) return 26;
+    int status;
+    errno = 0;
+    if (waitpid(-1, &status, WNOHANG) != -1 || errno != ECHILD) return 27;
+    puts("PASS callback mutex released, reentrant/concurrent jobs rejected, next job reaped");
+    return 0;
+}
+""")
+        executable = self.root / "process-claim"
+        subprocess.run([os.environ.get("CC", "cc"), "-std=c11",
+                        *(["-arch", "arm64"] if sys.platform == "darwin" else []),
+                        "-I", str(ROOT / "myUpscaler/Native/Process"),
+                        str(source), "-pthread", "-o", str(executable)], check=True)
+        result = subprocess.run([str(executable)], capture_output=True, text=True, timeout=8)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("PASS callback mutex released", result.stdout)
+
     def test_cancel_stops_busy_ffmpeg(self):
         pidfile = self.busy_bundle()
         result = self.run_engine("cancel", str(pidfile))

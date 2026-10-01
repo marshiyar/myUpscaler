@@ -41,7 +41,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          bash scripts/prepare-bundled-ffmpeg.sh
+          status=0
+          bash scripts/prepare-bundled-ffmpeg.sh > "$RUNNER_TEMP/ffmpeg-preparation.log" 2>&1 || status=$?
+          cat "$RUNNER_TEMP/ffmpeg-preparation.log"
+          if [[ $status -ne 0 ]]; then
+            python3 - "$RUNNER_TEMP/ffmpeg-preparation.log" <<'PY'
+          import pathlib, sys
+          message = pathlib.Path(sys.argv[1]).read_text()[-8000:]
+          print('::error::' + message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A'))
+          PY
+            exit "$status"
+          fi
 
       - name: Test bundled executable resolution
         run: python3 -m unittest discover -s tests -p 'test_bundled_ffmpeg*.py'

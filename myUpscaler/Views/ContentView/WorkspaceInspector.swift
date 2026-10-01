@@ -13,14 +13,18 @@ struct WorkspaceInspector: View {
     @State private var page: Page = .upscale
     @State private var showEncoding = false
     @State private var showExtra = false
+    private let finishingInitiallyExpanded: Bool
 
     init(runner: UpscaleRunner, settings: UpscaleSettings, presetStore: PresetStore,
-         chooseOutputFolder: @escaping () -> Void, initialPage: Page = .upscale) {
+         chooseOutputFolder: @escaping () -> Void, initialPage: Page = .upscale,
+         extraInitiallyExpanded: Bool = false, finishingInitiallyExpanded: Bool = false) {
         self.runner = runner
         self.settings = settings
         self.presetStore = presetStore
         self.chooseOutputFolder = chooseOutputFolder
         _page = State(initialValue: initialPage)
+        _showExtra = State(initialValue: extraInitiallyExpanded)
+        self.finishingInitiallyExpanded = finishingInitiallyExpanded
     }
 
     private func enabled(_ disabled: Binding<Bool>) -> Binding<Bool> {
@@ -43,31 +47,28 @@ struct WorkspaceInspector: View {
                 case .restore:
                     primaryFilters
                     colorFilters
-                    Section("Additional filters") {
-                        DisclosureGroup("Deblock, deband and grain", isExpanded: $showExtra) {
-                            Toggle("Deblock", isOn: $settings.primary.useDeblock).disabled(settings.upscaling.scaler == "coreml")
-                            Toggle("Deband", isOn: $settings.primary.useDeband)
-                            Toggle("Grain", isOn: $settings.primary.useGrain).disabled(settings.upscaling.scaler == "coreml")
-                            RestorationPanel(settings: settings).disabled(settings.upscaling.scaler == "coreml")
+                    Section {
+                        DisclosureGroup("Additional filters", isExpanded: $showExtra) {
+                            RestorationPanel(settings: settings)
                             if settings.upscaling.scaler == "coreml" {
                                 Text("Core ML debanding uses its pipeline settings in Settings.")
                                     .font(.caption).foregroundStyle(.secondary)
                             }
                         }
                     }
-                    Section { RestorationSecondSetPanel(settings: settings) }
+                    Section { RestorationSecondSetPanel(settings: settings, initiallyExpanded: finishingInitiallyExpanded) }
                 case .output:
                     Section { OutputPanel(outputMode: $runner.outputMode, customOutputFolder: $runner.customOutputFolder,
                                           predictedName: runner.inputPath.isEmpty ? "Choose a video first" : runner.predictedOutputName,
                                           chooseFolder: chooseOutputFolder) }
-                    Section("Encoding") {
+                    Section {
                         HardwareEncodingPanel(settings: settings)
                         DisclosureGroup("CPU HEVC parameters", isExpanded: $showEncoding) {
                             X265ParametersPanel(settings: settings)
                         }
                         .disabled(!settings.codec.useHEVC || settings.hardware.encoder == "videotoolbox" || settings.upscaling.scaler == "coreml")
                     }
-                    Section("Presets") { SavedPresetsPanel(presetStore: presetStore, settings: settings, isProcessing: runner.isRunning) }
+                    Section { SavedPresetsPanel(presetStore: presetStore, settings: settings, isProcessing: runner.isRunning) }
                 }
             }
             .formStyle(.grouped)
@@ -119,7 +120,7 @@ struct WorkspaceInspector: View {
     }
 
     private var colorFilters: some View {
-        Section("Color equalizer") {
+        Section {
             Toggle("Color equalizer", isOn: enabled($settings.color.noEq))
             if settings.upscaling.scaler == "coreml" {
                 Text("Preview only for Core ML; these colors are not applied to its export.")

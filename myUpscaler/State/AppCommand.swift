@@ -17,6 +17,17 @@ nonisolated enum AppCommand: String, CaseIterable, Identifiable, Codable, Sendab
         case .toggleInspector: "Show or hide adjustments"
         }
     }
+    var purpose: String {
+        switch self {
+        case .runUpscaler: "Start exporting the imported video with the current settings."
+        case .cancel: "Stop the current processing job."
+        case .openSettings: "Open application preferences and shortcut settings."
+        case .openAbout: "Show application information and credits."
+        case .chooseInput: "Select a video or a folder to process."
+        case .chooseOutput: "Select the destination for exported videos."
+        case .toggleInspector: "Open or close the docked adjustment panel."
+        }
+    }
     var defaultBinding: ShortcutBinding {
         let key: String
         switch self {
@@ -55,13 +66,14 @@ nonisolated enum ShortcutModifiers {
 }
 
 nonisolated enum ShortcutError: Error, LocalizedError, Equatable {
-    case invalidKey, unsupportedModifier, reserved, conflict(AppCommand)
+    case invalidKey, unsupportedModifier, reserved, conflict(AppCommand), staleConflict
     var errorDescription: String? {
         switch self {
         case .invalidKey: "Choose one character or a supported special key."
         case .unsupportedModifier: "Only Command, Shift, Option and Control are supported."
         case .reserved: "That combination is reserved by macOS or dialog controls."
-        case .conflict(let command): "Already assigned to \(command.name). Move that binding first, or swap the two commands."
+        case .staleConflict: "Shortcuts changed while resolving this conflict. Record the combination again."
+        case .conflict(let command): "Already assigned to \(command.name). Resolve the conflict or choose a different combination."
         }
     }
 }

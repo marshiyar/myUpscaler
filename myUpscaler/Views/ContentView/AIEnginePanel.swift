@@ -4,16 +4,17 @@ import Combine
 import UniformTypeIdentifiers
 
 struct AIEnginePanel: View {
+    @Environment(\.workspaceInspector) private var inInspector
     @ObservedObject var settings: UpscaleSettings
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack {
+            if !inInspector { HStack {
                 Label("Upscaling", systemImage: "arrow.up.left.and.arrow.down.right")
                     .font(.subheadline.weight(.semibold))
                 Spacer()
             }
-            .padding(.bottom, 2)
+            .padding(.bottom, 2) }
 
             GroupBox {
                 VStack(spacing: 8) {

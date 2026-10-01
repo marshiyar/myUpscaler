@@ -4,6 +4,7 @@ import Combine
 import UniformTypeIdentifiers
 
 struct OutputPanel: View {
+    @Environment(\.workspaceInspector) private var inInspector
     @Binding var outputMode: UpscaleRunner.OutputMode
     @Binding var customOutputFolder: String
     let predictedName: String
@@ -11,12 +12,12 @@ struct OutputPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack {
+            if !inInspector { HStack {
                 Label("Output", systemImage: "folder.fill")
                     .font(.subheadline.weight(.semibold))
                 Spacer()
             }
-            .padding(.bottom, 2)
+            .padding(.bottom, 2) }
 
             GroupBox {
                 VStack(alignment: .leading, spacing: 8) {
@@ -191,8 +192,6 @@ struct LogPanel: View {
         VStack(alignment: .leading, spacing: 10) {
             if let outputPath = runner.completedOutputPath, !runner.isRunning {
                 HStack(spacing: 8) {
-                    Label("Export complete", systemImage: "checkmark.circle.fill")
-                        .font(.subheadline.weight(.medium))
                     Spacer()
                     Button("Open") { openVideoFile(at: outputPath) }.buttonStyle(.borderedProminent)
                     Button("Show in Finder") { revealVideoFile(at: outputPath) }.buttonStyle(.bordered)

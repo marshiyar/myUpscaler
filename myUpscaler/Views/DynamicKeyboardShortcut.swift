@@ -29,7 +29,7 @@ private struct CommandMenuItems: View {
     var body: some View {
         ForEach(AppCommand.allCases) { command in
             Button(command.name) { dispatcher.perform(command) }
-                .keyboardShortcut(manager.binding(for: command).native)
+                .keyboardShortcut(manager.binding(for: command)?.native)
                 .disabled(!dispatcher.canPerform(command))
         }
     }

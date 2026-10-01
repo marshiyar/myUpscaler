@@ -32,17 +32,21 @@ import SwiftUI
         defer { defaults.removePersistentDomain(forName: suite) }
         let manager = KeyboardShortcutsManager(defaults: defaults)
         precondition(manager.shortcuts.count == AppCommand.allCases.count)
-        precondition(manager.binding(for: .toggleInspector) == AppCommand.toggleInspector.defaultBinding)
+        precondition(manager.binding(for: .toggleInspector)! == AppCommand.toggleInspector.defaultBinding)
         do { try manager.setShortcut(for: .runUpscaler, binding: AppCommand.toggleInspector.defaultBinding); preconditionFailure("Inspector conflict must fail") }
         catch ShortcutError.conflict(.toggleInspector) {}
-        expectError(.conflict(.chooseInput)) { try manager.setShortcut(for: .runUpscaler, binding: manager.binding(for: .chooseInput)) }
+        expectError(.conflict(.chooseInput)) { try manager.setShortcut(for: .runUpscaler, binding: manager.binding(for: .chooseInput)!) }
         expectError(.reserved) { try manager.setShortcut(for: .runUpscaler, binding: ShortcutBinding(key: "q", modifiers: .command)) }
         try manager.setShortcut(for: .runUpscaler, binding: ShortcutBinding(key: "x", modifiers: [.command, .option]))
         let restored = KeyboardShortcutsManager(defaults: defaults)
-        precondition(restored.binding(for: .runUpscaler) == manager.binding(for: .runUpscaler))
-        try manager.swapBindings(.runUpscaler, .chooseInput)
-        let swapped = KeyboardShortcutsManager(defaults: defaults)
-        precondition(swapped.binding(for: .chooseInput).key == "x" && swapped.binding(for: .runUpscaler).key == "o")
+        precondition(restored.binding(for: .runUpscaler)! == manager.binding(for: .runUpscaler)!)
+        let beforeConflict = defaults.data(forKey: "customKeyboardShortcuts")
+        let beforeBindings = manager.shortcuts
+        expectError(.conflict(.chooseInput)) { try manager.setShortcut(for: .runUpscaler, binding: manager.binding(for: .chooseInput)!) }
+        precondition(manager.shortcuts == beforeBindings && defaults.data(forKey: "customKeyboardShortcuts") == beforeConflict)
+        precondition(ShortcutError.conflict(.chooseInput).localizedDescription.contains(AppCommand.chooseInput.name))
+        let unchanged = KeyboardShortcutsManager(defaults: defaults)
+        precondition(unchanged.binding(for: .runUpscaler)!.key == "x" && unchanged.binding(for: .chooseInput)!.key == "o")
         var legacy: [String: ShortcutInfo] = [
             "runUpscaler": ShortcutInfo(key: "r", modifiers: ["command", "command"]),
             "chooseInput": ShortcutInfo(key: "oops", modifiers: ["command"]),
@@ -51,16 +55,16 @@ import SwiftUI
         ]
         defaults.set(try JSONEncoder().encode(legacy), forKey: "customKeyboardShortcuts")
         let migrated = KeyboardShortcutsManager(defaults: defaults)
-        precondition(migrated.binding(for: .chooseInput).key == "o")
+        precondition(migrated.binding(for: .chooseInput)!.key == "o")
         precondition(migrated.loadWarnings.count == 2)
-        try migrated.setShortcut(for: .openAbout, binding: migrated.binding(for: .openAbout))
+        try migrated.setShortcut(for: .openAbout, binding: migrated.binding(for: .openAbout)!)
         let stored = try JSONDecoder().decode([String: ShortcutInfo].self, from: defaults.data(forKey: "customKeyboardShortcuts")!)
         precondition(stored["futureAction"] == legacy["futureAction"], "Unknown newer command must survive")
         precondition(stored["runUpscaler"] != nil, "Same-as-default customization must remain intentional")
         legacy["chooseInput"] = ShortcutInfo(key: "r", modifiers: ["command"])
         defaults.set(try JSONEncoder().encode(legacy), forKey: "customKeyboardShortcuts")
         let conflicting = KeyboardShortcutsManager(defaults: defaults)
-        precondition(conflicting.binding(for: .runUpscaler).key == "r" && conflicting.binding(for: .chooseInput).key == "o")
+        precondition(conflicting.binding(for: .runUpscaler)!.key == "r" && conflicting.binding(for: .chooseInput)!.key == "o")
         try migrated.resetToDefaults()
         precondition(migrated.shortcuts == Dictionary(uniqueKeysWithValues: AppCommand.allCases.map { ($0, $0.defaultBinding) }))
         let resetStored = try JSONDecoder().decode([String: ShortcutInfo].self, from: defaults.data(forKey: "customKeyboardShortcuts")!)
@@ -118,6 +122,6 @@ import SwiftUI
         recorder.keyDown(with: key("z", code: 6)); precondition(executions == 11, "Latest callback must be used")
         recorder.keyDown(with: key("\u{1b}", code: 53)); precondition(cancelled)
         recorder.restoreFocus(); precondition(window.firstResponder === previous)
-        print("PASS modifier codec, validated keys/specials, injected persistence/migration/conflicts/swap/reset, dispatcher guards and native recorder/focus")
+        print("PASS modifier codec, validated keys/specials, injected persistence/migration/conflicts/failed-save/reset, dispatcher guards and native recorder/focus")
     }
 }

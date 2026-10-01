@@ -109,4 +109,4 @@ The separately distributed [FFmpeg](https://ffmpeg.org/) executable is GPL-3.0-o
 
 ### Keyboard controls
 
-The **Video** menu and workspace buttons share the same command dispatcher. Defaults: ⌘O imports, ⌘R exports, ⌘. cancels, ⌘⇧O chooses the output folder, ⌘, opens Settings, ⌘⇧I opens About, and ⌘⌥I toggles the docked adjustments panel. Change bindings in Settings; conflicts are rejected and existing bindings can be swapped. Recording one binding does not activate other commands.
+The **Video** menu and workspace buttons share the same command dispatcher. Defaults: ⌘O imports, ⌘R exports, ⌘. cancels, ⌘⇧O chooses the output folder, ⌘, opens Settings, ⌘⇧I opens About, and ⌘⌥I toggles the docked adjustments panel. Change bindings in Settings; use Edit to record a combination, then Save or Cancel. A conflicting recording opens one resolver showing both commands and bindings: Swap exchanges them, Clear both leaves both explicitly unassigned, and Cancel changes nothing. Unassigned commands remain available in the Video menu. Recording one binding does not activate other commands.

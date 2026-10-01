@@ -7,15 +7,13 @@ struct RestorationSecondSetPanel: View {
     @ObservedObject var settings: UpscaleSettings
     @State private var isExpanded: Bool = false
 
+    init(settings: UpscaleSettings, initiallyExpanded: Bool = false) {
+        self.settings = settings
+        _isExpanded = State(initialValue: initiallyExpanded)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Label("Finishing filters (FFmpeg)", systemImage: "wand.and.stars.inverse")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(.primary)
-                Spacer()
-            }
-            .padding(.bottom, 4)
             if settings.upscaling.scaler == "coreml" {
                 Text("Unavailable for Core ML export")
                     .font(.caption)
@@ -201,7 +199,7 @@ struct RestorationSecondSetPanel: View {
                     }
                     .padding(8)
                 } label: {
-                    Text("Filters after scaling")
+                    Label("Finishing filters (FFmpeg)", systemImage: "wand.and.stars.inverse")
                         .font(.subheadline)
                     // Filter stacking indicator
                     if settings.hasFilterStacking {

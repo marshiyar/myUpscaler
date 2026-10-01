@@ -46,6 +46,13 @@ jobs:
       - name: Test bundled executable resolution
         run: python3 -m unittest discover -s tests -p 'test_bundled_ffmpeg*.py'
 
+      - name: Test upscaling mode availability
+        run: |
+          set -euo pipefail
+          xcrun swiftc myUpscaler/UpscalingModeSupport.swift tests/upscaling-mode-support/main.swift \
+            -o "$RUNNER_TEMP/upscaling-mode-tests"
+          "$RUNNER_TEMP/upscaling-mode-tests"
+
       - name: Build Debug app
         shell: bash
         run: |

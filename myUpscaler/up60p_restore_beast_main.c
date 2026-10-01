@@ -263,26 +263,8 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
         }
     }
     
-    if (!strcmp(S.scaler, "zscale")) {
-        sb_fmt(&vf, "zscale=w=trunc(iw*%s/2)*2:h=trunc(ih*%s/2)*2:filter=lanczos:dither=error_diffusion,", S.scale_factor, S.scale_factor);
-    } else if (!strcmp(S.scaler, "ai")) {
-        if (!strcmp(S.ai_backend, "sr")) {
-            sb_fmt(&vf, "sr=dnn_backend=%s:model='%s'", S.dnn_backend, S.ai_model);
-            if (!strcmp(S.ai_model_type, "srcnn")) sb_fmt(&vf, ":scale_factor=%s", S.scale_factor);
-            sb_append(&vf, ",");
-        } else {
-            sb_fmt(&vf, "dnn_processing=dnn_backend=%s:model='%s':input=x:output=y,", S.dnn_backend, S.ai_model);
-        }
-    } else if (!strcmp(S.scaler, "hw")) {
-        if (!strcmp(S.hwaccel,"cuda")) {
-            sb_fmt(&vf, "scale_npp=trunc(iw*%s/2)*2:trunc(ih*%s/2)*2,", S.scale_factor, S.scale_factor);
-        } else {
-            sb_fmt(&vf, "scale=trunc(iw*%s/2)*2:trunc(ih*%s/2)*2:flags=lanczos,", S.scale_factor, S.scale_factor);
-        }
-    } else {
-        sb_fmt(&vf, "scale=trunc(iw*%s/2)*2:trunc(ih*%s/2)*2:flags=lanczos+accurate_rnd,", S.scale_factor, S.scale_factor);
-    }
-    
+    sb_fmt(&vf, "scale=trunc(iw*%s/2)*2:trunc(ih*%s/2)*2:flags=lanczos+accurate_rnd,", S.scale_factor, S.scale_factor);
+
     if (!S.no_sharpen) {
         if (!strcmp(S.sharpen_method, "unsharp")) {
             sb_fmt(&vf, "unsharp=%s:%s:%s,", S.usm_radius, S.usm_radius, S.usm_amount);
@@ -553,6 +535,12 @@ up60p_error up60p_process_path(const char *input_path,
                                const up60p_options *opts)
 {
     if (!input_path || !opts) return UP60P_ERR_INVALID_OPTIONS;
+    /* Only Lanczos is supported by this app's pinned FFmpeg engine. CoreML
+     * runs in Swift. Do not execute legacy SR/DNN, zscale, or hardware modes. */
+    if (strncmp(opts->scaler, "lanczos", sizeof(opts->scaler)) != 0) {
+        if (global_log_cb) global_log_cb("Selected upscaling mode is unsupported by the bundled FFmpeg engine. Choose Lanczos.\n");
+        return UP60P_ERR_UNSUPPORTED_SCALER;
+    }
     const char *ffmpeg = up60p_bundled_ffmpeg_path();
     if (!ffmpeg) return UP60P_ERR_FFMPEG_NOT_FOUND;
     

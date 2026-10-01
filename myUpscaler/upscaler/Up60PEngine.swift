@@ -8,6 +8,7 @@ enum Up60PEngineError: Error, Equatable {
     case internalError
     case unknownStatus(Int32)
     case notInitialized
+    case unsupportedScaler
 }
 
 struct Up60PBridge {
@@ -149,6 +150,7 @@ final class Up60PEngine {
         case UP60P_ERR_IO:                return .io
         case UP60P_ERR_INTERNAL:          return .internalError
         case UP60P_ERR_CANCELLED:         return .internalError
+        case UP60P_ERR_UNSUPPORTED_SCALER: return .unsupportedScaler
         case UP60P_OK:                    return nil
         default:
             return .unknownStatus(Int32(code.rawValue))
@@ -174,6 +176,9 @@ final class Up60PEngine {
     private func makeOptions(from settings: UpscaleSettings,
                              outputDir: String) throws -> up60p_options
     {
+        guard settings.scaler == "lanczos" else {
+            throw Up60PEngineError.unsupportedScaler
+        }
         try ensureInitialized()
         
         var opts = up60p_options()

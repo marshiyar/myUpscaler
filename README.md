@@ -1,6 +1,6 @@
 myUpscaler
 ==========
-macOS SwiftUI app for AI-powered video upscaling. The app drives a custom C/FFmpeg pipeline with a Swift bridge and can switch to an on-device CoreML Real-ESRGAN.
+macOS SwiftUI video upscaler. The app drives a custom C/FFmpeg pipeline with a Swift bridge. CoreML Real-ESRGAN is available when its model assets are included in the app.
 
 License
 -------
@@ -34,10 +34,13 @@ and Intel executables into a universal binary. Xcode copies and signs it in the
 app bundle. These binaries require macOS 15.0+; this project's app target
 currently requires macOS 15.2.
 
-The bundle supports ordinary video processing, but its SR/DNN and zscale filter
-availability must be checked before choosing those modes. Sharing mpvfx's
-binary does not add DNN backends or provide AI model files. The macOS CI workflow
-prints filter availability and builds the app; it does not validate AI inference.
+The shipped FFmpeg engine offers Lanczos upscaling. Unsupported legacy SR/DNN,
+zscale, and hardware-scaler choices and their controls are removed. CoreML is
+shown only when model assets are bundled, and its model picker lists only
+included models. Older presets selecting an unavailable mode or missing model
+show an explanation and cannot start until a supported choice is selected.
+The native FFmpeg engine also rejects unsupported scaler values directly.
+Hardware decode/encoding options are separate from the removed hardware scaler.
 
 The separately distributed FFmpeg executable is GPL-3.0-or-later. The GPL text
 and a distribution notice are included as app resources. Its provenance,
@@ -48,6 +51,8 @@ source with public binary releases.
 Run `python3 -m unittest discover -s tests -p 'test_bundled_ffmpeg*.py'` on Linux
 or macOS to test bundle resolution, native engine execution, missing binaries,
 and rejection of external paths and symlinks.
+The macOS CI also runs the Swift upscaling-availability checks in
+`tests/upscaling-mode-support/main.swift` before building the app.
 
 Troubleshooting
 ---------------

@@ -34,6 +34,10 @@ chmod +x "$work_dir/ffmpeg"
 codesign --force --sign - "$work_dir/ffmpeg"
 "$work_dir/ffmpeg" -version
 "$work_dir/ffmpeg" -hide_banner -filters > "$work_dir/filters.txt"
+if ! awk '{print $2}' "$work_dir/filters.txt" | grep -qx scale; then
+  echo 'Bundled FFmpeg is missing the required Lanczos scale filter.' >&2
+  exit 1
+fi
 for filter in sr dnn_processing zscale; do
   if ! awk '{print $2}' "$work_dir/filters.txt" | grep -qx "$filter"; then
     echo "FFmpeg $filter filter is unavailable in this bundle."

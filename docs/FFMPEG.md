@@ -25,9 +25,12 @@ binary or its containing directory is rejected.
 Filter availability is separate from executable provenance. mpvfx's shared build
 configuration enables libx264, libx265, libvpx, libsvtav1, libmp3lame, libopus,
 Mbed TLS, GPL, and version 3 licensing. It does not enable TensorFlow or OpenVINO.
-Do not assume `sr`, `dnn_processing`, or `zscale` exist; the preparation script
-reports these filters from the actual macOS executable. CoreML is a separate
-app engine and still requires the appropriate model assets.
+The shipped app therefore does not offer `sr`, `dnn_processing`, or `zscale`
+modes. The preparation script reports these filters for diagnosis, but their
+presence alone cannot re-enable unsupported controls. CoreML is a separate
+app engine; its controls appear only for model assets included in the bundle.
+The native FFmpeg engine accepts only Lanczos. Legacy presets using unavailable
+scalers cannot start and must be changed to a supported choice.
 
 For public releases, include FFmpeg's GPL text, build provenance, and matching
 corresponding source. mpvfx documents its exact source archives and build-script

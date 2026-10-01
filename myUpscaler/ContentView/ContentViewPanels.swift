@@ -895,6 +895,7 @@ struct OutputPanel: View {
 // MARK: - Run / Cancel buttons
 struct ActionButtons: View {
     @ObservedObject var runner: UpscaleRunner
+    @ObservedObject var settings: UpscaleSettings
     
     var body: some View {
         HStack(spacing: 12) {
@@ -914,9 +915,9 @@ struct ActionButtons: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.regular)
             .frame(height: UI.buttonHeight)
-            .disabled(runner.isRunning || runner.inputPath.isEmpty)
+            .disabled(runner.isRunning || runner.inputPath.isEmpty || settings.upscalingUnavailableReason != nil)
             .dynamicKeyboardShortcut(actionId: "runUpscaler") {
-                if !runner.isRunning && !runner.inputPath.isEmpty { runner.run() }
+                if !runner.isRunning && !runner.inputPath.isEmpty && settings.upscalingUnavailableReason == nil { runner.run() }
             }
             
             Button(action: runner.cancel) {
@@ -1355,7 +1356,7 @@ struct AIEnginePanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Label("AI Engine", systemImage: "sparkles")
+                Label("Upscaling", systemImage: "arrow.up.left.and.arrow.down.right")
                     .font(.subheadline.weight(.semibold))
                 Spacer()
             }
@@ -1369,15 +1370,23 @@ struct AIEnginePanel: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Spacer()
-                        Picker("", selection: $settings.scaler) {
-                            ForEach(settings.scalers, id: \.self) { Text($0) }
+                        Picker("", selection: Binding(
+                            get: { settings.scalers.contains(settings.scaler) ? settings.scaler : "" },
+                            set: { settings.scaler = $0 }
+                        )) {
+                            if !settings.scalers.contains(settings.scaler) {
+                                Text("Choose a mode").tag("").disabled(true)
+                            }
+                            ForEach(settings.scalers, id: \.self) { scaler in
+                                Text(UpscalingModeSupport.label(for: scaler)).tag(scaler)
+                            }
                         }
                         .pickerStyle(.menu)
                         .controlSize(.small)
                         .frame(width: 100)
                     }
                     
-                    if settings.scaler == "coreml" {
+                    if settings.scaler == "coreml" && !settings.coremlModels.isEmpty {
                         Divider()
                             .padding(.vertical, 2)
                         
@@ -1387,6 +1396,9 @@ struct AIEnginePanel: View {
                                 .foregroundColor(.secondary)
                             Spacer()
                             Picker("", selection: $settings.coremlModelId) {
+                                if !settings.coremlModels.contains(where: { $0.id == settings.coremlModelId }) {
+                                    Text("Choose a model").tag(settings.coremlModelId).disabled(true)
+                                }
                                 ForEach(settings.coremlModels) { model in
                                     Text(model.displayName).tag(model.id)
                                 }
@@ -1397,75 +1409,13 @@ struct AIEnginePanel: View {
                         }
                     }
                     
-                    if settings.scaler == "ai" {
-                        Divider()
-                            .padding(.vertical, 2)
-                        
-                        // AI Backend
-                        HStack {
-                            Text("AI Backend")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Spacer()
-                            Picker("", selection: $settings.aiBackend) {
-                                ForEach(settings.aiBackends, id: \.self) { Text($0) }
-                            }
-                            .pickerStyle(.menu)
-                            .controlSize(.small)
-                            .frame(width: 100)
-                        }
-                        
-                        // DNN Backend
-                        HStack {
-                            Text("DNN Backend")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Spacer()
-                            Picker("", selection: $settings.dnnBackend) {
-                                ForEach(settings.dnnBackends, id: \.self) { Text($0) }
-                            }
-                            .pickerStyle(.menu)
-                            .controlSize(.small)
-                            .frame(width: 100)
-                        }
-                        
-                        // Model Type
-                        HStack {
-                            Text("Model Type")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Spacer()
-                            Picker("", selection: $settings.aiModelType) {
-                                ForEach(settings.aiModelTypes, id: \.self) { Text($0) }
-                            }
-                            .pickerStyle(.menu)
-                            .controlSize(.small)
-                            .frame(width: 100)
-                        }
-                        
-                        Divider()
-                            .padding(.vertical, 2)
-                        
-                        // Model Path
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Model Path")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            HStack {
-                                TextField("", text: $settings.aiModelPath)
-                                    .textFieldStyle(.roundedBorder)
-                                Button("Browse") {
-                                    let panel = NSOpenPanel()
-                                    panel.allowsMultipleSelection = false
-                                    if panel.runModal() == .OK, let url = panel.url {
-                                        settings.aiModelPath = url.path
-                                    }
-                                }
-                                .buttonStyle(.bordered)
-                                .controlSize(.small)
-                            }
-                        }
+
+                    if let reason = settings.upscalingUnavailableReason {
+                        Text(reason)
+                            .font(.caption)
+                            .foregroundColor(.orange)
                     }
+
                 }
                 .padding(8)
             }

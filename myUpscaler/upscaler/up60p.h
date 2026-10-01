@@ -15,7 +15,8 @@ typedef enum {
     UP60P_ERR_FFMPEG_NOT_FOUND,
     UP60P_ERR_IO,
     UP60P_ERR_INTERNAL,
-    UP60P_ERR_CANCELLED
+    UP60P_ERR_CANCELLED,
+    UP60P_ERR_UNSUPPORTED_SCALER
 } up60p_error;
 
 typedef struct {

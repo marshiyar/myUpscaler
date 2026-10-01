@@ -45,6 +45,12 @@ int main(int argc, char **argv) {
     up60p_error status = up60p_init(NULL, log_message);
     if (status != UP60P_OK) return status;
     const char *path = up60p_bundled_ffmpeg_path();
+    if (argc > 2 && strcmp(argv[1], "scaler") == 0) {
+        up60p_options opts;
+        up60p_default_options(&opts);
+        snprintf(opts.scaler, sizeof(opts.scaler), "%s", argv[2]);
+        return up60p_process_path(argc > 3 ? argv[3] : "unused.png", &opts);
+    }
     if (argc > 1 && strcmp(argv[1], "remove") == 0) {
         remove(path);
         up60p_options opts;
@@ -123,6 +129,43 @@ int main(int argc, char **argv) {
     def test_external_symlink_fails_initialization(self):
         self.bundled.symlink_to(self.external)
         self.assertEqual(self.run_engine().returncode, 2)
+
+    def test_legacy_ai_mode_is_rejected_without_execution(self):
+        self.install_bundle()
+        result = self.run_engine("scaler", "ai")
+        self.assertEqual(result.returncode, 6)  # UP60P_ERR_UNSUPPORTED_SCALER
+        self.assertIn("unsupported", result.stdout)
+        self.assertNotIn("BUNDLED_EXECUTED", result.stdout)
+
+    def test_legacy_zscale_mode_is_rejected_without_execution(self):
+        self.install_bundle()
+        result = self.run_engine("scaler", "zscale")
+        self.assertEqual(result.returncode, 6)
+        self.assertNotIn("BUNDLED_EXECUTED", result.stdout)
+
+    def test_legacy_hardware_scaler_is_rejected_without_execution(self):
+        self.install_bundle()
+        result = self.run_engine("scaler", "hw")
+        self.assertEqual(result.returncode, 6)
+        self.assertNotIn("BUNDLED_EXECUTED", result.stdout)
+
+    def test_unknown_scaler_does_not_silently_fall_back(self):
+        self.install_bundle()
+        result = self.run_engine("scaler", "unknown")
+        self.assertEqual(result.returncode, 6)
+        self.assertNotIn("BUNDLED_EXECUTED", result.stdout)
+
+    def test_coreml_is_never_sent_to_the_ffmpeg_engine(self):
+        self.install_bundle()
+        self.assertEqual(self.run_engine("scaler", "coreml").returncode, 6)
+
+    def test_lanczos_still_reaches_the_bundled_executable(self):
+        self.install_bundle()
+        image = self.root / "input.png"
+        image.touch()
+        result = self.run_engine("scaler", "lanczos", str(image))
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn("BUNDLED_EXECUTED", result.stdout)
 
 
 if __name__ == "__main__":

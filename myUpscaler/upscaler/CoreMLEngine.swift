@@ -116,7 +116,9 @@ class CoreMLEngine: EngineProtocol {
         let mlModel = try await ModelManager.shared.prepareModel(spec: modelSpec)
         
         let modelDescription = mlModel.modelDescription
-        guard let inputName = modelDescription.inputDescriptionsByName.keys.first,
+        guard modelDescription.inputDescriptionsByName.count == 1,
+              modelDescription.outputDescriptionsByName.count == 1,
+              let inputName = modelDescription.inputDescriptionsByName.keys.first,
               let outputName = modelDescription.outputDescriptionsByName.keys.first,
               let inputDescription = modelDescription.inputDescriptionsByName[inputName],
               let multiArrayConstraint = inputDescription.multiArrayConstraint,

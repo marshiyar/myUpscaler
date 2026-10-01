@@ -4,6 +4,17 @@ import XCTest
 // This target compiles the production settings, snapshot, and model registry.
 // Run's cloneSettings uses the snapshot/apply path exercised here.
 final class SettingsSnapshotTests: XCTestCase {
+    func testUpdatedModelTileSizesAreSupported() {
+        let x2 = CoreMLModelRegistry.model(for: .realESRGANx2)
+        let x4 = CoreMLModelRegistry.model(for: .realESRGANx4)
+        let x8 = CoreMLModelRegistry.model(for: .realESRGANx8)
+        XCTAssertTrue(x2.supportsTensorShapes(input: [1, 3, 128, 128], output: [1, 3, 256, 256]))
+        XCTAssertTrue(x4.supportsTensorShapes(input: [1, 3, 128, 128], output: [1, 3, 512, 512]))
+        XCTAssertTrue(x8.supportsTensorShapes(input: [1, 3, 96, 96], output: [1, 3, 768, 768]))
+        // Tiling currently uses a single stride for both axes.
+        XCTAssertFalse(x4.supportsTensorShapes(input: [1, 3, 64, 128], output: [1, 3, 256, 512]))
+    }
+
     func testModelTensorContractRejectsIncompatibleReleasedX2() {
         let x2 = CoreMLModelRegistry.model(for: .realESRGANx2)
         let x4 = CoreMLModelRegistry.model(for: .realESRGANx4)

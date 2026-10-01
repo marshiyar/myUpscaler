@@ -66,10 +66,6 @@ private struct CompactSlider: View {
 
 struct VerticalColorEqualizerPanel: View {
     @ObservedObject var settings: UpscaleSettings
-    var onDragToEnlarge: (() -> Void)? = nil
-
-    @State private var dragOffset: CGFloat = 0
-    @State private var isDragging: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
@@ -123,39 +119,6 @@ struct VerticalColorEqualizerPanel: View {
             .shadow(color: Color.black.opacity(0.08), radius: 2, x: 0, y: 1)
         }
         .frame(width: 140)
-        .offset(x: dragOffset)
-        .scaleEffect(1.0 + min(abs(dragOffset) / 500.0, 0.3))  // Scale up as dragged, max 30% larger
-        .gesture(
-            DragGesture()
-                .onChanged { value in
-                    // Only allow dragging to the right (positive x)
-                    if value.translation.width > 0 {
-                        isDragging = true
-                        // Rubber band effect: resistance increases as you drag further
-                        // Use a non-linear resistance curve for better feel
-                        let rawDrag = abs(value.translation.width)
-                        let resistance: CGFloat = max(0.1, 1.0 - (rawDrag / 200.0))  // Decreasing resistance
-                        dragOffset = value.translation.width * resistance
-
-                        // Trigger enlargement if dragged far enough (threshold: 80 pixels)
-                        if value.translation.width > 80 && onDragToEnlarge != nil {
-                            onDragToEnlarge?()
-                            // Reset after triggering
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                dragOffset = 0
-                                isDragging = false
-                            }
-                        }
-                    }
-                }
-                .onEnded { value in
-                    // Spring back animation with bounce
-                    withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
-                        dragOffset = 0
-                        isDragging = false
-                    }
-                }
-        )
     }
 }
 
@@ -231,10 +194,6 @@ private struct VerticalParameterRow: View {
 
 struct VerticalRestorationFiltersPanel: View {
     @ObservedObject var settings: UpscaleSettings
-    var onDragToEnlarge: (() -> Void)? = nil
-
-    @State private var dragOffset: CGFloat = 0
-    @State private var isDragging: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
@@ -364,37 +323,5 @@ struct VerticalRestorationFiltersPanel: View {
             }
         }
         .frame(width: 140)
-        .offset(x: dragOffset)
-        .scaleEffect(1.0 + min(abs(dragOffset) / 500.0, 0.3))
-        .gesture(
-            DragGesture()
-                .onChanged { value in
-                    if value.translation.width < 0 {
-                        isDragging = true
-                        // Rubber band effect: resistance increases as you drag further
-                        // Use a non-linear resistance curve for better feel
-                        let rawDrag = abs(value.translation.width)
-                        let resistance: CGFloat = max(0.1, 1.0 - (rawDrag / 200.0))  // Decreasing resistance
-                        dragOffset = value.translation.width * resistance
-
-                        // Trigger enlargement if dragged far enough (threshold: -80 pixels)
-                        if value.translation.width < -80 && onDragToEnlarge != nil {
-                            onDragToEnlarge?()
-                            // Reset after triggering
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                dragOffset = 0
-                                isDragging = false
-                            }
-                        }
-                    }
-                }
-                .onEnded { value in
-                    // Spring back animation with bounce
-                    withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
-                        dragOffset = 0
-                        isDragging = false
-                    }
-                }
-        )
     }
 }

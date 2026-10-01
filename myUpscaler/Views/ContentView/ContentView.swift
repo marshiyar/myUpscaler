@@ -12,8 +12,6 @@ struct ContentView: View {
     @State private var showSettings = false
     @State private var showAbout = false
     @State private var enlargedFrameImage: NSImage? = nil
-    @State private var showEnlargedRestorationFilters: Bool = false
-    @State private var showEnlargedColorEqualizer: Bool = false
     @State private var showPiPPreview: Bool = false
     @State private var editorState: EditorState? = nil
     @State private var showEncoding = false
@@ -43,16 +41,6 @@ struct ContentView: View {
                                 onFrameDoubleTap: { image in
                                     withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                                         enlargedFrameImage = image
-                                    }
-                                },
-                                onRestorationFiltersDrag: {
-                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                        showEnlargedRestorationFilters = true
-                                    }
-                                },
-                                onColorEqualizerDrag: {
-                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                        showEnlargedColorEqualizer = true
                                     }
                                 },
                                 onEditorStateAvailable: { state in
@@ -179,10 +167,8 @@ struct ContentView: View {
                 }
         )
         .onChange(of: runner.inputPath) { _, _ in
-            // Reset enlarged frame, restoration filters, and color equalizer when new video is imported
+            // Reset the enlarged frame when a new video is imported
             enlargedFrameImage = nil
-            showEnlargedRestorationFilters = false
-            showEnlargedColorEqualizer = false
         }
     }
     // MARK: – Responsive Layout Helpers

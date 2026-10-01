@@ -24,8 +24,6 @@ struct InputSection: View {
     let settings: UpscaleSettings
     var isProcessingFullUpscale: Bool = false
     var onFrameDoubleTap: ((NSImage?) -> Void)? = nil
-    var onRestorationFiltersDrag: (() -> Void)? = nil
-    var onColorEqualizerDrag: (() -> Void)? = nil
     var onEditorStateAvailable: ((EditorState) -> Void)? = nil
 
     var body: some View {
@@ -39,7 +37,7 @@ struct InputSection: View {
     }
 
     private func dragDropView() -> some View {
-        DragDropView(externalInputPath: $inputPath, settings: settings, chooseInput: chooseInput, canImport: canImport, isProcessingFullUpscale: isProcessingFullUpscale, onFrameDoubleTap: onFrameDoubleTap, onRestorationFiltersDrag: onRestorationFiltersDrag, onColorEqualizerDrag: onColorEqualizerDrag, onEditorStateAvailable: onEditorStateAvailable)
+        DragDropView(externalInputPath: $inputPath, settings: settings, chooseInput: chooseInput, canImport: canImport, isProcessingFullUpscale: isProcessingFullUpscale, onFrameDoubleTap: onFrameDoubleTap, onEditorStateAvailable: onEditorStateAvailable)
             .cornerRadius(10)
             .overlay(
                 // Show overlay when processing to indicate preview is frozen

@@ -11,19 +11,15 @@ struct DragDropView: View {
     let canImport: () -> Bool
     var isProcessingFullUpscale: Bool = false
     var onFrameDoubleTap: ((NSImage?) -> Void)? = nil
-    var onRestorationFiltersDrag: (() -> Void)? = nil
-    var onColorEqualizerDrag: (() -> Void)? = nil
     var onEditorStateAvailable: ((EditorState) -> Void)? = nil  // Callback to provide EditorState to parent
 
-    init(externalInputPath: Binding<String>, settings: UpscaleSettings? = nil, chooseInput: (() -> Void)? = nil, canImport: @escaping () -> Bool = { true }, isProcessingFullUpscale: Bool = false, onFrameDoubleTap: ((NSImage?) -> Void)? = nil, onRestorationFiltersDrag: (() -> Void)? = nil, onColorEqualizerDrag: (() -> Void)? = nil, onEditorStateAvailable: ((EditorState) -> Void)? = nil) {
+    init(externalInputPath: Binding<String>, settings: UpscaleSettings? = nil, chooseInput: (() -> Void)? = nil, canImport: @escaping () -> Bool = { true }, isProcessingFullUpscale: Bool = false, onFrameDoubleTap: ((NSImage?) -> Void)? = nil, onEditorStateAvailable: ((EditorState) -> Void)? = nil) {
         self._externalInputPath = externalInputPath
         self.settings = settings
         self.chooseInput = chooseInput
         self.canImport = canImport
         self.isProcessingFullUpscale = isProcessingFullUpscale
         self.onFrameDoubleTap = onFrameDoubleTap
-        self.onRestorationFiltersDrag = onRestorationFiltersDrag
-        self.onColorEqualizerDrag = onColorEqualizerDrag
         self.onEditorStateAvailable = onEditorStateAvailable
         _state = StateObject(wrappedValue: EditorState(settings: settings))
     }
@@ -52,7 +48,7 @@ struct DragDropView: View {
 
                     HStack(alignment: .center, spacing: 12) {
                         if let settings {
-                            VerticalColorEqualizerPanel(settings: settings, onDragToEnlarge: onColorEqualizerDrag)
+                            VerticalColorEqualizerPanel(settings: settings)
                         }
                         ZStack {
                             if let image = state.thumbnailImage {
@@ -77,7 +73,7 @@ struct DragDropView: View {
                         .layoutPriority(1)
 
                         if let settings {
-                            VerticalRestorationFiltersPanel(settings: settings, onDragToEnlarge: onRestorationFiltersDrag)
+                            VerticalRestorationFiltersPanel(settings: settings)
                         }
                         if !state.timelineFrames.isEmpty {
                             TimelineView(state: state)

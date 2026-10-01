@@ -48,6 +48,7 @@ class UpscaleRunner: ObservableObject {
     var videoDuration: Double = 0.0
     
      var currentTask: Task<Void, Never>?
+    private var currentRunID = UUID()
      var completionCheckTask: Task<Void, Never>?
      var lastFileSize: Int64 = 0
      var fileSizeCheckCount: Int = 0
@@ -139,6 +140,8 @@ class UpscaleRunner: ObservableObject {
             log.append("ERROR: No input file selected.\n")
             return
         }
+        let runID = UUID()
+        currentRunID = runID
         
         log = ""
         progress = 0.0
@@ -215,6 +218,7 @@ class UpscaleRunner: ObservableObject {
             }
             
             Task { @MainActor in
+                guard self.currentRunID == runID else { return }
                 let now = Date().timeIntervalSince1970
                 let lower = message.lowercased()
                 let isError = lower.contains("error") || lower.contains("fail")
@@ -325,6 +329,7 @@ class UpscaleRunner: ObservableObject {
                 try Task.checkCancellation()
                 
                 await MainActor.run {
+                    guard self.currentRunID == runID else { return }
                     if self.isRunning {
                         self.startCompletionCheck()
                     }
@@ -332,6 +337,7 @@ class UpscaleRunner: ObservableObject {
             }
             catch let error as Up60PEngineError {
                 await MainActor.run {
+                    guard self.currentRunID == runID else { return }
                     var errorMessage = "\n--- ERROR: "
                     switch error {
                     case .ffmpegNotFound:
@@ -356,14 +362,17 @@ class UpscaleRunner: ObservableObject {
                     errorMessage += "---\n"
                     self.log.append(errorMessage)
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        guard self.currentRunID == runID else { return }
                         self.isRunning = false
                         self.currentTask = nil
                     }
                 }
             } catch {
                 await MainActor.run {
+                    guard self.currentRunID == runID else { return }
                     self.log.append("\n--- ERROR: \(error.localizedDescription) ---\n")
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        guard self.currentRunID == runID else { return }
                         self.isRunning = false
                         self.currentTask = nil
                         self.activeOutputFolder = nil
@@ -375,6 +384,7 @@ class UpscaleRunner: ObservableObject {
     
     func cancel() {
         guard isRunning else { return }
+        currentRunID = UUID()
         
         if let engine = activeEngine {
             engine.cancel()

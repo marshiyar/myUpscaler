@@ -1,4 +1,4 @@
-name: macOS build
+name: macOS-26 build
 
 on:
   push:
@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -53,7 +53,7 @@ jobs:
             exit "$status"
           fi
 
-      - name: Test bundled executable resolution
+      - name: Test bundled engine lifecycle and architecture
         run: python3 -m unittest discover -s tests -p 'test_bundled_ffmpeg*.py'
 
       - name: Test upscaling mode availability
@@ -84,11 +84,18 @@ jobs:
         run: |
           set -euo pipefail
           app="$RUNNER_TEMP/myUpscaler-DerivedData/Build/Products/Debug/myUpscaler.app"
-          test -x "$app/Contents/MacOS/myUpscaler"
+          for executable in "$app/Contents/MacOS/myUpscaler" \
+              "$app/Contents/MacOS/up60p-ffmpeg-supervisor" \
+              "$app/Contents/MacOS/ThirdParty/FFmpeg/ffmpeg"; do
+            test -x "$executable"
+            if [[ $(xcrun lipo -archs "$executable") != arm64 ]]; then
+              echo "::error::Expected arm64-only app executable: $executable"
+              exit 1
+            fi
+          done
+          test -x "$app/Contents/MacOS/up60p-ffmpeg-supervisor"
+          codesign --verify --strict "$app/Contents/MacOS/up60p-ffmpeg-supervisor"
           test -x "$app/Contents/MacOS/ThirdParty/FFmpeg/ffmpeg"
-          test -f "$app/Contents/Resources/FFmpeg-COPYING.txt"
-          test -f "$app/Contents/Resources/FFmpeg-NOTICE.txt"
-          xcrun lipo "$app/Contents/MacOS/ThirdParty/FFmpeg/ffmpeg" -verify_arch arm64 x86_64
           codesign --verify --strict "$app/Contents/MacOS/ThirdParty/FFmpeg/ffmpeg"
           codesign --verify --strict "$app"
           status=0

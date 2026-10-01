@@ -166,7 +166,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -eu\nFFMPEG_PATH=\"${TARGET_BUILD_DIR}/${EXECUTABLE_FOLDER_PATH}/ThirdParty/FFmpeg/ffmpeg\"\nENTITLEMENTS_PATH=\"${PROJECT_DIR}/myUpscaler/FFmpeg.entitlements\"\nif [ ! -f \"$FFMPEG_PATH\" ]; then\n    echo \"error: Bundled FFmpeg is missing. Run bash scripts/prepare-bundled-ffmpeg.sh before building.\" >&2\n    exit 1\nfi\nchmod +x \"$FFMPEG_PATH\"\nIDENTITY=\"${EXPANDED_CODE_SIGN_IDENTITY:--}\"\nif [ \"$IDENTITY\" = \"-\" ]; then\n    codesign --force --sign - --entitlements \"$ENTITLEMENTS_PATH\" --options runtime \"$FFMPEG_PATH\"\nelse\n    codesign --force --sign \"$IDENTITY\" --entitlements \"$ENTITLEMENTS_PATH\" --options runtime --timestamp \"$FFMPEG_PATH\"\nfi\ncodesign --verify --strict \"$FFMPEG_PATH\"\n";
+			shellScript = "set -eu\n/bin/bash \"${PROJECT_DIR}/scripts/build-bundled-helpers.sh\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -431,6 +431,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "";
 				LIBRARY_SEARCH_PATHS = "";
 				LINK_WITH_STANDARD_LIBRARIES = YES;
+				ARCHS = arm64;
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
 				MARKETING_VERSION = 0.0.2;
 				"MARKETING_VERSION[sdk=macosx*]" = 0.0.2;
@@ -541,6 +542,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "";
 				LIBRARY_SEARCH_PATHS = "";
 				LINK_WITH_STANDARD_LIBRARIES = YES;
+				ARCHS = arm64;
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
 				MARKETING_VERSION = 0.0.2;
 				MTL_COMPILER_FLAGS = "-fcikernel";

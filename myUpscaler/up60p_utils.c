@@ -1,9 +1,11 @@
 #include "up60p_utils.h"
 #include "up60p_common.h"
+#include "up60p_process.h"
+#include <stdatomic.h>
 
 up60p_log_callback global_log_cb = NULL;
 
-volatile sig_atomic_t cancel_requested = 0;
+static atomic_bool cancel_requested = false;
 
  void mkdir_p(const char *path) {
     char tmp[PATH_MAX]; snprintf(tmp, sizeof(tmp), "%s", path);
@@ -88,11 +90,13 @@ bool is_image(const char *path) {
 }
 
 
-bool up60p_is_cancelled(void) { return cancel_requested != 0; }
+bool up60p_is_cancelled(void) { return atomic_load(&cancel_requested); }
+
+void up60p_reset_cancel(void) { atomic_store(&cancel_requested, false); }
 
 
 void up60p_request_cancel(void) {
-    cancel_requested = 1;
+    atomic_store(&cancel_requested, true);
+    up60p_cancel_active_process();
 }
-
 

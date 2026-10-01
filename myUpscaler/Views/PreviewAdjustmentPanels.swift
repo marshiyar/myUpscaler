@@ -3,32 +3,6 @@ import AppKit
 import Combine
 import UniformTypeIdentifiers
 
-private enum DragDropFormatters {
-    static let twoFraction: NumberFormatter = {
-        let f = NumberFormatter()
-        f.minimumFractionDigits = 2
-        f.maximumFractionDigits = 2
-        return f
-    }()
-    static let threeFraction: NumberFormatter = {
-        let f = NumberFormatter()
-        f.minimumFractionDigits = 3
-        f.maximumFractionDigits = 3
-        return f
-    }()
-    static let oneFraction: NumberFormatter = {
-        let f = NumberFormatter()
-        f.minimumFractionDigits = 1
-        f.maximumFractionDigits = 1
-        return f
-    }()
-    static let integer: NumberFormatter = {
-        let f = NumberFormatter()
-        f.maximumFractionDigits = 0
-        return f
-    }()
-}
-
 private enum CompactSliderGradient {
     case denoise
     case dering
@@ -87,7 +61,7 @@ struct VerticalColorEqualizerPanel: View {
                         range: 0.5...2.0,
                         step: 0.005,
                         defaultValue: 1.0,
-                        formatter: DragDropFormatters.twoFraction,
+                        formatter: Formatters.twoFraction,
                         gradient: .contrast
                     )
 
@@ -97,7 +71,7 @@ struct VerticalColorEqualizerPanel: View {
                         range: -0.1...0.1,
                         step: 0.005,
                         defaultValue: 0.0,
-                        formatter: DragDropFormatters.threeFraction,
+                        formatter: Formatters.threeFraction,
                         gradient: .brightness
                     )
 
@@ -107,7 +81,7 @@ struct VerticalColorEqualizerPanel: View {
                         range: 0...2,
                         step: 0.005,
                         defaultValue: 1.0,
-                        formatter: DragDropFormatters.twoFraction,
+                        formatter: Formatters.twoFraction,
                         gradient: .saturation
                     )
                 }
@@ -219,7 +193,7 @@ struct VerticalRestorationFiltersPanel: View {
                             range: settings.denoiseStrengthRange,
                             step: settings.denoiseStrengthStep,
                             defaultValue: settings.denoiseStrengthDefault,
-                            formatter: DragDropFormatters.oneFraction,
+                            formatter: Formatters.oneFraction,
                             gradient: .denoise
                         )
                         .disabled(settings.noDenoise)
@@ -247,7 +221,7 @@ struct VerticalRestorationFiltersPanel: View {
                                 range: 0...10,
                                 step: 0.005,
                                 defaultValue: 0.5,
-                                formatter: DragDropFormatters.twoFraction,
+                                formatter: Formatters.twoFraction,
                                 gradient: .dering
                             )
                             .transition(.opacity.combined(with: .move(edge: .top)))
@@ -273,7 +247,7 @@ struct VerticalRestorationFiltersPanel: View {
                                 range: 0...1,
                                 step: 0.005,
                                 defaultValue: 0.25,
-                                formatter: DragDropFormatters.twoFraction,
+                                formatter: Formatters.twoFraction,
                                 gradient: .sharpen
                             )
                             .disabled(settings.noSharpen)
@@ -284,7 +258,7 @@ struct VerticalRestorationFiltersPanel: View {
                                 range: 3...23,
                                 step: 1,
                                 defaultValue: 5,
-                                formatter: DragDropFormatters.integer,
+                                formatter: Formatters.integer,
                                 gradient: .usmRadius
                             )
                             .disabled(settings.noSharpen)
@@ -295,7 +269,7 @@ struct VerticalRestorationFiltersPanel: View {
                                 range: -2...5,
                                 step: 0.01,
                                 defaultValue: 1.0,
-                                formatter: DragDropFormatters.twoFraction,
+                                formatter: Formatters.twoFraction,
                                 gradient: .usmAmount
                             )
                             .disabled(settings.noSharpen)
@@ -306,7 +280,7 @@ struct VerticalRestorationFiltersPanel: View {
                                 range: 0...1,
                                 step: 0.001,
                                 defaultValue: 0.03,
-                                formatter: DragDropFormatters.threeFraction,
+                                formatter: Formatters.threeFraction,
                                 gradient: .usmThreshold
                             )
                             .disabled(settings.noSharpen)

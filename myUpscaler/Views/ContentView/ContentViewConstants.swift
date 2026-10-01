@@ -60,29 +60,16 @@ extension View {
 
 // MARK: - NumberFormatters (static, reused)
 enum Formatters {
-    static let twoFraction: NumberFormatter = {
-        let f = NumberFormatter()
-        f.minimumFractionDigits = 2
-        f.maximumFractionDigits = 2
-        return f
-    }()
-    static let threeFraction: NumberFormatter = {
-        let f = NumberFormatter()
-        f.minimumFractionDigits = 3
-        f.maximumFractionDigits = 3
-        return f
-    }()
-    static let oneFraction: NumberFormatter = {
-        let f = NumberFormatter()
-        f.minimumFractionDigits = 1
-        f.maximumFractionDigits = 1
-        return f
-    }()
-    static let integer: NumberFormatter = {
-        let f = NumberFormatter()
-        f.maximumFractionDigits = 0
-        return f
-    }()
+    private static func make(fractionDigits: Int) -> NumberFormatter {
+        let formatter = NumberFormatter()
+        formatter.minimumFractionDigits = fractionDigits
+        formatter.maximumFractionDigits = fractionDigits
+        return formatter
+    }
+    static let twoFraction = make(fractionDigits: 2)
+    static let threeFraction = make(fractionDigits: 3)
+    static let oneFraction = make(fractionDigits: 1)
+    static let integer = make(fractionDigits: 0)
 }
 
 // MARK: - Slider Gradient Colors

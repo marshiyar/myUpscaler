@@ -16,11 +16,10 @@ nonisolated class UpscaleSettings: ObservableObject {
 
     init() {}
 
-    /// Batch application publishes one complete candidate (legacy preset boundary).
+    /// Restore the complete saved state without interactive toggle defaults.
+    /// Identical presets produce identical state regardless of the prior target.
     func replaceConfiguration(_ candidate: SettingsConfiguration) {
-        var next = candidate
-        SettingsNormalization.normalize(&next, previous: configuration, validateMethodChanges: false)
-        if next != configuration { configuration = next }
+        if candidate != configuration { configuration = candidate }
     }
 
     private func update<Value>(_ path: WritableKeyPath<SettingsConfiguration, Value>, _ value: Value) {

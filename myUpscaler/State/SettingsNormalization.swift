@@ -3,14 +3,14 @@ import Foundation
 /// Normalize a complete candidate before its single publication. Draft text is
 /// never rewritten while typing; selecting a different algorithm validates it.
 nonisolated enum SettingsNormalization {
-    static func normalize(_ next: inout SettingsConfiguration, previous: SettingsConfiguration, validateMethodChanges: Bool = true) {
-        normalizeStage(&next.primary, previous: previous.primary, secondary: false, validateMethodChanges: validateMethodChanges)
-        normalizeStage(&next.secondary, previous: previous.secondary, secondary: true, validateMethodChanges: validateMethodChanges)
+    static func normalize(_ next: inout SettingsConfiguration, previous: SettingsConfiguration) {
+        normalizeStage(&next.primary, previous: previous.primary, secondary: false)
+        normalizeStage(&next.secondary, previous: previous.secondary, secondary: true)
     }
 
-    private static func normalizeStage(_ next: inout RestorationStage, previous: RestorationStage, secondary: Bool, validateMethodChanges: Bool) {
+    private static func normalizeStage(_ next: inout RestorationStage, previous: RestorationStage, secondary: Bool) {
         let defaults = RestorationStage()
-        if validateMethodChanges && next.denoiser != previous.denoiser {
+        if next.denoiser != previous.denoiser {
             let range: ClosedRange<Double>
             let fallback: Double
             switch next.denoiser {
@@ -23,11 +23,11 @@ nonisolated enum SettingsNormalization {
                 next.denoiseStrength.text = String(format: "%.2f", clamp(next.denoiseStrength.finiteValue ?? fallback, range))
             }
         }
-        if validateMethodChanges && next.sharpenMethod != previous.sharpenMethod {
+        if next.sharpenMethod != previous.sharpenMethod {
             let unsharp = next.sharpenMethod == "unsharp"
             next.sharpenStrength.text = String(format: "%.2f", clamp(next.sharpenStrength.finiteValue ?? (unsharp ? 1 : 0.25), unsharp ? -2...5 : 0...1))
         }
-        if validateMethodChanges && next.debandMethod != previous.debandMethod {
+        if next.debandMethod != previous.debandMethod {
             let gradfun = next.debandMethod == "gradfun"
             next.debandStrength.text = String(clamp(next.debandStrength.finiteValue ?? (gradfun ? 1.2 : 0.015), gradfun ? 0.51...64 : 0...0.1))
         }

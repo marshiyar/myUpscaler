@@ -6,6 +6,14 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		C0270000000000000000000D = {isa = PBXBuildFile; fileRef = C02700000000000000000008; };
+		C0270000000000000000000E = {isa = PBXBuildFile; fileRef = C02700000000000000000009; };
+		C0270000000000000000000F = {isa = PBXBuildFile; fileRef = C0270000000000000000000A; };
+		C02700000000000000000010 = {isa = PBXBuildFile; fileRef = C0270000000000000000000B; };
+		C02700000000000000000011 = {isa = PBXBuildFile; fileRef = C0270000000000000000000C; };
+/* End PBXBuildFile section */
+
 /* Begin PBXCopyFilesBuildPhase section */
 		5EE164CF2EF4D83C0060947E /* Copy Files */ = {
 			isa = PBXCopyFilesBuildPhase;
@@ -21,6 +29,12 @@
 
 /* Begin PBXFileReference section */
 		5ECE7BB52EF2A63C00603DA9 /* myUpscaler.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = myUpscaler.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C02700000000000000000008 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/CoreMLModelRegistry.swift; sourceTree = SOURCE_ROOT; };
+		C02700000000000000000009 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/UpscalingModeSupport.swift; sourceTree = SOURCE_ROOT; };
+		C0270000000000000000000A = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/UpscaleSettings.swift; sourceTree = SOURCE_ROOT; };
+		C0270000000000000000000B = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/PresetStore.swift; sourceTree = SOURCE_ROOT; };
+		C0270000000000000000000C = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = tests/settings-snapshot/SettingsSnapshotTests.swift; sourceTree = SOURCE_ROOT; };
+		C02700000000000000000006 = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = myUpscalerUnitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -69,15 +83,22 @@
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
+/* Begin PBXFrameworksBuildPhase section */
+		C02700000000000000000005 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXFrameworksBuildPhase section */
+
 /* Begin PBXGroup section */
 		5E23E4FD2ED9AB0B008298B2 = {
 			isa = PBXGroup;
 			children = (
 				5E23E5082ED9AB0B008298B2 /* myUpscaler */,
 				5ECE7BB52EF2A63C00603DA9 /* myUpscaler.app */,
+				C02700000000000000000006 /* myUpscalerUnitTests.xctest */,
+				C02700000000000000000007 /* Unit Test Sources */,
 			);
 			sourceTree = "<group>";
 		};
+		C02700000000000000000007 = {isa = PBXGroup; children = (C02700000000000000000008, C02700000000000000000009, C0270000000000000000000A, C0270000000000000000000B, C0270000000000000000000C, ); name = "Unit Test Sources"; sourceTree = "<group>"; };
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -103,6 +124,17 @@
 			productName = myUpscaler;
 			productReference = 5ECE7BB52EF2A63C00603DA9 /* myUpscaler.app */;
 			productType = "com.apple.product-type.application";
+		};
+		C02700000000000000000000 /* myUpscalerUnitTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C02700000000000000000001;
+			buildPhases = (C02700000000000000000004, C02700000000000000000005, );
+			buildRules = ();
+			dependencies = ();
+			name = myUpscalerUnitTests;
+			productName = myUpscalerUnitTests;
+			productReference = C02700000000000000000006;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -135,6 +167,7 @@
 			projectRoot = "";
 			targets = (
 				5E23E5052ED9AB0B008298B2 /* myUpscaler */,
+				C02700000000000000000000 /* myUpscalerUnitTests */,
 			);
 		};
 /* End PBXProject section */
@@ -178,6 +211,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C02700000000000000000004 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (C0270000000000000000000D, C0270000000000000000000E, C0270000000000000000000F, C02700000000000000000010, C02700000000000000000011, ); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
@@ -595,6 +629,30 @@
 			};
 			name = Release;
 		};
+		C02700000000000000000002 = {isa = XCBuildConfiguration; buildSettings = {
+                ARCHS = arm64;
+                CODE_SIGN_STYLE = Automatic;
+                GENERATE_INFOPLIST_FILE = YES;
+                LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@loader_path/Frameworks", "@executable_path/Frameworks", );
+                MACOSX_DEPLOYMENT_TARGET = 15.2;
+                PRODUCT_BUNDLE_IDENTIFIER = Ashrox.myUpscalerUnitTests;
+                PRODUCT_NAME = "$(TARGET_NAME)";
+                SDKROOT = macosx;
+                SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+                SWIFT_VERSION = 5.0;
+            }; name = Debug; };
+		C02700000000000000000003 = {isa = XCBuildConfiguration; buildSettings = {
+                ARCHS = arm64;
+                CODE_SIGN_STYLE = Automatic;
+                GENERATE_INFOPLIST_FILE = YES;
+                LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@loader_path/Frameworks", "@executable_path/Frameworks", );
+                MACOSX_DEPLOYMENT_TARGET = 15.2;
+                PRODUCT_BUNDLE_IDENTIFIER = Ashrox.myUpscalerUnitTests;
+                PRODUCT_NAME = "$(TARGET_NAME)";
+                SDKROOT = macosx;
+                SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+                SWIFT_VERSION = 5.0;
+            }; name = Release; };
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -616,6 +674,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		C02700000000000000000001 = {isa = XCConfigurationList; buildConfigurations = (C02700000000000000000002, C02700000000000000000003, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 /* End XCConfigurationList section */
 	};
 	rootObject = 5E23E4FE2ED9AB0B008298B2 /* Project object */;

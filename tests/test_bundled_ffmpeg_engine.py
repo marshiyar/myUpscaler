@@ -80,6 +80,33 @@ int main(int argc, char **argv) {
     }
     return result == UP60P_PROCESS_CANCELLED ? UP60P_ERR_CANCELLED : 99;
     }
+    if (argc > 2 && strcmp(argv[1], "stages") == 0) {
+        up60p_options opts;
+        up60p_default_options(&opts);
+        opts.no_decimate = opts.no_interpolate = opts.no_eq = true;
+        opts.no_grain = false;
+        opts.use_denoise_2 = opts.use_sharpen_2 = opts.use_deband_2 = opts.use_grain_2 = true;
+        snprintf(opts.denoiser, sizeof(opts.denoiser), "hqdn3d");
+        snprintf(opts.denoise_strength, sizeof(opts.denoise_strength), "2");
+        snprintf(opts.denoiser_2, sizeof(opts.denoiser_2), "nlmeans");
+        snprintf(opts.denoise_strength_2, sizeof(opts.denoise_strength_2), "3");
+        snprintf(opts.sharpen_method, sizeof(opts.sharpen_method), "unsharp");
+        snprintf(opts.usm_radius, sizeof(opts.usm_radius), "7");
+        snprintf(opts.usm_amount, sizeof(opts.usm_amount), "1.4");
+        snprintf(opts.sharpen_method_2, sizeof(opts.sharpen_method_2), "cas");
+        snprintf(opts.sharpen_strength_2, sizeof(opts.sharpen_strength_2), "0.42");
+        snprintf(opts.deband_method, sizeof(opts.deband_method), "gradfun");
+        snprintf(opts.deband_strength, sizeof(opts.deband_strength), "1.5");
+        snprintf(opts.deband_method_2, sizeof(opts.deband_method_2), "f3kdb");
+        snprintf(opts.f3kdb_y_2, sizeof(opts.f3kdb_y_2), "80");
+        snprintf(opts.f3kdb_cbcr_2, sizeof(opts.f3kdb_cbcr_2), "40");
+        snprintf(opts.f3kdb_range_2, sizeof(opts.f3kdb_range_2), "17");
+        snprintf(opts.grain_strength, sizeof(opts.grain_strength), "2");
+        snprintf(opts.grain_strength_2, sizeof(opts.grain_strength_2), "7");
+        snprintf(opts.fps, sizeof(opts.fps), "source");
+        snprintf(opts.scale_factor, sizeof(opts.scale_factor), "1");
+        return up60p_process_path(argv[2], &opts);
+    }
     if (argc > 3 && strcmp(argv[1], "finishing") == 0) {
         up60p_options opts;
         up60p_default_options(&opts);
@@ -447,6 +474,22 @@ int main(void) {
         self.assertLess(sum(pixels[3]), sum(pixels[0]))
         self.assertNotEqual(pixels[0], pixels[4])
         self.assertLessEqual(max(pixels[4][:3]) - min(pixels[4][:3]), 4)
+
+    def test_different_primary_and_finishing_stages_preserve_order_and_grain_precedence(self):
+        self.bundled.write_text('#!/bin/sh\necho "$@" >&2\nexit 0\n')
+        self.bundled.chmod(0o755)
+        image = self.root / "input.png"
+        image.touch()
+        result = self.run_engine("stages", str(image))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        tokens = ["hqdn3d=2.00:1.50:3.00:2.25", "scale=", "unsharp=7:7:1.4",
+                  "gradfun=1.5", "nlmeans=s=3.00", "cas=strength=0.42",
+                  "deband=1thr=0.04000:2thr=0.02000:3thr=0.02000:range=17:blur=0", "noise=alls=7"]
+        positions = [result.stdout.index(token) for token in tokens]
+        self.assertEqual(positions, sorted(positions), result.stdout)
+        for token in tokens:
+            self.assertEqual(result.stdout.count(token), 1, result.stdout)
+        self.assertNotIn("noise=alls=2", result.stdout)
 
     def test_finishing_filters_are_independent_and_emitted_once(self):
         self.bundled.write_text('#!/bin/sh\necho "$@" >&2\nexit 0\n')

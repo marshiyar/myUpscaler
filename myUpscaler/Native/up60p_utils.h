@@ -17,7 +17,7 @@ void mkdir_p(const char *path);
 void sanitize_path(char *p);
 
 void sb_append(SB *s, const char *str);
-void sb_fmt(SB *s, const char *fmt, ...);
+void sb_fmt(SB *s, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 
 double parse_strength(const char *strength);
 

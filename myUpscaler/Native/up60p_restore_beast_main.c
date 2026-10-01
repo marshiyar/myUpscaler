@@ -53,18 +53,6 @@ static up60p_error process_file(const char *in, const char *ffmpeg, bool batch);
 static up60p_error process_directory(const char *dir, const char *ffmpeg);
 //static int ar_menu_choose(const char *prompt, const char **items, int n, int start_index);
 
-typedef struct { struct termios orig; int fd; bool ok; } TermCtx;
-
-
-static void prompt_edit(const char *name, char *buf, size_t sz) {
-    fprintf(stderr, "Enter value for %s [current: %s]: ", name, buf);
-    char line[1024];
-    if (fgets(line, sizeof(line), stdin)) {
-        size_t n = strlen(line); while(n > 0 && isspace(line[n-1])) line[--n] = 0;
-        if (n > 0) snprintf(buf, sz, "%s", line);
-    }
-}
-
 static void build_hqdn3d_filter(SB *vf, const char *strength_str) {
     double strength = parse_strength(strength_str);
     if (strength <= 0) strength = 4.0;
@@ -148,6 +136,51 @@ static void build_deblock_filter(SB *vf, const char *mode, const char *thresh) {
 }
 
 
+static void build_denoise_filter(SB *vf, const char *method, const char *strength) {
+        if (!strcmp(method, "bm3d")) {
+            if (!strcmp(strength, "auto")) sb_append(vf, "bm3d=estim=final:planes=1,");
+            else {
+                double sigma = parse_strength(strength);
+                if (sigma <= 0) sigma = 2.5;
+                if (sigma > 20.0) sigma = 20.0;
+                sb_fmt(vf, "bm3d=sigma=%.2f:estim=basic:planes=1,", sigma);
+            }
+        }
+        else if (!strcmp(method, "hqdn3d")) {
+            build_hqdn3d_filter(vf, strength);
+        }
+        else if (!strcmp(method, "nlmeans")) {
+            build_nlmeans_filter(vf, strength);
+        }
+        else if (!strcmp(method, "atadenoise")) {
+            build_atadenoise_filter(vf, strength);
+        }
+}
+
+static void build_deband_filter(SB *vf, const char *method, const char *strength,
+                                const char *f3_range, const char *f3_y, const char *f3_cbcr) {
+        if (!strcmp(method, "gradfun")) sb_fmt(vf, "gradfun=%s,", strength);
+        else if (!strcmp(method, "f3kdb")) {
+
+            double y = atof(f3_y);
+            double cb = atof(f3_cbcr);
+            double range = atof(f3_range);
+
+            double thr_y = y > 0 ? y / 2000.0 : 0.03;
+            double thr_c = cb > 0 ? cb / 2000.0 : 0.015;
+
+            if (thr_y > 0.5) thr_y = 0.5;
+            if (thr_c > 0.5) thr_c = 0.5;
+            if (thr_y < 0.001) thr_y = 0.001;
+
+            int r = (int)range;
+            if (r < 1) r = 16;
+
+            sb_fmt(vf, "deband=1thr=%.5f:2thr=%.5f:3thr=%.5f:range=%d:blur=0,", thr_y, thr_c, thr_c, r);
+        }
+        else sb_fmt(vf, "deband=1thr=%s:b=1,", strength);
+}
+
 static bool parse_eq_value(const char *text, double minimum, double maximum, double *value) {
     char *end;
     errno = 0;
@@ -212,26 +245,7 @@ static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) 
         build_deblock_filter(&vf, S.deblock_mode, S.deblock_thresh);
     }
 
-    if (!S.no_denoise) {
-        if (!strcmp(S.denoiser, "bm3d")) {
-            if (!strcmp(S.denoise_strength, "auto")) sb_append(&vf, "bm3d=estim=final:planes=1,");
-            else {
-                double sigma = parse_strength(S.denoise_strength);
-                if (sigma <= 0) sigma = 2.5;
-                if (sigma > 20.0) sigma = 20.0;
-                sb_fmt(&vf, "bm3d=sigma=%.2f:estim=basic:planes=1,", sigma);
-            }
-        }
-        else if (!strcmp(S.denoiser, "hqdn3d")) {
-            build_hqdn3d_filter(&vf, S.denoise_strength);
-        }
-        else if (!strcmp(S.denoiser, "nlmeans")) {
-            build_nlmeans_filter(&vf, S.denoise_strength);
-        }
-        else if (!strcmp(S.denoiser, "atadenoise")) {
-            build_atadenoise_filter(&vf, S.denoise_strength);
-        }
-    }
+    if (!S.no_denoise) build_denoise_filter(&vf, S.denoiser, S.denoise_strength);
 
 
     if (S.dering_active) {
@@ -252,28 +266,8 @@ static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) 
         else sb_fmt(&vf, "cas=strength=%s,", S.sharpen_strength);
     }
 
-    if (!S.no_deband) {
-        if (!strcmp(S.deband_method, "gradfun")) sb_fmt(&vf, "gradfun=%s,", S.deband_strength);
-        else if (!strcmp(S.deband_method, "f3kdb")) {
-
-            double y = atof(S.f3kdb_y);
-            double cb = atof(S.f3kdb_cbcr);
-            double range = atof(S.f3kdb_range);
-
-            double thr_y = y > 0 ? y / 2000.0 : 0.03;
-            double thr_c = cb > 0 ? cb / 2000.0 : 0.015;
-
-            if (thr_y > 0.5) thr_y = 0.5;
-            if (thr_c > 0.5) thr_c = 0.5;
-            if (thr_y < 0.001) thr_y = 0.001;
-
-            int r = (int)range;
-            if (r < 1) r = 16;
-
-            sb_fmt(&vf, "deband=1thr=%.5f:2thr=%.5f:3thr=%.5f:range=%d:blur=0,", thr_y, thr_c, thr_c, r);
-        }
-        else sb_fmt(&vf, "deband=1thr=%s:b=1,", S.deband_strength);
-    }
+    if (!S.no_deband) build_deband_filter(&vf, S.deband_method, S.deband_strength,
+                                         S.f3kdb_range, S.f3kdb_y, S.f3kdb_cbcr);
         if (S.use_dering_2) {
             build_dering_filter(&vf, S.dering_strength_2);
         }
@@ -282,26 +276,7 @@ static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) 
         build_deblock_filter(&vf, S.deblock_mode_2, S.deblock_thresh_2);
     }
 
-    if (S.use_denoise_2) {
-        if (!strcmp(S.denoiser_2, "bm3d")) {
-            if (!strcmp(S.denoise_strength_2, "auto")) sb_append(&vf, "bm3d=estim=final:planes=1,");
-            else {
-                double sigma = parse_strength(S.denoise_strength_2);
-                if (sigma <= 0) sigma = 2.5;
-                if (sigma > 20.0) sigma = 20.0;
-                sb_fmt(&vf, "bm3d=sigma=%.2f:estim=basic:planes=1,", sigma);
-            }
-        }
-        else if (!strcmp(S.denoiser_2, "hqdn3d")) {
-            build_hqdn3d_filter(&vf, S.denoise_strength_2);
-        }
-        else if (!strcmp(S.denoiser_2, "nlmeans")) {
-            build_nlmeans_filter(&vf, S.denoise_strength_2);
-        }
-        else if (!strcmp(S.denoiser_2, "atadenoise")) {
-            build_atadenoise_filter(&vf, S.denoise_strength_2);
-        }
-    }
+    if (S.use_denoise_2) build_denoise_filter(&vf, S.denoiser_2, S.denoise_strength_2);
 
     if (S.use_sharpen_2) {
         if (!strcmp(S.sharpen_method_2, "unsharp")) {
@@ -310,28 +285,8 @@ static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) 
         else if (parse_strength(S.sharpen_strength_2) > 0) sb_fmt(&vf, "cas=strength=%s,", S.sharpen_strength_2);
     }
 
-    if (S.use_deband_2) {
-        if (!strcmp(S.deband_method_2, "gradfun")) sb_fmt(&vf, "gradfun=%s,", S.deband_strength_2);
-        else if (!strcmp(S.deband_method_2, "f3kdb")) {
-
-            double y = atof(S.f3kdb_y_2);
-            double cb = atof(S.f3kdb_cbcr_2);
-            double range = atof(S.f3kdb_range_2);
-
-            double thr_y = y > 0 ? y / 2000.0 : 0.03;
-            double thr_c = cb > 0 ? cb / 2000.0 : 0.015;
-
-            if (thr_y > 0.5) thr_y = 0.5;
-            if (thr_c > 0.5) thr_c = 0.5;
-            if (thr_y < 0.001) thr_y = 0.001;
-
-            int r = (int)range;
-            if (r < 1) r = 16;
-
-            sb_fmt(&vf, "deband=1thr=%.5f:2thr=%.5f:3thr=%.5f:range=%d:blur=0,", thr_y, thr_c, thr_c, r);
-        }
-        else sb_fmt(&vf, "deband=1thr=%s:b=1,", S.deband_strength_2);
-    }
+    if (S.use_deband_2) build_deband_filter(&vf, S.deband_method_2, S.deband_strength_2,
+                                          S.f3kdb_range_2, S.f3kdb_y_2, S.f3kdb_cbcr_2);
     // Neutral EQ is a true bypass and avoids an extra colorspace conversion.
     if (!S.no_eq && (contrast != 1 || brightness != 0 || saturation != 1)) {
         sb_fmt(&vf, "eq=contrast=%.9g:brightness=%.9g:saturation=%.9g,", contrast, brightness, saturation);

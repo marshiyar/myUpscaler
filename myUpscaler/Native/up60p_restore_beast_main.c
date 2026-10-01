@@ -157,10 +157,19 @@ static void build_denoise_filter(SB *vf, const char *method, const char *strengt
         }
 }
 
+static bool is_zero_amount(const char *text) {
+    char *end;
+    double value = strtod(text, &end);
+    while (*end == ' ' || *end == '\t') ++end;
+    return end != text && !*end && isfinite(value) && value == 0;
+}
+
 static void build_deband_filter(SB *vf, const char *method, const char *strength,
                                 const char *f3_range, const char *f3_y, const char *f3_cbcr) {
+        if (strcmp(method, "f3kdb") && is_zero_amount(strength)) return;
         if (!strcmp(method, "gradfun")) sb_fmt(vf, "gradfun=%s,", strength);
         else if (!strcmp(method, "f3kdb")) {
+            if (is_zero_amount(f3_range) && is_zero_amount(f3_y) && is_zero_amount(f3_cbcr)) return;
 
             double y = atof(f3_y);
             double cb = atof(f3_cbcr);
@@ -217,6 +226,11 @@ static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) 
     if (img) snprintf(out, sizeof(out), "%s/%s_[restored].png", outdir, base);
     else snprintf(out, sizeof(out), "%s/%s_[restored].mp4", outdir, base);
 
+    if ((strcmp(S.encoder, "auto") && strcmp(S.encoder, "cpu") && strcmp(S.encoder, "videotoolbox")) ||
+        (strcmp(S.hwaccel, "none") && strcmp(S.hwaccel, "videotoolbox"))) {
+        if (global_log_cb) global_log_cb("Unsupported Apple Silicon encoder or hardware decoder. Choose CPU/Auto or VideoToolbox.\n");
+        return UP60P_ERR_INVALID_OPTIONS;
+    }
     bool videotoolbox = !strcmp(S.encoder, "videotoolbox");
     if (!img && videotoolbox && S.use10 && !strcmp(S.codec, "h264")) {
         if (global_log_cb) global_log_cb("VideoToolbox H.264 supports 8-bit output. Select HEVC for 10-bit output.\n");
@@ -292,8 +306,8 @@ static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) 
         sb_fmt(&vf, "eq=contrast=%.9g:brightness=%.9g:saturation=%.9g,", contrast, brightness, saturation);
     }
     if (S.use_grain_2 || !S.no_grain) {
-        if (S.use_grain_2) sb_fmt(&vf, "noise=alls=%s:allf=t,", S.grain_strength_2);
-        else sb_fmt(&vf, "noise=alls=%s:allf=t,", S.grain_strength);
+        const char *amount = S.use_grain_2 ? S.grain_strength_2 : S.grain_strength;
+        if (!is_zero_amount(amount)) sb_fmt(&vf, "noise=alls=%s:allf=t,", amount);
     }
 
 
@@ -351,10 +365,7 @@ static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) 
         if (!strcmp(S.fps, "source") || !strcmp(S.fps, "lock")) {
             args[a++] = "-fps_mode"; args[a++] = "passthrough";
         }
-        char *cod = "libx264";
-        if (!strcmp(S.codec, "hevc")) {
-            if (!strcmp(S.encoder, "nvenc")) cod = "hevc_nvenc"; else if (!strcmp(S.encoder, "qsv")) cod = "hevc_qsv"; else if (!strcmp(S.encoder, "vaapi")) cod = "hevc_vaapi"; else cod = "libx265";
-        } else { if (!strcmp(S.encoder, "nvenc")) cod = "h264_nvenc"; else if (!strcmp(S.encoder, "qsv")) cod = "h264_qsv"; else if (!strcmp(S.encoder, "vaapi")) cod = "h264_vaapi"; }
+        char *cod = !strcmp(S.codec, "hevc") ? "libx265" : "libx264";
 
         if (videotoolbox) cod = !strcmp(S.codec, "hevc") ? "hevc_videotoolbox" : "h264_videotoolbox";
         args[a++] = "-c:v"; args[a++] = cod;

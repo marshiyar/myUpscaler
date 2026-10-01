@@ -276,6 +276,9 @@ struct KnownDuration: AssetLoaderProtocol {
         try await Task.sleep(nanoseconds: 10_000_000)
         precondition(runner.phase == .finalizing && runner.isRunning && runner.completedOutputPath == nil)
         runner.cancel()
+        engine.handler?("Cancellation diagnostic: time=00:00:06.35\n")
+        try await Task.sleep(nanoseconds: 10_000_000)
+        precondition(runner.log.contains("Cancellation diagnostic") && runner.isRunning, "teardown diagnostic was discarded")
         runner.run()
         precondition(runner.isRunning && engine.starts == 1 && engine.cancels == 1,
                      "cancel released ownership before engine stopped")
@@ -295,6 +298,9 @@ struct KnownDuration: AssetLoaderProtocol {
         try await Task.sleep(nanoseconds: 10_000_000)
         precondition(!runner.isRunning && runner.phase == .idle && runner.progress == 1,
                      "late same-run log changed completed state")
+        engine.handler?("Warning: late final diagnostic time=00:00:12.00\n")
+        try await Task.sleep(nanoseconds: 10_000_000)
+        precondition(runner.log.contains("late final diagnostic") && runner.phase == .idle && runner.progress == 1, "late diagnostic was lost or reopened progress")
         let completedPath = runner.completedOutputPath
         runner.inputPath = input.path
         precondition(runner.completedOutputPath == completedPath, "unchanged input invalidated export")

@@ -23,8 +23,8 @@ The preview approximates restoration with Core Image. It is useful for choosing 
 
 ## Use the app
 
-1. Use **Import** or drop a video or batch folder into the import area. Open **Adjustments** in the toolbar to configure the docked side panel before or after importing; it starts collapsed and never covers the video.
-2. Choose **Lanczos** or an included **Core ML model**, then set the final output multiplier.
+1. Use **Import** or drop an individual video into the import area. See the folder-processing limitation below before using a batch folder. Open **Adjustments** in the toolbar to configure the docked side panel before or after importing; it starts collapsed and never covers the video.
+2. Choose **Lanczos** or an included named model such as **Real-ESRGAN x4** or **Real-ESRGAN x8** in the single **Scaler** picker, then set the final output multiplier.
 3. Adjust supported restoration settings using the approximate preview. The side panel groups **Upscale**, **Restore**, and **Output** controls. Encoding details, additional restoration, processing details, and saved presets expand when needed.
 4. Choose an output folder and start the export. Outputs use `<input>_[restored].mp4` or `.png`; an existing output with that name can be replaced.
 
@@ -90,11 +90,17 @@ Maintained application source targets about 500 lines per file, with a 600-line 
 
 ## Finishing filters (FFmpeg)
 
+Additional Filters uses **Off** to bypass Deblock. Deband strength and grain amount at zero bypass their effects while their editors remain visible. Deblock thresholds are optional named FFmpeg values such as `alpha=0.1:beta=0.05`, each from 0 to 1; blank uses the defaults. Stored disabled filters retain their saved values.
+
+The **Interpolation** picker offers Off, MCI and Blend. New/reset settings use Off; saved enabled choices are preserved. Target FPS can still select or duplicate frames with interpolation Off.
+
 The optional finishing filters run after scaling and the primary sharpen/deband filters. Each switch enables its filter independently of the primary set. Deringing uses one switch and an `hqdn3d` smoothing filter; it does not detect ringing artifacts. Finishing grain replaces primary grain rather than adding a second noise filter. These controls do not apply to Core ML exports, and the Core Image preview is an approximation of FFmpeg processing.
 
 When a filter runs in both sets, fixed multipliers reduce finishing strength: CAS/CAS 0.6, mixed CAS/unsharp 0.5, unsharp/unsharp 0.35, denoise 0.55, and deband 0.6. Unsharp matrix size also shrinks, retaining an odd size. This is a parameter heuristic, not image analysis or a guarantee against artifacts. `auto` denoise keeps FFmpeg's automatic setting without numeric attenuation. Reducing strength still runs the filter and does not remove its processing cost.
 
 ## Current limitations
+
+- Folder processing is not yet reliable end to end: FFmpeg enumerates files, but completion verification assumes one output, flat output names can collide, and case handling is inconsistent. Core ML accepts individual videos. Use individual files while the explicit batch output plan is repaired.
 
 - Full Core ML throughput and temporal-quality benchmarks need compatible model assets and representative media. Synthetic kernel and video-I/O tests do not establish end-to-end AI speed.
 - Numeric motion interpolation checks source sample timing. Verified constant-rate clips retain their duration through the final held frame; targets at or below source rate use frame selection. Variable-rate or unverified clips use conservative interpolation and may lose endpoint frames. Source/lock preserves original timestamps.

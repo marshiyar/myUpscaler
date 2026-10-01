@@ -1,11 +1,11 @@
 import Foundation
 
-nonisolated enum CoreMLModelID: String, CaseIterable, Codable, Hashable {
+nonisolated enum CoreMLModelID: String, CaseIterable, Codable, Hashable, Sendable {
     case realESRGANx2 = "RealESRGAN_x2"
     case realESRGANx4 = "RealESRGAN_x4"
     case realESRGANx8 = "RealESRGAN_x8"
 }
-nonisolated struct CoreMLModelSpec: Identifiable, Hashable {
+nonisolated struct CoreMLModelSpec: Identifiable, Hashable, Sendable {
     let id: CoreMLModelID
 
     // This closed catalog retains the resource names and IDs stored in presets.
@@ -51,5 +51,24 @@ nonisolated enum CoreMLModelRegistry {
 
     static func model(for id: CoreMLModelID) -> CoreMLModelSpec {
         CoreMLModelSpec(id: id)
+    }
+}
+
+/// One UI choice maps to the preserved backend and exact model identity.
+nonisolated enum UpscalingChoice: Hashable, Sendable, Identifiable {
+    case lanczos
+    case model(CoreMLModelID)
+
+    var id: String {
+        switch self {
+        case .lanczos: return "lanczos"
+        case .model(let id): return id.rawValue
+        }
+    }
+    var displayName: String {
+        switch self {
+        case .lanczos: return "Lanczos"
+        case .model(let id): return CoreMLModelRegistry.model(for: id).displayName
+        }
     }
 }

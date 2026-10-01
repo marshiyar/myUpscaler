@@ -107,6 +107,21 @@ int main(int argc, char **argv) {
         snprintf(opts.scale_factor, sizeof(opts.scale_factor), "1");
         return up60p_process_path(argv[2], &opts);
     }
+    if (argc > 7 && strcmp(argv[1], "additional") == 0) {
+        up60p_options opts;
+        up60p_default_options(&opts);
+        opts.no_decimate = opts.no_interpolate = opts.no_denoise = opts.no_sharpen = opts.no_eq = true;
+        opts.no_deblock = strcmp(argv[2], "off") == 0;
+        snprintf(opts.deblock_mode, sizeof(opts.deblock_mode), "%s", opts.no_deblock ? "strong" : argv[2]);
+        snprintf(opts.deblock_thresh, sizeof(opts.deblock_thresh), "%s", argv[3]);
+        snprintf(opts.deband_method, sizeof(opts.deband_method), "%s", argv[4]);
+        snprintf(opts.deband_strength, sizeof(opts.deband_strength), "%s", argv[5]);
+        snprintf(opts.f3kdb_range, sizeof(opts.f3kdb_range), "%s", argv[5]);
+        snprintf(opts.f3kdb_y, sizeof(opts.f3kdb_y), "%s", argv[5]);
+        snprintf(opts.f3kdb_cbcr, sizeof(opts.f3kdb_cbcr), "%s", argv[5]);
+        snprintf(opts.grain_strength, sizeof(opts.grain_strength), "%s", argv[6]);
+        return up60p_process_path(argv[7], &opts);
+    }
     if (argc > 3 && strcmp(argv[1], "finishing") == 0) {
         up60p_options opts;
         up60p_default_options(&opts);
@@ -490,6 +505,23 @@ int main(void) {
         for token in tokens:
             self.assertEqual(result.stdout.count(token), 1, result.stdout)
         self.assertNotIn("noise=alls=2", result.stdout)
+
+    def test_additional_zero_bypass_and_named_deblock_threshold_graph(self):
+        self.bundled.write_text('#!/bin/sh\necho "$@" >&2\nexit 0\n')
+        self.bundled.chmod(0o755)
+        image = self.root / "input.png"
+        image.touch()
+        for method in ("deband", "gradfun", "f3kdb"):
+            zero = self.run_engine("additional", "off", "", method, "0.0", "0.0", str(image))
+            self.assertEqual(zero.returncode, 0, zero.stdout + zero.stderr)
+            for token in ("deblock=", "deband=", "gradfun=", "noise="):
+                self.assertNotIn(token, zero.stdout)
+        for threshold in ("", "alpha=0.1:beta=0.05"):
+            positive = self.run_engine("additional", "strong", threshold, "deband", "0.02", "2", str(image))
+            self.assertEqual(positive.returncode, 0, positive.stdout + positive.stderr)
+            self.assertIn("deblock=filter=strong:block=8" + (":" + threshold if threshold else ""), positive.stdout)
+            self.assertIn("deband=1thr=0.02", positive.stdout)
+            self.assertIn("noise=alls=2", positive.stdout)
 
     def test_finishing_filters_are_independent_and_emitted_once(self):
         self.bundled.write_text('#!/bin/sh\necho "$@" >&2\nexit 0\n')

@@ -22,7 +22,7 @@ extension UpscaleSettings {
 
     // MARK: - Default fallbacks used when re-enabling filters that were auto-disabled at 0
      var defaultDeringStrengthString: String { RestorationStage().deringStrength.text }
-     var defaultDeblockThreshString: String { "0.5" }
+     var defaultDeblockThreshString: String { "" }
      var defaultDenoiseStrength2String: String { String(format: "%.2f", denoiseStrength2Default) }
      var defaultSharpenStrength2String: String { RestorationStage().sharpenStrength.text }
      var defaultUsmRadius2String: String { RestorationStage().usmRadius.text }

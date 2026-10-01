@@ -392,9 +392,8 @@ nonisolated extension CoreMLProcessingJob {
         }
 
         // Deband (dither + optional blue-noise)
-        if settings.primary.useDeband && settings.primary.debandStrength.text != "0" {
+        if settings.primary.useDeband, let amount = settings.primary.debandStrength.finiteValue, amount > 0 {
             let thresh = 0.02
-            let amount = double(from: settings.primary.debandStrength.text, default: 0.0)
             processed = applyDeband(processed, threshold: thresh, amount: amount)
 
             if settings.metal.useBlueNoiseDeband {

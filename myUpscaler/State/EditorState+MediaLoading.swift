@@ -30,12 +30,12 @@ extension EditorState {
             let time = CMTime(seconds: 0.0, preferredTimescale: 600)
 
             do {
-                let (cgImage, _) = try await imageGenerator.image(at: time)
+                let (cgImage, actualTime) = try await imageGenerator.image(at: time)
                 let nsImage = NSImage(cgImage: cgImage, size: .zero)
 
                 await MainActor.run {
                     guard generation == self.mediaGeneration, selectedFrame == self.frameGeneration, !Task.isCancelled else { return }
-                    self.installOriginal(nsImage)
+                    self.installOriginal(nsImage, presentationTime: actualTime)
                 }
             } catch {
                 print("Thumbnail error: \(error)")
@@ -54,6 +54,7 @@ extension EditorState {
                 self.totalFrames = 1
                 self.timelineFrames = [image]
                 self.timelineFrameTimes = [0.0]
+                self.timelinePresentationTimes = []
                 return
             }
         }
@@ -63,64 +64,26 @@ extension EditorState {
 
         let generation = mediaGeneration
         timelineTask?.cancel()
+        let loader = VideoTimelineLoader()
         timelineTask = Task {
-            guard let track = try? await asset.loadTracks(withMediaType: .video).first else { return }
-
-            guard let durationTime = try? await asset.load(.duration) else { return }
-            let duration = durationTime.seconds
-
-            let fpsFloat = try? await track.load(.nominalFrameRate)
-            let reportedFPS = Double(fpsFloat ?? 30.0)
-            let fps = reportedFPS.isFinite && reportedFPS > 0 ? reportedFPS : 30.0
-            guard duration.isFinite, duration >= 0, !Task.isCancelled else { return }
-
-            await MainActor.run {
+            do {
+                let result = try await loader.load(url: url)
                 guard generation == self.mediaGeneration, !Task.isCancelled else { return }
-                self.videoFPS = fps
-                self.totalFrames = Int(duration * fps)
-                self.timelineFrames.removeAll()
-                self.timelineFrameTimes.removeAll()
-            }
-
-            let generator = AVAssetImageGenerator(asset: asset)
-            generator.appliesPreferredTrackTransform = true
-            generator.maximumSize = CGSize(width: 200, height: 200)
-
-            // Prepare times - limit to 50 frames for better memory performance
-            var times: [CMTime] = []
-            let count = min(Int(duration * fps), 50) // Reduced from 200 to 50
-            for i in 0..<count {
-                let t = Double(i) / fps
-                times.append(CMTime(seconds: t, preferredTimescale: 600))
-            }
-
-            var loadedImages: [NSImage] = []
-            var loadedTimes: [Double] = []
-
-            for await result in generator.images(for: times) {
-                guard generation == self.mediaGeneration, !Task.isCancelled else { return }
-                switch result {
-                case .success(requestedTime: let req, image: let img, actualTime: _):
-                    loadedImages.append(NSImage(cgImage: img, size: .zero))
-                    loadedTimes.append(req.seconds)
-                case .failure:
-                    continue
+                self.videoFPS = result.fps
+                self.totalFrames = result.estimatedTotalFrames
+                self.timelineFrames = result.samples.map { NSImage(cgImage: $0.image, size: .zero) }
+                self.timelinePresentationTimes = result.samples.map(\.presentationTime)
+                self.timelineFrameTimes = result.samples.map { $0.presentationTime.seconds }
+                if result.failedRequests > 0 {
+                    print("Timeline: \(result.failedRequests) requests could not produce a nearby frame.")
                 }
-            }
-
-            let finalImages = loadedImages
-            let finalTimes = loadedTimes
-
-            await MainActor.run {
-                guard generation == self.mediaGeneration, !Task.isCancelled else { return }
-                self.timelineFrames = finalImages
-                self.timelineFrameTimes = finalTimes
-            }
+            } catch is CancellationError { }
+            catch { print("Timeline error: \(error)") }
         }
     }
 
     // MARK: -  Load Full-Res Frame
-    func loadFullResolutionFrame(at timeSeconds: Double) {
+    func loadFullResolutionFrame(at timeSeconds: Double, presentationTime: CMTime? = nil) {
         if videoAsset == nil, !timelineFrames.isEmpty {
              if let original = originalThumbnail {
                  self.installOriginal(original)
@@ -130,9 +93,16 @@ extension EditorState {
 
         guard let asset = videoAsset else { return }
 
+        let time = presentationTime ?? CMTime(seconds: timeSeconds, preferredTimescale: 600)
+        if pendingFramePresentationTime == time { return }
+        if loadedFramePresentationTime == time, originalThumbnail != nil { return }
         frameTask?.cancel()
         let generation = beginFrameRequest()
+        pendingFramePresentationTime = time
         frameTask = Task {
+            defer {
+                if self.frameGeneration == generation { self.pendingFramePresentationTime = nil }
+            }
             let tracks = try? await asset.loadTracks(withMediaType: AVMediaType.video)
             guard let videoTrack = tracks?.first else { return }
 
@@ -153,15 +123,13 @@ extension EditorState {
             generator.requestedTimeToleranceBefore = .zero
             generator.requestedTimeToleranceAfter = .zero
 
-            let time = CMTime(seconds: timeSeconds, preferredTimescale: 600)
-
             do {
                 let (cgImage, _) = try await generator.image(at: time)
                 let ns = NSImage(cgImage: cgImage, size: .zero)
 
                 await MainActor.run {
                     guard generation == self.frameGeneration, !Task.isCancelled else { return }
-                    self.installOriginal(ns)
+                    self.installOriginal(ns, presentationTime: time)
                 }
             } catch {
                 await MainActor.run {

@@ -151,6 +151,11 @@ final class Up60PEngine {
             throw Up60PEngineError.unsupportedScaler
         }
         guard CodecSupport.isValidCRF(settings.codec.crf) else { throw Up60PEngineError.invalidOptions }
+        guard (!settings.primary.useDeblock || DeblockThresholds.isValid(settings.primary.deblockThresh.text)),
+              (!settings.secondary.useDeblock || DeblockThresholds.isValid(settings.secondary.deblockThresh.text)) else {
+            log("Invalid deblock thresholds: use named alpha/beta/gamma/delta values from 0 to 1, or blank defaults; maximum 63 bytes.\n")
+            throw Up60PEngineError.invalidOptions
+        }
         try ensureInitialized()
 
         var opts = up60p_options()

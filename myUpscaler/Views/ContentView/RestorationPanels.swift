@@ -89,11 +89,12 @@ struct RestorationPanel: View {
                 VStack(spacing: 8) {
                     // Deblock Mode
                     HStack {
-                        Toggle("Deblock", isOn: $settings.primary.useDeblock)
+                        Text("Deblock")
                             .font(.caption)
                             .disabled(settings.upscaling.scaler == "coreml")
                         Spacer()
-                        Picker("", selection: $settings.primary.deblockMode) {
+                        Picker("", selection: $settings.additionalDeblockMode) {
+                            Text("Off").tag("off")
                             ForEach(settings.deblockModes, id: \.self) { Text($0) }
                         }
                         .pickerStyle(.menu)
@@ -101,11 +102,11 @@ struct RestorationPanel: View {
                         .frame(width: 80)
                         .accessibilityLabel("Primary deblock mode")
                         .disabled(settings.upscaling.scaler == "coreml")
-                        TextField("Thresh", text: $settings.primary.deblockThresh.text)
-                            .labelsHidden()
-                                .textFieldStyle(.roundedBorder)
-                            .frame(width: 70)
-                            .accessibilityLabel("Primary deblock threshold")
+
+                    }
+
+                    if settings.primary.useDeblock {
+                        DeblockThresholdControls(text: $settings.primary.deblockThresh.text)
                             .disabled(settings.upscaling.scaler == "coreml")
                     }
 
@@ -114,21 +115,25 @@ struct RestorationPanel: View {
 
                     // Deband
                     HStack {
-                        Toggle("Deband", isOn: $settings.primary.useDeband)
+                        Text("Deband")
                             .font(.caption)
                         Spacer()
-                        Picker("", selection: $settings.primary.debandMethod) {
-                            ForEach(settings.debandMethods, id: \.self) { Text($0) }
+                        Picker("", selection: $settings.additionalDebandMethod) {
+                            Text("Off").tag("off")
+                            ForEach(settings.debandMethods, id: \.self) { method in
+                                Text(method == "deband" ? "FFmpeg deband" : method == "gradfun" ? "Gradfun" : "FFmpeg deband (strict)").tag(method)
+                            }
                         }
                         .pickerStyle(.menu)
                         .controlSize(.small)
                         .frame(width: 80)
                         .accessibilityLabel("Primary deband method")
+                        .help("Strict preserves the legacy f3kdb preset ID but uses FFmpeg deband thresholds. Gradfun adds dither intended for playback; lossy encoding may remove it.")
                         .disabled(settings.upscaling.scaler == "coreml")
                     }
 
-                    if settings.primary.debandMethod == "f3kdb" {
-                        RestorationF3KDBControls(stage: $settings.primary, compact: false)
+                    if settings.primary.debandMethod == "f3kdb" && settings.upscaling.scaler != "coreml" {
+                        RestorationF3KDBControls(stage: $settings.additionalF3KDBStage, compact: false)
                             .padding(.leading, 8)
                             .disabled(settings.upscaling.scaler == "coreml")
                     } else {
@@ -137,13 +142,12 @@ struct RestorationPanel: View {
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             Spacer()
-                            TextField("0.015", text: $settings.primary.debandStrength.text)
+                            TextField("0.015", text: $settings.additionalDebandAmount)
                                 .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                                 .frame(width: 55)
                         }
                         .padding(.leading, 8)
-                        .disabled(settings.upscaling.scaler == "coreml")
                     }
 
                     Divider()
@@ -151,11 +155,11 @@ struct RestorationPanel: View {
 
                     // Grain Strength
                     HStack {
-                        Toggle("Grain", isOn: $settings.primary.useGrain)
+                        Text("Grain")
                             .font(.caption)
                             .disabled(settings.upscaling.scaler == "coreml")
                         Spacer()
-                        TextField("1.0", text: $settings.primary.grainStrength.text)
+                        TextField("1.0", text: $settings.additionalGrainAmount)
                             .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                             .frame(width: 50)

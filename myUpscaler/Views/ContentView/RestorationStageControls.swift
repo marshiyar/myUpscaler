@@ -139,3 +139,35 @@ struct RestorationF3KDBControls: View {
         }
     }
 }
+
+/// Named FFmpeg thresholds retain partial numeric drafts and legacy extra options.
+struct DeblockThresholdControls: View {
+    @Binding var text: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text("Thresholds").font(.caption).foregroundStyle(.secondary)
+                Spacer()
+                Button("Defaults") { text = "" }.controlSize(.mini)
+            }
+            HStack(spacing: 6) {
+                ForEach(["alpha", "beta", "gamma", "delta"], id: \.self) { key in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(key).font(.caption2).foregroundStyle(.secondary)
+                        TextField(key == "alpha" ? "0.098" : "0.05", text: Binding(
+                            get: { DeblockThresholds.value(key, in: text) },
+                            set: { text = DeblockThresholds.replacing(key, with: $0, in: text) }))
+                            .textFieldStyle(.roundedBorder)
+                            .accessibilityLabel("Deblock \(key) threshold")
+                    }
+                }
+            }
+            .help("Detection thresholds from 0 to 1. Empty fields use FFmpeg defaults.")
+            if !DeblockThresholds.isValid(text) {
+                Text("Invalid saved or draft thresholds; use values from 0 to 1 or Defaults.")
+                    .font(.caption).foregroundStyle(.red)
+            }
+        }
+    }
+}

@@ -114,7 +114,7 @@ nonisolated struct OutputSettings: Equatable, Sendable {
 
 nonisolated struct ModesSettings: Equatable, Sendable {
     var noDecimate: Bool = false
-    var noInterpolate: Bool = false
+    var noInterpolate: Bool = true
     var useQualityAnalyzer: Bool = false
     var useDriftGuard: Bool = false
     var pciSafe: Bool = false

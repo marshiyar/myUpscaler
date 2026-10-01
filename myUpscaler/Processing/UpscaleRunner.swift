@@ -11,13 +11,6 @@ class UpscaleRunner: ObservableObject {
     @Published var phase: ProcessingPhase = .idle
     @Published var progressKnown = false
 
-     static let isAppleSilicon: Bool = {
-#if arch(arm64)
-        return true
-#else
-        return false
-#endif
-    }()
 
     // MARK: - Dependencies
      let fileSystem: FileSystemProtocol
@@ -160,10 +153,6 @@ class UpscaleRunner: ObservableObject {
         lastLogFlushTime = Date().timeIntervalSince1970
         lastLogBufferTime = Date().timeIntervalSince1970
 
-        if !UpscaleRunner.isAppleSilicon && settings.hardware.hwAccel == "videotoolbox" {
-            settings.hardware.hwAccel = "none"
-            log.append("Note: VideoToolbox decode not available on this Mac. Falling back to CPU decode.\n\n")
-        }
 
         let selectedEngine: EngineProtocol
         if settings.upscaling.scaler == "coreml" {
@@ -219,9 +208,18 @@ class UpscaleRunner: ObservableObject {
             }
 
             Task { @MainActor in
-                guard self.currentRunID == runID, self.isRunning, !self.isCancelling else { return }
-                let now = Date().timeIntervalSince1970
+                guard self.currentRunID == runID else { return }
                 let lower = message.lowercased()
+                let diagnostic = lower.contains("error") || lower.contains("fail") || lower.contains("warning") || lower.contains("cancel")
+                let terminalText = lower.contains("lsize=") || message.trimmingCharacters(in: .whitespacesAndNewlines) == "Done."
+                guard self.isRunning && !self.isCancelling else {
+                    if diagnostic || terminalText {
+                        self.logBuffer.append(message)
+                        self.flushLogBuffer()
+                    }
+                    return
+                }
+                let now = Date().timeIntervalSince1970
                 let isError = lower.contains("error") || lower.contains("fail")
 
                 // Always track errors immediately
@@ -230,7 +228,7 @@ class UpscaleRunner: ObservableObject {
                 }
 
                 let isProgressMessage = lower.contains("time=") || lower.contains("fps=")
-                let shouldBuffer = !isProgressMessage || isError || (now - self.lastLogBufferTime >= self.logBufferInterval)
+                let shouldBuffer = !isProgressMessage || diagnostic || terminalText || (now - self.lastLogBufferTime >= self.logBufferInterval)
 
                 if shouldBuffer {
                     self.logBuffer.append(message)

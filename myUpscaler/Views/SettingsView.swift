@@ -56,7 +56,6 @@ struct SettingsView: View {
                     Toggle("Deblock", isOn: $settings.primary.useDeblock).disabled(settings.upscaling.scaler == "coreml")
                     Toggle("Denoise", isOn: $settings.primary.useDenoise)
                     Toggle("Decimate", isOn: enabled($settings.modes.noDecimate)).disabled(settings.upscaling.scaler == "coreml")
-                    Toggle("Frame interpolation", isOn: enabled($settings.modes.noInterpolate)).disabled(settings.upscaling.scaler == "coreml")
                     Toggle("Sharpen", isOn: $settings.primary.useSharpen)
                     Toggle("Deband", isOn: $settings.primary.useDeband)
                     Toggle("Color equalizer", isOn: enabled($settings.color.noEq)).disabled(settings.upscaling.scaler == "coreml")

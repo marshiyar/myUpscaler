@@ -12,9 +12,98 @@ import Combine
         precondition(decoded == snapshot)
     }
 
+    @MainActor static func verifyAdditionalControls() throws {
+        let settings = UpscaleSettings()
+        settings.primary.useDeband = false
+        settings.primary.useGrain = false
+        precondition(settings.additionalDebandMethod == "off")
+        let legacy = settings.configuration
+        precondition(settings.additionalDebandAmount == "0" && settings.additionalGrainAmount == "0")
+        precondition(settings.configuration == legacy, "display rewrote disabled legacy values")
+        let restored = UpscaleSettings()
+        try JSONDecoder().decode(UpscaleSettingsSnapshot.self, from: JSONEncoder().encode(UpscaleSettingsSnapshot(settings: settings))).apply(to: restored)
+        precondition(restored.configuration == legacy)
+        for value in ["0", "0.02", "0"] {
+            settings.additionalDebandAmount = value
+            precondition(settings.primary.useDeband == (Double(value)! > 0) && settings.additionalDebandAmount == value)
+        }
+        for value in ["0", "2", "0"] {
+            settings.additionalGrainAmount = value
+            precondition(settings.primary.useGrain == (Double(value)! > 0) && settings.additionalGrainAmount == value)
+        }
+        settings.additionalGrainAmount = ""
+        precondition(settings.additionalGrainAmount.isEmpty && !settings.primary.useGrain)
+        settings.additionalDebandAmount = "-"
+        precondition(settings.additionalDebandAmount == "-" && !settings.primary.useDeband)
+        let preservedOptions = "alpha=0.2:planes=1:block=16"
+        let edited = DeblockThresholds.replacing("alpha", with: "-", in: preservedOptions)
+        precondition(DeblockThresholds.value("alpha", in: edited) == "-" && edited.contains("planes=1:block=16"))
+        precondition(!DeblockThresholds.isValid(edited))
+        precondition(DeblockThresholds.isValid(DeblockThresholds.replacing("alpha", with: "0.1", in: edited)))
+        precondition(DeblockThresholds.value("alpha", in: DeblockThresholds.replacing("alpha", with: "", in: edited)).isEmpty)
+        settings.additionalDeblockMode = "off"
+        precondition(!settings.primary.useDeblock && settings.additionalDeblockMode == "off")
+        settings.additionalDeblockMode = "weak"
+        precondition(settings.primary.useDeblock && settings.primary.deblockMode == "weak")
+        settings.secondary.useDeblock = true
+        precondition(settings.secondary.deblockThresh.text.isEmpty, "enabling default deblock created invalid positional threshold")
+        for valid in ["", "alpha=0", "alpha=0.1:beta=0.05:gamma=0.05:delta=0.05", "alpha=1:planes=1", "block=16:filter=weak"] { precondition(DeblockThresholds.isValid(valid)) }
+        for invalid in ["0.5", "alpha=2", "alpha=nan", "beta=-1", "alpha=", "alpha=0.1:", "oops=0.5", String(repeating: "alpha=0.1:", count: 8)] { precondition(!DeblockThresholds.isValid(invalid)) }
+        settings.additionalDebandMethod = "f3kdb"
+        precondition(settings.primary.useDeband && settings.primary.debandMethod == "f3kdb")
+        settings.additionalDebandMethod = "off"
+        precondition(!settings.primary.useDeband && settings.primary.debandMethod == "f3kdb")
+        settings.primary.useDeband = false
+        var stage = settings.additionalF3KDBStage
+        precondition(stage.f3kdbRange.text == "0" && stage.f3kdbY.text == "0")
+        stage.f3kdbY.text = "32"
+        settings.additionalF3KDBStage = stage
+        precondition(settings.primary.useDeband && settings.primary.f3kdbY.text == "32")
+        stage = settings.additionalF3KDBStage
+        stage.f3kdbRange.text = "0"; stage.f3kdbY.text = "0"; stage.f3kdbCbCr.text = "0"
+        settings.additionalF3KDBStage = stage
+        precondition(!settings.primary.useDeband)
+        settings.resetToDefaults()
+        precondition(settings.interpolationChoice == "off")
+        for choice in ["mci", "blend", "off"] {
+            settings.interpolationChoice = choice
+            let saved = UpscaleSettingsSnapshot(settings: settings)
+            let target = UpscaleSettings()
+            try JSONDecoder().decode(UpscaleSettingsSnapshot.self, from: JSONEncoder().encode(saved)).apply(to: target)
+            precondition(target.interpolationChoice == choice)
+        }
+        let oldEnabled = try JSONDecoder().decode(UpscaleSettingsSnapshot.self, from: Data(#"{"interpolation":"blend","noInterpolate":false}"#.utf8))
+        oldEnabled.apply(to: settings); precondition(settings.interpolationChoice == "blend")
+        let oldDisabled = try JSONDecoder().decode(UpscaleSettingsSnapshot.self, from: Data(#"{"interpolation":"mci","noInterpolate":true}"#.utf8))
+        oldDisabled.apply(to: settings); precondition(settings.interpolationChoice == "off")
+        settings.resetToDefaults(); precondition(settings.interpolationChoice == "off")
+        print("PASS zero/positive/blank controls, legacy disabled values, Off deblock, named thresholds, interpolation defaults and preset migration")
+    }
+
     @MainActor static func main() throws {
         try verifyPureSettings()
+        try verifyAdditionalControls()
         let settings = UpscaleSettings()
+        var choicePublications = 0
+        let choiceSubscription = settings.$configuration.dropFirst().sink { _ in choicePublications += 1 }
+        let requestedScale = settings.video.scaleFactor
+        settings.upscalingChoice = .model(.realESRGANx8)
+        precondition(choicePublications == 1 && settings.upscaling.scaler == "coreml" && settings.upscaling.coremlModelId == .realESRGANx8)
+        precondition(settings.video.scaleFactor == requestedScale)
+        let choiceSnapshot = UpscaleSettingsSnapshot(settings: settings)
+        let choiceDecoded = try JSONDecoder().decode(UpscaleSettingsSnapshot.self, from: JSONEncoder().encode(choiceSnapshot))
+        let choiceTarget = UpscaleSettings()
+        choiceDecoded.apply(to: choiceTarget)
+        precondition(choiceTarget.upscalingChoice == .model(.realESRGANx8))
+        precondition(UpscalingChoice.model(.realESRGANx4).displayName == "Real-ESRGAN x4")
+        precondition(settings.availableUpscalingChoices == [.lanczos] + settings.coremlModels.map { .model($0.id) })
+        if !settings.availableUpscalingChoices.contains(.model(.realESRGANx8)) { precondition(settings.upscalingUnavailableReason != nil) }
+        settings.upscalingChoice = .lanczos
+        precondition(choicePublications == 2 && settings.upscaling.scaler == "lanczos" && settings.upscaling.coremlModelId == .realESRGANx8)
+        settings.upscalingChoice = nil
+        precondition(choicePublications == 2, "invalid picker placeholder changed saved configuration")
+        choiceSubscription.cancel()
+        settings.resetToDefaults()
         let initial = settings.configuration
         var publications = 0
         let subscription = settings.$configuration.dropFirst().sink { _ in publications += 1 }

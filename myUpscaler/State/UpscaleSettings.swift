@@ -4,11 +4,7 @@ import Combine
 /// UI-owned mutable settings; processing receives a Sendable configuration snapshot.
 @MainActor final class UpscaleSettings: ObservableObject {
      nonisolated static var defaultHwAccel: String {
-        #if arch(arm64)
         return "videotoolbox"
-        #else
-        return "none"
-        #endif
     }
 
      nonisolated static var defaultEncoder: String { "auto" }
@@ -94,6 +90,22 @@ import Combine
     var coremlModels: [CoreMLModelSpec] { CoreMLModelRegistry.bundledModels }
     var scalers: [String] {
         UpscalingModeSupport.scalers(bundledModelIDs: coremlModels.map { $0.id.rawValue })
+    }
+    var availableUpscalingChoices: [UpscalingChoice] { [.lanczos] + coremlModels.map { .model($0.id) } }
+    var upscalingChoice: UpscalingChoice? {
+        get {
+            if upscaling.scaler == "lanczos" { return .lanczos }
+            return upscaling.scaler == "coreml" ? .model(upscaling.coremlModelId) : nil
+        }
+        set {
+            guard let choice = newValue else { return }
+            var next = upscaling
+            switch choice {
+            case .lanczos: next.scaler = "lanczos"
+            case .model(let id): next.scaler = "coreml"; next.coremlModelId = id
+            }
+            upscaling = next
+        }
     }
     var upscalingUnavailableReason: String? {
         UpscalingModeSupport.unavailableReason(scaler: upscaling.scaler, modelID: upscaling.coremlModelId.rawValue,

@@ -24,43 +24,21 @@ struct AIEnginePanel: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Spacer()
-                        Picker("", selection: Binding(
-                            get: { settings.scalers.contains(settings.upscaling.scaler) ? settings.upscaling.scaler : "" },
-                            set: { settings.upscaling.scaler = $0 }
-                        )) {
-                            if !settings.scalers.contains(settings.upscaling.scaler) {
-                                Text("Choose a mode").tag("").disabled(true)
+                        Picker("Scaler", selection: $settings.upscalingChoice) {
+                            if let selected = settings.upscalingChoice, !settings.availableUpscalingChoices.contains(selected) {
+                                Text("\(selected.displayName) (unavailable)").tag(Optional(selected)).disabled(true)
+                            } else if settings.upscalingChoice == nil {
+                                Text("Choose a scaler").tag(Optional<UpscalingChoice>.none).disabled(true)
                             }
-                            ForEach(settings.scalers, id: \.self) { scaler in
-                                Text(UpscalingModeSupport.label(for: scaler)).tag(scaler)
+                            ForEach(settings.availableUpscalingChoices) { choice in
+                                Text(choice.displayName).tag(Optional(choice))
                             }
                         }
+                        .labelsHidden()
+                        .accessibilityLabel("Scaler")
                         .pickerStyle(.menu)
                         .controlSize(.small)
-                        .frame(minWidth: 140)
-                    }
-
-                    if settings.upscaling.scaler == "coreml" && !settings.coremlModels.isEmpty {
-                        Divider()
-                            .padding(.vertical, 2)
-
-                        HStack {
-                            Text("CoreML Model")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Spacer()
-                            Picker("", selection: $settings.upscaling.coremlModelId) {
-                                if !settings.coremlModels.contains(where: { $0.id == settings.upscaling.coremlModelId }) {
-                                    Text("Choose a model").tag(settings.upscaling.coremlModelId).disabled(true)
-                                }
-                                ForEach(settings.coremlModels) { model in
-                                    Text(model.displayName).tag(model.id)
-                                }
-                            }
-                            .pickerStyle(.menu)
-                            .controlSize(.small)
-                            .frame(minWidth: 160)
-                        }
+                        .frame(minWidth: 160)
                     }
 
 

@@ -92,8 +92,13 @@ struct QualityScalePanel: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Spacer()
-                        Picker("", selection: $settings.video.interpolation) {
-                            ForEach(settings.interpolations, id: \.self) { Text($0) }
+                        Picker("", selection: $settings.interpolationChoice) {
+                            if !["off", "mci", "blend"].contains(settings.interpolationChoice) {
+                                Text("Saved mode unavailable").tag(settings.interpolationChoice).disabled(true)
+                            }
+                            Text("Off").tag("off")
+                            Text("MCI").tag("mci")
+                            Text("Blend").tag("blend")
                         }
                         .pickerStyle(.menu)
                         .controlSize(.small)

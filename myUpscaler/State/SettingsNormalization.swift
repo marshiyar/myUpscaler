@@ -34,7 +34,6 @@ nonisolated enum SettingsNormalization {
         reconcile(&next.useDering, previous: previous.useDering, draft: &next.deringStrength, old: previous.deringStrength, fallback: defaults.deringStrength.text)
         guard secondary else { return }
         reconcile(&next.useDenoise, previous: previous.useDenoise, draft: &next.denoiseStrength, old: previous.denoiseStrength, fallback: next.denoiser == "hqdn3d" ? "4.0" : next.denoiser == "nlmeans" ? "1.0" : next.denoiser == "atadenoise" ? "9.0" : "2.5")
-        reconcile(&next.useDeblock, previous: previous.useDeblock, draft: &next.deblockThresh, old: previous.deblockThresh, fallback: "0.5", emptyIsZero: true)
         if next.sharpenMethod == "cas" {
             reconcile(&next.useSharpen, previous: previous.useSharpen, draft: &next.sharpenStrength, old: previous.sharpenStrength, fallback: defaults.sharpenStrength.text)
         } else {

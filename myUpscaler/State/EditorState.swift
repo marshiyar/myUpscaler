@@ -18,6 +18,9 @@ final class EditorState: ObservableObject {
     @Published var originalThumbnail: NSImage?
     @Published var timelineFrames: [NSImage] = []
     @Published var timelineFrameTimes: [Double] = []
+    var timelinePresentationTimes: [CMTime] = []
+    var loadedFramePresentationTime: CMTime?
+    var pendingFramePresentationTime: CMTime?
 
     @Published var selectedFrameIndex: Int = 0
     @Published var videoAsset: AVURLAsset?
@@ -52,6 +55,8 @@ final class EditorState: ObservableObject {
         thumbnailTask?.cancel()
         timelineTask?.cancel()
         frameTask?.cancel()
+        loadedFramePresentationTime = nil
+        pendingFramePresentationTime = nil
         filterCache.removeAllObjects()
         desiredKey = nil
         publishedKey = nil
@@ -69,7 +74,9 @@ final class EditorState: ObservableObject {
         return frameGeneration
     }
 
-    func installOriginal(_ image: NSImage) {
+    func installOriginal(_ image: NSImage, presentationTime: CMTime? = nil) {
+        loadedFramePresentationTime = presentationTime
+        pendingFramePresentationTime = nil
         frameGeneration = UUID()
         filterGeneration = UUID()
         filterCache.removeAllObjects()
@@ -152,6 +159,7 @@ final class EditorState: ObservableObject {
         originalThumbnail = nil
         timelineFrames = []
         timelineFrameTimes = []
+        timelinePresentationTimes = []
         selectedFrameIndex = 0
         videoAsset = nil
         totalFrames = 0
@@ -164,7 +172,8 @@ final class EditorState: ObservableObject {
         guard index >= 0, index < timelineFrames.count else { return }
         selectedFrameIndex = index
         if index < timelineFrameTimes.count {
-            loadFullResolutionFrame(at: timelineFrameTimes[index])
+            loadFullResolutionFrame(at: timelineFrameTimes[index],
+                presentationTime: index < timelinePresentationTimes.count ? timelinePresentationTimes[index] : nil)
         }
     }
 

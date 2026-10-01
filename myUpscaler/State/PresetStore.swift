@@ -467,7 +467,7 @@ nonisolated struct UpscaleSettingsSnapshot: Codable, Equatable, Sendable {
         noDeblock = try container.decodeIfPresent(Bool.self, forKey: .noDeblock) ?? defaults.noDeblock
         noDenoise = try container.decodeIfPresent(Bool.self, forKey: .noDenoise) ?? defaults.noDenoise
         noDecimate = try container.decodeIfPresent(Bool.self, forKey: .noDecimate) ?? defaults.noDecimate
-        noInterpolate = try container.decodeIfPresent(Bool.self, forKey: .noInterpolate) ?? defaults.noInterpolate
+        noInterpolate = try container.decodeIfPresent(Bool.self, forKey: .noInterpolate) ?? false
         noSharpen = try container.decodeIfPresent(Bool.self, forKey: .noSharpen) ?? defaults.noSharpen
         noDeband = try container.decodeIfPresent(Bool.self, forKey: .noDeband) ?? defaults.noDeband
         noEq = try container.decodeIfPresent(Bool.self, forKey: .noEq) ?? defaults.noEq

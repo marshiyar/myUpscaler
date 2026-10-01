@@ -93,6 +93,44 @@ import Combine
         for (input, expected) in [("4.9",3.0),("nan",3),("1e99",23),("inf",3),("0",3)] {
             precondition(UpscaleSettings.unsharpMatrixSize(input) == expected)
         }
+        // Every stage field uses a distinct value to catch cross-stage DTO wiring.
+        func sentinel(_ second: Bool) -> RestorationStage {
+            RestorationStage(denoiser: second ? "hqdn3d" : "nlmeans",
+                denoiseStrength: NumericDraft(text: second ? "4.2" : "2.3"),
+                deblockMode: second ? "weak" : "strong",
+                deblockThresh: NumericDraft(text: second ? "alpha=0.12" : "alpha=0.08"),
+                useDering: !second, deringStrength: NumericDraft(text: second ? "0.7" : "0.3"),
+                sharpenMethod: second ? "cas" : "unsharp",
+                sharpenStrength: NumericDraft(text: second ? "0.42" : "0.31"),
+                usmRadius: NumericDraft(text: second ? "9" : "7"),
+                usmAmount: NumericDraft(text: second ? "1.7" : "1.4"),
+                usmThreshold: NumericDraft(text: second ? "0.07" : "0.04"),
+                debandMethod: second ? "f3kdb" : "gradfun",
+                debandStrength: NumericDraft(text: second ? "0.025" : "1.5"),
+                f3kdbRange: NumericDraft(text: second ? "17" : "13"),
+                f3kdbY: NumericDraft(text: second ? "80" : "60"),
+                f3kdbCbCr: NumericDraft(text: second ? "40" : "30"),
+                grainStrength: NumericDraft(text: second ? "7" : "2"),
+                useDeblock: second, useDenoise: !second, useSharpen: second,
+                useDeband: !second, useGrain: second)
+        }
+        var distinct = SettingsConfiguration()
+        distinct.primary = sentinel(false); distinct.secondary = sentinel(true)
+        let original = UpscaleSettings(); original.replaceConfiguration(distinct)
+        let serialized = try JSONEncoder().encode(UpscaleSettingsSnapshot(settings: original))
+        let sentinelSnapshot = try JSONDecoder().decode(UpscaleSettingsSnapshot.self, from: serialized)
+        for swap in [false, true] {
+            var prior = SettingsConfiguration()
+            prior.primary = swap ? distinct.secondary : RestorationStage.secondary
+            prior.secondary = swap ? distinct.primary : RestorationStage()
+            let destination = UpscaleSettings(); destination.replaceConfiguration(prior)
+            var writes = 0
+            let observation = destination.$configuration.dropFirst().sink { _ in writes += 1 }
+            sentinelSnapshot.apply(to: destination)
+            precondition(destination.configuration == distinct, "Every primary/secondary field must roundtrip")
+            precondition(writes == 1)
+            withExtendedLifetime(observation) {}
+        }
         withExtendedLifetime(subscription) {}
         print("PASS typed groups, preserved drafts, transactional normalization, single-publication reset/preset, legacy JSON/target-independent zero preset identity, effective preview attenuation/radius")
     }

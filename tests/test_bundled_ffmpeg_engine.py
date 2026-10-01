@@ -105,7 +105,8 @@ int main(int argc, char **argv) {
 
         cls.supervisor = folder / "up60p-ffmpeg-supervisor"
         subprocess.run([os.environ.get("CC", "cc"), "-std=c11", "-D_XOPEN_SOURCE=700",
-                        *architecture_flags, "-I", str(ROOT / "myUpscaler/upscaler"),
+                        *(["-arch", "arm64"] if sys.platform == "darwin" else []),
+                        "-I", str(ROOT / "myUpscaler/upscaler"),
                         str(ROOT / "scripts/up60p-ffmpeg-supervisor.c"), "-o", str(cls.supervisor)], check=True)
 
         if sys.platform == "darwin":
@@ -341,7 +342,18 @@ int main(void) {
                                       capture_output=True, text=True).stdout.strip() == "1"
         result = self.run_engine()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("NATIVE_ARCH=" + ("arm64" if physical_arm else "x86_64"), result.stdout)
+        self.assertTrue(physical_arm, "Intel Macs are unsupported")
+        self.assertIn("NATIVE_ARCH=arm64", result.stdout)
+
+    @unittest.skipUnless(sys.platform == "darwin", "Intel helper rejection")
+    def test_intel_only_ffmpeg_is_rejected(self):
+        subprocess.run(["xcrun", "lipo", str(self.architecture_marker), "-thin", "x86_64",
+                        "-output", str(self.bundled)], check=True)
+        subprocess.run(["codesign", "--force", "--sign", "-", str(self.bundled)], check=True,
+                       capture_output=True)
+        result = self.run_engine()
+        self.assertEqual(result.returncode, 99, result.stdout + result.stderr)
+        self.assertNotIn("NATIVE_ARCH=x86_64", result.stdout)
 
     @unittest.skipUnless(sys.platform == "darwin", "Rosetta architecture selection")
     def test_translated_parent_launches_native_arm64(self):

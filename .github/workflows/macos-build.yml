@@ -84,12 +84,18 @@ jobs:
         run: |
           set -euo pipefail
           app="$RUNNER_TEMP/myUpscaler-DerivedData/Build/Products/Debug/myUpscaler.app"
-          test -x "$app/Contents/MacOS/myUpscaler"
+          for executable in "$app/Contents/MacOS/myUpscaler" \
+              "$app/Contents/MacOS/up60p-ffmpeg-supervisor" \
+              "$app/Contents/MacOS/ThirdParty/FFmpeg/ffmpeg"; do
+            test -x "$executable"
+            if [[ $(xcrun lipo -archs "$executable") != arm64 ]]; then
+              echo "::error::Expected arm64-only app executable: $executable"
+              exit 1
+            fi
+          done
           test -x "$app/Contents/MacOS/up60p-ffmpeg-supervisor"
-          xcrun lipo "$app/Contents/MacOS/up60p-ffmpeg-supervisor" -verify_arch arm64
           codesign --verify --strict "$app/Contents/MacOS/up60p-ffmpeg-supervisor"
           test -x "$app/Contents/MacOS/ThirdParty/FFmpeg/ffmpeg"
-          xcrun lipo "$app/Contents/MacOS/ThirdParty/FFmpeg/ffmpeg" -verify_arch arm64
           codesign --verify --strict "$app/Contents/MacOS/ThirdParty/FFmpeg/ffmpeg"
           codesign --verify --strict "$app"
           status=0

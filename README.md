@@ -13,12 +13,12 @@ Device Requirements
 ------------
 Users:
 - macOS 15.2+
-- Apple Silicon recommended for CoreML
+- Apple Silicon required; Intel Macs are unsupported
   
 Troubleshooting
 ---------------
 Before building on macOS,
-run `bash scripts/prepare-bundled-ffmpeg.s`
+run `bash scripts/prepare-bundled-ffmpeg.sh`
 This downloads and SHA-256-verifies the same Shaka FFmpeg 8.1.2 macOS binaries pinned by [mpvfx](https://github.com/marshiyar/mpvfx)
 
 Contributing
@@ -52,4 +52,4 @@ Thank you to
 This project includes CoreML-converted versions of Real-ESRGAN models.
 #### [FFmpeg](https://ffmpeg.org)
 FFmpeg is licensed under the LGPL or GPL depending on the build configuration.
-Users are responsible for installing FFmpeg and complying with its license terms.
+FFmpeg is bundled with the app; system installations and PATH overrides are not used.

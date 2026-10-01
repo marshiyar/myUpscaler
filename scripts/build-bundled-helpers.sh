@@ -8,12 +8,16 @@ if [[ ! -f "$ffmpeg" ]]; then
   echo 'error: Bundled FFmpeg is missing. Run bash scripts/prepare-bundled-ffmpeg.sh before building.' >&2
   exit 1
 fi
-xcrun clang -std=c11 -arch arm64 -arch x86_64 \
+xcrun clang -std=c11 -arch arm64 \
   -mmacosx-version-min="${MACOSX_DEPLOYMENT_TARGET}" -isysroot "$SDKROOT" \
   -I "${PROJECT_DIR}/myUpscaler/upscaler" \
   "${PROJECT_DIR}/scripts/up60p-ffmpeg-supervisor.c" -o "$supervisor"
 identity="${EXPANDED_CODE_SIGN_IDENTITY:--}"
 for executable in "$ffmpeg" "$supervisor"; do
+  if [[ $(xcrun lipo -archs "$executable") != arm64 ]]; then
+    echo "error: Bundled helper must contain only arm64: $executable" >&2
+    exit 1
+  fi
   chmod +x "$executable"
   if [[ "$identity" = - ]]; then
     codesign --force --sign - --entitlements "$entitlements" --options runtime "$executable"

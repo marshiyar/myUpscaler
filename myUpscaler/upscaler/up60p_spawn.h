@@ -4,11 +4,10 @@
 #include <signal.h>
 #include <errno.h>
 #ifdef __APPLE__
-#include <sys/sysctl.h>
 #include <mach/machine.h>
 #endif
 
-/* Prefer physical host architecture even when the GUI runs under Rosetta. */
+/* Apple Silicon only: never launch an Intel helper, including under Rosetta. */
 static inline int up60p_native_spawn_attributes(posix_spawnattr_t *attributes) {
     int error = posix_spawnattr_init(attributes);
     if (error) return error;
@@ -28,14 +27,7 @@ static inline int up60p_native_spawn_attributes(posix_spawnattr_t *attributes) {
     if (!error) error = posix_spawnattr_setsigmask(attributes, &mask);
     if (!error) error = posix_spawnattr_setsigdefault(attributes, &defaults);
 #ifdef __APPLE__
-    int arm64 = 0;
-    size_t size = sizeof(arm64);
-    if (sysctlbyname("hw.optional.arm64", &arm64, &size, NULL, 0) != 0) {
-#if defined(__arm64__)
-        arm64 = 1;
-#endif
-    }
-    cpu_type_t preferred = arm64 ? CPU_TYPE_ARM64 : CPU_TYPE_X86_64;
+    cpu_type_t preferred = CPU_TYPE_ARM64;
     size_t accepted = 0;
     if (!error) error = posix_spawnattr_setbinpref_np(attributes, 1, &preferred, &accepted);
     if (!error && accepted != 1) error = EINVAL;

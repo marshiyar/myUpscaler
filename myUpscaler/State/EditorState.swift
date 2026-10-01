@@ -199,7 +199,7 @@ final class EditorState: ObservableObject {
         let renderer = previewRenderer
         filterQueue.async { [weak self] in
             let filtered = renderer(original, key.parameters, context)
-            DispatchQueue.main.async {
+            DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
                 self.isRenderingFilter = false
                 if key.frameGeneration == self.frameGeneration, let image = filtered {

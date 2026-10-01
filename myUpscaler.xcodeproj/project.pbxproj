@@ -632,7 +632,13 @@
 		C02700000000000000000002 = {isa = XCBuildConfiguration; buildSettings = {
                 ARCHS = arm64;
                 CODE_SIGN_STYLE = Automatic;
+                EMBED_ASSET_PACKS_IN_PRODUCT_BUNDLE = NO;
+                ENABLE_APP_SANDBOX = NO;
+                ENABLE_DEBUG_DYLIB = NO;
+                ENABLE_HARDENED_RUNTIME = NO;
+                ENABLE_ON_DEMAND_RESOURCES = NO;
                 GENERATE_INFOPLIST_FILE = YES;
+                MACH_O_TYPE = mh_bundle;
                 LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@loader_path/Frameworks", "@executable_path/Frameworks", );
                 MACOSX_DEPLOYMENT_TARGET = 15.2;
                 PRODUCT_BUNDLE_IDENTIFIER = Ashrox.myUpscalerUnitTests;
@@ -644,7 +650,13 @@
 		C02700000000000000000003 = {isa = XCBuildConfiguration; buildSettings = {
                 ARCHS = arm64;
                 CODE_SIGN_STYLE = Automatic;
+                EMBED_ASSET_PACKS_IN_PRODUCT_BUNDLE = NO;
+                ENABLE_APP_SANDBOX = NO;
+                ENABLE_DEBUG_DYLIB = NO;
+                ENABLE_HARDENED_RUNTIME = NO;
+                ENABLE_ON_DEMAND_RESOURCES = NO;
                 GENERATE_INFOPLIST_FILE = YES;
+                MACH_O_TYPE = mh_bundle;
                 LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@loader_path/Frameworks", "@executable_path/Frameworks", );
                 MACOSX_DEPLOYMENT_TARGET = 15.2;
                 PRODUCT_BUNDLE_IDENTIFIER = Ashrox.myUpscalerUnitTests;

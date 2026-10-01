@@ -190,12 +190,6 @@ struct HardwareEncodingPanel: View {
                                .disabled(settings.upscaling.scaler == "coreml")
                        }
 
-                        Text(settings.upscaling.scaler == "coreml"
-                             ? "Core ML uses its own reader and writer. Decode, encoder, 10-bit, audio bitrate, and Faststart controls apply to FFmpeg only."
-                             : "Decode acceleration and output encoding are independent. 10-bit output requires HEVC; Force 8-bit processing overrides 10-bit output.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
 
                     Divider()

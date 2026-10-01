@@ -25,10 +25,10 @@ e7b9fcd97f95f333512d6e8b8ac24d9dbc08f189f36047695499bd7b57214b22  ffmpeg-arm64
 62c87854d851f202fc4a29bdda0fe7b6ebcddd37b863482ce1bdc81151b03fe4  ffmpeg-x64
 CHECKSUMS
 )
-xcrun lipo -verify_arch arm64 "$work_dir/ffmpeg-arm64"
-xcrun lipo -verify_arch x86_64 "$work_dir/ffmpeg-x64"
+xcrun lipo "$work_dir/ffmpeg-arm64" -verify_arch arm64
+xcrun lipo "$work_dir/ffmpeg-x64" -verify_arch x86_64
 xcrun lipo -create "$work_dir/ffmpeg-arm64" "$work_dir/ffmpeg-x64" -output "$work_dir/ffmpeg"
-xcrun lipo -verify_arch arm64 x86_64 "$work_dir/ffmpeg"
+xcrun lipo "$work_dir/ffmpeg" -verify_arch arm64 x86_64
 chmod +x "$work_dir/ffmpeg"
 # lipo changes the binary layout, so replace any upstream ad hoc signature.
 codesign --force --sign - "$work_dir/ffmpeg"

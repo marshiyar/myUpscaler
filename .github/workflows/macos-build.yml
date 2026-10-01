@@ -88,7 +88,7 @@ jobs:
           test -x "$app/Contents/MacOS/ThirdParty/FFmpeg/ffmpeg"
           test -f "$app/Contents/Resources/FFmpeg-COPYING.txt"
           test -f "$app/Contents/Resources/FFmpeg-NOTICE.txt"
-          xcrun lipo -verify_arch arm64 x86_64 "$app/Contents/MacOS/ThirdParty/FFmpeg/ffmpeg"
+          xcrun lipo "$app/Contents/MacOS/ThirdParty/FFmpeg/ffmpeg" -verify_arch arm64 x86_64
           codesign --verify --strict "$app/Contents/MacOS/ThirdParty/FFmpeg/ffmpeg"
           "$app/Contents/MacOS/ThirdParty/FFmpeg/ffmpeg" -version
           # This verifies packaging, not GUI or CoreML runtime behavior.

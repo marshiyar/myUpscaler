@@ -7,9 +7,17 @@ nonisolated enum CoreMLModelID: String, CaseIterable, Codable, Hashable {
 }
 nonisolated struct CoreMLModelSpec: Identifiable, Hashable {
     let id: CoreMLModelID
-    let displayName: String
-    let resourceName: String
-    let nativeScale: Double
+
+    // This closed catalog retains the resource names and IDs stored in presets.
+    var resourceName: String { id.rawValue }
+    var displayName: String { "Real-ESRGAN x\(Int(nativeScale))" }
+    var nativeScale: Double {
+        switch id {
+        case .realESRGANx2: return 2
+        case .realESRGANx4: return 4
+        case .realESRGANx8: return 8
+        }
+    }
 
     // The engine converts BGRA pixels to a single Float32 NCHW RGB tensor.
     func supportsTensorShapes(input: [Int], output: [Int]) -> Bool {
@@ -22,16 +30,15 @@ nonisolated struct CoreMLModelSpec: Identifiable, Hashable {
     }
 }
 nonisolated enum CoreMLModelRegistry {
-    static let models: [CoreMLModelSpec] = [
-        CoreMLModelSpec(id: .realESRGANx2, displayName: "Real-ESRGAN x2", resourceName: "RealESRGAN_x2", nativeScale: 2.0),
-        CoreMLModelSpec(id: .realESRGANx4, displayName: "Real-ESRGAN x4", resourceName: "RealESRGAN_x4", nativeScale: 4.0),
-        CoreMLModelSpec(id: .realESRGANx8, displayName: "Real-ESRGAN x8", resourceName: "RealESRGAN_x8", nativeScale: 8.0),
-    ]
+    static let models: [CoreMLModelSpec] = CoreMLModelID.allCases.map { model(for: $0) }
 
-    static var defaultModel: CoreMLModelSpec { models.first(where: { $0.id == .realESRGANx4 }) ?? models[0] }
+    static var defaultModel: CoreMLModelSpec { model(for: .realESRGANx4) }
 
-    static var bundledModels: [CoreMLModelSpec] {
-        models.filter { bundledURL(for: $0) != nil }
+    static var bundledModels: [CoreMLModelSpec] { bundledModels(in: .main) }
+
+    // Resource discovery is separate from CoreML's tensor/prediction validation.
+    static func bundledModels(in bundle: Bundle) -> [CoreMLModelSpec] {
+        models.filter { bundledURL(for: $0, bundle: bundle) != nil }
     }
 
     static func bundledURL(for spec: CoreMLModelSpec, bundle: Bundle = .main) -> URL? {
@@ -43,6 +50,6 @@ nonisolated enum CoreMLModelRegistry {
     }
 
     static func model(for id: CoreMLModelID) -> CoreMLModelSpec {
-        models.first(where: { $0.id == id }) ?? defaultModel
+        CoreMLModelSpec(id: id)
     }
 }

@@ -15,21 +15,16 @@ nonisolated enum ModelError: Error {
     case fileSystemError(Error)
 }
 
-nonisolated class ModelManager {
+actor ModelManager {
     static let shared = ModelManager()
     private init() {}
-    private let cacheLock = NSLock()
     private var cachedModel: (CoreMLModelID, MLModel)?
 
     private func cached(for id: CoreMLModelID) -> MLModel? {
-        cacheLock.lock()
-        defer { cacheLock.unlock() }
         return cachedModel?.0 == id ? cachedModel?.1 : nil
     }
 
     private func remember(_ model: MLModel, for id: CoreMLModelID) {
-        cacheLock.lock()
-        defer { cacheLock.unlock() }
         // Bound retained resources to one model, even after switching models.
         cachedModel = (id, model)
     }
@@ -87,7 +82,8 @@ nonisolated class ModelManager {
 // MARK: - CoreML Engine
 
 nonisolated class CoreMLEngine: EngineProtocol {
-    static let shared = CoreMLEngine()
+    // Publication belongs to the UI coordinator; async inference remains nonisolated.
+    @MainActor static let shared = CoreMLEngine()
 
     private let logLock = NSLock()
     private var logHandler: ((String) -> Void)?

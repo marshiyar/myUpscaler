@@ -8,102 +8,81 @@ import CoreVideo
 nonisolated extension CoreMLEngine {
 
     /// Manages the custom Metal kernels for video restoration
-    class ShaderRegistry {
+    /// Loaded once, then immutable. Core Image kernels are SDK-declared Sendable.
+    final class ShaderRegistry: Sendable {
         static let shared = ShaderRegistry()
+        private let kernels: [String: CIKernel]
+        var casKernel: CIKernel? { kernels["cas_sharpen"] }
+        var debandKernel: CIKernel? { kernels["deband_dither"] }
+        var bilateralKernel: CIKernel? { kernels["bilateral_denoise"] }
+        var driftGuardKernel: CIKernel? { kernels["drift_guard"] }
+        var linearizeKernel: CIKernel? { kernels["linearize_srgb"] }
+        var encodeSrgbKernel: CIKernel? { kernels["encode_srgb"] }
+        var toneMapKernel: CIKernel? { kernels["tone_map_reinhard"] }
+        var gammaBlendKernel: CIKernel? { kernels["gamma_correct_blend"] }
+        var unsharpKernel: CIKernel? { kernels["unsharp_mask"] }
+        var laplacianKernel: CIKernel? { kernels["laplacian_sharpen"] }
+        var medianKernel: CIKernel? { kernels["median_denoise"] }
+        var blueNoiseDebandKernel: CIKernel? { kernels["blue_noise_deband"] }
+        var dehaloKernel: CIKernel? { kernels["dehalo"] }
+        var moireKernel: CIKernel? { kernels["moire_suppress"] }
+        var premultiplyKernel: CIKernel? { kernels["premultiply_alpha"] }
+        var unpremultiplyKernel: CIKernel? { kernels["unpremultiply_alpha"] }
+        var maskFeatherKernel: CIKernel? { kernels["mask_feather"] }
+        var maskDilateKernel: CIKernel? { kernels["mask_dilate"] }
+        var maskErodeKernel: CIKernel? { kernels["mask_erode"] }
+        var hannFeatherKernel: CIKernel? { kernels["hann_feather_tile"] }
+        var temporalSmoothKernel: CIKernel? { kernels["temporal_smooth"] }
 
-        var casKernel: CIKernel?
-        var debandKernel: CIKernel?
-        var bilateralKernel: CIKernel?
-        var driftGuardKernel: CIKernel?
-        var linearizeKernel: CIKernel?
-        var encodeSrgbKernel: CIKernel?
-        var toneMapKernel: CIKernel?
-        var gammaBlendKernel: CIKernel?
-        var unsharpKernel: CIKernel?
-        var laplacianKernel: CIKernel?
-        var medianKernel: CIKernel?
-        var blueNoiseDebandKernel: CIKernel?
-        var dehaloKernel: CIKernel?
-        var moireKernel: CIKernel?
-        var premultiplyKernel: CIKernel?
-        var unpremultiplyKernel: CIKernel?
-        var maskFeatherKernel: CIKernel?
-        var maskDilateKernel: CIKernel?
-        var maskErodeKernel: CIKernel?
-        var hannFeatherKernel: CIKernel?
-        var temporalSmoothKernel: CIKernel?
+        private init() { kernels = Self.loadKernels() }
 
-        private init() {
-            loadKernels()
-        }
-
-        private func loadKernels() {
-            // 1. Try to load from default.metallib (compiled Metal)
+        private static func loadKernels() -> [String: CIKernel] {
+            var result: [String: CIKernel] = [:]
+            let names = [
+                "cas_sharpen",
+                "deband_dither",
+                "bilateral_denoise",
+                "drift_guard",
+                "linearize_srgb",
+                "encode_srgb",
+                "tone_map_reinhard",
+                "gamma_correct_blend",
+                "unsharp_mask",
+                "laplacian_sharpen",
+                "median_denoise",
+                "blue_noise_deband",
+                "dehalo",
+                "moire_suppress",
+                "premultiply_alpha",
+                "unpremultiply_alpha",
+                "mask_feather",
+                "mask_dilate",
+                "mask_erode",
+                "hann_feather_tile",
+                "temporal_smooth"
+            ]
             if let url = Bundle.main.url(forResource: "default", withExtension: "metallib"),
                let data = try? Data(contentsOf: url) {
-
                 do {
-                    self.casKernel = try CIKernel(functionName: "cas_sharpen", fromMetalLibraryData: data)
-                    self.debandKernel = try CIKernel(functionName: "deband_dither", fromMetalLibraryData: data)
-                    self.bilateralKernel = try CIKernel(functionName: "bilateral_denoise", fromMetalLibraryData: data)
-                    self.driftGuardKernel = try CIKernel(functionName: "drift_guard", fromMetalLibraryData: data)
-                    self.linearizeKernel = try CIKernel(functionName: "linearize_srgb", fromMetalLibraryData: data)
-                    self.encodeSrgbKernel = try CIKernel(functionName: "encode_srgb", fromMetalLibraryData: data)
-                    self.toneMapKernel = try CIKernel(functionName: "tone_map_reinhard", fromMetalLibraryData: data)
-                    self.gammaBlendKernel = try CIKernel(functionName: "gamma_correct_blend", fromMetalLibraryData: data)
-                    self.unsharpKernel = try CIKernel(functionName: "unsharp_mask", fromMetalLibraryData: data)
-                    self.laplacianKernel = try CIKernel(functionName: "laplacian_sharpen", fromMetalLibraryData: data)
-                    self.medianKernel = try CIKernel(functionName: "median_denoise", fromMetalLibraryData: data)
-                    self.blueNoiseDebandKernel = try CIKernel(functionName: "blue_noise_deband", fromMetalLibraryData: data)
-                    self.dehaloKernel = try CIKernel(functionName: "dehalo", fromMetalLibraryData: data)
-                    self.moireKernel = try CIKernel(functionName: "moire_suppress", fromMetalLibraryData: data)
-                    self.premultiplyKernel = try CIKernel(functionName: "premultiply_alpha", fromMetalLibraryData: data)
-                    self.unpremultiplyKernel = try CIKernel(functionName: "unpremultiply_alpha", fromMetalLibraryData: data)
-                    self.maskFeatherKernel = try CIKernel(functionName: "mask_feather", fromMetalLibraryData: data)
-                    self.maskDilateKernel = try CIKernel(functionName: "mask_dilate", fromMetalLibraryData: data)
-                    self.maskErodeKernel = try CIKernel(functionName: "mask_erode", fromMetalLibraryData: data)
-                    self.hannFeatherKernel = try CIKernel(functionName: "hann_feather_tile", fromMetalLibraryData: data)
-                    self.temporalSmoothKernel = try CIKernel(functionName: "temporal_smooth", fromMetalLibraryData: data)
+                    for name in names { result[name] = try CIKernel(functionName: name, fromMetalLibraryData: data) }
                     print("CoreMLEngine: Loaded Metal kernels from default.metallib")
-                    return
+                    return result
                 } catch {
                     print("CoreMLEngine: Failed to load kernels from metallib: \(error.localizedDescription)")
                 }
             }
-
-
             if let url = Bundle.main.url(forResource: "Shaders", withExtension: "ci.metal"),
                let code = try? String(contentsOf: url, encoding: .utf8) {
                 do {
-                    let kernels = try CIKernel.kernels(withMetalString: code)
-                    for kernel in kernels {
-                        if kernel.name == "cas_sharpen" { self.casKernel = kernel }
-                        if kernel.name == "deband_dither" { self.debandKernel = kernel }
-                        if kernel.name == "bilateral_denoise" { self.bilateralKernel = kernel }
-                        if kernel.name == "drift_guard" { self.driftGuardKernel = kernel }
-                        if kernel.name == "linearize_srgb" { self.linearizeKernel = kernel }
-                        if kernel.name == "encode_srgb" { self.encodeSrgbKernel = kernel }
-                        if kernel.name == "tone_map_reinhard" { self.toneMapKernel = kernel }
-                        if kernel.name == "gamma_correct_blend" { self.gammaBlendKernel = kernel }
-                        if kernel.name == "unsharp_mask" { self.unsharpKernel = kernel }
-                        if kernel.name == "laplacian_sharpen" { self.laplacianKernel = kernel }
-                        if kernel.name == "median_denoise" { self.medianKernel = kernel }
-                        if kernel.name == "blue_noise_deband" { self.blueNoiseDebandKernel = kernel }
-                        if kernel.name == "dehalo" { self.dehaloKernel = kernel }
-                        if kernel.name == "moire_suppress" { self.moireKernel = kernel }
-                        if kernel.name == "premultiply_alpha" { self.premultiplyKernel = kernel }
-                        if kernel.name == "unpremultiply_alpha" { self.unpremultiplyKernel = kernel }
-                        if kernel.name == "mask_feather" { self.maskFeatherKernel = kernel }
-                        if kernel.name == "mask_dilate" { self.maskDilateKernel = kernel }
-                        if kernel.name == "mask_erode" { self.maskErodeKernel = kernel }
-                        if kernel.name == "hann_feather_tile" { self.hannFeatherKernel = kernel }
-                        if kernel.name == "temporal_smooth" { self.temporalSmoothKernel = kernel }
+                    for kernel in try CIKernel.kernels(withMetalString: code) where names.contains(kernel.name) {
+                        result[kernel.name] = kernel
                     }
                     print("CoreMLEngine: Loaded Metal kernels from source")
                 } catch {
                     print("CoreMLEngine: Failed to compile kernels from source: \(error.localizedDescription)")
                 }
             }
+            return result
         }
     }
 

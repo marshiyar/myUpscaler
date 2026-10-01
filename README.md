@@ -23,9 +23,9 @@ The preview approximates restoration with Core Image. It is useful for choosing 
 
 ## Use the app
 
-1. Use **Browse files** or drop a video or batch folder into the import area. Processing controls appear after import; **Configure before importing** keeps settings available earlier.
+1. Use **Import** or drop a video or batch folder into the import area. Open **Adjustments** in the toolbar to configure the docked side panel before or after importing; it starts collapsed and never covers the video.
 2. Choose **Lanczos** or an included **Core ML model**, then set the final output multiplier.
-3. Adjust supported restoration settings using the approximate preview. Encoding details, additional restoration, processing details, and saved presets expand when needed.
+3. Adjust supported restoration settings using the approximate preview. The side panel groups **Upscale**, **Restore**, and **Output** controls. Encoding details, additional restoration, processing details, and saved presets expand when needed.
 4. Choose an output folder and start the export. Outputs use `<input>_[restored].mp4` or `.png`; an existing output with that name can be replaced.
 
 The model multiplier and output multiplier are separate. For example, a native 4× model with 2× output predicts 4× tiles and resizes them once to 2×. Selecting an 8× model for 2× output still incurs its native inference cost; the app does not silently substitute a different model. Final video dimensions round down to even pixels. There is no custom width/height or aspect-ratio override.
@@ -94,3 +94,7 @@ When a filter runs in both sets, fixed multipliers reduce finishing strength: CA
 Application code is [Apache-2.0](LICENSE). The author converted the included model assets to Core ML; the underlying [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN) weights retain their upstream BSD 3-Clause license, included as [`RealESRGAN-LICENSE.txt`](myUpscaler/ThirdParty/RealESRGAN-LICENSE.txt).
 
 The separately distributed [FFmpeg](https://ffmpeg.org/) executable is GPL-3.0-or-later. Its [license](myUpscaler/ThirdParty/FFmpeg-COPYING.txt) and [distribution notice](myUpscaler/ThirdParty/FFmpeg-NOTICE.txt) are included in app resources. FFmpeg is a trademark of Fabrice Bellard.
+
+### Keyboard controls
+
+The **Video** menu and workspace buttons share the same command dispatcher. Defaults: ⌘O imports, ⌘R exports, ⌘. cancels, ⌘⇧O chooses the output folder, ⌘, opens Settings, ⌘⇧I opens About, and ⌘⌥I toggles the docked adjustments panel. Change bindings in Settings; conflicts are rejected and existing bindings can be swapped. Recording one binding does not activate other commands.

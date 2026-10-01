@@ -183,9 +183,12 @@ nonisolated class CoreMLEngine: EngineProtocol {
         let inputFilename = inputURL.deletingPathExtension().lastPathComponent
         let outputFilename = inputFilename + "_[restored].mp4"
         let outputURL = URL(fileURLWithPath: outputDirectory).appendingPathComponent(outputFilename)
-        if FileManager.default.fileExists(atPath: outputURL.path) {
-            try? FileManager.default.removeItem(at: outputURL)
-        }
+        let temporaryDirectory = URL(fileURLWithPath: outputDirectory)
+            .appendingPathComponent(".myUpscaler-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: temporaryDirectory, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: temporaryDirectory) }
+        let renderedURL = temporaryDirectory.appendingPathComponent("rendered.mp4")
+        let muxedURL = temporaryDirectory.appendingPathComponent("muxed.mp4")
 
         let userScaleFactor = CGFloat(settings.scaleFactor)
         let modelScaleFactor = CGFloat(modelSpec.nativeScale)
@@ -215,7 +218,7 @@ nonisolated class CoreMLEngine: EngineProtocol {
             ]
         ]
 
-        let writer = try VideoFrameWriter(outputURL: outputURL, videoSettings: videoSettings,
+        let writer = try VideoFrameWriter(outputURL: renderedURL, videoSettings: videoSettings,
             width: outputWidth, height: outputHeight,
             checkCancellation: { try self.control.checkCancellation() })
         setCancelIO { reader.cancel(); writer.cancel() }
@@ -330,6 +333,16 @@ nonisolated class CoreMLEngine: EngineProtocol {
         log("stage=finalizing\n")
         try await writer.finish()
         try control.checkCancellation()
+        log("Preserving source audio...\n")
+        try await VideoAudioMuxer.preserveAudio(renderedVideoURL: renderedURL,
+            originalURL: inputURL, outputURL: muxedURL,
+            checkCancellation: { try self.control.checkCancellation() })
+        try control.checkCancellation()
+        if FileManager.default.fileExists(atPath: outputURL.path) {
+            _ = try FileManager.default.replaceItemAt(outputURL, withItemAt: muxedURL)
+        } else {
+            try FileManager.default.moveItem(at: muxedURL, to: outputURL)
+        }
         completed = true
         log("Done. Output saved to: \(outputURL.path)\n")
     }

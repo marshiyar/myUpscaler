@@ -13,7 +13,7 @@ A native macOS app for restoring and upscaling video, with a frame preview, save
 | Scaling | Lanczos at the requested scale | One prediction per tile at the model's native scale, then resampling if needed |
 | Input | Video and supported still images | Video |
 | Output | MP4 video or PNG image | MP4 video, 8-bit |
-| Audio | Audio is encoded with the video | Video only; audio is currently omitted |
+| Audio | Audio is encoded with the video | Original audio tracks preserved through MP4 passthrough |
 | Frame rate | Source timestamps, frame selection/duplication, or motion interpolation | Source timestamps; FPS controls do not apply |
 | Restoration | Primary and optional second passes, EQ, grain | Primary denoise, sharpen and deband; model pipeline options |
 | Encoding | CPU H.264/HEVC or VideoToolbox | AVFoundation H.264/HEVC |
@@ -80,7 +80,7 @@ Maintained application source targets about 500 lines per file, with a 600-line 
 
 - Full Core ML throughput and temporal-quality benchmarks need compatible model assets and representative media. Synthetic kernel and video-I/O tests do not establish end-to-end AI speed.
 - Motion interpolation needs future frames and can truncate endpoint frames. Numeric targets at or below source FPS still need a source-rate-aware optimization; use source FPS or frame selection when interpolation is unnecessary.
-- Core ML currently omits audio and FFmpeg-specific EQ, deblock, grain, second-pass restoration, FPS conversion and CPU codec options. Preview color EQ is not applied by that engine.
+- Core ML preserves compatible MP4 audio without re-encoding it; unsupported audio fails visibly. Final muxing writes an additional compressed file. It omits FFmpeg-specific EQ, deblock, grain, second-pass restoration, FPS conversion and CPU codec options. Preview color EQ is not applied by that engine.
 - CI app artifacts are ad hoc signed, not notarized. [Build artifacts](https://github.com/marshiyar/myUpscaler/actions/workflows/macos-build.yml) expire after 90 days; the workflow does not publish releases.
 
 ## License and credits

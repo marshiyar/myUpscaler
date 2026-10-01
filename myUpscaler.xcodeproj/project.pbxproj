@@ -42,22 +42,12 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				ThirdParty/ffmpeg/ffmpeg,
-				upscaler/models/RealESRGAN_x2.mlpackage,
-				upscaler/models/RealESRGAN_x4.mlpackage,
 			);
 			target = 5E23E5052ED9AB0B008298B2 /* myUpscaler */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-		5E625D4D2EE872B1004D8958 /* Exceptions for "myUpscaler" folder in "Copy Bundle Resources" phase from "myUpscaler" target */ = {
-			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
-			buildPhase = 5E23E5042ED9AB0B008298B2 /* Resources */;
-			membershipExceptions = (
-				upscaler/models/RealESRGAN_x2.mlpackage,
-				upscaler/models/RealESRGAN_x4.mlpackage,
-			);
-		};
 		5EE165832EF4F6950060947E /* Exceptions for "myUpscaler" folder in "Copy Files" phase from "myUpscaler" target */ = {
 			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
 			attributesByRelativePath = {
@@ -75,7 +65,6 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				5E23E7C82ED9B256008298B2 /* Exceptions for "myUpscaler" folder in "myUpscaler" target */,
-				5E625D4D2EE872B1004D8958 /* Exceptions for "myUpscaler" folder in "Copy Bundle Resources" phase from "myUpscaler" target */,
 				5EE165832EF4F6950060947E /* Exceptions for "myUpscaler" folder in "Copy Files" phase from "myUpscaler" target */,
 			);
 			path = myUpscaler;
@@ -109,6 +98,7 @@
 				5E23E5022ED9AB0B008298B2 /* Sources */,
 				5E23E5042ED9AB0B008298B2 /* Resources */,
 				5EE164CF2EF4D83C0060947E /* Copy Files */,
+				C03300000000000000000001 /* Embed CoreML models */,
 				5EE165482EF4EEB20060947E /* Run Script */,
 			);
 			buildRules = (
@@ -183,6 +173,18 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		C03300000000000000000001 /* Embed CoreML models */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = ();
+			inputPaths = ();
+			outputPaths = ();
+			name = "Embed CoreML models";
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "/bin/bash \"${PROJECT_DIR}/scripts/embed-bundled-models.sh\"\n";
+		};
 		5EE165482EF4EEB20060947E /* Run Script */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -588,10 +590,8 @@
 				MTL_MATH_MODE = FAST;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = (
-					"\"-Ofast -march=native -mtune=native\"",
+					"-O3",
 					"-flto",
-					"-funroll-loops",
-					"-fmerge-all-constants",
 				);
 				OTHER_LDFLAGS = "";
 				OTHER_SWIFT_FLAGS = "";

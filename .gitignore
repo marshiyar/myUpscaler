@@ -214,6 +214,7 @@ xcuserdata/
 *.xcuserstate
 
 myUpscaler/ThirdParty/ffmpeg/ffmpeg
+/third_party/CoreML/
 *.mlpackage/
 xcuserdata/
 *.xcbkptlist

@@ -119,8 +119,14 @@ class CoreMLEngine: EngineProtocol {
         guard let inputName = modelDescription.inputDescriptionsByName.keys.first,
               let outputName = modelDescription.outputDescriptionsByName.keys.first,
               let inputDescription = modelDescription.inputDescriptionsByName[inputName],
-              let multiArrayConstraint = inputDescription.multiArrayConstraint else {
-            throw Up60PEngineError.internalError
+              let multiArrayConstraint = inputDescription.multiArrayConstraint,
+              let outputConstraint = modelDescription.outputDescriptionsByName[outputName]?.multiArrayConstraint,
+              multiArrayConstraint.dataType == .float32,
+              outputConstraint.dataType == .float32,
+              modelSpec.supportsTensorShapes(input: multiArrayConstraint.shape.map { $0.intValue },
+                                             output: outputConstraint.shape.map { $0.intValue }) else {
+            log("CoreML model has an unsupported tensor layout; expected Float32 NCHW RGB at the model's native scale.\n")
+            throw ModelError.invalidModel
         }
         
         let modelInputShape = multiArrayConstraint.shape
@@ -329,6 +335,7 @@ class CoreMLEngine: EngineProtocol {
     }
     
     private func pixelBufferToTensor(pixelBuffer: CVPixelBuffer, inputName: String, expectedChannels: Int) throws -> MLMultiArray {
+        guard expectedChannels == 3 else { throw ModelError.invalidModel }
         CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
         defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly) }
         

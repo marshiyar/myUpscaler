@@ -48,11 +48,19 @@ struct ContentView: View {
                 }
             }
             .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Text("myUpscaler")
-                        .frame(maxWidth: .infinity, minHeight: 24)
-                        .contentShape(Rectangle())
-                        .gesture(WindowDragGesture())
+                if #available(macOS 26, *) {
+                    ToolbarItem(placement: .principal) {
+                        Color.clear.frame(width: 400, height: 24)
+                            .contentShape(Rectangle())
+                            .gesture(WindowDragGesture())
+                    }
+                    .sharedBackgroundVisibility(.hidden)
+                } else {
+                    ToolbarItem(placement: .principal) {
+                        Color.clear.frame(width: 400, height: 24)
+                            .contentShape(Rectangle())
+                            .gesture(WindowDragGesture())
+                    }
                 }
                 ToolbarItem(placement: .navigation) {
                     Button { dispatcher.perform(.chooseInput) } label: { Label("Import", systemImage: "folder.badge.plus") }

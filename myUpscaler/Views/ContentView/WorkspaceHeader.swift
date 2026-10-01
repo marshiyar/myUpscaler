@@ -4,18 +4,13 @@ import Combine
 import UniformTypeIdentifiers
 
 struct HeaderView: View {
-    var hasInput = false
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: "video.badge.waveform")
                 .font(.title2)
                 .foregroundStyle(.tint)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(hasInput ? "Video workspace" : "Upscale & restore video").font(.title2.weight(.semibold))
-                Text(hasInput ? "Adjust your preview, configure output, and export." : "Import a video to get started. Your processing stays on this Mac.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
+            Text("myUpscaler")
+                .font(.title2.weight(.semibold))
             Spacer()
         }
         .padding(.vertical, 4)

@@ -31,7 +31,7 @@ struct ContentView: View {
         GeometryReader { geometry in
             ScrollView {
                 VStack(alignment: .leading, spacing: UI.sectionSpacing) {
-                    HeaderView(hasInput: !runner.inputPath.isEmpty)
+                    HeaderView()
 
                     InputSection(inputPath: Binding(get: { runner.inputPath }, set: { path in
                                     if !runner.isRunning { runner.inputPath = path }

@@ -180,9 +180,6 @@ struct ProgressDetails: View {
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
                 }
-            } else if runner.completedOutputPath == nil && !runner.inputPath.isEmpty {
-                Text("Export uses the current settings.")
-                    .font(.caption).foregroundStyle(.secondary)
             }
         }
     }

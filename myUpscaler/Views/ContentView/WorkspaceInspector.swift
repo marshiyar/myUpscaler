@@ -129,7 +129,7 @@ struct WorkspaceInspector: View {
         Section {
             Toggle("Color equalizer", isOn: enabled($settings.color.noEq))
             if settings.upscaling.scaler == "coreml" {
-                Text("Preview only for Core ML; these colors are not applied to its export.")
+                Text("Preview only")
                     .font(.caption).foregroundStyle(.secondary)
             }
             if !settings.color.noEq {

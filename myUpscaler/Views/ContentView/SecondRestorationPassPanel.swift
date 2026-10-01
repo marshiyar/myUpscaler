@@ -25,31 +25,18 @@ struct RestorationSecondSetPanel: View {
                         Divider()
                             .padding(.vertical, 2)
 
-                        Text(settings.upscaling.scaler == "coreml" ? "These filters are unavailable for Core ML export." : "Optional filters after scaling and the primary sharpen/deband filters. Each switch works independently of the primary filters. Grain here replaces primary grain.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Text("When the same filter is enabled in both sets, fixed multipliers reduce finishing strength. This does not analyze the image or guarantee better quality. Auto denoise is unchanged.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-
                         // Denoise 2
                         HStack {
-                            Toggle(isOn: $settings.secondary.useDenoise) {
-                                Text("Denoise")
-                                    .font(.caption)
-                                    .foregroundColor(settings.secondary.useDenoise ? .primary : .secondary)
+                            Text("Denoise").font(.caption)
+                            Spacer()
+                            Picker("", selection: $settings.secondary.denoiserChoice) {
+                                Text("Off").tag("off")
+                                ForEach(settings.denoisers, id: \.self) { Text($0).tag($0) }
                             }
-                            .toggleStyle(.switch)
-                            .controlSize(.mini)
-
+                            .pickerStyle(.menu)
+                            .controlSize(.small)
+                            .frame(width: 100)
                             if settings.secondary.useDenoise {
-                                Spacer()
-                                Picker("", selection: $settings.secondary.denoiser) {
-                                    ForEach(settings.denoisers, id: \.self) { Text($0) }
-                                }
-                                .pickerStyle(.menu)
-                                .controlSize(.small)
-                                .frame(width: 70)
                                 TextField("Str", text: $settings.secondary.denoiseStrength.text)
                                     .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
@@ -69,26 +56,9 @@ struct RestorationSecondSetPanel: View {
                         Divider()
                             .padding(.vertical, 2)
 
-                        // Deringing 2
-                        HStack {
-                            Toggle(isOn: $settings.secondary.useDering) {
-                                Text("Deringing")
-                                    .font(.caption)
-                                    .foregroundColor(settings.secondary.useDering ? .primary : .secondary)
-                            }
-                            .toggleStyle(.switch)
-                            .controlSize(.mini)
-
-                            if settings.secondary.useDering {
-                                Spacer()
-                                TextField("Strength", text: $settings.secondary.deringStrength.text)
-                                    .labelsHidden()
-                                .textFieldStyle(.roundedBorder)
-                                    .frame(width: 70)
-                            } else {
-                                Spacer()
-                            }
-                        }
+                        ParameterRow(title: "Deringing", binding: $settings.secondary.deringAmount, range: 0...10, step: 0.005,
+                                     defaultValue: 0.5, formatter: Formatters.twoFraction,
+                                     sliderAccessibility: "Finishing deringing", gradient: .dering)
 
                         Divider()
                             .padding(.vertical, 2)

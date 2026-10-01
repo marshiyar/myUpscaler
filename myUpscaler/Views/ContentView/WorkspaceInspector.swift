@@ -86,23 +86,20 @@ struct WorkspaceInspector: View {
 
     private var primaryFilters: some View {
         Section("Primary restoration") {
-            Toggle("Denoise", isOn: $settings.primary.useDenoise)
+            Picker("Denoise", selection: $settings.primary.denoiserChoice) {
+                Text("Off").tag("off")
+                ForEach(settings.denoisers, id: \.self) { Text($0).tag($0) }
+            }
             if settings.primary.useDenoise {
-                Picker("Denoiser", selection: $settings.primary.denoiser) {
-                    ForEach(settings.denoisers, id: \.self) { Text($0).tag($0) }
-                }.disabled(settings.upscaling.scaler == "coreml")
                 ParameterRow(title: "Strength", binding: $settings.primary.denoiseStrength.text,
                              range: settings.denoiseStrengthRange, step: settings.denoiseStrengthStep,
                              defaultValue: settings.denoiseStrengthDefault, formatter: Formatters.twoFraction,
                              sliderAccessibility: "Primary denoise strength", gradient: .denoise)
             }
-            Toggle("Deringing", isOn: $settings.primary.useDering).disabled(settings.upscaling.scaler == "coreml")
-            if settings.primary.useDering {
-                ParameterRow(title: "Strength", binding: $settings.primary.deringStrength.text, range: 0...10, step: 0.005,
-                             defaultValue: 0.5, formatter: Formatters.twoFraction,
-                             sliderAccessibility: "Primary deringing strength", gradient: .dering)
-                    .disabled(settings.upscaling.scaler == "coreml")
-            }
+            ParameterRow(title: "Deringing", binding: $settings.primary.deringAmount, range: 0...10, step: 0.005,
+                         defaultValue: 0.5, formatter: Formatters.twoFraction,
+                         sliderAccessibility: "Primary deringing", gradient: .dering)
+                .disabled(settings.upscaling.scaler == "coreml")
             Toggle("Sharpen", isOn: $settings.primary.useSharpen)
             if settings.primary.useSharpen {
                 Picker("Method", selection: $settings.primary.sharpenMethod) {

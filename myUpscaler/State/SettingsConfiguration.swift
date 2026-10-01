@@ -25,6 +25,22 @@ nonisolated struct RestorationStage: Equatable, Sendable {
     var f3kdbCbCr: NumericDraft = NumericDraft(text: "64")
     var grainStrength: NumericDraft = NumericDraft(text: "1.0")
     var useDeblock: Bool = true
+    var deringAmount: String {
+        get { useDering ? deringStrength.text : "0" }
+        set {
+            deringStrength.text = newValue
+            if let value = deringStrength.finiteValue { useDering = value > 0 }
+        }
+    }
+
+    var denoiserChoice: String {
+        get { useDenoise ? denoiser : "off" }
+        set {
+            useDenoise = newValue != "off"
+            if useDenoise { denoiser = newValue }
+        }
+    }
+
     var useDenoise: Bool = true
     var useSharpen: Bool = true
     var useDeband: Bool = true

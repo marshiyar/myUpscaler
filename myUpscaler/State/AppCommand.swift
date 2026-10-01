@@ -3,7 +3,7 @@ import AppKit
 import Combine
 
 /// Stable raw values are the IDs already stored in customKeyboardShortcuts.
-enum AppCommand: String, CaseIterable, Identifiable, Codable {
+nonisolated enum AppCommand: String, CaseIterable, Identifiable, Codable, Sendable {
     case runUpscaler, cancel, openSettings, openAbout, chooseInput, chooseOutput, toggleInspector
     var id: String { rawValue }
     var name: String {
@@ -32,13 +32,13 @@ enum AppCommand: String, CaseIterable, Identifiable, Codable {
     }
 }
 
-struct ShortcutInfo: Codable, Equatable {
+nonisolated struct ShortcutInfo: Codable, Equatable, Sendable {
     let key: String
     let modifiers: [String]
 }
 
 /// One table defines persistence, native event conversion and visible glyph order.
-enum ShortcutModifiers {
+nonisolated enum ShortcutModifiers {
     static let entries: [(name: String, value: EventModifiers, native: NSEvent.ModifierFlags, glyph: String)] = [
         ("command", .command, .command, "⌘"), ("shift", .shift, .shift, "⇧"),
         ("option", .option, .option, "⌥"), ("control", .control, .control, "⌃")
@@ -54,7 +54,7 @@ enum ShortcutModifiers {
     static func display(_ value: EventModifiers) -> String { entries.filter { value.contains($0.value) }.map(\.glyph).joined() }
 }
 
-enum ShortcutError: Error, LocalizedError, Equatable {
+nonisolated enum ShortcutError: Error, LocalizedError, Equatable {
     case invalidKey, unsupportedModifier, reserved, conflict(AppCommand)
     var errorDescription: String? {
         switch self {
@@ -66,7 +66,7 @@ enum ShortcutError: Error, LocalizedError, Equatable {
     }
 }
 
-struct ShortcutBinding: Equatable {
+nonisolated struct ShortcutBinding: Equatable, Sendable {
     // Native KeyEquivalent characters also migrate the old recorder's word names.
     static let specialKeys: [(name: String, character: String, glyph: String, code: UInt16)] = [
         ("return", "\r", "↩", 36), ("tab", "\t", "⇥", 48), ("space", " ", "Space", 49),

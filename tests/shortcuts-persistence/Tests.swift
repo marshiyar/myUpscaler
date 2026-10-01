@@ -2,7 +2,17 @@ import Foundation
 import SwiftUI
 
 @main struct PersistenceTests {
+    // This must compile outside MainActor even when it is the module default:
+    // persisted shortcut values and LocalizedError formatting contain no UI state.
+    nonisolated static func verifyValueIsolation() throws {
+        let binding = try ShortcutBinding(key: "x", modifiers: [.command, .option])
+        let encoded = try JSONEncoder().encode(binding.info)
+        let restored = try ShortcutBinding(info: JSONDecoder().decode(ShortcutInfo.self, from: encoded))
+        precondition(restored == binding)
+        precondition(ShortcutError.conflict(.runUpscaler).errorDescription?.contains(AppCommand.runUpscaler.name) == true)
+    }
     @MainActor static func main() throws {
+        try verifyValueIsolation()
         let suite = "shortcut-persistence-review-" + UUID().uuidString
         let defaults = UserDefaults(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }

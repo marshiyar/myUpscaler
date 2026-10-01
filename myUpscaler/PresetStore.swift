@@ -41,6 +41,7 @@ struct UpscaleSettingsSnapshot: Codable, Equatable {
     var interpolation: String
     
     var scaler: String
+    var coremlModelId: CoreMLModelID
     var aiModelPath: String
     var aiBackend: String
     var aiModelType: String
@@ -157,6 +158,7 @@ struct UpscaleSettingsSnapshot: Codable, Equatable {
         interpolation = settings.interpolation
         
         scaler = settings.scaler
+        coremlModelId = settings.coremlModelId
         aiModelPath = settings.aiModelPath
         aiBackend = settings.aiBackend
         aiModelType = settings.aiModelType
@@ -274,6 +276,7 @@ struct UpscaleSettingsSnapshot: Codable, Equatable {
         settings.interpolation = interpolation
         
         settings.scaler = scaler
+        settings.coremlModelId = coremlModelId
         settings.aiModelPath = aiModelPath
         settings.aiBackend = aiBackend
         settings.aiModelType = aiModelType
@@ -394,6 +397,7 @@ struct UpscaleSettingsSnapshot: Codable, Equatable {
         interpolation = try container.decodeIfPresent(String.self, forKey: .interpolation) ?? defaults.interpolation
         
         scaler = try container.decodeIfPresent(String.self, forKey: .scaler) ?? defaults.scaler
+        coremlModelId = try container.decodeIfPresent(CoreMLModelID.self, forKey: .coremlModelId) ?? defaults.coremlModelId
         aiModelPath = try container.decodeIfPresent(String.self, forKey: .aiModelPath) ?? defaults.aiModelPath
         aiBackend = try container.decodeIfPresent(String.self, forKey: .aiBackend) ?? defaults.aiBackend
         aiModelType = try container.decodeIfPresent(String.self, forKey: .aiModelType) ?? defaults.aiModelType

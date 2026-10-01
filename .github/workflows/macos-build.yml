@@ -63,6 +63,14 @@ jobs:
             -o "$RUNNER_TEMP/upscaling-mode-tests"
           "$RUNNER_TEMP/upscaling-mode-tests"
 
+      - name: Test CoreML model selection and preset persistence
+        run: |
+          set -euo pipefail
+          xcrun swiftc myUpscaler/CoreMLModelRegistry.swift myUpscaler/UpscalingModeSupport.swift \
+            myUpscaler/UpscaleSettings.swift myUpscaler/PresetStore.swift \
+            tests/settings-snapshot/main.swift -o "$RUNNER_TEMP/settings-snapshot-tests"
+          "$RUNNER_TEMP/settings-snapshot-tests"
+
       - name: Build Debug app
         shell: bash
         run: |

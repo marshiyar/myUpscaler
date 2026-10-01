@@ -98,10 +98,16 @@ actor CoreMLProcessingJob {
         let sourceTransform = try await videoTrack.load(.preferredTransform)
 
         let pixelCount = Double(outputWidth) * Double(outputHeight)
-        guard let targetBitrate = CodecSupport.coreMLBitrate(pixelCount: pixelCount, crf: settings.codec.crf) else {
+        let nominalFrameRate = Double(try await videoTrack.load(.nominalFrameRate))
+        let minimumFrameDuration = try await videoTrack.load(.minFrameDuration)
+        guard let sourceFrameRate = CodecSupport.encodingFrameRate(nominal: nominalFrameRate,
+                  minimumDurationSeconds: minimumFrameDuration.seconds),
+              let targetBitrate = CodecSupport.coreMLBitrate(pixelCount: pixelCount, crf: settings.codec.crf,
+                  framesPerSecond: sourceFrameRate) else {
             throw Up60PEngineError.invalidOptions
         }
-        let videoSettings: [String: Any] = [
+        log("CoreML encode target: \(targetBitrate) bits/s, source frame rate \(sourceFrameRate) fps, \(outputWidth)x\(outputHeight).\n")
+        var videoSettings: [String: Any] = [
             AVVideoCodecKey: codecDecision.useHEVC ? AVVideoCodecType.hevc : AVVideoCodecType.h264,
             AVVideoWidthKey: outputWidth,
             AVVideoHeightKey: outputHeight,
@@ -109,6 +115,19 @@ actor CoreMLProcessingJob {
                 AVVideoAverageBitRateKey: targetBitrate
             ]
         ]
+
+        for format in try await videoTrack.load(.formatDescriptions) {
+            guard let rawExtensions = CMFormatDescriptionGetExtensions(format) else { continue }
+            let extensions = rawExtensions as NSDictionary
+            if let colors = CodecSupport.coreMLSDRColorProperties(
+                primaries: extensions[kCMFormatDescriptionExtension_ColorPrimaries] as? String,
+                transfer: extensions[kCMFormatDescriptionExtension_TransferFunction] as? String,
+                matrix: extensions[kCMFormatDescriptionExtension_YCbCrMatrix] as? String) {
+                videoSettings[AVVideoColorPropertiesKey] = colors
+                log("CoreML output color: BT.709 SDR.\n")
+                break
+            }
+        }
 
         let writer = try VideoFrameWriter(outputURL: renderedURL, videoSettings: videoSettings,
             width: outputWidth, height: outputHeight,

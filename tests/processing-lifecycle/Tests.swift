@@ -38,12 +38,34 @@ struct KnownDuration: AssetLoaderProtocol {
         }
         for crf in [0.0, 20, 51] {
             let pixels = 1920.0 * 1080
-            precondition(CodecSupport.coreMLBitrate(pixelCount: pixels, crf: crf) == Int(pixels * 0.15 * (1.5 - crf / 51)))
+            precondition(CodecSupport.coreMLBitrate(pixelCount: pixels, crf: crf, framesPerSecond: 24) == Int(pixels * 24 * 0.15 * (1.5 - crf / 51)))
         }
-        for pixels in [Double.nan, .infinity, Double.greatestFiniteMagnitude, -1, 0, 1] {
-            precondition(CodecSupport.coreMLBitrate(pixelCount: pixels, crf: 20) == nil)
+        for pixels in [Double.nan, .infinity, Double.greatestFiniteMagnitude, -1, 0, Double.leastNonzeroMagnitude] {
+            precondition(CodecSupport.coreMLBitrate(pixelCount: pixels, crf: 20, framesPerSecond: 24) == nil)
         }
-        print("PASS: imported/nonfinite/out-of-range CRF rejected before logging; valid bitrate unchanged and invalid conversion guarded")
+        let pixels = 1920.0 * 1080
+        let at30 = CodecSupport.coreMLBitrate(pixelCount: pixels, crf: 20, framesPerSecond: 30)!
+        let at60 = CodecSupport.coreMLBitrate(pixelCount: pixels, crf: 20, framesPerSecond: 60)!
+        precondition(abs(at60 - 2 * at30) <= 1)
+        for fps in [24.0, 30000.0 / 1001, 60] {
+            precondition(CodecSupport.coreMLBitrate(pixelCount: pixels, crf: 20, framesPerSecond: fps) == Int(pixels * fps * 0.15 * (1.5 - 20.0 / 51)))
+        }
+        for fps in [Double.nan, .infinity, -.infinity, -1, 0, Double.greatestFiniteMagnitude] {
+            precondition(CodecSupport.coreMLBitrate(pixelCount: pixels, crf: 20, framesPerSecond: fps) == nil)
+        }
+        precondition(CodecSupport.encodingFrameRate(nominal: 24, minimumDurationSeconds: 0) == 24)
+        precondition(CodecSupport.encodingFrameRate(nominal: 0, minimumDurationSeconds: 1.0 / 60) == 60)
+        precondition(CodecSupport.encodingFrameRate(nominal: .nan, minimumDurationSeconds: 1.0 / 24) == 24)
+        for duration in [Double.nan, .infinity, -1, 0, Double.leastNonzeroMagnitude] {
+            precondition(CodecSupport.encodingFrameRate(nominal: 0, minimumDurationSeconds: duration) == nil)
+        }
+        let colors = CodecSupport.coreMLSDRColorProperties(primaries: "ITU_R_709_2", transfer: "ITU_R_709_2", matrix: "ITU_R_709_2")
+        precondition(colors?.count == 3)
+        precondition(CodecSupport.coreMLSDRColorProperties(primaries: "ITU_R_709_2", transfer: "SMPTE_ST_2084_PQ", matrix: "ITU_R_709_2") == nil)
+        precondition(CodecSupport.coreMLSDRColorProperties(primaries: "ITU_R_2020", transfer: "ITU_R_2100_HLG", matrix: "ITU_R_2020") == nil)
+        precondition(CodecSupport.coreMLSDRColorProperties(primaries: "ITU_R_709_2", transfer: nil, matrix: "ITU_R_709_2") == nil)
+        precondition(CodecSupport.coreMLSDRColorProperties(primaries: "unknown", transfer: "unknown", matrix: "unknown") == nil)
+        print("PASS invalid CRF/bitrate guarded, FPS budget/rate fallback, recognized SDR tags without relabeling HDR")
     }
     nonisolated static func testGeometryAndTensor() throws {
         try testTileCoverageAndOrientation()

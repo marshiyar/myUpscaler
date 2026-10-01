@@ -12,6 +12,9 @@
 		C0270000000000000000000F = {isa = PBXBuildFile; fileRef = C0270000000000000000000A; };
 		C02700000000000000000010 = {isa = PBXBuildFile; fileRef = C0270000000000000000000B; };
 		C02700000000000000000011 = {isa = PBXBuildFile; fileRef = C0270000000000000000000C; };
+		D27000000000000000000011 = {isa = PBXBuildFile; fileRef = D27000000000000000000001; };
+		D27000000000000000000012 = {isa = PBXBuildFile; fileRef = D27000000000000000000002; };
+		D27000000000000000000013 = {isa = PBXBuildFile; fileRef = D27000000000000000000003; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -29,12 +32,15 @@
 
 /* Begin PBXFileReference section */
 		5ECE7BB52EF2A63C00603DA9 /* myUpscaler.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = myUpscaler.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		C02700000000000000000008 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/CoreMLModelRegistry.swift; sourceTree = SOURCE_ROOT; };
-		C02700000000000000000009 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/UpscalingModeSupport.swift; sourceTree = SOURCE_ROOT; };
-		C0270000000000000000000A = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/UpscaleSettings.swift; sourceTree = SOURCE_ROOT; };
-		C0270000000000000000000B = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/PresetStore.swift; sourceTree = SOURCE_ROOT; };
+		C02700000000000000000008 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/Models/CoreMLModelRegistry.swift; sourceTree = SOURCE_ROOT; };
+		C02700000000000000000009 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/Models/UpscalingModeSupport.swift; sourceTree = SOURCE_ROOT; };
+		C0270000000000000000000A = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/State/UpscaleSettings.swift; sourceTree = SOURCE_ROOT; };
+		C0270000000000000000000B = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/State/PresetStore.swift; sourceTree = SOURCE_ROOT; };
 		C0270000000000000000000C = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = tests/settings-snapshot/SettingsSnapshotTests.swift; sourceTree = SOURCE_ROOT; };
 		C02700000000000000000006 = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = myUpscalerUnitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D27000000000000000000001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/State/SettingsNormalization.swift; sourceTree = SOURCE_ROOT; };
+		D27000000000000000000002 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/State/SettingsParameterRules.swift; sourceTree = SOURCE_ROOT; };
+		D27000000000000000000003 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/State/SettingsFilterStacking.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -87,7 +93,10 @@
 			);
 			sourceTree = "<group>";
 		};
-		C02700000000000000000007 = {isa = PBXGroup; children = (C02700000000000000000008, C02700000000000000000009, C0270000000000000000000A, C0270000000000000000000B, C0270000000000000000000C, ); name = "Unit Test Sources"; sourceTree = "<group>"; };
+		C02700000000000000000007 = {isa = PBXGroup; children = (C02700000000000000000008, C02700000000000000000009, C0270000000000000000000A, C0270000000000000000000B, C0270000000000000000000C,
+				D27000000000000000000003,
+				D27000000000000000000002,
+				D27000000000000000000001, ); name = "Unit Test Sources"; sourceTree = "<group>"; };
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -213,7 +222,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		C02700000000000000000004 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (C0270000000000000000000D, C0270000000000000000000E, C0270000000000000000000F, C02700000000000000000010, C02700000000000000000011, ); runOnlyForDeploymentPostprocessing = 0; };
+		C02700000000000000000004 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (C0270000000000000000000D, C0270000000000000000000E, C0270000000000000000000F, C02700000000000000000010, C02700000000000000000011, D27000000000000000000013, D27000000000000000000012, D27000000000000000000011, ); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
@@ -457,7 +466,7 @@
 				GCC_STRICT_ALIASING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				GENERATE_PRELINK_OBJECT_FILE = NO;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/myUpscaler/upscaler";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/myUpscaler/Native/Process";
 				INFOPLIST_FILE = myUpscaler/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MyUpscaler;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
@@ -501,7 +510,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_ENABLE_EMIT_CONST_VALUES = NO;
 				SWIFT_INCLUDE_PATHS = "";
-				SWIFT_OBJC_BRIDGING_HEADER = myUpscaler/upscaler/Up60PBridging.h;
+				SWIFT_OBJC_BRIDGING_HEADER = myUpscaler/Native/Process/Up60PBridging.h;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_PRECOMPILE_BRIDGING_HEADER = YES;
 				SWIFT_SKIP_AUTOLINKING_LIBRARIES = "";
@@ -568,7 +577,7 @@
 				GCC_STRICT_ALIASING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				GENERATE_PRELINK_OBJECT_FILE = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/myUpscaler/upscaler";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/myUpscaler/Native/Process";
 				INFOPLIST_FILE = myUpscaler/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MyUpscaler;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
@@ -614,7 +623,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_ENABLE_EMIT_CONST_VALUES = NO;
 				SWIFT_INCLUDE_PATHS = "";
-				SWIFT_OBJC_BRIDGING_HEADER = myUpscaler/upscaler/Up60PBridging.h;
+				SWIFT_OBJC_BRIDGING_HEADER = myUpscaler/Native/Process/Up60PBridging.h;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_PRECOMPILE_BRIDGING_HEADER = YES;
 				SWIFT_SKIP_AUTOLINKING_LIBRARIES = "";

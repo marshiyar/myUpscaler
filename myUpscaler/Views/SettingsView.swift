@@ -52,23 +52,15 @@ struct SettingsView: View {
 
     private var aiAndFiltersTab: some View {
         Form {
-                Section {
-                    Toggle("Deblock", isOn: $settings.primary.useDeblock).disabled(settings.upscaling.scaler == "coreml")
-                    Toggle("Denoise", isOn: $settings.primary.useDenoise)
-                    Toggle("Decimate", isOn: enabled($settings.modes.noDecimate)).disabled(settings.upscaling.scaler == "coreml")
-                    Toggle("Sharpen", isOn: $settings.primary.useSharpen)
-                    Toggle("Deband", isOn: $settings.primary.useDeband)
-                    Toggle("Color equalizer", isOn: enabled($settings.color.noEq)).disabled(settings.upscaling.scaler == "coreml")
-                    Toggle("Grain", isOn: $settings.primary.useGrain).disabled(settings.upscaling.scaler == "coreml")
-                    Toggle(isOn: $settings.modes.pciSafe) { Label("PCI Safe Mode", systemImage: "shield") }
-                        .disabled(settings.upscaling.scaler == "coreml")
-                        .help("Forces 8-bit pixel output in FFmpeg")
-                } header: {
-                    Label("Enabled processing stages", systemImage: "slider.horizontal.below.rectangle")
-                        .font(DesignSystem.Typography.headline)
-                } footer: {
-                    Text(settings.upscaling.scaler == "coreml" ? "Core ML supports primary denoise, sharpen, and deband. Other stages apply to FFmpeg only." : "A stage is applied only when enabled. Its parameters are available in the video workspace.")
-                }
+            Section {
+                RestorationPanel(settings: settings)
+                    .environment(\.workspaceInspector, true)
+            }
+            Section {
+                Toggle("Remove near-duplicate frames", isOn: enabled($settings.modes.noDecimate))
+                    .disabled(settings.upscaling.scaler == "coreml")
+                    .help("FFmpeg Decimate removes near-duplicate frames before output frame-rate conversion.")
+            }
         }
         .formStyle(.grouped)
         .tabItem { Label("Processing", systemImage: "switch.2") }

@@ -1,6 +1,11 @@
 import Foundation
 
 extension UpscaleSettings {
+    var effective10BitOutput: Bool {
+        get { upscaling.scaler != "coreml" && codec.useHEVC && codec.use10Bit && !modes.pciSafe }
+        set { codec.use10Bit = newValue }
+    }
+
     var additionalDeblockMode: String {
         get { primary.useDeblock ? primary.deblockMode : "off" }
         set {

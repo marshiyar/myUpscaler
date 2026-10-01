@@ -77,6 +77,24 @@ import Combine
         let oldDisabled = try JSONDecoder().decode(UpscaleSettingsSnapshot.self, from: Data(#"{"interpolation":"mci","noInterpolate":true}"#.utf8))
         oldDisabled.apply(to: settings); precondition(settings.interpolationChoice == "off")
         settings.resetToDefaults(); precondition(settings.interpolationChoice == "off")
+        settings.upscaling.scaler = "lanczos"
+        settings.codec.useHEVC = true
+        settings.codec.use10Bit = true
+        settings.modes.pciSafe = false
+        precondition(settings.effective10BitOutput)
+        settings.modes.pciSafe = true
+        precondition(!settings.effective10BitOutput && settings.codec.use10Bit)
+        let depthTarget = UpscaleSettings()
+        try JSONDecoder().decode(UpscaleSettingsSnapshot.self, from: JSONEncoder().encode(UpscaleSettingsSnapshot(settings: settings))).apply(to: depthTarget)
+        precondition(depthTarget.modes.pciSafe && depthTarget.codec.use10Bit && !depthTarget.effective10BitOutput)
+        depthTarget.modes.pciSafe = false
+        precondition(depthTarget.effective10BitOutput)
+        depthTarget.upscaling.scaler = "coreml"
+        precondition(!depthTarget.effective10BitOutput && depthTarget.codec.use10Bit)
+        depthTarget.upscaling.scaler = "lanczos"
+        depthTarget.codec.useHEVC = false
+        precondition(!depthTarget.effective10BitOutput && depthTarget.codec.use10Bit)
+        print("PASS effective bit depth, override persistence and restored 10-bit preference")
         print("PASS zero/positive/blank controls, legacy disabled values, Off deblock, named thresholds, interpolation defaults and preset migration")
     }
 

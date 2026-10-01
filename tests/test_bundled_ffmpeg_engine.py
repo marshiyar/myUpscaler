@@ -162,6 +162,7 @@ int main(int argc, char **argv) {
         snprintf(opts.encoder, sizeof(opts.encoder), "%s", argv[2]);
         snprintf(opts.codec, sizeof(opts.codec), "%s", argv[3]);
         opts.use10 = strcmp(argv[4], "10") == 0;
+        opts.pci_safe_mode = argc > 6 && strcmp(argv[6], "pci") == 0;
         return up60p_process_path(argv[5], &opts);
     }
     if (argc > 4 && (strcmp(argv[1], "fps") == 0 || strcmp(argv[1], "fps-known") == 0)) {
@@ -386,6 +387,24 @@ int main(void) {
             self.assertNotIn("-preset\n", result.stdout)
             if depth == "10":
                 self.assertIn("-pix_fmt\np010le", result.stdout)
+
+    def test_force_8bit_overrides_saved_10bit_for_cpu_and_videotoolbox(self):
+        self.bundled.write_text("#!/bin/sh\nprintf '%s\\n' \"$@\"\n")
+        self.bundled.chmod(0o755)
+        video = self.root / "input.mp4"
+        video.touch()
+        for encoder in ("cpu", "videotoolbox"):
+            normal = self.run_engine("encoder", encoder, "hevc", "10", str(video))
+            forced = self.run_engine("encoder", encoder, "hevc", "10", str(video), "pci")
+            self.assertEqual(normal.returncode, 0, normal.stdout)
+            self.assertEqual(forced.returncode, 0, forced.stdout)
+            self.assertIn("format=yuv444p16le,", normal.stdout)
+            self.assertIn("format=yuv420p,", forced.stdout)
+            self.assertIn("-pix_fmt\nyuv420p\n", forced.stdout)
+            self.assertNotIn("p010le", forced.stdout)
+            self.assertNotIn("yuv420p10le", forced.stdout)
+            self.assertIn("limiter=min=16:max=235", forced.stdout)
+            self.assertIn("limiter=min=64:max=940", normal.stdout)
 
     def test_videotoolbox_h264_10bit_fails_before_execution(self):
         self.install_bundle()

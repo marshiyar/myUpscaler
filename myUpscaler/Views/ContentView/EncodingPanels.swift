@@ -131,14 +131,14 @@ struct HardwareEncodingPanel: View {
                             .toggleStyle(.switch)
                             .controlSize(.mini)
 
-                            Toggle(isOn: $settings.codec.use10Bit) {
+                            Toggle(isOn: $settings.effective10BitOutput) {
                                 Text("10‑Bit Output")
                                     .font(.caption)
                             }
                             .toggleStyle(.switch)
                             .controlSize(.mini)
 
-                            .disabled(settings.upscaling.scaler == "coreml" || !settings.codec.useHEVC)
+                            .disabled(settings.upscaling.scaler == "coreml" || !settings.codec.useHEVC || settings.modes.pciSafe)
                             .help("10-bit output requires HEVC and the FFmpeg processing path")
                             // MOV Faststart Toggle
                             Toggle(isOn: Binding(
@@ -168,6 +168,13 @@ struct HardwareEncodingPanel: View {
                             Spacer()
                         }
 
+                        Toggle("Force 8-bit processing", isOn: $settings.modes.pciSafe)
+                            .font(.caption)
+                            .toggleStyle(.switch)
+                            .controlSize(.mini)
+                            .disabled(settings.upscaling.scaler == "coreml")
+                            .help("Applies to FFmpeg; overrides 10-bit output while preserving your saved bit-depth preference.")
+
                         Divider()
                             .padding(.vertical, 2)
 
@@ -185,7 +192,7 @@ struct HardwareEncodingPanel: View {
 
                         Text(settings.upscaling.scaler == "coreml"
                              ? "Core ML uses its own reader and writer. Decode, encoder, 10-bit, audio bitrate, and Faststart controls apply to FFmpeg only."
-                             : "Decode acceleration and output encoding are independent. 10-bit output requires HEVC; PCI Safe Mode forces 8-bit.")
+                             : "Decode acceleration and output encoding are independent. 10-bit output requires HEVC; Force 8-bit processing overrides 10-bit output.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)

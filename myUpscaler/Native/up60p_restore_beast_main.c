@@ -278,6 +278,10 @@ static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) 
             build_dering_filter(&vf, S.dering_strength_2);
         }
 
+    if (S.use_deblock_2) {
+        build_deblock_filter(&vf, S.deblock_mode_2, S.deblock_thresh_2);
+    }
+
     if (S.use_denoise_2) {
         if (!strcmp(S.denoiser_2, "bm3d")) {
             if (!strcmp(S.denoise_strength_2, "auto")) sb_append(&vf, "bm3d=estim=final:planes=1,");

@@ -90,6 +90,7 @@ int main(int argc, char **argv) {
         opts.use_dering_2 = strcmp(argv[2], "dering") == 0;
         opts.dering_active = strcmp(argv[2], "primary-dering") == 0;
         opts.dering_active_2 = 0; // Legacy switch must not veto authoritative enablement.
+        opts.use_deblock_2 = strcmp(argv[2], "deblock") == 0;
         opts.use_sharpen_2 = strcmp(argv[2], "sharpen") == 0;
         opts.use_deband_2 = strcmp(argv[2], "deband") == 0;
         opts.use_grain_2 = strcmp(argv[2], "grain") == 0;
@@ -453,14 +454,14 @@ int main(void) {
         image = self.root / "input.png"
         image.touch()
         for mode, token in (("denoise", "hqdn3d="), ("dering", "hqdn3d="),
-                            ("primary-dering", "hqdn3d="), ("sharpen", "cas=strength="), ("deband", "deband=1thr="),
+                            ("primary-dering", "hqdn3d="), ("deblock", "deblock=filter="), ("sharpen", "cas=strength="), ("deband", "deband=1thr="),
                             ("grain", "noise=alls=")):
             with self.subTest(mode=mode):
                 result = self.run_engine("finishing", mode, str(image))
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                 self.assertEqual(result.stdout.count(token), 1, result.stdout)
         result = self.run_engine("finishing", "off", str(image))
-        for token in ("hqdn3d=", "cas=strength=", "deband=1thr=", "noise=alls="):
+        for token in ("hqdn3d=", "deblock=filter=", "cas=strength=", "deband=1thr=", "noise=alls="):
             self.assertNotIn(token, result.stdout)
 
     @unittest.skipUnless(shutil.which("ffmpeg"), "requires local FFmpeg")

@@ -4,6 +4,18 @@ import VideoToolbox
 #endif
 
 nonisolated struct CodecSupport {
+    static func isValidCRF(_ value: Double) -> Bool {
+        value.isFinite && (0...51).contains(value)
+    }
+
+    /// Preserve the existing estimate, rejecting values that cannot form a bitrate.
+    static func coreMLBitrate(pixelCount: Double, crf: Double) -> Int? {
+        guard isValidCRF(crf), pixelCount.isFinite, pixelCount > 0 else { return nil }
+        let value = pixelCount * 0.15 * (1.5 - crf / 51)
+        guard value.isFinite, value >= 1, value < Double(Int.max) else { return nil }
+        return Int(value)
+    }
+
     struct Decision {
         let useHEVC: Bool
         let message: String?

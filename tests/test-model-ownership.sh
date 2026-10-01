@@ -20,6 +20,6 @@ xcrun swiftc -O -whole-module-optimization -parse-as-library -swift-version 5 -d
  -module-cache-path "$work/cache" \
  myUpscaler/Processing/UpscaleRunner.swift myUpscaler/State/{UpscaleSettings,PresetStore}.swift myUpscaler/State/Settings*.swift \
  myUpscaler/Models/{CoreMLModelRegistry,UpscalingModeSupport}.swift myUpscaler/Support/{CodecSupport,Protocols,FFmpegParser,ProcessingErrors}.swift \
- myUpscaler/Processing/{CoreMLEngine,CoreMLEngine+Shaders,CoreMLModelManager,CoreMLProcessingJob,ProcessingControl,UpscaleGeometry,VideoIO,VideoAudioMuxer,ProgressUpdateGate}.swift \
+ myUpscaler/Processing/{CoreMLEngine,CoreMLEngine+Shaders,CoreMLModelManager,CoreMLProcessingJob,CoreMLBufferAccess,ProcessingControl,UpscaleGeometry,VideoIO,VideoAudioMuxer,ProgressUpdateGate}.swift \
  tests/processing-lifecycle/{TestSupport,ModelOwnershipTests}.swift -o "$app/MacOS/ModelOwnership"
 "$app/MacOS/ModelOwnership" "$(dirname "$(dirname "$resources")")"

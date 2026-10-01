@@ -20,8 +20,31 @@ import CoreGraphics
 struct NoDuration: AssetLoaderProtocol {
     func loadDuration(from path: String) async throws -> Double { 0 }
 }
+struct KnownDuration: AssetLoaderProtocol {
+    func loadDuration(from path: String) async throws -> Double { 12 }
+}
 
 @main struct ProcessingTests {
+    nonisolated static func testInvalidCodecSettings() async throws {
+        let imported = try JSONDecoder().decode(UpscaleSettingsSnapshot.self, from: Data(#"{"crf":1e100}"#.utf8))
+        for crf in [imported.crf, Double.nan, .infinity, -.infinity, -1, 52] {
+            var configuration = SettingsConfiguration()
+            configuration.codec.crf = crf
+            do {
+                try await CoreMLProcessingJob().process(inputPath: "/nonexistent.mp4", configuration: configuration,
+                                                       outputDirectory: NSTemporaryDirectory())
+                preconditionFailure("Invalid CRF reached model or file work")
+            } catch Up60PEngineError.invalidOptions {}
+        }
+        for crf in [0.0, 20, 51] {
+            let pixels = 1920.0 * 1080
+            precondition(CodecSupport.coreMLBitrate(pixelCount: pixels, crf: crf) == Int(pixels * 0.15 * (1.5 - crf / 51)))
+        }
+        for pixels in [Double.nan, .infinity, Double.greatestFiniteMagnitude, -1, 0, 1] {
+            precondition(CodecSupport.coreMLBitrate(pixelCount: pixels, crf: 20) == nil)
+        }
+        print("PASS: imported/nonfinite/out-of-range CRF rejected before logging; valid bitrate unchanged and invalid conversion guarded")
+    }
     nonisolated static func testGeometryAndTensor() throws {
         try testTileCoverageAndOrientation()
         for native in [2.0, 4.0, 8.0] {
@@ -180,6 +203,7 @@ struct NoDuration: AssetLoaderProtocol {
     }
 
     @MainActor static func main() async throws {
+        try await testInvalidCodecSettings()
         let measured = FFmpegParser.parse(line: "time=00:00:05.000 fps=10 speed=0.5x", currentDuration: 10)
         precondition(measured.progress == 0.5 && measured.eta == "0:10")
         let padded = FFmpegParser.parse(line: "frame= 383 fps= 42 time=00:00:06.35 speed= 0.7x elapsed=0:00:09.07", currentDuration: 12)
@@ -194,6 +218,7 @@ struct NoDuration: AssetLoaderProtocol {
         precondition(gate.shouldEmit("stage=finalizing", now: 0.1))
         precondition(gate.shouldEmit("time=3 fps=20", now: 0.3))
         print("PASS: measured/unknown progress, speed-based ETA, bounded progress events, terminal/error delivery")
+        try testBufferAccessValidation()
         try testGeometryAndTensor()
         try testBlend()
         let control = ProcessingControl()
@@ -276,6 +301,19 @@ struct NoDuration: AssetLoaderProtocol {
         runner.inputPath = root.appendingPathComponent("next.mp4").path
         precondition(runner.completedOutputPath == nil && runner.progress == 0 && !runner.progressKnown,
                      "new input retained stale export state without a mounted log view")
+        let durationEngine = SuspendedEngine()
+        let durationRunner = UpscaleRunner(engine: durationEngine, assetLoader: KnownDuration())
+        durationRunner.inputPath = input.path
+        durationRunner.customOutputFolder = root.path
+        durationRunner.run()
+        while durationEngine.continuation == nil || durationRunner.videoDuration == 0 { await Task.yield() }
+        durationEngine.handler?("time=00:00:06.00 fps= 42 speed= 0.7x elapsed=0:00:09.07\n")
+        try await Task.sleep(nanoseconds: 10_000_000)
+        precondition(durationRunner.progressKnown && durationRunner.progress == 0.5 && durationRunner.phase == .processing,
+                     "asset duration never reached stats parser without a Duration banner")
+        durationRunner.cancel()
+        durationEngine.finish()
+        while durationRunner.isRunning { await Task.yield() }
         print("PASS: input changes invalidate completed export independently of log visibility")
         print("PASS: engine overlap, engine cancellation, task cancellation, writer failure/readiness")
         print("PASS: duplicate run, early completion log, cancel/restart ownership, immediate completion")

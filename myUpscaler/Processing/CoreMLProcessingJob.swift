@@ -31,6 +31,7 @@ actor CoreMLProcessingJob {
         var settings = configuration
         defer { control.finish() }
         try control.checkCancellation()
+        guard CodecSupport.isValidCRF(settings.codec.crf) else { throw Up60PEngineError.invalidOptions }
         log("CoreML Engine: Starting processing...\n")
         let codecDecision = CodecSupport.resolve(requestHEVC: settings.codec.useHEVC)
 
@@ -97,8 +98,9 @@ actor CoreMLProcessingJob {
         let sourceTransform = try await videoTrack.load(.preferredTransform)
 
         let pixelCount = Double(outputWidth) * Double(outputHeight)
-        let crfScale = 1.5 - (Double(settings.codec.crf) / 51.0)
-        let targetBitrate = Int(pixelCount * 0.15 * crfScale)
+        guard let targetBitrate = CodecSupport.coreMLBitrate(pixelCount: pixelCount, crf: settings.codec.crf) else {
+            throw Up60PEngineError.invalidOptions
+        }
         let videoSettings: [String: Any] = [
             AVVideoCodecKey: codecDecision.useHEVC ? AVVideoCodecType.hevc : AVVideoCodecType.h264,
             AVVideoWidthKey: outputWidth,
@@ -154,6 +156,7 @@ actor CoreMLProcessingJob {
                     let nativeBuffer = try await ModelManager.shared.prediction(input: inputTensor,
                         specID: modelSpec.id, inputName: inputName, outputName: outputName,
                         width: geometry.nativeTileWidth, height: geometry.nativeTileHeight)
+                    try control.checkCancellation()
                     do {
                             let region = geometry.outputRegion(x: x, y: y, width: w, height: h)
                             let (outX, outY, outW, outH) = (region.x, region.y, region.width, region.height)
@@ -252,28 +255,27 @@ actor CoreMLProcessingJob {
             kCVPixelBufferCGBitmapContextCompatibilityKey as String: true,
             kCVPixelBufferMetalCompatibilityKey as String: true
         ]
-        CVPixelBufferCreate(kCFAllocatorDefault, width, height, kCVPixelFormatType_32BGRA, options as CFDictionary, &pixelBuffer)
-        guard let buffer = pixelBuffer else { throw Up60PEngineError.internalError }
+        _ = try CoreMLBufferAccess.pixelCount(width: width, height: height)
+        let status = CVPixelBufferCreate(kCFAllocatorDefault, width, height, kCVPixelFormatType_32BGRA, options as CFDictionary, &pixelBuffer)
+        guard status == kCVReturnSuccess, let buffer = pixelBuffer else { throw Up60PEngineError.internalError }
         return buffer
     }
 
     nonisolated private func createWeightBuffer(width: Int, height: Int) throws -> UnsafeMutablePointer<Float> {
-        let buffer = UnsafeMutablePointer<Float>.allocate(capacity: width * height)
-        buffer.initialize(repeating: 0, count: width * height)
+        let count = try CoreMLBufferAccess.pixelCount(width: width, height: height)
+        let buffer = UnsafeMutablePointer<Float>.allocate(capacity: count)
+        buffer.initialize(repeating: 0, count: count)
         return buffer
     }
 
     nonisolated private func extractTile(from sourceBuffer: CVPixelBuffer, x: Int, y: Int, width: Int, height: Int, targetWidth: Int, targetHeight: Int) throws -> CVPixelBuffer {
+        try CoreMLBufferAccess.validateRegion(x: x, y: y, width: width, height: height, buffer: sourceBuffer)
+        guard width <= targetWidth, height <= targetHeight else { throw Up60PEngineError.invalidOptions }
         let tileBuffer = try createPixelBuffer(width: targetWidth, height: targetHeight)
-        CVPixelBufferLockBaseAddress(sourceBuffer, .readOnly)
-        CVPixelBufferLockBaseAddress(tileBuffer, [])
-        defer {
-            CVPixelBufferUnlockBaseAddress(sourceBuffer, .readOnly)
-            CVPixelBufferUnlockBaseAddress(tileBuffer, [])
-        }
-
-        guard let srcBase = CVPixelBufferGetBaseAddress(sourceBuffer),
-              let dstBase = CVPixelBufferGetBaseAddress(tileBuffer) else { return tileBuffer }
+        let srcBase = try CoreMLBufferAccess.lock(sourceBuffer, flags: .readOnly)
+        defer { CVPixelBufferUnlockBaseAddress(sourceBuffer, .readOnly) }
+        let dstBase = try CoreMLBufferAccess.lock(tileBuffer, flags: [])
+        defer { CVPixelBufferUnlockBaseAddress(tileBuffer, []) }
 
         let srcBytes = CVPixelBufferGetBytesPerRow(sourceBuffer)
         let dstBytes = CVPixelBufferGetBytesPerRow(tileBuffer)
@@ -292,7 +294,7 @@ actor CoreMLProcessingJob {
 
     nonisolated private func pixelBufferToTensor(pixelBuffer: CVPixelBuffer, inputName: String, expectedChannels: Int) throws -> sending MLMultiArray {
         guard expectedChannels == 3 else { throw ModelError.invalidModel }
-        CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
+        let baseAddr = try CoreMLBufferAccess.lock(pixelBuffer, flags: .readOnly)
         defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly) }
 
         let width = CVPixelBufferGetWidth(pixelBuffer)
@@ -304,7 +306,6 @@ actor CoreMLProcessingJob {
         let shape = [1, NSNumber(value: channels), NSNumber(value: height), NSNumber(value: width)]
         let tensor = try MLMultiArray(shape: shape, dataType: .float32)
 
-        guard let baseAddr = CVPixelBufferGetBaseAddress(pixelBuffer) else { throw Up60PEngineError.internalError }
         let srcData = baseAddr.assumingMemoryBound(to: UInt8.self)
         let tensorPtr = UnsafeMutablePointer<Float>(OpaquePointer(tensor.dataPointer))
 
@@ -328,7 +329,7 @@ actor CoreMLProcessingJob {
 
     nonisolated static func makePixelBuffer(tensor: MLMultiArray, width: Int, height: Int) throws -> sending CVPixelBuffer {
         let buffer = try allocatePixelBuffer(width: width, height: height)
-        CVPixelBufferLockBaseAddress(buffer, [])
+        let baseAddr = try CoreMLBufferAccess.lock(buffer, flags: [])
         defer { CVPixelBufferUnlockBaseAddress(buffer, []) }
 
         let bytesPerRow = CVPixelBufferGetBytesPerRow(buffer)
@@ -339,7 +340,6 @@ actor CoreMLProcessingJob {
         let strides = tensor.strides.map { $0.intValue }
         let tensorPtr = UnsafePointer<Float>(OpaquePointer(tensor.dataPointer))
 
-        guard let baseAddr = CVPixelBufferGetBaseAddress(buffer) else { throw Up60PEngineError.internalError }
         let dstData = baseAddr.assumingMemoryBound(to: UInt8.self)
 
         // Fast Plane Merging (RGB Planar -> BGRA)
@@ -363,16 +363,12 @@ actor CoreMLProcessingJob {
     }
 
     nonisolated func resizePixelBuffer(_ source: CVPixelBuffer, width: Int, height: Int, sourceWidth: Int, sourceHeight: Int) throws -> CVPixelBuffer {
+        try CoreMLBufferAccess.validateRegion(x: 0, y: 0, width: sourceWidth, height: sourceHeight, buffer: source)
         let dest = try createPixelBuffer(width: width, height: height)
-        CVPixelBufferLockBaseAddress(source, .readOnly)
-        CVPixelBufferLockBaseAddress(dest, [])
-        defer {
-            CVPixelBufferUnlockBaseAddress(source, .readOnly)
-            CVPixelBufferUnlockBaseAddress(dest, [])
-        }
-
-        guard let srcBase = CVPixelBufferGetBaseAddress(source),
-              let dstBase = CVPixelBufferGetBaseAddress(dest) else { throw Up60PEngineError.internalError }
+        let srcBase = try CoreMLBufferAccess.lock(source, flags: .readOnly)
+        defer { CVPixelBufferUnlockBaseAddress(source, .readOnly) }
+        let dstBase = try CoreMLBufferAccess.lock(dest, flags: [])
+        defer { CVPixelBufferUnlockBaseAddress(dest, []) }
 
         var srcVImage = vImage_Buffer(
             data: srcBase,
@@ -404,15 +400,14 @@ actor CoreMLProcessingJob {
         useCosine: Bool,
         isLeft: Bool, isRight: Bool, isTop: Bool, isBottom: Bool
     ) throws {
-        CVPixelBufferLockBaseAddress(source, .readOnly)
-        CVPixelBufferLockBaseAddress(target, [])
-        defer {
-            CVPixelBufferUnlockBaseAddress(source, .readOnly)
-            CVPixelBufferUnlockBaseAddress(target, [])
-        }
-
-        guard let srcBase = CVPixelBufferGetBaseAddress(source),
-              let dstBase = CVPixelBufferGetBaseAddress(target) else { return }
+        try CoreMLBufferAccess.validateRegion(x: 0, y: 0, width: width, height: height, buffer: source)
+        try CoreMLBufferAccess.validateBGRA(target)
+        guard destX >= 0, destY >= 0, destX < CVPixelBufferGetWidth(target),
+              destY < CVPixelBufferGetHeight(target), margin >= 0 else { throw Up60PEngineError.invalidOptions }
+        let srcBase = try CoreMLBufferAccess.lock(source, flags: .readOnly)
+        defer { CVPixelBufferUnlockBaseAddress(source, .readOnly) }
+        let dstBase = try CoreMLBufferAccess.lock(target, flags: [])
+        defer { CVPixelBufferUnlockBaseAddress(target, []) }
 
         let srcRowBytes = CVPixelBufferGetBytesPerRow(source)
         let dstRowBytes = CVPixelBufferGetBytesPerRow(target)

@@ -150,6 +150,7 @@ final class Up60PEngine {
         guard settings.upscaling.scaler == "lanczos" else {
             throw Up60PEngineError.unsupportedScaler
         }
+        guard CodecSupport.isValidCRF(settings.codec.crf) else { throw Up60PEngineError.invalidOptions }
         try ensureInitialized()
 
         var opts = up60p_options()

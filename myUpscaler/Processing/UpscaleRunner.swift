@@ -276,7 +276,7 @@ class UpscaleRunner: ObservableObject {
             }
         }
 
-        loadVideoDuration()
+        loadVideoDuration(progressDuration: safeState)
 
         let capturedInputPath = inputPath
         let capturedSettings = cloneSettings(settings)
@@ -378,7 +378,7 @@ class UpscaleRunner: ObservableObject {
 
     // MARK: - Video Duration Loading
 
-    func loadVideoDuration() {
+    func loadVideoDuration(progressDuration: SafeDuration? = nil) {
         guard !inputPath.isEmpty else {
             videoDuration = 0.0
             return
@@ -391,7 +391,9 @@ class UpscaleRunner: ObservableObject {
                 let duration = try await assetLoader.loadDuration(from: path)
                 await MainActor.run {
                     guard self.currentRunID == runID, self.inputPath == path else { return }
-                    self.videoDuration = duration
+                    let validated = duration.isFinite && duration > 0 ? duration : 0
+                    self.videoDuration = validated
+                    progressDuration?.duration = validated
                     self.log.append("Video Duration: \(FFmpegParser.formatTime(self.videoDuration))\n")
                 }
             } catch {

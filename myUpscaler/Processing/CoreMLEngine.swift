@@ -205,6 +205,7 @@ nonisolated class CoreMLEngine: EngineProtocol {
             tileWidth: tileWidth, tileHeight: tileHeight)
         let outputWidth = geometry.outputWidth
         let outputHeight = geometry.outputHeight
+        let sourceTransform = try await videoTrack.load(.preferredTransform)
 
         let pixelCount = Double(outputWidth) * Double(outputHeight)
         let crfScale = 1.5 - (Double(settings.codec.crf) / 51.0)
@@ -220,6 +221,7 @@ nonisolated class CoreMLEngine: EngineProtocol {
 
         let writer = try VideoFrameWriter(outputURL: renderedURL, videoSettings: videoSettings,
             width: outputWidth, height: outputHeight,
+            transform: geometry.outputTransform(for: sourceTransform),
             checkCancellation: { try self.control.checkCancellation() })
         setCancelIO { reader.cancel(); writer.cancel() }
         defer { setCancelIO(nil) }
@@ -279,10 +281,9 @@ nonisolated class CoreMLEngine: EngineProtocol {
 
                         if let nativeBuffer = try? tensorToPixelBuffer(tensor: outputTensor, width: nativeTileW, height: nativeTileH) {
 
-                            let outX = Int(Double(x) * Double(userScaleFactor))
-                            let outY = Int(Double(y) * Double(userScaleFactor))
-                            let outW = Int(Double(w) * Double(userScaleFactor))
-                            let outH = Int(Double(h) * Double(userScaleFactor))
+                            let region = geometry.outputRegion(x: x, y: y, width: w, height: h)
+                            let (outX, outY, outW, outH) = (region.x, region.y, region.width, region.height)
+                            guard outW > 0, outH > 0 else { continue }
 
                             var finalTileBuffer = nativeBuffer
                             if outW != w * Int(modelScaleFactor) || outH != h * Int(modelScaleFactor) {

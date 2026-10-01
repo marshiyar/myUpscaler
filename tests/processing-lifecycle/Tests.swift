@@ -1,6 +1,7 @@
 import Foundation
 import CoreVideo
 import CoreML
+import CoreGraphics
 
 @MainActor final class SuspendedEngine: EngineProtocol {
     var starts = 0
@@ -22,6 +23,7 @@ struct NoDuration: AssetLoaderProtocol {
 
 @main struct ProcessingTests {
     nonisolated static func testGeometryAndTensor() throws {
+        try testTileCoverageAndOrientation()
         for native in [2.0, 4.0, 8.0] {
             for requested in [0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 8.0] {
                 for (width, height) in [(1920, 1080), (127, 73)] {
@@ -74,6 +76,57 @@ struct NoDuration: AssetLoaderProtocol {
         precondition(resizedBytes[0] == 255 && resizedBytes[4] == 255, "tile padding contaminated resized pixels")
         CVPixelBufferUnlockBaseAddress(resized, .readOnly)
         print("PASS: native/requested scale matrix, fractional/even dimensions, invalid scale, strided/NaN tensor, cropped resampling")
+    }
+
+    nonisolated static func testTileCoverageAndOrientation() throws {
+        for (width, height) in [(640, 480), (259, 257), (127, 73), (16, 16)] {
+            for scale in [0.25, 0.5, 1.0, 1.3, 1.5, 2.0, 4.0] {
+                let tile = 256, overlap = 16
+                let plan = try UpscaleGeometry(inputWidth: width, inputHeight: height,
+                    requestedScale: scale, nativeScale: 4, tileWidth: tile, tileHeight: tile)
+                let columns = max(1, Int(ceil(Double(width - overlap) / Double(tile - overlap))))
+                let rows = max(1, Int(ceil(Double(height - overlap) / Double(tile - overlap))))
+                var coverage = Array(repeating: false, count: plan.outputWidth * plan.outputHeight)
+                for row in 0..<rows {
+                    for column in 0..<columns {
+                        let x = min(column * (tile - overlap), max(0, width - tile))
+                        let y = min(row * (tile - overlap), max(0, height - tile))
+                        let region = plan.outputRegion(x: x, y: y, width: min(tile, width - x), height: min(tile, height - y))
+                        precondition(region.width >= 0 && region.height >= 0)
+                        precondition(region.x + region.width <= plan.outputWidth && region.y + region.height <= plan.outputHeight)
+                        for outY in region.y..<(region.y + region.height) {
+                            for outX in region.x..<(region.x + region.width) {
+                                coverage[outY * plan.outputWidth + outX] = true
+                            }
+                        }
+                    }
+                }
+                precondition(coverage.allSatisfy { $0 }, "Uncovered pixel for \(width)x\(height) at \(scale)x")
+                let transforms: [CGAffineTransform] = [
+                    .identity,
+                    .init(a: 0, b: 1, c: -1, d: 0, tx: CGFloat(height), ty: 0),
+                    .init(a: -1, b: 0, c: 0, d: -1, tx: CGFloat(width), ty: CGFloat(height)),
+                    .init(a: 0, b: -1, c: 1, d: 0, tx: 0, ty: CGFloat(width)),
+                    .init(a: -1, b: 0, c: 0, d: 1, tx: CGFloat(width), ty: 0)
+                ]
+                for source in transforms {
+                    let output = plan.outputTransform(for: source)
+                    precondition(output.a == source.a && output.b == source.b && output.c == source.c && output.d == source.d)
+                    let bounds = CGRect(x: 0, y: 0, width: plan.outputWidth, height: plan.outputHeight).applying(output)
+                    precondition(bounds.minX == 0 && bounds.minY == 0)
+                    precondition(bounds.width == CGFloat(source.a == 0 ? plan.outputHeight : plan.outputWidth))
+                    precondition(bounds.height == CGFloat(source.a == 0 ? plan.outputWidth : plan.outputHeight))
+                }
+                precondition(plan.outputTransform(for: .identity) == .identity)
+            }
+        }
+        let plan = try UpscaleGeometry(inputWidth: 640, inputHeight: 480,
+            requestedScale: 1.3, nativeScale: 4, tileWidth: 256, tileHeight: 256)
+        let last = plan.outputRegion(x: 384, y: 224, width: 256, height: 256)
+        precondition(last.x == 499 && last.width == 333 && last.x + last.width == 832)
+        let translated = plan.outputTransform(for: .init(translationX: 10, y: -20))
+        precondition(translated.tx == 13 && translated.ty == -26)
+        print("PASS: complete fractional tile coverage, cropped edges, even rounding, identity/90/180/270/mirror orientation and translated display origin")
     }
 
     nonisolated static func testBlend() throws {

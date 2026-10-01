@@ -119,58 +119,11 @@ struct RestorationSecondSetPanel: View {
                         }
 
                         if settings.secondary.useSharpen {
-                            if settings.secondary.sharpenMethod == "unsharp" {
-                                HStack(spacing: 6) {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text("Matrix")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                        TextField("5", text: $settings.secondary.usmRadius.text)
-                                            .labelsHidden()
-                                .textFieldStyle(.roundedBorder)
-                                            .frame(width: 35)
-                                    }
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text("Amount")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                        TextField("1.0", text: $settings.secondary.usmAmount.text)
-                                            .labelsHidden()
-                                .textFieldStyle(.roundedBorder)
-                                            .frame(width: 35)
-                                    }
-                                    // Show effective values if attenuated
-                                    if settings.isSharpenStacked {
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text("→")
-                                                .font(.caption)
-                                                .foregroundColor(.orange)
-                                            Text("\(settings.effectiveUsmAmount2)")
-                                                .font(.caption)
-                                                .foregroundColor(.orange)
-                                        }
-                                    }
-                                }
-                                .padding(.leading, 8)
-                            } else {
-                                HStack {
-                                    Text("CAS")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                    TextField("0.25", text: $settings.secondary.sharpenStrength.text)
-                                        .labelsHidden()
-                                .textFieldStyle(.roundedBorder)
-                                        .frame(width: 50)
+                            RestorationSharpenControls(stage: $settings.secondary, settings: settings,
+                                                       presentation: .compact,
+                                                       effectiveStrength: settings.isSharpenStacked ? settings.effectiveSharpenStrength2 : nil,
+                                                       effectiveAmount: settings.isSharpenStacked ? settings.effectiveUsmAmount2 : nil)
 
-                                    // Show effective value if attenuated
-                                    if settings.isSharpenStacked {
-                                        Text("→\(settings.effectiveSharpenStrength2)")
-                                            .font(.caption)
-                                            .foregroundColor(.orange)
-                                    }
-                                }
-                                .padding(.leading, 8)
-                            }
                         }
 
                         Divider()
@@ -201,36 +154,8 @@ struct RestorationSecondSetPanel: View {
 
                         if settings.secondary.useDeband {
                             if settings.secondary.debandMethod == "f3kdb" {
-                                HStack(spacing: 6) {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text("Range")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                        TextField("15", text: $settings.secondary.f3kdbRange.text)
-                                            .labelsHidden()
-                                .textFieldStyle(.roundedBorder)
-                                            .frame(width: 35)
-                                    }
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text("Y")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                        TextField("64", text: $settings.secondary.f3kdbY.text)
-                                            .labelsHidden()
-                                .textFieldStyle(.roundedBorder)
-                                            .frame(width: 35)
-                                    }
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text("CbCr")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                        TextField("64", text: $settings.secondary.f3kdbCbCr.text)
-                                            .labelsHidden()
-                                .textFieldStyle(.roundedBorder)
-                                            .frame(width: 35)
-                                    }
-                                }
-                                .padding(.leading, 8)
+                                RestorationF3KDBControls(stage: $settings.secondary, compact: true)
+                                    .padding(.leading, 8)
                             } else {
                                 HStack {
                                     Text("Strength")

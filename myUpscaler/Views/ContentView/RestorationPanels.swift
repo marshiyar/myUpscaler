@@ -62,51 +62,8 @@ struct RestorationFiltersPanel: View {
                     .pickerStyle(.menu)
                     .frame(minWidth: 160)
 
-                    if settings.primary.sharpenMethod == "cas" {
-                        ParameterRow(title: "CAS Strength",
-                                     binding: $settings.primary.sharpenStrength.text,
-                                     range: settings.sharpenStrengthRange,
-                                     step: settings.sharpenStrengthStep,
-                                     defaultValue: settings.sharpenStrengthDefault,
-                                     formatter: Formatters.twoFraction,
-                                     sliderAccessibility: "CAS sharpen strength slider",
-                                     gradient: .sharpen)
-                        { _ in settings.objectWillChange.send() }
-                    } else {
-                        VStack(alignment: .leading, spacing: 12) {
-                            ParameterRow(title: "Radius",
-                                         binding: $settings.primary.usmRadius.text,
-                                         range: settings.usmRadiusRange,
-                                         step: settings.usmRadiusStep,
-                                         defaultValue: settings.usmRadiusDefault,
-                                         formatter: Formatters.integer,
-                                         sliderAccessibility: "Unsharp mask radius slider",
-                                         gradient: .usmRadius)
-                            { _ in settings.objectWillChange.send() }
+                    RestorationSharpenControls(stage: $settings.primary, settings: settings, presentation: .sliders)
 
-                            ParameterRow(title: "Amount",
-                                         binding: $settings.primary.usmAmount.text,
-                                         range: settings.usmAmountRange,
-                                         step: settings.usmAmountStep,
-                                         defaultValue: settings.usmAmountDefault,
-                                         formatter: Formatters.twoFraction,
-                                         sliderAccessibility: "Unsharp mask amount slider",
-                                         gradient: .usmAmount)
-                            { _ in settings.objectWillChange.send() }
-
-                            ParameterRow(title: "Threshold",
-                                         binding: $settings.primary.usmThreshold.text,
-                                         range: settings.usmThresholdRange,
-                                         step: settings.usmThresholdStep,
-                                         defaultValue: settings.usmThresholdDefault,
-                                         formatter: Formatters.threeFraction,
-                                         sliderAccessibility: "Unsharp mask threshold slider",
-                                         gradient: .usmThreshold)
-                            { _ in settings.objectWillChange.send() }
-                            .transition(.opacity.combined(with: .move(edge: .top)))
-                        }
-                        .animation(.easeInOut(duration: 0.5), value: settings.primary.useDering)  // Animate changes
-                    }
                 }
                 .padding(.top, 16)
             }
@@ -165,38 +122,8 @@ struct RestorationPanel: View {
                     }
 
                     if settings.primary.debandMethod == "f3kdb" {
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack(spacing: 6) {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Range")
-                                        .font(.system(size: 10))
-                                        .foregroundColor(.secondary)
-                                    TextField("15", text: $settings.primary.f3kdbRange.text)
-                                        .labelsHidden()
-                                .textFieldStyle(.roundedBorder)
-                                        .frame(width: 40)
-                                }
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Y")
-                                        .font(.system(size: 10))
-                                        .foregroundColor(.secondary)
-                                    TextField("64", text: $settings.primary.f3kdbY.text)
-                                        .labelsHidden()
-                                .textFieldStyle(.roundedBorder)
-                                        .frame(width: 40)
-                                }
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("CbCr")
-                                        .font(.system(size: 10))
-                                        .foregroundColor(.secondary)
-                                    TextField("64", text: $settings.primary.f3kdbCbCr.text)
-                                        .labelsHidden()
-                                .textFieldStyle(.roundedBorder)
-                                        .frame(width: 40)
-                                }
-                            }
-                        }
-                        .padding(.leading, 8)
+                        RestorationF3KDBControls(stage: $settings.primary, compact: false)
+                            .padding(.leading, 8)
                     } else {
                         HStack {
                             Text("Strength")

@@ -1,0 +1,59 @@
+{
+  "fixture": "3 seconds testsrc2 320x180 24000/1001 + sine audio; scale2x; libx264 ultrafast; local Homebrew FFmpeg",
+  "results": [
+    {
+      "case": "old_source",
+      "seconds": 0.895,
+      "streams": [
+        {
+          "codec_type": "video",
+          "avg_frame_rate": "60/1",
+          "nb_frames": "176",
+          "duration": "2.933333"
+        },
+        {
+          "codec_type": "audio",
+          "avg_frame_rate": "0/0",
+          "nb_frames": "131",
+          "duration": "3.000000"
+        }
+      ]
+    },
+    {
+      "case": "fixed_source",
+      "seconds": 0.052,
+      "streams": [
+        {
+          "codec_type": "video",
+          "avg_frame_rate": "24000/1001",
+          "nb_frames": "72",
+          "duration": "3.003000"
+        },
+        {
+          "codec_type": "audio",
+          "avg_frame_rate": "0/0",
+          "nb_frames": "131",
+          "duration": "3.000000"
+        }
+      ]
+    },
+    {
+      "case": "fixed_30",
+      "seconds": 0.052,
+      "streams": [
+        {
+          "codec_type": "video",
+          "avg_frame_rate": "30000/1001",
+          "nb_frames": "90",
+          "duration": "3.003000"
+        },
+        {
+          "codec_type": "audio",
+          "avg_frame_rate": "0/0",
+          "nb_frames": "131",
+          "duration": "3.000000"
+        }
+      ]
+    }
+  ]
+}

@@ -10,6 +10,7 @@
 #include "up60p_ffmpeg_path.h"
 #include "up60p_process.h"
 #include <pthread.h>
+#include <math.h>
 
 Settings DEF;
 Settings S;
@@ -146,6 +147,15 @@ static void build_deblock_filter(SB *vf, const char *mode, const char *thresh) {
 }
 
 
+static bool parse_eq_value(const char *text, double minimum, double maximum, double *value) {
+    char *end;
+    errno = 0;
+    double parsed = strtod(text, &end);
+    if (end == text || *end || errno == ERANGE || !isfinite(parsed) || parsed < minimum || parsed > maximum) return false;
+    *value = parsed;
+    return true;
+}
+
 static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) {
     (void)batch; char outdir[PATH_MAX], base[PATH_MAX], out[PATH_MAX];
     bool img = is_image(in);
@@ -173,6 +183,20 @@ static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) 
     if (img) snprintf(out, sizeof(out), "%s/%s_[restored].png", outdir, base);
     else snprintf(out, sizeof(out), "%s/%s_[restored].mp4", outdir, base);
     
+    bool videotoolbox = !strcmp(S.encoder, "videotoolbox");
+    if (!img && videotoolbox && S.use10 && !strcmp(S.codec, "h264")) {
+        if (global_log_cb) global_log_cb("VideoToolbox H.264 supports 8-bit output. Select HEVC for 10-bit output.\n");
+        return UP60P_ERR_INVALID_OPTIONS;
+    }
+
+    double contrast = 1, brightness = 0, saturation = 1;
+    if (!S.no_eq && (!parse_eq_value(S.eq_contrast, -1000, 1000, &contrast) ||
+                     !parse_eq_value(S.eq_brightness, -1, 1, &brightness) ||
+                     !parse_eq_value(S.eq_saturation, 0, 3, &saturation))) {
+        if (global_log_cb) global_log_cb("Invalid EQ values: contrast -1000..1000, brightness -1..1, saturation 0..3; finite numbers required.\n");
+        return UP60P_ERR_INVALID_OPTIONS;
+    }
+
     SB vf = {0};
     
     
@@ -209,14 +233,17 @@ static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) 
     }
     
     
-    if (!img && !S.no_interpolate) {
-        if (!strcmp(S.fps, "source") || !strcmp(S.fps, "lock")) {
-            sb_fmt(&vf, "minterpolate=mi_mode=%s:mc_mode=aobmc:me_mode=bidir:vsbmc=1,", S.mi_mode);
+    // Source/lock means preserve timestamps: omitting minterpolate's fps option
+    // would silently use its 60 FPS default. Numeric targets still need frame
+    // selection/duplication when motion interpolation is disabled.
+    if (!img && strcmp(S.fps, "source") && strcmp(S.fps, "lock")) {
+        if (S.no_interpolate || !strcmp(S.mi_mode, "dup")) {
+            sb_fmt(&vf, "fps=fps=%s,", S.fps);
         } else {
             sb_fmt(&vf, "minterpolate=fps=%s:mi_mode=%s:mc_mode=aobmc:me_mode=bidir:vsbmc=1,", S.fps, S.mi_mode);
         }
     }
-    
+
     sb_fmt(&vf, "scale=trunc(iw*%s/2)*2:trunc(ih*%s/2)*2:flags=lanczos+accurate_rnd,", S.scale_factor, S.scale_factor);
 
     if (!S.no_sharpen) {
@@ -302,6 +329,10 @@ static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) 
         }
         else sb_fmt(&vf, "deband=1thr=%s:b=1,", S.deband_strength_2);
     }
+    // Neutral EQ is a true bypass and avoids an extra colorspace conversion.
+    if (!S.no_eq && (contrast != 1 || brightness != 0 || saturation != 1)) {
+        sb_fmt(&vf, "eq=contrast=%.9g:brightness=%.9g:saturation=%.9g,", contrast, brightness, saturation);
+    }
     if (!S.no_grain) {
         if (S.use_grain_2) sb_fmt(&vf, "noise=alls=%s:allf=t,", S.grain_strength_2);
         else sb_fmt(&vf, "noise=alls=%s:allf=t,", S.grain_strength);
@@ -311,6 +342,7 @@ static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) 
     const char *pix = S.use10 ? "yuv420p10le" : "yuv420p";
     if (S.use10 && (!strcmp(S.encoder,"nvenc") || !strcmp(S.encoder,"hevc_nvenc"))) pix="p010le";
     if (S.pci_safe_mode) pix = "yuv420p";
+    if (!img && videotoolbox && S.use10 && !S.pci_safe_mode) pix = "p010le";
     
     if (!img) {
         
@@ -334,6 +366,7 @@ static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) 
         vf.len--;
     }
     
+    char hardware_quality[32];
     char *args[128]; int a=0;
     args[a++] = (char*)ffmpeg; args[a++] = "-hide_banner"; args[a++] = "-loglevel"; args[a++] = "error"; args[a++] = "-stats"; args[a++] = "-y";
     if (strcmp(S.hwaccel,"none")) {
@@ -355,18 +388,39 @@ static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) 
         args[a++] = "-map"; args[a++] = "0:a?";
     }
     if (!img) {
+        // Preserve VFR timing rather than letting the muxer duplicate/drop
+        // frames to an inferred constant rate for source/lock requests.
+        if (!strcmp(S.fps, "source") || !strcmp(S.fps, "lock")) {
+            args[a++] = "-fps_mode"; args[a++] = "passthrough";
+        }
         char *cod = "libx264";
         if (!strcmp(S.codec, "hevc")) {
             if (!strcmp(S.encoder, "nvenc")) cod = "hevc_nvenc"; else if (!strcmp(S.encoder, "qsv")) cod = "hevc_qsv"; else if (!strcmp(S.encoder, "vaapi")) cod = "hevc_vaapi"; else cod = "libx265";
         } else { if (!strcmp(S.encoder, "nvenc")) cod = "h264_nvenc"; else if (!strcmp(S.encoder, "qsv")) cod = "h264_qsv"; else if (!strcmp(S.encoder, "vaapi")) cod = "h264_vaapi"; }
         
+        if (videotoolbox) cod = !strcmp(S.codec, "hevc") ? "hevc_videotoolbox" : "h264_videotoolbox";
         args[a++] = "-c:v"; args[a++] = cod;
         if (strstr(cod, "hevc") || strstr(cod, "265")) { args[a++] = "-tag:v"; args[a++] = "hvc1"; }
         args[a++] = "-pix_fmt"; args[a++] = (char*)pix;
         if (*S.threads) { args[a++] = "-threads"; args[a++] = S.threads; }
         
         char x265_fixed[256];
-        if (!strstr(cod, "vaapi")) { args[a++] = "-preset"; args[a++] = S.preset; args[a++] = "-crf"; args[a++] = S.crf; }
+        if (videotoolbox) {
+            // Preserve the existing slider's direction without pretending that
+            // VideoToolbox's 1..100 quality is equivalent to software CRF.
+            double crf = atof(S.crf);
+            if (crf < 0) crf = 0;
+            if (crf > 51) crf = 51;
+            double quality = 100.0 - crf * 99.0 / 51.0;
+            snprintf(hardware_quality, sizeof(hardware_quality), "%.2f", quality);
+            args[a++] = "-q:v"; args[a++] = hardware_quality;
+            args[a++] = "-allow_sw"; args[a++] = "0";
+            if (global_log_cb) {
+                char message[192];
+                snprintf(message, sizeof(message), "VideoToolbox quality: %s/100 (distinct from software CRF); CPU preset ignored.\n", hardware_quality);
+                global_log_cb(message);
+            }
+        } else if (!strstr(cod, "vaapi")) { args[a++] = "-preset"; args[a++] = S.preset; args[a++] = "-crf"; args[a++] = S.crf; }
         if (!strcmp(cod, "libx265") && *S.x265_params) {
             safe_copy(x265_fixed, S.x265_params, sizeof(x265_fixed));
             

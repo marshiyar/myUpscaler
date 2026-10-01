@@ -1,7 +1,7 @@
 import Foundation
 import Combine
 
-class UpscaleSettings: ObservableObject {
+nonisolated class UpscaleSettings: ObservableObject {
      var cancellables = Set<AnyCancellable>()
     
      static var defaultHwAccel: String {
@@ -16,35 +16,6 @@ class UpscaleSettings: ObservableObject {
     
     init() {
         setupValueObservers()
-    }
-    
-    func parseX265Params(from paramsString: String) {
-        x265AqMode = "3"
-        x265PsyRd = "2.0"
-        x265Deblock1 = "-2"
-        x265Deblock2 = "-2"
-        
-        // Try to parse from existing x265Params string (handles both : and , separators)
-        let params = paramsString.replacingOccurrences(of: ":", with: ",")
-        let components = params.split(separator: ",")
-        
-        for component in components {
-            let part = String(component).trimmingCharacters(in: .whitespaces)
-            if part.hasPrefix("aq-mode=") {
-                x265AqMode = String(part.dropFirst("aq-mode=".count))
-            } else if part.hasPrefix("psy-rd=") {
-                x265PsyRd = String(part.dropFirst("psy-rd=".count))
-            } else if part.hasPrefix("deblock=") {
-                let deblockValue = String(part.dropFirst("deblock=".count))
-                let deblockParts = deblockValue.split(separator: ",")
-                if deblockParts.count >= 1 {
-                    x265Deblock1 = String(deblockParts[0])
-                }
-                if deblockParts.count >= 2 {
-                    x265Deblock2 = String(deblockParts[1])
-                }
-            }
-        }
     }
     
     // MARK: - Auto-toggle management when values become 0
@@ -75,14 +46,14 @@ class UpscaleSettings: ObservableObject {
         $sharpenMethod
             .sink { [weak self] newMethod in
                 guard let self = self else { return }
-                self.sharpenStrength = self.validateSharpenStrength(self.sharpenStrength)
+                self.sharpenStrength = self.validateSharpenStrength(self.sharpenStrength, method: newMethod)
             }
             .store(in: &cancellables)
         
         $sharpenMethod2
             .sink { [weak self] newMethod in
                 guard let self = self else { return }
-                self.sharpenStrength2 = self.validateSharpenStrength(self.sharpenStrength2)
+                self.sharpenStrength2 = self.validateSharpenStrength2(self.sharpenStrength2, method: newMethod)
             }
             .store(in: &cancellables)
         
@@ -395,9 +366,9 @@ class UpscaleSettings: ObservableObject {
     @Published var useGrain2: Bool = false
 
     // --- Color / Equalization ---
-    @Published var eqContrast: String = "1.03"
-    @Published var eqBrightness: String = "0.005"
-    @Published var eqSaturation: String = "1.06"
+    @Published var eqContrast: String = "1.0"
+    @Published var eqBrightness: String = "0.0"
+    @Published var eqSaturation: String = "1.0"
 //    @Published var lutPath: String = "" // LUT DEACTIVATED
 
     // --- Metal Pre/Post Processing ---
@@ -814,15 +785,15 @@ class UpscaleSettings: ObservableObject {
      * Saturation: 0.0-2.0
      */
     var eqContrastRange: ClosedRange<Double> { 0.5...2.0 }
-    var eqContrastDefault: Double { 1.03 }
+    var eqContrastDefault: Double { 1.0 }
     var eqContrastStep: Double { 0.005 }
     
     var eqBrightnessRange: ClosedRange<Double> { -0.1...0.1 }
-    var eqBrightnessDefault: Double { 0.005 }
+    var eqBrightnessDefault: Double { 0.0 }
     var eqBrightnessStep: Double { 0.005 }
     
     var eqSaturationRange: ClosedRange<Double> { 0.0...2.0 }
-    var eqSaturationDefault: Double { 1.06 }
+    var eqSaturationDefault: Double { 1.0 }
     var eqSaturationStep: Double { 0.005 }
     
     // MARK: - Metal Pipeline Derived Values
@@ -852,11 +823,14 @@ class UpscaleSettings: ObservableObject {
     var grainStrength2Step: Double { 0.1 }
     
     // MARK: - Validation functions
-    func validateSharpenStrength(_ value: String) -> String {
+    func validateSharpenStrength(_ value: String, method: String? = nil) -> String {
+        let method = method ?? sharpenMethod
+        let defaultValue = method == "unsharp" ? 1.0 : 0.25
+        let range: ClosedRange<Double> = method == "unsharp" ? -2.0...5.0 : 0.0...1.0
         guard let numValue = Double(value) else {
-            return String(format: "%.2f", sharpenStrengthDefault)
+            return String(format: "%.2f", defaultValue)
         }
-        let clamped = max(sharpenStrengthRange.lowerBound, min(sharpenStrengthRange.upperBound, numValue))
+        let clamped = max(range.lowerBound, min(range.upperBound, numValue))
         return String(format: "%.2f", clamped)
     }
     
@@ -876,11 +850,14 @@ class UpscaleSettings: ObservableObject {
         return String(format: "%.3f", clamped)
     }
     
-    func validateSharpenStrength2(_ value: String) -> String {
+    func validateSharpenStrength2(_ value: String, method: String? = nil) -> String {
+        let method = method ?? sharpenMethod2
+        let defaultValue = method == "unsharp" ? 1.0 : 0.25
+        let range: ClosedRange<Double> = method == "unsharp" ? -2.0...5.0 : 0.0...1.0
         guard let numValue = Double(value) else {
-            return String(format: "%.2f", sharpenStrength2Default)
+            return String(format: "%.2f", defaultValue)
         }
-        let clamped = max(sharpenStrength2Range.lowerBound, min(sharpenStrength2Range.upperBound, numValue))
+        let clamped = max(range.lowerBound, min(range.upperBound, numValue))
         return String(format: "%.2f", clamped)
     }
     

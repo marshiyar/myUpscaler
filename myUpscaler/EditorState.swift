@@ -52,8 +52,11 @@ final class EditorState: ObservableObject {
 
     // MARK: - Internal
     
-    struct FilterParameters {
+    struct FilterParameters: Hashable {
         // First set
+        let noDenoise: Bool
+        let noSharpen: Bool
+        let noEq: Bool
         let contrast: Double
         let brightness: Double
         let saturation: Double
@@ -85,6 +88,32 @@ final class EditorState: ObservableObject {
     private var settings: UpscaleSettings?
     private var isProcessingFullUpscale: Bool = false
     private var pendingFilterUpdate: Bool = false
+    private var mediaGeneration = UUID()
+    private var frameGeneration = UUID()
+    private var filterGeneration = UUID()
+    private var isRenderingFilter = false
+    private var thumbnailTask: Task<Void, Never>?
+    private var timelineTask: Task<Void, Never>?
+    private var frameTask: Task<Void, Never>?
+
+    private func invalidateMedia() {
+        mediaGeneration = UUID()
+        frameGeneration = UUID()
+        filterGeneration = UUID()
+        thumbnailTask?.cancel()
+        timelineTask?.cancel()
+        frameTask?.cancel()
+        filterCache.removeAllObjects()
+    }
+
+    private func installOriginal(_ image: NSImage) {
+        frameGeneration = UUID()
+        filterGeneration = UUID()
+        filterCache.removeAllObjects()
+        originalThumbnail = image
+        thumbnailImage = image
+        applyFilters()
+    }
     
     // Background queue for heavy filter operations
     private let filterQueue = DispatchQueue(label: "com.myupscaler.filter", qos: .userInitiated)
@@ -122,6 +151,7 @@ final class EditorState: ObservableObject {
             .dropFirst()
             .sink { [weak self] path in
                 guard let self = self else { return }
+                self.reset()
                 if !path.isEmpty {
                     self.loadThumbnail(path)
                     self.loadTimeline(path)
@@ -136,6 +166,12 @@ final class EditorState: ObservableObject {
             syncFromSettings(settings)
             
             // Optimized: Combine settings into fewer observers with throttling
+            Publishers.CombineLatest3(settings.$noDenoise, settings.$noSharpen, settings.$noEq)
+                .dropFirst()
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _, _, _ in self?.applyFilters() }
+                .store(in: &cancellables)
+
             // Group 1: Color and denoise settings (most frequently changed)
             Publishers.CombineLatest4(
                 settings.$eqContrast,
@@ -316,34 +352,35 @@ final class EditorState: ObservableObject {
     // MARK: -  Sync from UpscaleSettings
     func syncFromSettings(_ settings: UpscaleSettings) {
         // First set
-        contrast = Double(settings.eqContrast) ?? 1.03
-        brightness = Double(settings.eqBrightness) ?? 0.005
-        saturation = Double(settings.eqSaturation) ?? 1.06
-        denoiseStrength = Double(settings.denoiseStrength) ?? 2.5
-        deringActive = settings.deringActive
-        deringStrength = Double(settings.deringStrength) ?? 0.5
-        sharpenMethod = settings.sharpenMethod
-        sharpenStrength = Double(settings.sharpenStrength) ?? 0.25
-        usmRadius = Double(settings.usmRadius) ?? 5.0
-        usmAmount = Double(settings.usmAmount) ?? 1.0
-        usmThreshold = Double(settings.usmThreshold) ?? 0.0
+        if contrast != (Double(settings.eqContrast) ?? 1.03) { contrast = Double(settings.eqContrast) ?? 1.03 }
+        if brightness != (Double(settings.eqBrightness) ?? 0.005) { brightness = Double(settings.eqBrightness) ?? 0.005 }
+        if saturation != (Double(settings.eqSaturation) ?? 1.06) { saturation = Double(settings.eqSaturation) ?? 1.06 }
+        if denoiseStrength != (Double(settings.denoiseStrength) ?? 2.5) { denoiseStrength = Double(settings.denoiseStrength) ?? 2.5 }
+        if deringActive != (settings.deringActive) { deringActive = settings.deringActive }
+        if deringStrength != (Double(settings.deringStrength) ?? 0.5) { deringStrength = Double(settings.deringStrength) ?? 0.5 }
+        if sharpenMethod != (settings.sharpenMethod) { sharpenMethod = settings.sharpenMethod }
+        if sharpenStrength != (Double(settings.sharpenStrength) ?? 0.25) { sharpenStrength = Double(settings.sharpenStrength) ?? 0.25 }
+        if usmRadius != (Double(settings.usmRadius) ?? 5.0) { usmRadius = Double(settings.usmRadius) ?? 5.0 }
+        if usmAmount != (Double(settings.usmAmount) ?? 1.0) { usmAmount = Double(settings.usmAmount) ?? 1.0 }
+        if usmThreshold != (Double(settings.usmThreshold) ?? 0.0) { usmThreshold = Double(settings.usmThreshold) ?? 0.0 }
         
         // Second set
-        useDenoise2 = settings.useDenoise2
-        denoiseStrength2 = Double(settings.denoiseStrength2) ?? 2.5
-        useDering2 = settings.useDering2
-        deringActive2 = settings.deringActive2
-        deringStrength2 = Double(settings.deringStrength2) ?? 0.5
-        useSharpen2 = settings.useSharpen2
-        sharpenMethod2 = settings.sharpenMethod2
-        sharpenStrength2 = Double(settings.sharpenStrength2) ?? 0.25
-        usmRadius2 = Double(settings.usmRadius2) ?? 5.0
-        usmAmount2 = Double(settings.usmAmount2) ?? 1.0
-        usmThreshold2 = Double(settings.usmThreshold2) ?? 0.0
+        if useDenoise2 != (settings.useDenoise2) { useDenoise2 = settings.useDenoise2 }
+        if denoiseStrength2 != (Double(settings.denoiseStrength2) ?? 2.5) { denoiseStrength2 = Double(settings.denoiseStrength2) ?? 2.5 }
+        if useDering2 != (settings.useDering2) { useDering2 = settings.useDering2 }
+        if deringActive2 != (settings.deringActive2) { deringActive2 = settings.deringActive2 }
+        if deringStrength2 != (Double(settings.deringStrength2) ?? 0.5) { deringStrength2 = Double(settings.deringStrength2) ?? 0.5 }
+        if useSharpen2 != (settings.useSharpen2) { useSharpen2 = settings.useSharpen2 }
+        if sharpenMethod2 != (settings.sharpenMethod2) { sharpenMethod2 = settings.sharpenMethod2 }
+        if sharpenStrength2 != (Double(settings.sharpenStrength2) ?? 0.25) { sharpenStrength2 = Double(settings.sharpenStrength2) ?? 0.25 }
+        if usmRadius2 != (Double(settings.usmRadius2) ?? 5.0) { usmRadius2 = Double(settings.usmRadius2) ?? 5.0 }
+        if usmAmount2 != (Double(settings.usmAmount2) ?? 1.0) { usmAmount2 = Double(settings.usmAmount2) ?? 1.0 }
+        if usmThreshold2 != (Double(settings.usmThreshold2) ?? 0.0) { usmThreshold2 = Double(settings.usmThreshold2) ?? 0.0 }
     }
 
     // MARK: -  Reset
     func reset() {
+        invalidateMedia()
         thumbnailImage = nil
         originalThumbnail = nil
         timelineFrames = []
@@ -371,8 +408,7 @@ final class EditorState: ObservableObject {
         
         if ["png", "jpg", "jpeg", "tif", "tiff", "bmp", "webp"].contains(ext) {
             if let image = NSImage(contentsOf: url) {
-                self.thumbnailImage = image
-                self.originalThumbnail = image
+                self.installOriginal(image)
                 self.videoAsset = nil
                 return
             }
@@ -381,7 +417,10 @@ final class EditorState: ObservableObject {
         let asset = AVURLAsset(url: url)
         videoAsset = asset
 
-        Task {
+        let generation = mediaGeneration
+        let selectedFrame = frameGeneration
+        thumbnailTask?.cancel()
+        thumbnailTask = Task {
             let imageGenerator = AVAssetImageGenerator(asset: asset)
             imageGenerator.appliesPreferredTrackTransform = true
 
@@ -392,8 +431,8 @@ final class EditorState: ObservableObject {
                 let nsImage = NSImage(cgImage: cgImage, size: .zero)
                
                 await MainActor.run {
-                    self.thumbnailImage = nsImage
-                    self.originalThumbnail = nsImage
+                    guard generation == self.mediaGeneration, selectedFrame == self.frameGeneration, !Task.isCancelled else { return }
+                    self.installOriginal(nsImage)
                 }
             } catch {
                 print("Thumbnail error: \(error)")
@@ -419,16 +458,21 @@ final class EditorState: ObservableObject {
         let asset = AVURLAsset(url: url)
         videoAsset = asset
 
-        Task {
+        let generation = mediaGeneration
+        timelineTask?.cancel()
+        timelineTask = Task {
             guard let track = try? await asset.loadTracks(withMediaType: .video).first else { return }
 
             guard let durationTime = try? await asset.load(.duration) else { return }
             let duration = durationTime.seconds
            
             let fpsFloat = try? await track.load(.nominalFrameRate)
-            let fps = Double(fpsFloat ?? 30.0)
+            let reportedFPS = Double(fpsFloat ?? 30.0)
+            let fps = reportedFPS.isFinite && reportedFPS > 0 ? reportedFPS : 30.0
+            guard duration.isFinite, duration >= 0, !Task.isCancelled else { return }
            
             await MainActor.run {
+                guard generation == self.mediaGeneration, !Task.isCancelled else { return }
                 self.videoFPS = fps
                 self.totalFrames = Int(duration * fps)
                 self.timelineFrames.removeAll()
@@ -451,6 +495,7 @@ final class EditorState: ObservableObject {
             var loadedTimes: [Double] = []
            
             for await result in generator.images(for: times) {
+                guard generation == self.mediaGeneration, !Task.isCancelled else { return }
                 switch result {
                 case .success(requestedTime: let req, image: let img, actualTime: _):
                     loadedImages.append(NSImage(cgImage: img, size: .zero))
@@ -464,6 +509,7 @@ final class EditorState: ObservableObject {
             let finalTimes = loadedTimes
            
             await MainActor.run {
+                guard generation == self.mediaGeneration, !Task.isCancelled else { return }
                 self.timelineFrames = finalImages
                 self.timelineFrameTimes = finalTimes
             }
@@ -474,14 +520,18 @@ final class EditorState: ObservableObject {
     func loadFullResolutionFrame(at timeSeconds: Double) {
         if videoAsset == nil, !timelineFrames.isEmpty {
              if let original = originalThumbnail {
-                 self.thumbnailImage = self.applyAllFiltersToImage(original)
+                 self.installOriginal(original)
              }
              return
         }
 
         guard let asset = videoAsset else { return }
 
-        Task {
+        frameTask?.cancel()
+        let generation = UUID()
+        frameGeneration = generation
+        filterGeneration = UUID()
+        frameTask = Task {
             let tracks = try? await asset.loadTracks(withMediaType: AVMediaType.video)
             guard let videoTrack = tracks?.first else { return }
 
@@ -509,15 +559,15 @@ final class EditorState: ObservableObject {
                 let ns = NSImage(cgImage: cgImage, size: .zero)
                
                 await MainActor.run {
-                    self.originalThumbnail = ns
-                    self.thumbnailImage = self.applyAllFiltersToImage(ns)
+                    guard generation == self.frameGeneration, !Task.isCancelled else { return }
+                    self.installOriginal(ns)
                 }
             } catch {
                 await MainActor.run {
+                    guard generation == self.frameGeneration, !Task.isCancelled else { return }
                     if self.selectedFrameIndex < self.timelineFrames.count {
                         let fallback = self.timelineFrames[self.selectedFrameIndex]
-                        self.originalThumbnail = fallback
-                        self.thumbnailImage = self.applyAllFiltersToImage(fallback)
+                        self.installOriginal(fallback)
                     }
                 }
             }
@@ -527,10 +577,17 @@ final class EditorState: ObservableObject {
     // MARK: -  Filters
     func applyFilters() {
         guard let original = originalThumbnail else { return }
-        guard !isProcessingFullUpscale else { return } // Skip during full upscaling
+        filterGeneration = UUID()
+        let generation = filterGeneration
+        guard !isProcessingFullUpscale else { pendingFilterUpdate = true; return }
+        guard !isRenderingFilter else { pendingFilterUpdate = true; return }
+        pendingFilterUpdate = false
         
         // Capture parameters on MainActor to avoid isolation issues
         let params = FilterParameters(
+            noDenoise: settings?.noDenoise ?? false,
+            noSharpen: settings?.noSharpen ?? false,
+            noEq: settings?.noEq ?? false,
             contrast: contrast,
             brightness: brightness,
             saturation: saturation,
@@ -557,7 +614,7 @@ final class EditorState: ObservableObject {
         )
         
         // Create cache key from filter parameters (including second set)
-        let cacheKeyString = "\(params.contrast)_\(params.brightness)_\(params.saturation)_\(params.denoiseStrength)_\(params.deringActive)_\(params.deringStrength)_\(params.sharpenMethod)_\(params.sharpenStrength)_\(params.usmRadius)_\(params.usmAmount)_\(params.usmThreshold)_\(params.useDenoise2)_\(params.denoiseStrength2)_\(params.useSharpen2)_\(params.sharpenMethod2)_\(params.sharpenStrength2)"
+        let cacheKeyString = "\(frameGeneration)_\(String(reflecting: params))"
         
         // Check cache first
         if let cached = filterCache.object(forKey: cacheKeyString as NSString) {
@@ -567,6 +624,7 @@ final class EditorState: ObservableObject {
         
         let context = self.ciContext
         
+        isRenderingFilter = true
         filterQueue.async { [weak self] in
             guard let self = self else { return }
             
@@ -575,7 +633,12 @@ final class EditorState: ObservableObject {
             
             // Update UI on main thread
             DispatchQueue.main.async {
-                guard !self.isProcessingFullUpscale else { return }
+                self.isRenderingFilter = false
+                if self.pendingFilterUpdate && !self.isProcessingFullUpscale {
+                    self.applyFilters()
+                    return
+                }
+                guard generation == self.filterGeneration, !self.isProcessingFullUpscale else { return }
                 self.thumbnailImage = filteredImage
                 // Cache the filtered image
                 if let image = filteredImage {
@@ -594,36 +657,6 @@ final class EditorState: ObservableObject {
         }
     }
 
-    // Convenience wrapper for MainActor usage (e.g. loadFullResolutionFrame)
-    func applyAllFiltersToImage(_ image: NSImage) -> NSImage? {
-        let params = FilterParameters(
-            contrast: contrast,
-            brightness: brightness,
-            saturation: saturation,
-            denoiseStrength: denoiseStrength,
-            deringActive: deringActive,
-            deringStrength: deringStrength,
-            sharpenMethod: sharpenMethod,
-            sharpenStrength: sharpenStrength,
-            usmRadius: usmRadius,
-            usmAmount: usmAmount,
-            usmThreshold: usmThreshold,
-            // Second set
-            useDenoise2: useDenoise2,
-            denoiseStrength2: denoiseStrength2,
-            useDering2: useDering2,
-            deringActive2: deringActive2,
-            deringStrength2: deringStrength2,
-            useSharpen2: useSharpen2,
-            sharpenMethod2: sharpenMethod2,
-            sharpenStrength2: sharpenStrength2,
-            usmRadius2: usmRadius2,
-            usmAmount2: usmAmount2,
-            usmThreshold2: usmThreshold2
-        )
-        return EditorState.processImage(image, params: params, context: self.ciContext)
-    }
-    
     // Non-isolated helper for background processing
     nonisolated static func processImage(_ image: NSImage, params: FilterParameters, context: CIContext) -> NSImage? {
         guard let cg = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return image }
@@ -632,7 +665,7 @@ final class EditorState: ObservableObject {
         // MARK: -  ===== FIRST SET =====
         
         // ----- Denoise (1st) -----
-        if params.denoiseStrength > 0,
+        if !params.noDenoise && params.denoiseStrength > 0,
            let f = CIFilter(name: "CINoiseReduction") {
             f.setValue(ci, forKey: kCIInputImageKey)
             f.setValue(params.denoiseStrength / 20.0, forKey: "inputNoiseLevel")
@@ -648,7 +681,7 @@ final class EditorState: ObservableObject {
         }
 
         // ----- Color -----
-        if let f = CIFilter(name: "CIColorControls") {
+        if !params.noEq, let f = CIFilter(name: "CIColorControls") {
             f.setValue(ci, forKey: kCIInputImageKey)
             f.setValue(params.contrast, forKey: kCIInputContrastKey)
             f.setValue(params.brightness, forKey: kCIInputBrightnessKey)
@@ -657,14 +690,14 @@ final class EditorState: ObservableObject {
         }
 
         // ----- Sharpen (1st) -----
-        if params.sharpenMethod == "cas" {
+        if !params.noSharpen && params.sharpenMethod == "cas" {
             if let f = CIFilter(name: "CIUnsharpMask") {
                 f.setValue(ci, forKey: kCIInputImageKey)
                 f.setValue(2.5, forKey: kCIInputRadiusKey)
                 f.setValue(params.sharpenStrength, forKey: kCIInputIntensityKey)
                 ci = f.outputImage ?? ci
             }
-        } else {
+        } else if !params.noSharpen {
             if let f = CIFilter(name: "CIUnsharpMask") {
                 f.setValue(ci, forKey: kCIInputImageKey)
                 f.setValue(params.usmRadius, forKey: kCIInputRadiusKey)
@@ -677,11 +710,11 @@ final class EditorState: ObservableObject {
         // MARK: - SECOND SET (applies after first set)
         
         // ----- Denoise (2nd) -----
-        if params.useDenoise2 && params.denoiseStrength2 > 0,
+        if !params.noDenoise && params.useDenoise2 && params.denoiseStrength2 > 0,
            let f = CIFilter(name: "CINoiseReduction") {
             f.setValue(ci, forKey: kCIInputImageKey)
             // Apply attenuation if both sets have denoise active (stacking)
-            let attenuationFactor = params.denoiseStrength > 0 ? 0.55 : 1.0
+            let attenuationFactor = !params.noDenoise && params.denoiseStrength > 0 ? 0.55 : 1.0
             f.setValue((params.denoiseStrength2 * attenuationFactor) / 20.0, forKey: "inputNoiseLevel")
             ci = f.outputImage ?? ci
         }
@@ -695,9 +728,9 @@ final class EditorState: ObservableObject {
         }
 
         // ----- Sharpen (2nd) -----
-        if params.useSharpen2 {
+        if !params.noSharpen && params.useSharpen2 {
             // Calculate attenuation factor based on first set sharpen being active
-            let firstSetSharpenActive = params.sharpenMethod == "cas" ? params.sharpenStrength > 0 : params.usmAmount > 0
+            let firstSetSharpenActive = !params.noSharpen && (params.sharpenMethod == "cas" ? params.sharpenStrength > 0 : params.usmAmount > 0)
             var attenuationFactor: Double = 1.0
             if firstSetSharpenActive {
                 // Determine attenuation based on what's being stacked

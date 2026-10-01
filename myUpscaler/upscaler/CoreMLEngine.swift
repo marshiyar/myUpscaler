@@ -8,52 +8,74 @@ import Accelerate
 
 // MARK: - Model Manager
 
-enum ModelError: Error {
+nonisolated enum ModelError: Error {
     case compilationFailed(Error)
     case modelNotFound
     case invalidModel
     case fileSystemError(Error)
 }
 
-class ModelManager {
+nonisolated class ModelManager {
     static let shared = ModelManager()
     private init() {}
-    
+    private let cacheLock = NSLock()
+    private var cachedModel: (CoreMLModelID, MLModel)?
+
+    private func cached(for id: CoreMLModelID) -> MLModel? {
+        cacheLock.lock()
+        defer { cacheLock.unlock() }
+        return cachedModel?.0 == id ? cachedModel?.1 : nil
+    }
+
+    private func remember(_ model: MLModel, for id: CoreMLModelID) {
+        cacheLock.lock()
+        defer { cacheLock.unlock() }
+        // Bound retained resources to one model, even after switching models.
+        cachedModel = (id, model)
+    }
+
     private func sourceModelURL(resourceName: String) -> URL? {
         if let url = Bundle.main.url(forResource: resourceName, withExtension: "mlpackage") { return url }
         if let url = Bundle.main.url(forResource: resourceName, withExtension: "mlmodel") { return url }
         return nil
     }
-    
+
     func prepareModel(spec: CoreMLModelSpec, progressHandler: ((Double) -> Void)? = nil) async throws -> MLModel {
+        if let model = cached(for: spec.id) {
+            progressHandler?(1.0)
+            return model
+        }
         let config = MLModelConfiguration()
         config.computeUnits = .all
         config.allowLowPrecisionAccumulationOnGPU = true
-        
+
         guard let modelURL = CoreMLModelRegistry.bundledURL(for: spec) else {
             throw ModelError.modelNotFound
         }
         let sourceURL = sourceModelURL(resourceName: spec.resourceName)
-        
+
         progressHandler?(0.5)
-        
+
         do {
             let model = try MLModel(contentsOf: modelURL, configuration: config)
+            remember(model, for: spec.id)
             progressHandler?(1.0)
             return model
         } catch {
             print("DEBUG: Failed to load model with .all compute units. Retry compiling...")
-            
+
             if let src = sourceURL ?? (modelURL.pathExtension != "mlmodelc" ? modelURL : nil) {
                 let compiledURL = try await MLModel.compileModel(at: src)
                 let compiledModel = try MLModel(contentsOf: compiledURL, configuration: config)
+                remember(compiledModel, for: spec.id)
                 progressHandler?(1.0)
                 return compiledModel
             }
-            
+
             config.computeUnits = .cpuOnly
             config.allowLowPrecisionAccumulationOnGPU = false
             if let model = try? MLModel(contentsOf: modelURL, configuration: config) {
+                remember(model, for: spec.id)
                 progressHandler?(1.0)
                 return model
             }
@@ -64,57 +86,75 @@ class ModelManager {
 
 // MARK: - CoreML Engine
 
-class CoreMLEngine: EngineProtocol {
+nonisolated class CoreMLEngine: EngineProtocol {
     static let shared = CoreMLEngine()
-    
+
+    private let logLock = NSLock()
     private var logHandler: ((String) -> Void)?
-    private var isCancelled = false
-//    var regionContext: RegionMaskContext?
-    var driftGuardEnabled: Bool = false
-    
+    private let control = ProcessingControl()
+    private let ioLock = NSLock()
+    private var cancelIO: (() -> Void)?
+
     func setLogHandler(_ handler: @escaping (String) -> Void) {
+        logLock.lock()
         self.logHandler = handler
+        logLock.unlock()
     }
-    
+
     private func log(_ message: String) {
-        logHandler?(message)
+        logLock.lock()
+        let handler = logHandler
+        logLock.unlock()
+        handler?(message)
     }
-    
+
     func cancel() {
-        isCancelled = true
+        control.cancel()
+        ioLock.lock()
+        let cancel = cancelIO
+        ioLock.unlock()
+        cancel?()
     }
-    
+
+    private func setCancelIO(_ cancel: (() -> Void)?) {
+        ioLock.lock()
+        cancelIO = cancel
+        ioLock.unlock()
+    }
+
     private func logEffectiveKnobs(settings: UpscaleSettings, useHEVC: Bool) {
         let feather = settings.tileFeatherMarginValue > 0
         let featherNote = feather ? "\(settings.tileFeatherMarginValue)px" : "off"
         log("CoreML honors: model=\(settings.coremlModelId.rawValue), scale=\(settings.scaleFactor)x, codec=\(useHEVC ? "hevc" : "h264"), crf=\(Int(settings.crf)), tile feather=\(featherNote).\n")
     }
-    
+
     func process(inputPath: String, settings: UpscaleSettings, outputDirectory: String) async throws {
-        isCancelled = false
+        try control.begin()
+        defer { control.finish() }
+        try control.checkCancellation()
         log("CoreML Engine: Starting processing...\n")
         let codecDecision = CodecSupport.resolve(requestHEVC: settings.useHEVC)
-        
+
         // FIX: Force Linearize OFF for Real-ESRGAN to prevent dark/washed-out results
         if settings.coremlModelId.rawValue.contains("RealESRGAN") {
             settings.enableColorLinearize = false
             settings.enableToneMap = false
             settings.encodeToSRGB = false
         }
-        
+
         logEffectiveKnobs(settings: settings, useHEVC: codecDecision.useHEVC)
         let modelSpec = CoreMLModelRegistry.model(for: settings.coremlModelId)
-        
+
         let inputURL = URL(fileURLWithPath: inputPath)
         let asset = AVURLAsset(url: inputURL)
-        
+
         guard let videoTrack = try? await asset.loadTracks(withMediaType: .video).first else {
             throw Up60PEngineError.io
         }
-        
+
         log("Loading AI Model (\(modelSpec.displayName))...\n")
         let mlModel = try await ModelManager.shared.prepareModel(spec: modelSpec)
-        
+
         let modelDescription = mlModel.modelDescription
         guard modelDescription.inputDescriptionsByName.count == 1,
               modelDescription.outputDescriptionsByName.count == 1,
@@ -130,37 +170,40 @@ class CoreMLEngine: EngineProtocol {
             log("CoreML model has an unsupported tensor layout; expected Float32 NCHW RGB at the model's native scale.\n")
             throw ModelError.invalidModel
         }
-        
+
         let modelInputShape = multiArrayConstraint.shape
         let modelInputChannels = modelInputShape[1].intValue
         let tileHeight = modelInputShape[2].intValue
         let tileWidth = modelInputShape[3].intValue
-        
-        let reader = try AVAssetReader(asset: asset)
-        let readerOutput = AVAssetReaderTrackOutput(track: videoTrack, outputSettings: [
-            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA
-        ])
-        reader.add(readerOutput)
-        reader.startReading()
-        
+
+        let reader = try VideoFrameReader(asset: asset, track: videoTrack,
+            checkCancellation: { try self.control.checkCancellation() })
+        defer { reader.cancel() }
+
         let inputFilename = inputURL.deletingPathExtension().lastPathComponent
         let outputFilename = inputFilename + "_[restored].mp4"
         let outputURL = URL(fileURLWithPath: outputDirectory).appendingPathComponent(outputFilename)
         if FileManager.default.fileExists(atPath: outputURL.path) {
             try? FileManager.default.removeItem(at: outputURL)
         }
-        
-        let writer = try AVAssetWriter(outputURL: outputURL, fileType: .mp4)
-        
+
         let userScaleFactor = CGFloat(settings.scaleFactor)
         let modelScaleFactor = CGFloat(modelSpec.nativeScale)
-        
+
         let inputSize = try await videoTrack.load(.naturalSize)
-        let outputWidth = inputSize.width * userScaleFactor
-        let outputHeight = inputSize.height * userScaleFactor
-        let originalFrameRate = try await videoTrack.load(.nominalFrameRate)
-        
-        let pixelCount = Double(outputWidth * outputHeight)
+        let duration = try await asset.load(.duration).seconds
+        if duration.isFinite, duration > 0 {
+            log(String(format: "Duration: %02d:%02d:%09.6f\n", Int(duration) / 3600, (Int(duration) % 3600) / 60, duration.truncatingRemainder(dividingBy: 60)))
+        }
+        let startedAt = ProcessInfo.processInfo.systemUptime
+        var lastProgressAt = startedAt
+        let geometry = try UpscaleGeometry(inputWidth: Int(inputSize.width), inputHeight: Int(inputSize.height),
+            requestedScale: settings.scaleFactor, nativeScale: modelSpec.nativeScale,
+            tileWidth: tileWidth, tileHeight: tileHeight)
+        let outputWidth = geometry.outputWidth
+        let outputHeight = geometry.outputHeight
+
+        let pixelCount = Double(outputWidth) * Double(outputHeight)
         let crfScale = 1.5 - (Double(settings.crf) / 51.0)
         let targetBitrate = Int(pixelCount * 0.15 * crfScale)
         let videoSettings: [String: Any] = [
@@ -171,92 +214,82 @@ class CoreMLEngine: EngineProtocol {
                 AVVideoAverageBitRateKey: targetBitrate
             ]
         ]
-        
-        let writerInput = AVAssetWriterInput(mediaType: .video, outputSettings: videoSettings)
-        writerInput.expectsMediaDataInRealTime = false
-        writerInput.mediaTimeScale = CMTimeScale(originalFrameRate * 1000)
-        
-        let pixelBufferAdaptor = AVAssetWriterInputPixelBufferAdaptor(
-            assetWriterInput: writerInput,
-            sourcePixelBufferAttributes: [
-                kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
-                kCVPixelBufferWidthKey as String: outputWidth,
-                kCVPixelBufferHeightKey as String: outputHeight,
-                kCVPixelBufferMetalCompatibilityKey as String: true
-            ]
-        )
-        
-        writer.add(writerInput)
-        writer.startWriting()
-        writer.startSession(atSourceTime: .zero)
-        
+
+        let writer = try VideoFrameWriter(outputURL: outputURL, videoSettings: videoSettings,
+            width: outputWidth, height: outputHeight,
+            checkCancellation: { try self.control.checkCancellation() })
+        setCancelIO { reader.cancel(); writer.cancel() }
+        defer { setCancelIO(nil) }
+        var completed = false
+        defer { if !completed { writer.cancel() } }
+        try control.checkCancellation()
+
         let tileOverlap = 16
         let effectiveTileSize = tileWidth - tileOverlap
         let tilesX = max(1, Int(ceil(Double(Int(inputSize.width) - tileOverlap) / Double(effectiveTileSize))))
         let tilesY = max(1, Int(ceil(Double(Int(inputSize.height) - tileOverlap) / Double(effectiveTileSize))))
-        
+
         let predictionOptions = MLPredictionOptions()
-        
-        
-        
+
+
+
+        let weightBuffer = try createWeightBuffer(width: Int(outputWidth), height: Int(outputHeight))
+        defer { weightBuffer.deallocate() }
         var frameCount = 0
         var previousFrameBuffer: CVPixelBuffer? = nil
-        
-        while let sampleBuffer = readerOutput.copyNextSampleBuffer() {
-            if isCancelled { break }
+
+        while let sampleBuffer = try await reader.next() {
+            try control.checkCancellation()
             guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { continue }
             let pts = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
-            
-            guard let outputBuffer = try? createPixelBuffer(width: Int(outputWidth), height: Int(outputHeight)) else { continue }
-            
-            // FIX: Manual memory management with defer to prevent Double Free
-            guard let weightBuffer = try? createWeightBuffer(width: Int(outputWidth), height: Int(outputHeight)) else { continue }
-            defer { weightBuffer.deallocate() } // Automatically freed at end of this loop iteration
-            
+
+            let outputBuffer = try writer.makePixelBuffer()
+
+            weightBuffer.update(repeating: 0, count: Int(outputWidth) * Int(outputHeight))
+
             var tilesFailed = 0
-            
+
             for tileY in 0..<tilesY {
                 for tileX in 0..<tilesX {
-                    if isCancelled { break }
-                    
+                    try control.checkCancellation()
+
                     let x = min(tileX * effectiveTileSize, max(0, Int(inputSize.width) - tileWidth))
                     let y = min(tileY * effectiveTileSize, max(0, Int(inputSize.height) - tileHeight))
                     let w = min(tileWidth, Int(inputSize.width) - x)
                     let h = min(tileHeight, Int(inputSize.height) - y)
-                    
-                    guard let tileBuffer = try? extractTile(from: pixelBuffer, x: x, y: y, width: w, height: h, targetWidth: tileWidth, targetHeight: tileHeight) else { continue }
-                    
+
+                    let tileBuffer = try extractTile(from: pixelBuffer, x: x, y: y, width: w, height: h, targetWidth: tileWidth, targetHeight: tileHeight)
+
                     preprocessTileBuffer(tileBuffer, settings: settings)
-                    
-                    guard let inputTensor = try? pixelBufferToTensor(pixelBuffer: tileBuffer, inputName: inputName, expectedChannels: modelInputChannels) else { continue }
-                    
+
+                    let inputTensor = try pixelBufferToTensor(pixelBuffer: tileBuffer, inputName: inputName, expectedChannels: modelInputChannels)
+
                     let inputProvider = try MLDictionaryFeatureProvider(dictionary: [inputName: inputTensor])
-                    
-                    if let prediction = try? await mlModel.prediction(from: inputProvider, options: predictionOptions),
-                       let outputFeature = prediction.featureValue(for: outputName),
+
+                    let prediction = try await mlModel.prediction(from: inputProvider, options: predictionOptions)
+                    if let outputFeature = prediction.featureValue(for: outputName),
                        let outputTensor = outputFeature.multiArrayValue {
-                        
+
                         // High Quality Resampling Logic
-                        let nativeTileW = tileWidth * Int(modelScaleFactor)
-                        let nativeTileH = tileHeight * Int(modelScaleFactor)
-                        
+                        let nativeTileW = geometry.nativeTileWidth
+                        let nativeTileH = geometry.nativeTileHeight
+
                         if let nativeBuffer = try? tensorToPixelBuffer(tensor: outputTensor, width: nativeTileW, height: nativeTileH) {
-                            
+
                             let outX = Int(Double(x) * Double(userScaleFactor))
                             let outY = Int(Double(y) * Double(userScaleFactor))
                             let outW = Int(Double(w) * Double(userScaleFactor))
                             let outH = Int(Double(h) * Double(userScaleFactor))
-                            
+
                             var finalTileBuffer = nativeBuffer
-                            if abs(Double(userScaleFactor) - Double(modelScaleFactor)) > 0.001 {
-                                if let scaled = try? resizePixelBuffer(nativeBuffer, width: outW, height: outH) {
-                                    finalTileBuffer = scaled
-                                }
+                            if geometry.requiresResampling {
+                                finalTileBuffer = try resizePixelBuffer(nativeBuffer, width: outW, height: outH,
+                                    sourceWidth: w * Int(modelScaleFactor), sourceHeight: h * Int(modelScaleFactor))
                             }
-                            
+
                             let blendMargin = max(1, settings.tileFeatherMarginValue > 0 ? settings.tileFeatherMarginValue : Int(Double(tileOverlap) * Double(userScaleFactor)))
-                            
-                            try? blendTileIntoCanvas(
+
+                            try blendTileIntoCanvas(
                                 source: finalTileBuffer,
                                 target: outputBuffer,
                                 weightMap: weightBuffer,
@@ -275,18 +308,29 @@ class CoreMLEngine: EngineProtocol {
                     }
                 }
             }
-            
+
             postprocessFrameBuffer(outputBuffer, previous: previousFrameBuffer, settings: settings)
-            
-            while !writerInput.isReadyForMoreMediaData { try await Task.sleep(nanoseconds: 1_000_000) }
-            pixelBufferAdaptor.append(outputBuffer, withPresentationTime: pts)
+
+            guard tilesFailed == 0 else { throw ModelError.invalidModel }
+            try await writer.append(outputBuffer, at: pts)
             previousFrameBuffer = outputBuffer
             frameCount += 1
-            if frameCount % 10 == 0 { log("Processed frame \(frameCount)\n") }
+            let now = ProcessInfo.processInfo.systemUptime
+            if now - lastProgressAt >= 0.2 {
+                let elapsed = now - startedAt
+                let processedTime = max(0, pts.seconds)
+                let fps = Double(frameCount) / elapsed
+                let speed = processedTime / elapsed
+                log(String(format: "frame=%d fps=%.2f time=%.6f speed=%.4fx\n", frameCount, fps, processedTime, speed))
+                lastProgressAt = now
+            }
         }
-        
-        writerInput.markAsFinished()
-        await writer.finishWriting()
+
+        try control.checkCancellation()
+        log("stage=finalizing\n")
+        try await writer.finish()
+        try control.checkCancellation()
+        completed = true
         log("Done. Output saved to: \(outputURL.path)\n")
     }
 
@@ -302,13 +346,13 @@ class CoreMLEngine: EngineProtocol {
         guard let buffer = pixelBuffer else { throw Up60PEngineError.internalError }
         return buffer
     }
-    
+
     private func createWeightBuffer(width: Int, height: Int) throws -> UnsafeMutablePointer<Float> {
         let buffer = UnsafeMutablePointer<Float>.allocate(capacity: width * height)
         buffer.initialize(repeating: 0, count: width * height)
         return buffer
     }
-    
+
     private func extractTile(from sourceBuffer: CVPixelBuffer, x: Int, y: Int, width: Int, height: Int, targetWidth: Int, targetHeight: Int) throws -> CVPixelBuffer {
         let tileBuffer = try createPixelBuffer(width: targetWidth, height: targetHeight)
         CVPixelBufferLockBaseAddress(sourceBuffer, .readOnly)
@@ -317,17 +361,17 @@ class CoreMLEngine: EngineProtocol {
             CVPixelBufferUnlockBaseAddress(sourceBuffer, .readOnly)
             CVPixelBufferUnlockBaseAddress(tileBuffer, [])
         }
-        
+
         guard let srcBase = CVPixelBufferGetBaseAddress(sourceBuffer),
               let dstBase = CVPixelBufferGetBaseAddress(tileBuffer) else { return tileBuffer }
-        
+
         let srcBytes = CVPixelBufferGetBytesPerRow(sourceBuffer)
         let dstBytes = CVPixelBufferGetBytesPerRow(tileBuffer)
         let srcData = srcBase.assumingMemoryBound(to: UInt8.self)
         let dstData = dstBase.assumingMemoryBound(to: UInt8.self)
-        
+
         memset(dstBase, 0, dstBytes * targetHeight) // Zero init padding
-        
+
         for row in 0..<height {
             let srcOffset = (y + row) * srcBytes + x * 4
             let dstOffset = row * dstBytes
@@ -335,25 +379,25 @@ class CoreMLEngine: EngineProtocol {
         }
         return tileBuffer
     }
-    
+
     private func pixelBufferToTensor(pixelBuffer: CVPixelBuffer, inputName: String, expectedChannels: Int) throws -> MLMultiArray {
         guard expectedChannels == 3 else { throw ModelError.invalidModel }
         CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
         defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly) }
-        
+
         let width = CVPixelBufferGetWidth(pixelBuffer)
         let height = CVPixelBufferGetHeight(pixelBuffer)
         let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer)
         let pixelCount = width * height
-        
+
         let channels = 3
         let shape = [1, NSNumber(value: channels), NSNumber(value: height), NSNumber(value: width)]
         let tensor = try MLMultiArray(shape: shape, dataType: .float32)
-        
+
         guard let baseAddr = CVPixelBufferGetBaseAddress(pixelBuffer) else { throw Up60PEngineError.internalError }
         let srcData = baseAddr.assumingMemoryBound(to: UInt8.self)
         let tensorPtr = UnsafeMutablePointer<Float>(OpaquePointer(tensor.dataPointer))
-        
+
         // Fast Plane Separation (BGR -> RGB Planar)
         for y in 0..<height {
             for x in 0..<width {
@@ -367,29 +411,34 @@ class CoreMLEngine: EngineProtocol {
         }
         return tensor
     }
-    
-    private func tensorToPixelBuffer(tensor: MLMultiArray, width: Int, height: Int) throws -> CVPixelBuffer {
+
+    func tensorToPixelBuffer(tensor: MLMultiArray, width: Int, height: Int) throws -> CVPixelBuffer {
         let buffer = try createPixelBuffer(width: width, height: height)
         CVPixelBufferLockBaseAddress(buffer, [])
         defer { CVPixelBufferUnlockBaseAddress(buffer, []) }
-        
+
         let bytesPerRow = CVPixelBufferGetBytesPerRow(buffer)
-        let pixelCount = width * height
+        guard tensor.dataType == .float32,
+              tensor.shape.map({ $0.intValue }) == [1, 3, height, width] else {
+            throw ModelError.invalidModel
+        }
+        let strides = tensor.strides.map { $0.intValue }
         let tensorPtr = UnsafePointer<Float>(OpaquePointer(tensor.dataPointer))
-        
+
         guard let baseAddr = CVPixelBufferGetBaseAddress(buffer) else { throw Up60PEngineError.internalError }
         let dstData = baseAddr.assumingMemoryBound(to: UInt8.self)
-        
+
         // Fast Plane Merging (RGB Planar -> BGRA)
         for y in 0..<height {
             for x in 0..<width {
-                let srcIdx = y * width + x
+                let srcIdx = y * strides[2] + x * strides[3]
                 let dstIdx = y * bytesPerRow + x * 4
-                
+
                 let r = tensorPtr[srcIdx]
-                let g = tensorPtr[pixelCount + srcIdx]
-                let b = tensorPtr[pixelCount * 2 + srcIdx]
-                
+                let g = tensorPtr[strides[1] + srcIdx]
+                let b = tensorPtr[strides[1] * 2 + srcIdx]
+                guard r.isFinite, g.isFinite, b.isFinite else { throw ModelError.invalidModel }
+
                 dstData[dstIdx + 0] = UInt8(max(0, min(255, b * 255.0))) // B
                 dstData[dstIdx + 1] = UInt8(max(0, min(255, g * 255.0))) // G
                 dstData[dstIdx + 2] = UInt8(max(0, min(255, r * 255.0))) // R
@@ -398,8 +447,8 @@ class CoreMLEngine: EngineProtocol {
         }
         return buffer
     }
-    
-    private func resizePixelBuffer(_ source: CVPixelBuffer, width: Int, height: Int) throws -> CVPixelBuffer {
+
+    func resizePixelBuffer(_ source: CVPixelBuffer, width: Int, height: Int, sourceWidth: Int, sourceHeight: Int) throws -> CVPixelBuffer {
         let dest = try createPixelBuffer(width: width, height: height)
         CVPixelBufferLockBaseAddress(source, .readOnly)
         CVPixelBufferLockBaseAddress(dest, [])
@@ -407,29 +456,31 @@ class CoreMLEngine: EngineProtocol {
             CVPixelBufferUnlockBaseAddress(source, .readOnly)
             CVPixelBufferUnlockBaseAddress(dest, [])
         }
-        
+
         guard let srcBase = CVPixelBufferGetBaseAddress(source),
               let dstBase = CVPixelBufferGetBaseAddress(dest) else { throw Up60PEngineError.internalError }
-        
+
         var srcVImage = vImage_Buffer(
             data: srcBase,
-            height: vImagePixelCount(CVPixelBufferGetHeight(source)),
-            width: vImagePixelCount(CVPixelBufferGetWidth(source)),
+            height: vImagePixelCount(sourceHeight),
+            width: vImagePixelCount(sourceWidth),
             rowBytes: CVPixelBufferGetBytesPerRow(source)
         )
-        
+
         var destVImage = vImage_Buffer(
             data: dstBase,
             height: vImagePixelCount(height),
             width: vImagePixelCount(width),
             rowBytes: CVPixelBufferGetBytesPerRow(dest)
         )
-        
-        vImageScale_ARGB8888(&srcVImage, &destVImage, nil, vImage_Flags(kvImageHighQualityResampling))
+
+        guard vImageScale_ARGB8888(&srcVImage, &destVImage, nil, vImage_Flags(kvImageHighQualityResampling)) == kvImageNoError else {
+            throw Up60PEngineError.internalError
+        }
         return dest
     }
-    
-    private func blendTileIntoCanvas(
+
+    func blendTileIntoCanvas(
         source: CVPixelBuffer,
         target: CVPixelBuffer,
         weightMap: UnsafeMutablePointer<Float>,
@@ -445,10 +496,10 @@ class CoreMLEngine: EngineProtocol {
             CVPixelBufferUnlockBaseAddress(source, .readOnly)
             CVPixelBufferUnlockBaseAddress(target, [])
         }
-        
+
         guard let srcBase = CVPixelBufferGetBaseAddress(source),
               let dstBase = CVPixelBufferGetBaseAddress(target) else { return }
-        
+
         let srcRowBytes = CVPixelBufferGetBytesPerRow(source)
         let dstRowBytes = CVPixelBufferGetBytesPerRow(target)
         let srcPtr = srcBase.assumingMemoryBound(to: UInt8.self)
@@ -456,11 +507,23 @@ class CoreMLEngine: EngineProtocol {
         let dstW = CVPixelBufferGetWidth(target)
         let dstH = CVPixelBufferGetHeight(target)
         let pi = Float.pi
-        
+
+        // Horizontal feather weights are identical for every row of this tile.
+        let horizontalWeights: [Float] = (0..<width).map { c in
+            if !isLeft && c < margin {
+                let t = Float(c) / Float(margin)
+                return useCosine ? 0.5 * (1.0 - cos(t * pi)) : t
+            } else if !isRight && c >= width - margin {
+                let t = Float(width - c) / Float(margin)
+                return useCosine ? 0.5 * (1.0 - cos(t * pi)) : t
+            }
+            return 1.0
+        }
+
         for r in 0..<height {
             let rowY = destY + r
             if rowY >= dstH { break }
-            
+
             var wY: Float = 1.0
             if !isTop && r < margin {
                 let t = Float(r) / Float(margin)
@@ -469,35 +532,26 @@ class CoreMLEngine: EngineProtocol {
                 let t = Float(height - r) / Float(margin)
                 wY = useCosine ? 0.5 * (1.0 - cos(t * pi)) : t
             }
-            
+
             for c in 0..<width {
                 let colX = destX + c
                 if colX >= dstW { break }
-                
-                var wX: Float = 1.0
-                if !isLeft && c < margin {
-                    let t = Float(c) / Float(margin)
-                    wX = useCosine ? 0.5 * (1.0 - cos(t * pi)) : t
-                } else if !isRight && c >= width - margin {
-                    let t = Float(width - c) / Float(margin)
-                    wX = useCosine ? 0.5 * (1.0 - cos(t * pi)) : t
-                }
-                
-                let weight = wX * wY
+
+                let weight = horizontalWeights[c] * wY
                 let wIdx = rowY * dstW + colX
                 let dstIdx = rowY * dstRowBytes + colX * 4
                 let srcIdx = r * srcRowBytes + c * 4
-                
+
                 let sB = Float(srcPtr[srcIdx+0])
                 let sG = Float(srcPtr[srcIdx+1])
                 let sR = Float(srcPtr[srcIdx+2])
-                
+
                 let dB = Float(dstPtr[dstIdx+0])
                 let dG = Float(dstPtr[dstIdx+1])
                 let dR = Float(dstPtr[dstIdx+2])
                 let curW = weightMap[wIdx]
                 let newW = curW + weight
-                
+
                 if newW > 0.0 {
                     dstPtr[dstIdx+0] = UInt8(max(0, min(255, (dB * curW + sB * weight) / newW)))
                     dstPtr[dstIdx+1] = UInt8(max(0, min(255, (dG * curW + sG * weight) / newW)))

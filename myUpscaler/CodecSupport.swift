@@ -3,7 +3,7 @@ import AVFoundation
 import VideoToolbox
 #endif
 
-struct CodecSupport {
+nonisolated struct CodecSupport {
     struct Decision {
         let useHEVC: Bool
         let message: String?

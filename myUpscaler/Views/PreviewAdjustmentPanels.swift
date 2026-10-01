@@ -77,6 +77,11 @@ struct VerticalColorEqualizerPanel: View {
                 .font(DesignSystem.Typography.caption1)
                 .fontWeight(.semibold)
                 .foregroundColor(.primary)
+            if settings.scaler == "coreml" || settings.noEq {
+                Text(settings.noEq ? "Color EQ is off" : "Preview only for Core ML")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
 
             GroupBox {
                 VStack(spacing: DesignSystem.Spacing.sm) {
@@ -85,7 +90,7 @@ struct VerticalColorEqualizerPanel: View {
                         binding: $settings.eqContrast,
                         range: 0.5...2.0,
                         step: 0.005,
-                        defaultValue: 1.03,
+                        defaultValue: 1.0,
                         formatter: DragDropFormatters.twoFraction,
                         gradient: .contrast
                     )
@@ -95,7 +100,7 @@ struct VerticalColorEqualizerPanel: View {
                         binding: $settings.eqBrightness,
                         range: -0.1...0.1,
                         step: 0.005,
-                        defaultValue: 0.005,
+                        defaultValue: 0.0,
                         formatter: DragDropFormatters.threeFraction,
                         gradient: .brightness
                     )
@@ -105,13 +110,14 @@ struct VerticalColorEqualizerPanel: View {
                         binding: $settings.eqSaturation,
                         range: 0...2,
                         step: 0.005,
-                        defaultValue: 1.06,
+                        defaultValue: 1.0,
                         formatter: DragDropFormatters.twoFraction,
                         gradient: .saturation
                     )
                 }
                 .padding(6)
             }
+            .disabled(settings.noEq)
             .background(Color(nsColor: NSColor.windowBackgroundColor))
             .cornerRadius(8)
             .shadow(color: Color.black.opacity(0.08), radius: 2, x: 0, y: 1)
@@ -236,6 +242,12 @@ struct VerticalRestorationFiltersPanel: View {
                 .font(DesignSystem.Typography.caption1)
                 .fontWeight(.semibold)
                 .foregroundColor(.primary)
+            if settings.noDenoise || settings.noSharpen {
+                Text([settings.noDenoise ? "Denoise off" : nil,
+                      settings.noSharpen ? "Sharpen off" : nil].compactMap { $0 }.joined(separator: " · "))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
 
             ZStack(alignment: .top) {
                 TransparentScrollView(showsIndicators: true) {
@@ -251,6 +263,7 @@ struct VerticalRestorationFiltersPanel: View {
                             formatter: DragDropFormatters.oneFraction,
                             gradient: .denoise
                         )
+                        .disabled(settings.noDenoise)
 
                         ModernDivider()
                             .padding(.vertical, DesignSystem.Spacing.xs)
@@ -285,11 +298,12 @@ struct VerticalRestorationFiltersPanel: View {
                         ModernDivider()
                             .padding(.vertical, DesignSystem.Spacing.xs)
 
-                        Picker("Method", selection: $settings.sharpenMethod) {
+                        Picker(settings.noSharpen ? "Sharpen off" : "Method", selection: $settings.sharpenMethod) {
                             Text("CAS").tag("cas")
                             Text("Unsharp").tag("unsharp")
                         }
                         .pickerStyle(.menu)
+                        .disabled(settings.noSharpen)
                         .controlSize(.mini)
                         .font(DesignSystem.Typography.caption2)
 
@@ -303,6 +317,7 @@ struct VerticalRestorationFiltersPanel: View {
                                 formatter: DragDropFormatters.twoFraction,
                                 gradient: .sharpen
                             )
+                            .disabled(settings.noSharpen)
                         } else {
                             VerticalParameterRow(
                                 title: "Radius",
@@ -313,6 +328,7 @@ struct VerticalRestorationFiltersPanel: View {
                                 formatter: DragDropFormatters.integer,
                                 gradient: .usmRadius
                             )
+                            .disabled(settings.noSharpen)
 
                             VerticalParameterRow(
                                 title: "Amount",
@@ -323,6 +339,7 @@ struct VerticalRestorationFiltersPanel: View {
                                 formatter: DragDropFormatters.twoFraction,
                                 gradient: .usmAmount
                             )
+                            .disabled(settings.noSharpen)
 
                             VerticalParameterRow(
                                 title: "Threshold",
@@ -333,6 +350,7 @@ struct VerticalRestorationFiltersPanel: View {
                                 formatter: DragDropFormatters.threeFraction,
                                 gradient: .usmThreshold
                             )
+                            .disabled(settings.noSharpen)
                         }
                     }
                     .padding(6)

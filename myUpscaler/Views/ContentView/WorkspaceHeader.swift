@@ -4,14 +4,15 @@ import Combine
 import UniformTypeIdentifiers
 
 struct HeaderView: View {
+    var hasInput = false
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: "video.badge.waveform")
                 .font(.title2)
                 .foregroundStyle(.tint)
             VStack(alignment: .leading, spacing: 3) {
-                Text("Video workspace").font(.title2.weight(.semibold))
-                Text("Preview your adjustments, choose output settings, then export.")
+                Text(hasInput ? "Video workspace" : "Upscale & restore video").font(.title2.weight(.semibold))
+                Text(hasInput ? "Adjust your preview, configure output, and export." : "Import a video to get started. Your processing stays on this Mac.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
@@ -24,6 +25,7 @@ struct HeaderView: View {
 struct InputSection: View {
     @Binding var inputPath: String
     let chooseInput: () -> Void
+    var canImport: () -> Bool = { true }
     let settings: UpscaleSettings
     var isProcessingFullUpscale: Bool = false
     var onFrameDoubleTap: ((NSImage?) -> Void)? = nil
@@ -32,15 +34,17 @@ struct InputSection: View {
     var onEditorStateAvailable: ((EditorState) -> Void)? = nil
 
     var body: some View {
-        MatteCardGroup(spacing: 8) {
+        VStack(spacing: 0) {
             dragDropView()
-                .frame(minHeight: 280)
+                .frame(height: 340)
                 .layoutPriority(1)
         }
+        .background(Color.appSecondaryBackground, in: RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.primary.opacity(0.08)))
     }
 
     private func dragDropView() -> some View {
-        DragDropView(externalInputPath: $inputPath, settings: settings, chooseInput: chooseInput, isProcessingFullUpscale: isProcessingFullUpscale, onFrameDoubleTap: onFrameDoubleTap, onRestorationFiltersDrag: onRestorationFiltersDrag, onColorEqualizerDrag: onColorEqualizerDrag, onEditorStateAvailable: onEditorStateAvailable)
+        DragDropView(externalInputPath: $inputPath, settings: settings, chooseInput: chooseInput, canImport: canImport, isProcessingFullUpscale: isProcessingFullUpscale, onFrameDoubleTap: onFrameDoubleTap, onRestorationFiltersDrag: onRestorationFiltersDrag, onColorEqualizerDrag: onColorEqualizerDrag, onEditorStateAvailable: onEditorStateAvailable)
             .cornerRadius(10)
             .overlay(
                 // Show overlay when processing to indicate preview is frozen

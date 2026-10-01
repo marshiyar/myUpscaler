@@ -23,9 +23,9 @@ The preview approximates restoration with Core Image. It is useful for choosing 
 
 ## Use the app
 
-1. Open a file or drop it into the workspace.
+1. Use **Browse files** or drop a video or batch folder into the import area. Processing controls appear after import; **Configure before importing** keeps settings available earlier.
 2. Choose **Lanczos** or an included **Core ML model**, then set the final output multiplier.
-3. Adjust supported restoration settings; additional options are collapsed until needed.
+3. Adjust supported restoration settings using the approximate preview. Encoding details, additional restoration, processing details, and saved presets expand when needed.
 4. Choose an output folder and start the export. Outputs use `<input>_[restored].mp4` or `.png`; an existing output with that name can be replaced.
 
 The model multiplier and output multiplier are separate. For example, a native 4× model with 2× output predicts 4× tiles and resizes them once to 2×. Selecting an 8× model for 2× output still incurs its native inference cost; the app does not silently substitute a different model. Final video dimensions round down to even pixels. There is no custom width/height or aspect-ratio override.

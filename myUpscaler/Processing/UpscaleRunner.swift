@@ -23,7 +23,16 @@ class UpscaleRunner: ObservableObject {
      let engine: EngineProtocol
      let assetLoader: AssetLoaderProtocol
     // MARK: - Input/Output Configuration
-    @Published var inputPath = ""
+    @Published var inputPath = "" {
+        didSet {
+            guard inputPath != oldValue else { return }
+            completedOutputPath = nil
+            if !isRunning {
+                progress = 0
+                progressKnown = false
+            }
+        }
+    }
     @Published var outputMode: OutputMode = .custom
     @Published var customOutputFolder = ""
 

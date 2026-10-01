@@ -100,7 +100,7 @@ struct ActionButtons: View {
                     } else {
                         Image(systemName: "play.fill")
                     }
-                    Text(runner.isRunning ? "Processing…" : "Run Upscaler")
+                    Text(runner.isCancelling ? "Stopping…" : runner.isRunning ? "Exporting…" : "Export video")
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -113,6 +113,7 @@ struct ActionButtons: View {
                 if !runner.isRunning && !runner.inputPath.isEmpty && settings.upscalingUnavailableReason == nil { runner.run() }
             }
 
+            if runner.isRunning {
             Button(action: runner.cancel) {
                 Label("Cancel", systemImage: "stop.fill")
                     .frame(maxWidth: .infinity)
@@ -120,9 +121,10 @@ struct ActionButtons: View {
             .buttonStyle(.bordered)
             .controlSize(.regular)
             .frame(height: UI.buttonHeight)
-            .disabled(!runner.isRunning)
+            .disabled(runner.isCancelling)
             .dynamicKeyboardShortcut(actionId: "cancel") {
                 if runner.isRunning { runner.cancel() }
+            }
             }
         }
     }
@@ -130,6 +132,12 @@ struct ActionButtons: View {
 
 struct ProgressDetails: View {
     @ObservedObject var runner: UpscaleRunner
+    @ObservedObject private var settings: UpscaleSettings
+
+    init(runner: UpscaleRunner) {
+        self.runner = runner
+        _settings = ObservedObject(wrappedValue: runner.settings)
+    }
 
     private var status: String {
         if runner.isCancelling { return "Stopping…" }
@@ -137,105 +145,87 @@ struct ProgressDetails: View {
         case .preparing: return "Preparing video…"
         case .processing: return "Processing frames"
         case .finalizing: return "Finalizing export…"
-        case .idle: return runner.completedOutputPath == nil ? "Ready to export" : "Export complete"
+        case .idle:
+            if runner.completedOutputPath != nil { return "Export complete" }
+            if runner.inputPath.isEmpty { return "Import a video to begin" }
+            return settings.upscalingUnavailableReason == nil ? "Ready to export" : "Choose an available upscaling mode"
         }
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text(status).font(.caption.weight(.semibold))
+                if runner.completedOutputPath != nil && !runner.isRunning {
+                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                }
+                Text(status).font(.subheadline.weight(.medium))
                 Spacer()
-                if runner.progressKnown {
+                if runner.isRunning && runner.phase == .processing && runner.progressKnown {
                     Text(runner.progress, format: .percent.precision(.fractionLength(0)))
                         .font(.caption.monospacedDigit())
                 }
             }
-            if runner.isRunning && (runner.phase != .processing || !runner.progressKnown) {
-                ProgressView().progressViewStyle(.linear)
-                    .accessibilityLabel(status)
-            } else {
-                ProgressView(value: max(0, min(1, runner.progress)))
-                    .accessibilityLabel("Export progress")
+            if runner.isRunning {
+                if runner.phase != .processing || !runner.progressKnown {
+                    ProgressView().progressViewStyle(.linear).accessibilityLabel(status)
+                } else {
+                    ProgressView(value: max(0, min(1, runner.progress))).accessibilityLabel("Export progress")
+                }
+                HStack(spacing: 14) {
+                    Text("Processing: \(runner.fpsString) fps")
+                    Text("Media time: \(runner.timeString)")
+                    Text("Remaining: \(runner.etaString)")
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .monospacedDigit()
+            } else if runner.completedOutputPath == nil && !runner.inputPath.isEmpty {
+                Text("Export uses the settings above.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
-            HStack(spacing: 14) {
-                Text("Processing: \(runner.fpsString) fps")
-                Text("Media time: \(runner.timeString)")
-                Text("Remaining: \(runner.etaString)")
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .monospacedDigit()
         }
     }
 }
 
 struct LogPanel: View {
     @ObservedObject var runner: UpscaleRunner
+    @State private var showDetails = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Label("Processing Log", systemImage: "text.bubble")
-                    .font(.subheadline.weight(.semibold))
-                Spacer()
-            }
-            .padding(.bottom, 2)
-
-            GroupBox {
-                VStack(spacing: 8) {
-                    ScrollViewReader { reader in
-                        ScrollView {
-                            Text(runner.log.isEmpty ? "Processing details appear here when you export." : runner.log)
-                                .textSelection(.enabled)
-                                .font(.system(size: 11, design: .monospaced))
-                                .frame(maxWidth: .infinity, alignment: .topLeading)
-                                .padding(6)                      // tight inner padding
-                                .id("BOTTOM")
-                        }
-                        .onChange(of: runner.log) { _, _ in
-                            reader.scrollTo("BOTTOM", anchor: .bottom)
-                        }
-                    }
-                    .frame(height: 170)
-
-                    if !runner.isRunning, let outputPath = runner.completedOutputPath {
-                            Divider()
-                                .padding(.vertical, 4)
-
-                            HStack(spacing: 8) {
-                                Button(action: {
-                                    openVideoFile(at: outputPath)
-                                }) {
-                                    HStack {
-                                        Image(systemName: "play.circle.fill")
-                                        Text("Open")
-                                    }
-                                }
-                                .buttonStyle(.borderedProminent)
-                                .controlSize(.small)
-
-                                Button(action: {
-                                    revealVideoFile(at: outputPath)
-                                }) {
-                                    HStack {
-                                        Image(systemName: "folder")
-                                        Text("Reveal in Finder")
-                                    }
-                                }
-                                .buttonStyle(.bordered)
-                                .controlSize(.small)
-                            }
-                            .transition(.opacity.combined(with: .move(edge: .bottom)))
-                    }
+        VStack(alignment: .leading, spacing: 10) {
+            if let outputPath = runner.completedOutputPath, !runner.isRunning {
+                HStack(spacing: 8) {
+                    Label("Export complete", systemImage: "checkmark.circle.fill")
+                        .font(.subheadline.weight(.medium))
+                    Spacer()
+                    Button("Open") { openVideoFile(at: outputPath) }.buttonStyle(.borderedProminent)
+                    Button("Show in Finder") { revealVideoFile(at: outputPath) }.buttonStyle(.bordered)
                 }
             }
-            .cardStyle()
+            DisclosureGroup(isExpanded: $showDetails) {
+                ScrollViewReader { reader in
+                    ScrollView {
+                        Text(runner.log.isEmpty ? "Export details will appear here." : runner.log)
+                            .textSelection(.enabled)
+                            .font(.system(size: 11, design: .monospaced))
+                            .frame(maxWidth: .infinity, alignment: .topLeading)
+                            .padding(10)
+                            .id("BOTTOM")
+                    }
+                    .onChange(of: runner.log) { _, _ in reader.scrollTo("BOTTOM", anchor: .bottom) }
+                }
+                .frame(height: 170)
+                .background(Color.appTertiaryBackground, in: RoundedRectangle(cornerRadius: 8))
+                .padding(.top, 8)
+            } label: {
+                Label("Processing details", systemImage: "text.alignleft")
+                    .font(.subheadline)
+            }
         }
-        .frame(maxWidth: .infinity)
-        .onChange(of: runner.inputPath) { _, _ in
-            runner.completedOutputPath = nil
-        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.appSecondaryBackground, in: RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.primary.opacity(0.08)))
     }
 
     // Note: sandbox requirement securityScopedOutputURL

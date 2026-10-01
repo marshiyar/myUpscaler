@@ -6,7 +6,7 @@ import UniformTypeIdentifiers
 // MARK: - Main ContentView (orchestrates everything)
 struct ContentView: View {
     @StateObject private var runner: UpscaleRunner
-    @StateObject private var shortcutsManager = KeyboardShortcutsManager.shared
+    @ObservedObject private var settings: UpscaleSettings
     @StateObject private var presetStore = PresetStore()
 
     @State private var showSettings = false
@@ -18,9 +18,12 @@ struct ContentView: View {
     @State private var editorState: EditorState? = nil
     @State private var showEncoding = false
     @State private var showRestoration = false
+    @State private var showConfigurationBeforeImport = false
+    @State private var showPresets = false
 
     init(runner: UpscaleRunner = UpscaleRunner()) {
         _runner = StateObject(wrappedValue: runner)
+        _settings = ObservedObject(wrappedValue: runner.settings)
     }
 
     var body: some View {
@@ -28,11 +31,13 @@ struct ContentView: View {
         GeometryReader { geometry in
             ScrollView {
                 VStack(alignment: .leading, spacing: UI.sectionSpacing) {
-                    HeaderView()
-                        .zIndex(2)
+                    HeaderView(hasInput: !runner.inputPath.isEmpty)
 
-                    InputSection(inputPath: $runner.inputPath,
+                    InputSection(inputPath: Binding(get: { runner.inputPath }, set: { path in
+                                    if !runner.isRunning { runner.inputPath = path }
+                                }),
                                 chooseInput: chooseInput,
+                                canImport: { !runner.isRunning },
                                 settings: runner.settings,
                                 isProcessingFullUpscale: runner.isRunning,
                                 onFrameDoubleTap: { image in
@@ -54,8 +59,16 @@ struct ContentView: View {
                                     editorState = state
                                 })
 
-                    // Responsive two-column layout
-                    adaptiveColumnsLayout(geometry: geometry)
+                    if runner.inputPath.isEmpty {
+                        DisclosureGroup("Configure before importing", isExpanded: $showConfigurationBeforeImport) {
+                            adaptiveColumnsLayout(geometry: geometry)
+                                .padding(.top, 12)
+                        }
+                        .font(.subheadline)
+                        .padding(.horizontal, 4)
+                    } else {
+                        adaptiveColumnsLayout(geometry: geometry)
+                    }
                 }
                 .padding(.vertical, 16)
                 .padding(.horizontal, responsiveHorizontalPadding(for: geometry.size.width))
@@ -65,18 +78,20 @@ struct ContentView: View {
         .frame(minWidth: UI.windowMinWidth, minHeight: UI.windowMinHeight)
         .background(Color.appBackground)
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            VStack(spacing: 8) {
+            if !runner.inputPath.isEmpty || runner.isRunning {
+              VStack(spacing: 8) {
                 Divider()
                 HStack(spacing: 24) {
                     ProgressDetails(runner: runner)
                         .frame(maxWidth: .infinity)
-                    ActionButtons(runner: runner, settings: runner.settings)
+                    ActionButtons(runner: runner, settings: settings)
                         .frame(width: 280)
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 12)
             }
-            .background(Color.appBackground)
+              .background(Color.appBackground)
+            }
         }
         // ---------- TOOLBAR ----------
         .toolbar {
@@ -213,55 +228,53 @@ struct ContentView: View {
         }
     }
 
-    /// Left column content - Configuration & AI panels
+    /// Core decisions stay together; encoding and restoration detail remain optional.
     var leftColumnContent: some View {
         VStack(alignment: .leading, spacing: 14) {
-            // Group 1: Configuration & Encoding
-            MatteCardGroup(spacing: 8) {
-                QualityScalePanel(settings: runner.settings)
-                DisclosureGroup("Encoding options", isExpanded: $showEncoding) {
-                    HardwareEncodingPanel(settings: runner.settings)
-                    X265ParametersPanel(settings: runner.settings)
-                        .disabled(!runner.settings.useHEVC || runner.settings.encoder == "videotoolbox" || runner.settings.scaler == "coreml")
+            MatteCardGroup(spacing: 16) {
+                AIEnginePanel(settings: settings)
+                Divider()
+                QualityScalePanel(settings: settings)
+                DisclosureGroup("Encoding details", isExpanded: $showEncoding) {
+                    HardwareEncodingPanel(settings: settings)
+                    X265ParametersPanel(settings: settings)
+                        .disabled(!settings.useHEVC || settings.encoder == "videotoolbox" || settings.scaler == "coreml")
+                        .help("x265 parameters apply only to CPU HEVC encoding")
                 }
-                .padding(.top, 8)
+                .font(.subheadline)
             }
-            // Group 2: AI & Restoration
             MatteCardGroup(spacing: 8) {
-                AIEnginePanel(settings: runner.settings)
                 DisclosureGroup("Additional restoration", isExpanded: $showRestoration) {
-                    RestorationPanel(settings: runner.settings)
-                    RestorationSecondSetPanel(settings: runner.settings)
+                    RestorationPanel(settings: settings)
+                    RestorationSecondSetPanel(settings: settings)
                 }
-                .padding(.top, 8)
+                .font(.subheadline)
             }
         }
+        .disabled(runner.isRunning)
     }
+
     var rightColumnContent: some View {
         VStack(alignment: .leading, spacing: 14) {
-            // Group 3: Output & Controls
             MatteCardGroup(spacing: 8) {
                 OutputPanel(outputMode: $runner.outputMode,
-                           customOutputFolder: $runner.customOutputFolder,
-                           predictedName: runner.predictedOutputName,
-                           chooseFolder: chooseOutputFolder)
-
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .disabled(runner.inputPath.isEmpty)
-
+                            customOutputFolder: $runner.customOutputFolder,
+                            predictedName: runner.inputPath.isEmpty ? "Choose a video first" : runner.predictedOutputName,
+                            chooseFolder: chooseOutputFolder)
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
             }
+            .disabled(runner.isRunning)
 
-            // Group 4: Progress & Status
-            MatteCardGroup(spacing: 8) {
-                LogPanel(runner: runner)
-            }
+            LogPanel(runner: runner)
 
-            // Group 5: Presets
             MatteCardGroup(spacing: 8) {
-                SavedPresetsPanel(presetStore: presetStore,
-                                  settings: runner.settings,
-                                  isProcessing: runner.isRunning)
+                DisclosureGroup("Saved presets", isExpanded: $showPresets) {
+                    SavedPresetsPanel(presetStore: presetStore,
+                                      settings: settings,
+                                      isProcessing: runner.isRunning)
+                }
+                .font(.subheadline)
             }
         }
     }
@@ -269,13 +282,14 @@ struct ContentView: View {
     // MARK: -  File‑picker helpers (UI only, MARKED @MainActor)
     @MainActor
     private func chooseInput() {
+        guard !runner.isRunning else { return }
         let panel = NSOpenPanel()
         panel.title = "Choose a video or batch folder"
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = true
         panel.canChooseFiles = true
 
-        if panel.runModal() == .OK, let url = panel.url {
+        if panel.runModal() == .OK, let url = panel.url, !runner.isRunning {
             runner.inputPath = url.path
         }
     }

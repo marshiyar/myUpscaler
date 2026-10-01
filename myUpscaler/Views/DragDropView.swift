@@ -8,16 +8,18 @@ struct DragDropView: View {
     @Binding var externalInputPath: String
     let settings: UpscaleSettings?
     let chooseInput: (() -> Void)?
+    let canImport: () -> Bool
     var isProcessingFullUpscale: Bool = false
     var onFrameDoubleTap: ((NSImage?) -> Void)? = nil
     var onRestorationFiltersDrag: (() -> Void)? = nil
     var onColorEqualizerDrag: (() -> Void)? = nil
     var onEditorStateAvailable: ((EditorState) -> Void)? = nil  // Callback to provide EditorState to parent
 
-    init(externalInputPath: Binding<String>, settings: UpscaleSettings? = nil, chooseInput: (() -> Void)? = nil, isProcessingFullUpscale: Bool = false, onFrameDoubleTap: ((NSImage?) -> Void)? = nil, onRestorationFiltersDrag: (() -> Void)? = nil, onColorEqualizerDrag: (() -> Void)? = nil, onEditorStateAvailable: ((EditorState) -> Void)? = nil) {
+    init(externalInputPath: Binding<String>, settings: UpscaleSettings? = nil, chooseInput: (() -> Void)? = nil, canImport: @escaping () -> Bool = { true }, isProcessingFullUpscale: Bool = false, onFrameDoubleTap: ((NSImage?) -> Void)? = nil, onRestorationFiltersDrag: (() -> Void)? = nil, onColorEqualizerDrag: (() -> Void)? = nil, onEditorStateAvailable: ((EditorState) -> Void)? = nil) {
         self._externalInputPath = externalInputPath
         self.settings = settings
         self.chooseInput = chooseInput
+        self.canImport = canImport
         self.isProcessingFullUpscale = isProcessingFullUpscale
         self.onFrameDoubleTap = onFrameDoubleTap
         self.onRestorationFiltersDrag = onRestorationFiltersDrag
@@ -27,100 +29,80 @@ struct DragDropView: View {
     }
 
     var body: some View {
-        GeometryReader { geometry in
-            let isCompact = geometry.size.width < 600
-            let sidePanelWidth: CGFloat = isCompact ? 120 : 140
-            let timelineWidth: CGFloat = isCompact ? 70 : 90
-
-            VStack(spacing: DesignSystem.Spacing.sm) {
-
-                HStack(alignment: .center, spacing: DesignSystem.Spacing.sm) {
-                    // Left side: Color Equalizer (centered vertically)
-                    if let settings = settings {
-                        VStack(alignment: .leading, spacing: 6) {
-                            VerticalColorEqualizerPanel(settings: settings, onDragToEnlarge: onColorEqualizerDrag)
-
-                            if let chooseInput = chooseInput {
-                                Button(action: chooseInput) {
-                                    Label("Browse Files", systemImage: "folder.fill")
-                                        .font(DesignSystem.Typography.caption1)
-                                    .frame(maxWidth: .infinity)
-                                }
-                                .buttonStyle(.bordered)
-                                .controlSize(.regular)
-                                .frame(width: sidePanelWidth)
+        Group {
+            if externalInputPath.isEmpty {
+                ImportVideoView(isHovered: state.isHovered, chooseInput: chooseInput)
+            } else {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Label(URL(fileURLWithPath: externalInputPath).lastPathComponent, systemImage: "film")
+                            .font(.subheadline.weight(.semibold))
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        Text("Approximate preview")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        if let chooseInput {
+                            Button("Change video", action: chooseInput)
                                 .dynamicKeyboardShortcut(actionId: "chooseInput", action: chooseInput)
+                                .disabled(isProcessingFullUpscale)
+                        }
+                    }
+
+                    HStack(alignment: .center, spacing: 12) {
+                        if let settings {
+                            VerticalColorEqualizerPanel(settings: settings, onDragToEnlarge: onColorEqualizerDrag)
+                        }
+                        ZStack {
+                            if let image = state.thumbnailImage {
+                                Image(nsImage: image)
+                                    .resizable()
+                                    .scaledToFit()
+                                    .onTapGesture(count: 2) { onFrameDoubleTap?(image) }
+                                    .accessibilityLabel("Adjusted video preview")
+                            } else {
+                                VStack(spacing: 8) {
+                                    Image(systemName: "film").font(.title)
+                                    Text("Video selected").font(.headline)
+                                    Text("The preview will appear here when available.")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .padding()
                             }
                         }
-                        .frame(width: sidePanelWidth)
-                        .fixedSize(horizontal: true, vertical: false)
-                    }
+                        .frame(minWidth: 160, maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color.appTertiaryBackground, in: RoundedRectangle(cornerRadius: 8))
+                        .layoutPriority(1)
 
-                    ZStack {
-
-                        if let img = state.thumbnailImage {
-                            Image(nsImage: img)
-                                .resizable()
-                                .scaledToFit()
-                                .cornerRadius(10)
-                                .shadow(radius: 3)
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .onTapGesture(count: 2) {
-                                    onFrameDoubleTap?(img)
-                                }
-                        } else {
-                            EmptyStateView(
-                                icon: "video.fill",
-                                title: "Drop a video",
-                                message: "Drop a video or use Browse Files to begin."
-                            )
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        }
-                    }
-                    .frame(minWidth: 0, maxWidth: .infinity, minHeight: 200)
-                    .layoutPriority(1)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(Color.black.opacity(0.25))
-                    )
-
-                    if let settings = settings {
-                        HStack(spacing: DesignSystem.Spacing.xs) {
-
+                        if let settings {
                             VerticalRestorationFiltersPanel(settings: settings, onDragToEnlarge: onRestorationFiltersDrag)
-                                .frame(width: sidePanelWidth)
-
-                            // Timeline
-                            TimelineView(state: state)
-                                .frame(width: timelineWidth)
-                                .frame(maxHeight: .infinity)
-                                .fixedSize(horizontal: true, vertical: false)
                         }
-                    } else {
-                        // Timeline only (if no settings)
-                        TimelineView(state: state)
-                            .frame(width: timelineWidth)
-                            .frame(maxHeight: .infinity)
-                            .fixedSize(horizontal: true, vertical: false)
+                        if !state.timelineFrames.isEmpty {
+                            TimelineView(state: state)
+                                .frame(width: 76)
+                        }
                     }
+                    .disabled(isProcessingFullUpscale)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .clipped()
+                .padding(16)
             }
-            .padding(DesignSystem.Spacing.sm)
         }
-        .background(Color.appBackground.opacity(0.3))
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onDrop(of: [UTType.fileURL], isTargeted: $state.isHovered) { providers in
-            guard let provider = providers.first else { return false }
+            guard canImport(), !isProcessingFullUpscale, let provider = providers.first else { return false }
             provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
                 if let data = item as? Data,
                    let url = URL(dataRepresentation: data, relativeTo: nil) {
                     DispatchQueue.main.async {
-                        self.state.filePath = url.path
+                        guard self.canImport() else { return }
+                        self.externalInputPath = url.path
                     }
                 } else if let url = item as? URL {
                     DispatchQueue.main.async {
-                        self.state.filePath = url.path
+                        guard self.canImport() else { return }
+                        self.externalInputPath = url.path
                     }
                 }
             }
@@ -142,6 +124,7 @@ struct DragDropView: View {
             state.setProcessingFullUpscale(isProcessing)
         }
         .onAppear {
+            if state.filePath != externalInputPath { state.filePath = externalInputPath }
             state.setProcessingFullUpscale(isProcessingFullUpscale)
             onEditorStateAvailable?(state)
         }

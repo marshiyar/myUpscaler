@@ -205,6 +205,13 @@ struct NoDuration: AssetLoaderProtocol {
         let completionTime = Date().timeIntervalSince(completionStart)
         precondition(runner.completedOutputPath != nil && runner.progress == 1 && runner.phase == .idle)
         precondition(completionTime < 0.5, "completion still polls file size")
+        let completedPath = runner.completedOutputPath
+        runner.inputPath = input.path
+        precondition(runner.completedOutputPath == completedPath, "unchanged input invalidated export")
+        runner.inputPath = root.appendingPathComponent("next.mp4").path
+        precondition(runner.completedOutputPath == nil && runner.progress == 0 && !runner.progressKnown,
+                     "new input retained stale export state without a mounted log view")
+        print("PASS: input changes invalidate completed export independently of log visibility")
         print("PASS: engine overlap, engine cancellation, task cancellation, writer failure/readiness")
         print("PASS: duplicate run, early completion log, cancel/restart ownership, immediate completion")
         print(String(format: "Completion after engine return: %.4f seconds (old polling minimum: 2.0 seconds)", completionTime))

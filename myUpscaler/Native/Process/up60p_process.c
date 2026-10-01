@@ -59,6 +59,14 @@ int up60p_execute_owned_process(const char *supervisor, char *const argv[], up60
     for (size_t i = 1; i < count; i++) arguments[i] = argv[i];
     if (owned_pipe(owner) != 0 || owned_pipe(output) != 0 || owned_pipe(errors) != 0) goto free_arguments;
 
+    // Establish nonblocking reads before spawning: a failed setup must never
+    // leave a live child behind a potentially blocking drain loop.
+    int output_flags = fcntl(output[0], F_GETFL);
+    int error_flags = fcntl(errors[0], F_GETFL);
+    if (output_flags < 0 || error_flags < 0 ||
+        fcntl(output[0], F_SETFL, output_flags | O_NONBLOCK) < 0 ||
+        fcntl(errors[0], F_SETFL, error_flags | O_NONBLOCK) < 0) goto free_arguments;
+
     posix_spawnattr_t attributes;
     if (up60p_native_spawn_attributes(&attributes) != 0) goto free_arguments;
     posix_spawn_file_actions_t files;
@@ -78,8 +86,6 @@ int up60p_execute_owned_process(const char *supervisor, char *const argv[], up60
     close(owner[0]); owner[0] = -1;
     close(output[1]); output[1] = -1;
     close(errors[1]); errors[1] = -1;
-    fcntl(output[0], F_SETFL, O_NONBLOCK);
-    fcntl(errors[0], F_SETFL, O_NONBLOCK);
 
     int status = 0;
     bool finished = false;

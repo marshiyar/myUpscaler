@@ -25,7 +25,7 @@ void sanitize_path(char *p) {
     size_t len = strlen(p);
     while (len > 0 && isspace((unsigned char)p[len-1])) p[--len] = '\0';
     if (len > 2 && ((p[0] == '"' && p[len-1] == '"') || (p[0] == '\'' && p[0] == p[len-1]))) {
-        memmove(p, p+1, len-2); p[len-2] = '\0'; len -= 2;
+        memmove(p, p+1, len-2); p[len-2] = '\0';
     }
     char *src = p, *dst = p;
     while (*src) {

@@ -15,7 +15,7 @@ enum Up60PEngineError: Error, Equatable {
 struct Up60PBridge {
     typealias InitFunc = (_ appSupportDir: UnsafePointer<CChar>?, _ cb: (@convention(c) (UnsafePointer<CChar>?) -> Void)?) -> up60p_error
     typealias DefaultOptionsFunc = (_ opts: UnsafeMutablePointer<up60p_options>?) -> Void
-    typealias ProcessFunc = (_ input: UnsafePointer<CChar>?, _ opts: UnsafePointer<up60p_options>?) -> up60p_error
+    typealias ProcessFunc = @Sendable (_ input: UnsafePointer<CChar>?, _ opts: UnsafePointer<up60p_options>?) -> up60p_error
     typealias SetDryRunFunc = (_ enable: Int32) -> Void
     typealias ShutdownFunc = () -> Void
     typealias CancelFunc = () -> Void
@@ -30,7 +30,7 @@ struct Up60PBridge {
     static let live = Up60PBridge(
         initFunc: up60p_init,
         defaultOptionsFunc: up60p_default_options,
-        processPathFunc: up60p_process_path,
+        processPathFunc: { input, options in up60p_process_path(input, options) },
         setDryRunFunc: up60p_set_dry_run,
         shutdownFunc: up60p_shutdown,
         cancelFunc: up60p_request_cancel
@@ -317,6 +317,12 @@ final class Up60PEngine {
                                     sharpenPct: sharpenPct, denoisePct: denoisePct, debandPct: debandPct)
         }
 
+        // Freeze UI-owned settings before the detached native worker starts.
+        let options = try makeOptions(from: settings, outputDir: outputDirectory)
+        let inspectSourceTiming = !settings.modes.noInterpolate && settings.video.interpolation != "dup" &&
+            settings.video.fps.text != "source" && settings.video.fps.text != "lock"
+        let processPath = Self.bridge.processPathFunc
+
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             let processID = UUID()
             currentProcessID = processID
@@ -329,13 +335,9 @@ final class Up60PEngine {
                 do {
                     await Task.yield()
 
-                    let opts = try await MainActor.run {
-                        try self.makeOptions(from: settings, outputDir: outputDirectory)
-                    }
-                    var mutableOpts = opts
+                    var mutableOpts = options
                     // Per-input metadata only; source/lock and frame selection avoid this scan.
-                    if !settings.modes.noInterpolate, settings.video.interpolation != "dup",
-                       settings.video.fps.text != "source", settings.video.fps.text != "lock" {
+                    if inspectSourceTiming {
                         do {
                             let timing = try await SourceVideoTiming.inspect(url: URL(fileURLWithPath: inputPath))
                             mutableOpts.source_video_duration = timing.duration.seconds.isFinite ? timing.duration.seconds : 0
@@ -375,7 +377,7 @@ final class Up60PEngine {
                     }
 
                     try Task.checkCancellation()
-                    let result = await Up60PEngine.bridge.processPathFunc(inputPath, &mutableOpts)
+                    let result = processPath(inputPath, &mutableOpts)
 
                     await MainActor.run {
                         if result == UP60P_ERR_CANCELLED || Task.isCancelled {
@@ -404,13 +406,11 @@ final class Up60PEngine {
             }
 
             currentProcessTask = task
-            Task.detached { [weak self] in
+            Task { [weak self] in
                 await task.value
-                await MainActor.run {
-                    guard let self, self.currentProcessID == processID else { return }
-                    self.currentProcessTask = nil
-                    self.currentProcessID = nil
-                }
+                guard let self, self.currentProcessID == processID else { return }
+                self.currentProcessTask = nil
+                self.currentProcessID = nil
             }
         }
     }

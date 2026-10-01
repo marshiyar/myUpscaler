@@ -329,7 +329,7 @@ class UpscaleRunner: ObservableObject {
             return
         }
 
-        currentTask = Task.detached(priority: .userInitiated) { [weak self] in
+        currentTask = Task(priority: .userInitiated) { [weak self] in
             guard let self = self else { return }
             defer { accessStopper?() }
 

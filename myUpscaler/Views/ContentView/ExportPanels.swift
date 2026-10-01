@@ -227,13 +227,10 @@ struct LogPanel: View {
     // Note: sandbox requirement securityScopedOutputURL
     private func openVideoFile(at path: String) {
         let url = URL(fileURLWithPath: path)
-        var needsStopAccess = false
-        if let scopedURL = runner.securityScopedOutputURL {
-            needsStopAccess = scopedURL.startAccessingSecurityScopedResource()
-        }
+        let scopedURL = runner.securityScopedOutputURL
+        let needsStopAccess = scopedURL?.startAccessingSecurityScopedResource() ?? false
         let config = NSWorkspace.OpenConfiguration()
         config.activates = true
-        let scopedURL = runner.securityScopedOutputURL
 
         NSWorkspace.shared.open(url, configuration: config) { _, error in
             if needsStopAccess, let url = scopedURL {

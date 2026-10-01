@@ -88,13 +88,13 @@ final class SettingsSnapshotTests: XCTestCase {
         let applied = UpscaleSettings()
         applied.upscaling.coremlModelId = .realESRGANx2
         migrated.apply(to: applied)
-        XCTAssertEqual(applied.upscaling.coremlModelId, UpscaleSettings().coremlModelId)
+        XCTAssertEqual(applied.upscaling.coremlModelId, UpscaleSettings().upscaling.coremlModelId)
         XCTAssertEqual(applied.video.scaleFactor, 8)
     }
 
     func testMinimalLegacySnapshotUsesDefaultModel() throws {
         let snapshot = try JSONDecoder().decode(UpscaleSettingsSnapshot.self, from: Data("{}".utf8))
-        XCTAssertEqual(snapshot.coremlModelId, UpscaleSettings().coremlModelId)
+        XCTAssertEqual(snapshot.coremlModelId, UpscaleSettings().upscaling.coremlModelId)
     }
 
     func testOutputScaleDoesNotChangeNativeModelScale() {

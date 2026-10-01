@@ -28,6 +28,21 @@ CI verifies its signature and launches the packaged helper from a sandboxed
 launcher in a copy of the app bundle; it does not launch an inherit-sandbox
 executable directly from an unsandboxed shell.
 
+Xcode also builds a universal `Contents/MacOS/up60p-ffmpeg-supervisor` from
+`scripts/up60p-ffmpeg-supervisor.c`, signed with the same inherited sandbox.
+The C engine launches that supervisor with a private lifetime pipe. Cancel or
+normal quit requests termination of its FFmpeg process group; after one second,
+unresponsive children are killed. If the app is force-quit, pipe closure triggers
+the same cleanup. Only that render's process group is signalled, and the
+supervisor reaps FFmpeg before exiting. Both launch stages prefer the physical
+Mac's architecture, including arm64 when the GUI runs under Rosetta.
+
+CI exercises cancellation, shutdown, force-quit, termination escalation,
+descendant cleanup, unrelated-process isolation, large output, and a new render
+after cancellation. macOS tests also check the architecture of a universal child
+and, when Rosetta is installed, launch it from a translated parent. The packaged
+sandbox verification uses the production C engine and both signed helpers.
+
 Filter availability is separate from executable provenance. mpvfx's shared build
 configuration enables libx264, libx265, libvpx, libsvtav1, libmp3lame, libopus,
 Mbed TLS, GPL, and version 3 licensing. It does not enable TensorFlow or OpenVINO.

@@ -283,11 +283,15 @@ final class Up60PEngine {
     }
     
     private var currentProcessTask: Task<Void, Never>?
+    private var currentProcessID: UUID?
     
     func process(inputPath: String,
                  settings: UpscaleSettings,
                  outputDirectory: String) async throws {
+        let previousTask = currentProcessTask
         cancel()
+        if let previousTask { await previousTask.value }
+        try Task.checkCancellation()
         
         let codecDecision = CodecSupport.resolve(requestHEVC: settings.useHEVC)
         if let message = codecDecision.message { log(message) }
@@ -316,6 +320,8 @@ final class Up60PEngine {
         }
         
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            let processID = UUID()
+            currentProcessID = processID
             let task = Task.detached(priority: .userInitiated) { [weak self] in
                 guard let self else {
                     continuation.resume(throwing: Up60PEngineError.internalError)
@@ -335,7 +341,6 @@ final class Up60PEngine {
                     if handler != nil {
                         await MainActor.run {
                             Up60PEngine.currentLogHandler?("Starting Video Processing...\n")
-                            Up60PEngine.currentLogHandler?("NOTE: If this is the first run, AI initialization (Metal shader compilation) may take 1-2 minutes. Please wait...\n")
                         }
                     }
                     
@@ -357,6 +362,7 @@ final class Up60PEngine {
                         }
                     }
                     
+                    try Task.checkCancellation()
                     let result = await Up60PEngine.bridge.processPathFunc(inputPath, &mutableOpts)
                     
                     await MainActor.run {
@@ -369,7 +375,7 @@ final class Up60PEngine {
                         }
                     }
                     
-                    if Task.isCancelled {
+                    if Task.isCancelled || result == UP60P_ERR_CANCELLED {
                         continuation.resume(throwing: CancellationError())
                     } else if result == UP60P_OK {
                         continuation.resume()
@@ -386,6 +392,14 @@ final class Up60PEngine {
             }
             
             currentProcessTask = task
+            Task.detached { [weak self] in
+                await task.value
+                await MainActor.run {
+                    guard let self, self.currentProcessID == processID else { return }
+                    self.currentProcessTask = nil
+                    self.currentProcessID = nil
+                }
+            }
         }
     }
     
@@ -393,20 +407,5 @@ final class Up60PEngine {
         guard let task = currentProcessTask else { return }
         Up60PEngine.bridge.cancelFunc()
         task.cancel()
-        
-        let engine = self
-        let message = "Cancellation acknowledged by native engine.\n"
-        
-        Task.detached {
-            await task.value
-            
-            // Retrieve handler inside MainActor context to avoid Sendable issues
-            await MainActor.run {
-                Up60PEngine.logHandlerQueue.sync {
-                    Up60PEngine.currentLogHandler?(message)
-                }
-                engine.currentProcessTask = nil
-            }
-        }
     }
 }

@@ -8,6 +8,8 @@
 #include <sys/stat.h>
 #include <termios.h>
 #include "up60p_ffmpeg_path.h"
+#include "up60p_process.h"
+#include <pthread.h>
 
 Settings DEF;
 Settings S;
@@ -19,65 +21,17 @@ int execute_ffmpeg_command(char *const argv[]) {
         if (global_log_cb) global_log_cb("Bundled FFmpeg is missing or invalid; external executables are not supported.\n");
         return -1;
     }
-    int stdout_pipe[2];
-    int stderr_pipe[2];
-    pid_t pid;
-    int status;
-    
-    if (pipe(stdout_pipe) < 0 || pipe(stderr_pipe) < 0) {
+    char executable[PATH_MAX], supervisor[PATH_MAX];
+    uint32_t size = sizeof(executable);
+    if (_NSGetExecutablePath(executable, &size) != 0 ||
+        !up60p_resolve_bundled_executable(executable, "up60p-ffmpeg-supervisor", supervisor, sizeof(supervisor))) {
+        if (global_log_cb) global_log_cb("Bundled FFmpeg supervisor is missing or invalid. Reinstall the app.\n");
         return -1;
     }
-    
-    pid = fork();
-    if (pid == 0) {
-        dup2(stdout_pipe[1], STDOUT_FILENO);
-        dup2(stderr_pipe[1], STDERR_FILENO);
-        close(stdout_pipe[0]);
-        close(stdout_pipe[1]);
-        close(stderr_pipe[0]);
-        close(stderr_pipe[1]);
-        
-        execv(bundled_ffmpeg, argv);
-        
-        // exec failed
-        fprintf(stderr, "Bundled FFmpeg execv failed: %s (%d)\n", strerror(errno), errno);
-        _exit(127);
-    }
-    
-    if (pid < 0) {
-        fprintf(stderr, "fork failed: %s (%d)\n", strerror(errno), errno);
-        return -1;
-    }
-    
-    close(stdout_pipe[1]);
-    close(stderr_pipe[1]);
-    
-    char buf[1024];
-    ssize_t n;
-    
-    while ((n = read(stderr_pipe[0], buf, sizeof(buf) - 1)) > 0) {
-        buf[n] = 0;
-        if (global_log_cb) global_log_cb(buf);
-    }
-    
-    close(stdout_pipe[0]);
-    close(stderr_pipe[0]);
-    
-    if (waitpid(pid, &status, 0) < 0) {
-        return -1;
-    }
-    
-    if (WIFEXITED(status)) {
-        return WEXITSTATUS(status);
-    }
-    
-    return -1;
+    return up60p_execute_owned_process(supervisor, argv, global_log_cb);
 }
 
-static volatile sig_atomic_t cancel_requested = 0;
-//
-//static const char *SCRIPT_NAME = "up60p_restore_beast";
-//static char NULL_BUF[PATH_MAX];
+static pthread_mutex_t processing_lock = PTHREAD_MUTEX_INITIALIZER;
 static char FFMPEG_PATH[PATH_MAX] = {0};
 int DRY_RUN = 0;
 
@@ -93,8 +47,8 @@ const char *up60p_bundled_ffmpeg_path(void) {
     return FFMPEG_PATH;
 }
 
-static void process_file(const char *in, const char *ffmpeg, bool batch);
-static void process_directory(const char *dir, const char *ffmpeg);
+static up60p_error process_file(const char *in, const char *ffmpeg, bool batch);
+static up60p_error process_directory(const char *dir, const char *ffmpeg);
 //static int ar_menu_choose(const char *prompt, const char **items, int n, int start_index);
 
 typedef struct { struct termios orig; int fd; bool ok; } TermCtx;
@@ -192,11 +146,11 @@ static void build_deblock_filter(SB *vf, const char *mode, const char *thresh) {
 }
 
 
-static void process_file(const char *in, const char *ffmpeg, bool batch) {
+static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) {
     (void)batch; char outdir[PATH_MAX], base[PATH_MAX], out[PATH_MAX];
     bool img = is_image(in);
     
-    if (up60p_is_cancelled()) return;
+    if (up60p_is_cancelled()) return UP60P_ERR_CANCELLED;
     
     {
         char t[PATH_MAX];
@@ -457,47 +411,55 @@ static void process_file(const char *in, const char *ffmpeg, bool batch) {
     char msg_buf[1024];
     snprintf(msg_buf, sizeof(msg_buf), "Processing: %s\n", in);
     
-    if (global_log_cb) {
-        // === MODE: LIBRARY (Swift App) ===
-        global_log_cb(msg_buf);
-        
-        if (DRY_RUN) {
-            char cmd_buf[8192];
-            int pos = snprintf(cmd_buf, sizeof(cmd_buf), "CMD: ");
-            for(int i=0; args[i]; i++) {
-                pos += snprintf(cmd_buf + pos, sizeof(cmd_buf) - pos, "%s ", args[i]);
-            }
-            snprintf(cmd_buf + pos, sizeof(cmd_buf) - pos, "\n");
-            global_log_cb(cmd_buf);
-        } else {
-            int result = execute_ffmpeg_command(args);
-            
-            if (result != 0) {
-                char err[128];
-                snprintf(err, sizeof(err), "FFmpeg failed with exit code %d\n", result);
-                global_log_cb(err);
-            } else {
-                global_log_cb("Done.\n");
-            }
+    if (global_log_cb) global_log_cb(msg_buf);
+    up60p_error status = UP60P_OK;
+    if (DRY_RUN) {
+        char cmd_buf[8192];
+        size_t pos = (size_t)snprintf(cmd_buf, sizeof(cmd_buf), "CMD: ");
+        for (int i = 0; args[i] && pos < sizeof(cmd_buf) - 1; i++) {
+            int n = snprintf(cmd_buf + pos, sizeof(cmd_buf) - pos, "%s ", args[i]);
+            if (n < 0 || (size_t)n >= sizeof(cmd_buf) - pos) break;
+            pos += (size_t)n;
+        }
+        if (global_log_cb) global_log_cb(cmd_buf);
+    } else {
+        int result = execute_ffmpeg_command(args);
+        if (result == UP60P_PROCESS_CANCELLED || up60p_is_cancelled()) {
+            status = UP60P_ERR_CANCELLED;
+            if (global_log_cb) global_log_cb("Processing cancelled.\n");
+        } else if (result != 0) {
+            char message[128];
+            snprintf(message, sizeof(message), "FFmpeg failed with exit code %d\n", result);
+            if (global_log_cb) global_log_cb(message);
+            status = UP60P_ERR_IO;
+        } else if (global_log_cb) {
+            global_log_cb("Done.\n");
         }
     }
     free(vf.buf);
+    return status;
 }
 
-
-void process_directory(const char *dir, const char *ffmpeg) {
-    DIR *d = opendir(dir); if (!d) return;
-    struct dirent *e;
-    while ((e = readdir(d))) {
-        if (up60p_is_cancelled()) break;
-        if (e->d_name[0] == '.') continue;
-        char path[PATH_MAX]; snprintf(path, sizeof(path), "%s/%s", dir, e->d_name);
+static up60p_error process_directory(const char *dir, const char *ffmpeg) {
+    DIR *d = opendir(dir);
+    if (!d) return UP60P_ERR_IO;
+    up60p_error status = UP60P_OK;
+    struct dirent *entry;
+    while ((entry = readdir(d))) {
+        if (up60p_is_cancelled()) { status = UP60P_ERR_CANCELLED; break; }
+        if (entry->d_name[0] == '.') continue;
+        char path[PATH_MAX];
+        snprintf(path, sizeof(path), "%s/%s", dir, entry->d_name);
         struct stat st;
-        if (stat(path, &st) == 0) {
-            if (S_ISDIR(st.st_mode)) process_directory(path, ffmpeg);
-            else if (strstr(path, ".mp4") || strstr(path, ".mkv") || strstr(path, ".mov") || is_image(path)) process_file(path, ffmpeg, true);
+        if (stat(path, &st) != 0) { status = UP60P_ERR_IO; break; }
+        if (S_ISDIR(st.st_mode)) status = process_directory(path, ffmpeg);
+        else if (strstr(path, ".mp4") || strstr(path, ".mkv") || strstr(path, ".mov") || is_image(path)) {
+            status = process_file(path, ffmpeg, true);
         }
-    } closedir(d);
+        if (status != UP60P_OK) break;
+    }
+    closedir(d);
+    return status;
 }
 
 
@@ -544,21 +506,19 @@ up60p_error up60p_process_path(const char *input_path,
     const char *ffmpeg = up60p_bundled_ffmpeg_path();
     if (!ffmpeg) return UP60P_ERR_FFMPEG_NOT_FOUND;
     
-    cancel_requested = 0;
-    
+    if (pthread_mutex_trylock(&processing_lock) != 0) return UP60P_ERR_INTERNAL;
+    up60p_reset_cancel();
     settings_from_up60p_options(&S, opts);
-    
+    up60p_error result = UP60P_ERR_INVALID_OPTIONS;
     struct stat st;
     if (stat(input_path, &st) == 0) {
-        if (S_ISDIR(st.st_mode)) {
-            process_directory(input_path, ffmpeg);
-        } else {
-            process_file(input_path, ffmpeg, false);
-        }
-        return UP60P_OK;
+        result = S_ISDIR(st.st_mode) ? process_directory(input_path, ffmpeg) : process_file(input_path, ffmpeg, false);
     }
-    
-    return UP60P_ERR_INVALID_OPTIONS;
+    pthread_mutex_unlock(&processing_lock);
+    return result;
 }
 
-void up60p_shutdown(void) {}
+void up60p_shutdown(void) {
+    up60p_request_cancel();
+    up60p_stop_processes();
+}

@@ -2,7 +2,18 @@ import Foundation
 import Combine
 
 @main struct Tests {
-    static func main() throws {
+    nonisolated static func verifyPureSettings() throws {
+        var configuration = SettingsConfiguration()
+        let previous = configuration
+        configuration.primary.denoiser = "hqdn3d"
+        SettingsNormalization.normalize(&configuration, previous: previous)
+        let snapshot = UpscaleSettingsSnapshot(configuration: configuration)
+        let decoded = try JSONDecoder().decode(UpscaleSettingsSnapshot.self, from: JSONEncoder().encode(snapshot))
+        precondition(decoded == snapshot)
+    }
+
+    @MainActor static func main() throws {
+        try verifyPureSettings()
         let settings = UpscaleSettings()
         let initial = settings.configuration
         var publications = 0

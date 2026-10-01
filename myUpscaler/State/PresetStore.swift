@@ -21,7 +21,7 @@ struct Preset: Identifiable, Codable, Equatable {
     }
 }
 
-struct UpscaleSettingsSnapshot: Codable, Equatable {
+nonisolated struct UpscaleSettingsSnapshot: Codable, Equatable, Sendable {
     var useHEVC: Bool
     var crf: Double
     var preset: String
@@ -138,7 +138,11 @@ struct UpscaleSettingsSnapshot: Codable, Equatable {
     var dryRun: Bool
     var preview: Bool
 
-    init(settings: UpscaleSettings) {
+    @MainActor init(settings: UpscaleSettings) {
+        self.init(configuration: settings.configuration)
+    }
+
+    init(configuration settings: SettingsConfiguration) {
         useHEVC = settings.codec.useHEVC
         crf = settings.codec.crf
         preset = settings.codec.preset
@@ -256,7 +260,7 @@ struct UpscaleSettingsSnapshot: Codable, Equatable {
         preview = settings.modes.preview
     }
 
-    func apply(to settings: UpscaleSettings) {
+    @MainActor func apply(to settings: UpscaleSettings) {
         var candidate = settings.configuration
         candidate.codec.useHEVC = useHEVC
         candidate.codec.crf = crf
@@ -377,7 +381,7 @@ struct UpscaleSettingsSnapshot: Codable, Equatable {
     }
 
     init(from decoder: Decoder) throws {
-        let defaults = UpscaleSettingsSnapshot(settings: UpscaleSettings())
+        let defaults = UpscaleSettingsSnapshot(configuration: SettingsConfiguration())
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         useHEVC = try container.decodeIfPresent(Bool.self, forKey: .useHEVC) ?? defaults.useHEVC

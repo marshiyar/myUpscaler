@@ -1,8 +1,9 @@
 import Foundation
 import Combine
 
-nonisolated class UpscaleSettings: ObservableObject {
-     static var defaultHwAccel: String {
+/// UI-owned mutable settings; processing receives a Sendable configuration snapshot.
+@MainActor final class UpscaleSettings: ObservableObject {
+     nonisolated static var defaultHwAccel: String {
         #if arch(arm64)
         return "videotoolbox"
         #else
@@ -10,7 +11,7 @@ nonisolated class UpscaleSettings: ObservableObject {
         #endif
     }
 
-     static var defaultEncoder: String { "auto" }
+     nonisolated static var defaultEncoder: String { "auto" }
 
     @Published private(set) var configuration = SettingsConfiguration()
 

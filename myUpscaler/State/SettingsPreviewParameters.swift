@@ -30,7 +30,7 @@
 
 import Foundation
 
-nonisolated extension UpscaleSettings {
+extension UpscaleSettings {
     /// Immutable, effective inputs. Inactive values have canonical identities so
     /// editing an unused field does not invalidate a modes.preview.
     func makePreviewFilterParameters() -> PreviewFilterParameters {

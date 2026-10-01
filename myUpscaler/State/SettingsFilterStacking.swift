@@ -2,7 +2,7 @@ import Foundation
 
 /// Derives second-pass attenuation from the authoritative first/second-pass
 /// settings. Both export option construction and UI warnings use these values.
-nonisolated extension UpscaleSettings {
+extension UpscaleSettings {
     // MARK: - Filter Stacking Orchestration
     // These computed properties provide attenuated values when multiple filters of the same type are active.
     // These are fixed heuristics, not image analysis or a quality guarantee.

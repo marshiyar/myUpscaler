@@ -1,236 +1,61 @@
 import Foundation
-import Combine
 
-/// Owns the automatic value/toggle normalization subscriptions. The settings
-/// object remains the authoritative state; consumers do not keep duplicate flags.
+/// Normalize a complete candidate before its single publication. Draft text is
+/// never rewritten while typing; selecting a different algorithm validates it.
 nonisolated enum SettingsNormalization {
-    static func install(on settings: UpscaleSettings) -> Set<AnyCancellable> {
-        var cancellables = Set<AnyCancellable>()
-        settings.$denoiser
-            .sink { [weak settings] newDenoiser in
-                guard let self = settings else { return }
-                self.denoiseStrength = self.validateDenoiseStrength(self.denoiseStrength, forDenoiser: newDenoiser)
-            }
-            .store(in: &cancellables)
-
-        settings.$denoiser2
-            .sink { [weak settings] newDenoiser in
-                guard let self = settings else { return }
-                self.denoiseStrength2 = self.validateDenoiseStrength(self.denoiseStrength2, forDenoiser: newDenoiser)
-            }
-            .store(in: &cancellables)
-
-        settings.$denoiseStrength2
-            .sink { [weak settings] value in
-                guard let self = settings else { return }
-                if let numValue = Double(value), numValue == 0 {
-                    self.useDenoise2 = false
-                }
-            }
-            .store(in: &cancellables)
-
-        settings.$sharpenMethod
-            .sink { [weak settings] newMethod in
-                guard let self = settings else { return }
-                self.sharpenStrength = self.validateSharpenStrength(self.sharpenStrength, method: newMethod)
-            }
-            .store(in: &cancellables)
-
-        settings.$sharpenMethod2
-            .sink { [weak settings] newMethod in
-                guard let self = settings else { return }
-                self.sharpenStrength2 = self.validateSharpenStrength2(self.sharpenStrength2, method: newMethod)
-            }
-            .store(in: &cancellables)
-
-        settings.$debandMethod
-            .sink { [weak settings] newMethod in
-                guard let self = settings else { return }
-                self.debandStrength = String(max(newMethod == "gradfun" ? 0.51 : 0, min(newMethod == "gradfun" ? 64 : 0.1, Double(self.debandStrength) ?? (newMethod == "gradfun" ? 1.2 : 0.015))))
-            }
-            .store(in: &cancellables)
-
-        settings.$debandMethod2
-            .sink { [weak settings] newMethod in
-                guard let self = settings else { return }
-                self.debandStrength2 = String(max(newMethod == "gradfun" ? 0.51 : 0, min(newMethod == "gradfun" ? 64 : 0.1, Double(self.debandStrength2) ?? (newMethod == "gradfun" ? 1.2 : 0.015))))
-            }
-            .store(in: &cancellables)
-
-        settings.$deringStrength
-            .sink { [weak settings] value in
-                guard let self = settings else { return }
-                if let numValue = Double(value), numValue == 0 {
-                    self.deringActive = false
-                }
-            }
-            .store(in: &cancellables)
-
-        settings.$deringActive
-            .sink { [weak settings] isOn in
-                guard let self = settings, isOn else { return }
-                if self.isZero(self.deringStrength) {
-                    self.deringStrength = self.defaultDeringStrengthString
-                }
-            }
-            .store(in: &cancellables)
-
-        // Note: denoiseStrength2 validation is handled above in the combined observer
-
-        settings.$useDenoise2
-            .sink { [weak settings] isOn in
-                guard let self = settings, isOn else { return }
-                if self.isZero(self.denoiseStrength2) {
-                    self.denoiseStrength2 = self.defaultDenoiseStrength2String
-                }
-            }
-            .store(in: &cancellables)
-
-        settings.$deblockThresh2
-            .sink { [weak settings] value in
-                guard let self = settings else { return }
-                if value.isEmpty || value == "0" || (Double(value) ?? 0) == 0 {
-                    self.useDeblock2 = false
-                }
-            }
-            .store(in: &cancellables)
-
-
-        settings.$useDeblock2
-            .sink { [weak settings] isOn in
-                guard let self = settings, isOn else { return }
-                if self.isZeroOrEmpty(self.deblockThresh2) {
-                    self.deblockThresh2 = self.defaultDeblockThreshString
-                }
-            }
-            .store(in: &cancellables)
-
-
-        settings.$deringStrength2
-            .sink { [weak settings] value in
-                guard let self = settings else { return }
-                if let numValue = Double(value), numValue == 0 {
-                    self.useDering2 = false
-                }
-            }
-            .store(in: &cancellables)
-
-
-        settings.$useDering2
-            .sink { [weak settings] isOn in
-                guard let self = settings, isOn else { return }
-                if self.isZero(self.deringStrength2) {
-                    self.deringStrength2 = self.defaultDeringStrengthString
-                }
-            }
-            .store(in: &cancellables)
-
-
-        settings.$sharpenStrength2
-            .sink { [weak settings] value in
-                guard let self = settings else { return }
-                if let numValue = Double(value), numValue == 0 {
-                    self.useSharpen2 = false
-                }
-            }
-            .store(in: &cancellables)
-
-
-        Publishers.CombineLatest3(settings.$usmRadius2, settings.$usmAmount2, settings.$usmThreshold2)
-            .sink { [weak settings] radius, amount, threshold in
-                guard let self = settings else { return }
-                if self.sharpenMethod2 == "unsharp" {
-                    let radiusVal = Double(radius) ?? 0
-                    let amountVal = Double(amount) ?? 0
-                    let thresholdVal = Double(threshold) ?? 0
-                    if radiusVal == 0 && amountVal == 0 && thresholdVal == 0 {
-                        self.useSharpen2 = false
-                    }
-                }
-            }
-            .store(in: &cancellables)
-
-
-        settings.$useSharpen2
-            .sink { [weak settings] isOn in
-                guard let self = settings, isOn else { return }
-                if self.sharpenMethod2 == "cas" {
-                    if self.isZero(self.sharpenStrength2) {
-                        self.sharpenStrength2 = self.defaultSharpenStrength2String
-                    }
-                } else if self.sharpenMethod2 == "unsharp" {
-                    let radiusVal = Double(self.usmRadius2) ?? 0
-                    let amountVal = Double(self.usmAmount2) ?? 0
-                    let thresholdVal = Double(self.usmThreshold2) ?? 0
-                    if radiusVal == 0 && amountVal == 0 && thresholdVal == 0 {
-                        self.usmRadius2 = self.defaultUsmRadius2String
-                        self.usmAmount2 = self.defaultUsmAmount2String
-                        self.usmThreshold2 = self.defaultUsmThreshold2String
-                    }
-                }
-            }
-            .store(in: &cancellables)
-
-        settings.$debandStrength2
-            .sink { [weak settings] value in
-                guard let self = settings else { return }
-                if let numValue = Double(value), numValue == 0 {
-                    self.useDeband2 = false
-                }
-            }
-            .store(in: &cancellables)
-
-        Publishers.CombineLatest3(settings.$f3kdbRange2, settings.$f3kdbY2, settings.$f3kdbCbCr2)
-            .sink { [weak settings] range, y, cbcr in
-                guard let self = settings else { return }
-                if self.debandMethod2 == "f3kdb" {
-                    let rangeVal = Double(range) ?? 0
-                    let yVal = Double(y) ?? 0
-                    let cbcrVal = Double(cbcr) ?? 0
-                    if rangeVal == 0 && yVal == 0 && cbcrVal == 0 {
-                        self.useDeband2 = false
-                    }
-                }
-            }
-            .store(in: &cancellables)
-
-        settings.$useDeband2
-            .sink { [weak settings] isOn in
-                guard let self = settings, isOn else { return }
-                if self.debandMethod2 == "f3kdb" {
-                    let rangeVal = Double(self.f3kdbRange2) ?? 0
-                    let yVal = Double(self.f3kdbY2) ?? 0
-                    let cbcrVal = Double(self.f3kdbCbCr2) ?? 0
-                    if rangeVal == 0 && yVal == 0 && cbcrVal == 0 {
-                        self.f3kdbRange2 = self.defaultF3kdbRange2String
-                        self.f3kdbY2 = self.defaultF3kdbY2String
-                        self.f3kdbCbCr2 = self.defaultF3kdbCbCr2String
-                    }
-                } else {
-                    if self.isZero(self.debandStrength2) {
-                        self.debandStrength2 = self.defaultDebandStrength2String
-                    }
-                }
-            }
-            .store(in: &cancellables)
-
-        settings.$grainStrength2
-            .sink { [weak settings] value in
-                guard let self = settings else { return }
-                if let numValue = Double(value), numValue == 0 {
-                    self.useGrain2 = false
-                }
-            }
-            .store(in: &cancellables)
-
-        settings.$useGrain2
-            .sink { [weak settings] isOn in
-                guard let self = settings, isOn else { return }
-                if self.isZero(self.grainStrength2) {
-                    self.grainStrength2 = self.defaultGrainStrength2String
-                }
-            }
-            .store(in: &cancellables)
-        return cancellables
+    static func normalize(_ next: inout SettingsConfiguration, previous: SettingsConfiguration, validateMethodChanges: Bool = true) {
+        normalizeStage(&next.primary, previous: previous.primary, secondary: false, validateMethodChanges: validateMethodChanges)
+        normalizeStage(&next.secondary, previous: previous.secondary, secondary: true, validateMethodChanges: validateMethodChanges)
     }
+
+    private static func normalizeStage(_ next: inout RestorationStage, previous: RestorationStage, secondary: Bool, validateMethodChanges: Bool) {
+        let defaults = RestorationStage()
+        if validateMethodChanges && next.denoiser != previous.denoiser {
+            let range: ClosedRange<Double>
+            let fallback: Double
+            switch next.denoiser {
+            case "hqdn3d": range = 1...10; fallback = 4
+            case "nlmeans": range = 1...30; fallback = 1
+            case "atadenoise": range = 1...20; fallback = 9
+            default: range = 0...20; fallback = 2.5
+            }
+            if !(next.denoiser == "bm3d" && next.denoiseStrength.text.lowercased() == "auto") {
+                next.denoiseStrength.text = String(format: "%.2f", clamp(next.denoiseStrength.finiteValue ?? fallback, range))
+            }
+        }
+        if validateMethodChanges && next.sharpenMethod != previous.sharpenMethod {
+            let unsharp = next.sharpenMethod == "unsharp"
+            next.sharpenStrength.text = String(format: "%.2f", clamp(next.sharpenStrength.finiteValue ?? (unsharp ? 1 : 0.25), unsharp ? -2...5 : 0...1))
+        }
+        if validateMethodChanges && next.debandMethod != previous.debandMethod {
+            let gradfun = next.debandMethod == "gradfun"
+            next.debandStrength.text = String(clamp(next.debandStrength.finiteValue ?? (gradfun ? 1.2 : 0.015), gradfun ? 0.51...64 : 0...0.1))
+        }
+        reconcile(&next.useDering, previous: previous.useDering, draft: &next.deringStrength, old: previous.deringStrength, fallback: defaults.deringStrength.text)
+        guard secondary else { return }
+        reconcile(&next.useDenoise, previous: previous.useDenoise, draft: &next.denoiseStrength, old: previous.denoiseStrength, fallback: next.denoiser == "hqdn3d" ? "4.0" : next.denoiser == "nlmeans" ? "1.0" : next.denoiser == "atadenoise" ? "9.0" : "2.5")
+        reconcile(&next.useDeblock, previous: previous.useDeblock, draft: &next.deblockThresh, old: previous.deblockThresh, fallback: "0.5", emptyIsZero: true)
+        if next.sharpenMethod == "cas" {
+            reconcile(&next.useSharpen, previous: previous.useSharpen, draft: &next.sharpenStrength, old: previous.sharpenStrength, fallback: defaults.sharpenStrength.text)
+        } else {
+            if next.useSharpen && !previous.useSharpen && allZero([next.usmRadius, next.usmAmount, next.usmThreshold]) {
+                next.usmRadius = defaults.usmRadius; next.usmAmount = defaults.usmAmount; next.usmThreshold = defaults.usmThreshold
+            } else if [next.usmRadius, next.usmAmount, next.usmThreshold] != [previous.usmRadius, previous.usmAmount, previous.usmThreshold] && allZero([next.usmRadius, next.usmAmount, next.usmThreshold]) { next.useSharpen = false }
+        }
+        if next.debandMethod == "f3kdb" {
+            if next.useDeband && !previous.useDeband && allZero([next.f3kdbRange, next.f3kdbY, next.f3kdbCbCr]) {
+                next.f3kdbRange = defaults.f3kdbRange; next.f3kdbY = defaults.f3kdbY; next.f3kdbCbCr = defaults.f3kdbCbCr
+            } else if [next.f3kdbRange, next.f3kdbY, next.f3kdbCbCr] != [previous.f3kdbRange, previous.f3kdbY, previous.f3kdbCbCr] && allZero([next.f3kdbRange, next.f3kdbY, next.f3kdbCbCr]) { next.useDeband = false }
+        } else {
+            reconcile(&next.useDeband, previous: previous.useDeband, draft: &next.debandStrength, old: previous.debandStrength, fallback: next.debandMethod == "gradfun" ? "1.2" : defaults.debandStrength.text)
+        }
+        reconcile(&next.useGrain, previous: previous.useGrain, draft: &next.grainStrength, old: previous.grainStrength, fallback: defaults.grainStrength.text)
+    }
+    private static func reconcile(_ enabled: inout Bool, previous: Bool, draft: inout NumericDraft, old: NumericDraft, fallback: String, emptyIsZero: Bool = false) {
+        let zero = draft.finiteValue == 0 || (emptyIsZero && draft.text.isEmpty)
+        if enabled && !previous && zero { draft.text = fallback }
+        else if draft != old && zero { enabled = false }
+    }
+    private static func allZero(_ drafts: [NumericDraft]) -> Bool { drafts.allSatisfy { $0.finiteValue == 0 } }
+    private static func clamp(_ value: Double, _ range: ClosedRange<Double>) -> Double { max(range.lowerBound, min(range.upperBound, value)) }
 }

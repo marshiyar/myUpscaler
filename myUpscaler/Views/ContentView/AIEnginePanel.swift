@@ -24,10 +24,10 @@ struct AIEnginePanel: View {
                             .foregroundColor(.secondary)
                         Spacer()
                         Picker("", selection: Binding(
-                            get: { settings.scalers.contains(settings.scaler) ? settings.scaler : "" },
-                            set: { settings.scaler = $0 }
+                            get: { settings.scalers.contains(settings.upscaling.scaler) ? settings.upscaling.scaler : "" },
+                            set: { settings.upscaling.scaler = $0 }
                         )) {
-                            if !settings.scalers.contains(settings.scaler) {
+                            if !settings.scalers.contains(settings.upscaling.scaler) {
                                 Text("Choose a mode").tag("").disabled(true)
                             }
                             ForEach(settings.scalers, id: \.self) { scaler in
@@ -39,7 +39,7 @@ struct AIEnginePanel: View {
                         .frame(minWidth: 140)
                     }
 
-                    if settings.scaler == "coreml" && !settings.coremlModels.isEmpty {
+                    if settings.upscaling.scaler == "coreml" && !settings.coremlModels.isEmpty {
                         Divider()
                             .padding(.vertical, 2)
 
@@ -48,9 +48,9 @@ struct AIEnginePanel: View {
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             Spacer()
-                            Picker("", selection: $settings.coremlModelId) {
-                                if !settings.coremlModels.contains(where: { $0.id == settings.coremlModelId }) {
-                                    Text("Choose a model").tag(settings.coremlModelId).disabled(true)
+                            Picker("", selection: $settings.upscaling.coremlModelId) {
+                                if !settings.coremlModels.contains(where: { $0.id == settings.upscaling.coremlModelId }) {
+                                    Text("Choose a model").tag(settings.upscaling.coremlModelId).disabled(true)
                                 }
                                 ForEach(settings.coremlModels) { model in
                                     Text(model.displayName).tag(model.id)
@@ -63,15 +63,15 @@ struct AIEnginePanel: View {
                     }
 
 
-                    if settings.scaler == "coreml" {
+                    if settings.upscaling.scaler == "coreml" {
                         Text("Core ML supports primary denoise, sharpen, and deband. Deblock, dering, grain, and the second restoration pass apply to FFmpeg only. Preview is approximate.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                        let model = CoreMLModelRegistry.model(for: settings.coremlModelId)
-                        Text(model.nativeScale == settings.scaleFactor
+                        let model = CoreMLModelRegistry.model(for: settings.upscaling.coremlModelId)
+                        Text(model.nativeScale == settings.video.scaleFactor
                              ? "Model and output use \(model.nativeScale.formatted())× scaling."
-                             : "Model predicts at \(model.nativeScale.formatted())×; output is resized once to \(settings.scaleFactor.formatted())×.")
+                             : "Model predicts at \(model.nativeScale.formatted())×; output is resized once to \(settings.video.scaleFactor.formatted())×.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)

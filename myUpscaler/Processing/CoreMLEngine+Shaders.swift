@@ -395,76 +395,76 @@ nonisolated extension CoreMLEngine {
         let source = original ?? input
 
         // Alpha safety first
-        if settings.alphaSafeProcessing {
+        if settings.metal.alphaSafeProcessing {
             processed = applyUnpremultiplyAlpha(processed)
         }
 
         // Color space shaping
-        if settings.enableColorLinearize {
+        if settings.metal.enableColorLinearize {
             processed = applyLinearizeSRGB(processed, exposure: settings.colorExposureValue)
         }
-        if settings.enableToneMap {
+        if settings.metal.enableToneMap {
             processed = applyToneMap(processed, exposure: settings.toneMapExposureValue)
         }
 
         // Optional median prefilter (light speckle)
-        if settings.useMedianPrefilter {
+        if settings.metal.useMedianPrefilter {
             processed = applyMedianDenoise(processed)
         }
 
         // Denoise (lightweight bilateral)
-        if !settings.noDenoise && settings.denoiseStrength != "0" {
-            let strength = double(from: settings.denoiseStrength, default: 0.0)
+        if settings.primary.useDenoise && settings.primary.denoiseStrength.text != "0" {
+            let strength = double(from: settings.primary.denoiseStrength.text, default: 0.0)
             let sigmaRange = strength * 0.02
             let sigmaSpatial = 2.0
             processed = applyDenoise(processed, sigmaSpatial: sigmaSpatial, sigmaRange: sigmaRange)
         }
 
         // Deband (dither + optional blue-noise)
-        if !settings.noDeband && settings.debandStrength != "0" {
+        if settings.primary.useDeband && settings.primary.debandStrength.text != "0" {
             let thresh = 0.02
-            let amount = double(from: settings.debandStrength, default: 0.0)
+            let amount = double(from: settings.primary.debandStrength.text, default: 0.0)
             processed = applyDeband(processed, threshold: thresh, amount: amount)
 
-            if settings.useBlueNoiseDeband {
+            if settings.metal.useBlueNoiseDeband {
                 processed = applyBlueNoiseDeband(processed, threshold: thresh * 0.6, amount: amount * 0.5)
             }
         }
 
         // Sharpen (CAS or USM/laplacian)
-        if !settings.noSharpen && settings.sharpenStrength != "0" {
-            if settings.sharpenMethod == "unsharp" {
-                let radius = double(from: settings.usmRadius, default: 5.0)
-                let amount = double(from: settings.usmAmount, default: 1.0)
-                let threshold = double(from: settings.usmThreshold, default: 0.03)
+        if settings.primary.useSharpen && settings.primary.sharpenStrength.text != "0" {
+            if settings.primary.sharpenMethod == "unsharp" {
+                let radius = double(from: settings.primary.usmRadius.text, default: 5.0)
+                let amount = double(from: settings.primary.usmAmount.text, default: 1.0)
+                let threshold = double(from: settings.primary.usmThreshold.text, default: 0.03)
                 processed = applyUnsharpMask(processed, radius: radius, amount: amount, threshold: threshold)
             } else {
-                let strength = double(from: settings.sharpenStrength, default: 0.0)
+                let strength = double(from: settings.primary.sharpenStrength.text, default: 0.0)
                 processed = applyCustomSharpen(processed, strength: strength)
             }
 
-            if settings.useLaplacianSharpen {
+            if settings.metal.useLaplacianSharpen {
                 processed = applyLaplacianSharpen(processed, strength: settings.laplacianStrengthValue)
             }
         }
 
         // Artifact suppression
-        if settings.useDehalo {
+        if settings.metal.useDehalo {
             processed = applyDehalo(processed, strength: settings.dehaloStrengthValue)
         }
-        if settings.useMoireSuppress {
+        if settings.metal.useMoireSuppress {
             processed = applyMoireSuppress(processed, strength: settings.moireStrengthValue)
         }
 
         // Encode back to sRGB / apply gamma-correct blend
-        if settings.encodeToSRGB {
+        if settings.metal.encodeToSRGB {
             processed = applyEncodeSRGB(processed, exposure: settings.encodeExposureValue)
         }
         if settings.gammaBlendWeightValue > 0 {
             processed = applyGammaBlend(base: source, overlay: processed, mix: settings.gammaBlendWeightValue)
         }
 
-        if settings.alphaSafeProcessing {
+        if settings.metal.alphaSafeProcessing {
             processed = applyPremultiplyAlpha(processed)
         }
 
@@ -477,37 +477,37 @@ nonisolated extension CoreMLEngine {
     func applyPreProcessing(to input: CIImage, settings: UpscaleSettings) -> CIImage {
         var processed = input
 
-        if settings.alphaSafeProcessing {
+        if settings.metal.alphaSafeProcessing {
             processed = applyUnpremultiplyAlpha(processed)
         }
 
-        if settings.enableColorLinearize {
+        if settings.metal.enableColorLinearize {
             processed = applyLinearizeSRGB(processed, exposure: settings.colorExposureValue)
         }
-        if settings.enableToneMap {
+        if settings.metal.enableToneMap {
             processed = applyToneMap(processed, exposure: settings.toneMapExposureValue)
         }
 
-        if settings.useMedianPrefilter {
+        if settings.metal.useMedianPrefilter {
             processed = applyMedianDenoise(processed)
         }
 
-        if !settings.noDenoise && settings.denoiseStrength != "0" {
-            let strength = double(from: settings.denoiseStrength, default: 0.0)
+        if settings.primary.useDenoise && settings.primary.denoiseStrength.text != "0" {
+            let strength = double(from: settings.primary.denoiseStrength.text, default: 0.0)
             let sigmaRange = strength * 0.02
             let sigmaSpatial = 2.0
             processed = applyDenoise(processed, sigmaSpatial: sigmaSpatial, sigmaRange: sigmaRange)
         }
 
-        if settings.encodeToSRGB {
+        if settings.metal.encodeToSRGB {
             processed = applyEncodeSRGB(processed, exposure: settings.encodeExposureValue)
         }
 
-        if settings.useCosineFeather && settings.tileFeatherMarginValue > 0 {
+        if settings.metal.useCosineFeather && settings.tileFeatherMarginValue > 0 {
             processed = applyHannFeather(processed, margin: Double(settings.tileFeatherMarginValue))
         }
 
-        if settings.alphaSafeProcessing {
+        if settings.metal.alphaSafeProcessing {
             processed = applyPremultiplyAlpha(processed)
         }
 
@@ -516,10 +516,10 @@ nonisolated extension CoreMLEngine {
 
     /// Run pre-processing on a tile buffer prior to CoreML inference.
     func preprocessTileBuffer(_ buffer: CVPixelBuffer, settings: UpscaleSettings) {
-        guard settings.enableColorLinearize
-                || settings.useMedianPrefilter
-                || (settings.useCosineFeather && settings.tileFeatherMarginValue > 0)
-                || (!settings.noDenoise && settings.denoiseStrength != "0") else {
+        guard settings.metal.enableColorLinearize
+                || settings.metal.useMedianPrefilter
+                || (settings.metal.useCosineFeather && settings.tileFeatherMarginValue > 0)
+                || (settings.primary.useDenoise && settings.primary.denoiseStrength.text != "0") else {
             return
         }
         let ci = CIImage(cvPixelBuffer: buffer)
@@ -535,7 +535,7 @@ nonisolated extension CoreMLEngine {
         let original = ci
         ci = applyPostProcessing(to: ci, original: original, settings: settings)
 
-        if settings.useTemporalSmoothing, let previous = previous {
+        if settings.metal.useTemporalSmoothing, let previous = previous {
             let prevCI = CIImage(cvPixelBuffer: previous)
             ci = applyTemporalSmooth(current: ci, previous: prevCI, strength: settings.temporalStrengthValue)
         }

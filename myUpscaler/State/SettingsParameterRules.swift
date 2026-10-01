@@ -3,6 +3,13 @@ import Foundation
 /// Parameter ranges, validation and native pipeline conversions share the same
 /// rules for UI controls, presets and render snapshots.
 nonisolated extension UpscaleSettings {
+    /// FFmpeg unsharp requires an odd matrix size from 3 through 23.
+    static func unsharpMatrixSize(_ text: String) -> Double {
+        guard let value = Double(text), value.isFinite else { return 3 }
+        let bounded = max(3, min(23, value))
+        return Double(2 * Int((bounded - 1) / 2) + 1)
+    }
+
     // MARK: - Helper methods to check if values are zero
     func isZero(_ value: String) -> Bool {
         guard let numValue = Double(value) else { return false }
@@ -14,30 +21,30 @@ nonisolated extension UpscaleSettings {
     }
 
     // MARK: - Default fallbacks used when re-enabling filters that were auto-disabled at 0
-     var defaultDeringStrengthString: String { "0.5" }
+     var defaultDeringStrengthString: String { RestorationStage().deringStrength.text }
      var defaultDeblockThreshString: String { "0.5" }
      var defaultDenoiseStrength2String: String { String(format: "%.2f", denoiseStrength2Default) }
-     var defaultSharpenStrength2String: String { "0.25" }
-     var defaultUsmRadius2String: String { "5" }
-     var defaultUsmAmount2String: String { "1.0" }
-     var defaultUsmThreshold2String: String { "0.03" }
-     var defaultDebandStrength2String: String { "0.015" }
-     var defaultF3kdbRange2String: String { "15" }
-     var defaultF3kdbY2String: String { "64" }
-     var defaultF3kdbCbCr2String: String { "64" }
-     var defaultGrainStrength2String: String { "1.0" }
+     var defaultSharpenStrength2String: String { RestorationStage().sharpenStrength.text }
+     var defaultUsmRadius2String: String { RestorationStage().usmRadius.text }
+     var defaultUsmAmount2String: String { RestorationStage().usmAmount.text }
+     var defaultUsmThreshold2String: String { RestorationStage().usmThreshold.text }
+     var defaultDebandStrength2String: String { RestorationStage().debandStrength.text }
+     var defaultF3kdbRange2String: String { RestorationStage().f3kdbRange.text }
+     var defaultF3kdbY2String: String { RestorationStage().f3kdbY.text }
+     var defaultF3kdbCbCr2String: String { RestorationStage().f3kdbCbCr.text }
+     var defaultGrainStrength2String: String { RestorationStage().grainStrength.text }
 
     // MARK: - Denoiser-specific parameter ranges
     /**
-     * Returns the valid range for denoise strength based on the selected denoiser.
-     * Each denoiser has different valid ranges:
+     * Returns the valid range for denoise strength based on the selected primary.denoiser.
+     * Each primary.denoiser has different valid ranges:
      * - bm3d: sigma 0-20 (or "auto")
      * - hqdn3d: luma_spatial 1.0-10.0
      * - nlmeans: strength 1.0-30.0
      * - atadenoise: threshold 1.0-20.0
      */
     var denoiseStrengthRange: ClosedRange<Double> {
-        switch denoiser {
+        switch primary.denoiser {
         case "bm3d":
             return 0...20.0
         case "hqdn3d":
@@ -52,10 +59,10 @@ nonisolated extension UpscaleSettings {
     }
 
     /**
-     * Returns the default value for denoise strength based on the selected denoiser.
+     * Returns the default value for denoise strength based on the selected primary.denoiser.
      */
     var denoiseStrengthDefault: Double {
-        switch denoiser {
+        switch primary.denoiser {
         case "bm3d":
             return 2.5
         case "hqdn3d":
@@ -70,10 +77,10 @@ nonisolated extension UpscaleSettings {
     }
 
     /**
-     * Returns the step size for denoise strength based on the selected denoiser.
+     * Returns the step size for denoise strength based on the selected primary.denoiser.
      */
     var denoiseStrengthStep: Double {
-        switch denoiser {
+        switch primary.denoiser {
         case "bm3d":
             return 0.1
         case "hqdn3d":
@@ -88,10 +95,10 @@ nonisolated extension UpscaleSettings {
     }
 
     /**
-     * Same as above but for the second denoiser (denoiser2).
+     * Same as above but for the second primary.denoiser (secondary.denoiser).
      */
     var denoiseStrength2Range: ClosedRange<Double> {
-        switch denoiser2 {
+        switch secondary.denoiser {
         case "bm3d":
             return 0...20.0
         case "hqdn3d":
@@ -106,7 +113,7 @@ nonisolated extension UpscaleSettings {
     }
 
     var denoiseStrength2Default: Double {
-        switch denoiser2 {
+        switch secondary.denoiser {
         case "bm3d":
             return 2.5
         case "hqdn3d":
@@ -121,7 +128,7 @@ nonisolated extension UpscaleSettings {
     }
 
     var denoiseStrength2Step: Double {
-        switch denoiser2 {
+        switch secondary.denoiser {
         case "bm3d":
             return 0.1
         case "hqdn3d":
@@ -142,7 +149,7 @@ nonisolated extension UpscaleSettings {
         }
 
         guard let numValue = Double(value) else {
-            // If not a number and not "auto", return default for the denoiser
+            // If not a number and not "auto", return default for the primary.denoiser
             return String(format: "%.2f", denoiseStrengthDefault)
         }
 
@@ -170,7 +177,7 @@ nonisolated extension UpscaleSettings {
      * Unsharp Mask: radius 3-23, amount -2.0-5.0, threshold 0.0-1.0
      */
     var sharpenStrengthRange: ClosedRange<Double> {
-        switch sharpenMethod {
+        switch primary.sharpenMethod {
         case "cas":
             return 0.0...1.0
         case "unsharp":
@@ -181,7 +188,7 @@ nonisolated extension UpscaleSettings {
     }
 
     var sharpenStrengthDefault: Double {
-        switch sharpenMethod {
+        switch primary.sharpenMethod {
         case "cas":
             return 0.25
         case "unsharp":
@@ -192,7 +199,7 @@ nonisolated extension UpscaleSettings {
     }
 
     var sharpenStrengthStep: Double {
-        switch sharpenMethod {
+        switch primary.sharpenMethod {
         case "cas":
             return 0.005
         case "unsharp":
@@ -217,7 +224,7 @@ nonisolated extension UpscaleSettings {
 
     // Same for second set
     var sharpenStrength2Range: ClosedRange<Double> {
-        switch sharpenMethod2 {
+        switch secondary.sharpenMethod {
         case "cas":
             return 0.0...1.0
         case "unsharp":
@@ -228,7 +235,7 @@ nonisolated extension UpscaleSettings {
     }
 
     var sharpenStrength2Default: Double {
-        switch sharpenMethod2 {
+        switch secondary.sharpenMethod {
         case "cas":
             return 0.25
         case "unsharp":
@@ -239,7 +246,7 @@ nonisolated extension UpscaleSettings {
     }
 
     var sharpenStrength2Step: Double {
-        switch sharpenMethod2 {
+        switch secondary.sharpenMethod {
         case "cas":
             return 0.005
         case "unsharp":
@@ -256,7 +263,7 @@ nonisolated extension UpscaleSettings {
      * f3kdb: range 1-32, y 16-512, cb/cr 16-512
      */
     var debandStrengthRange: ClosedRange<Double> {
-        switch debandMethod {
+        switch primary.debandMethod {
         case "deband":
             return 0.0...0.1
         case "gradfun":
@@ -269,7 +276,7 @@ nonisolated extension UpscaleSettings {
     }
 
     var debandStrengthDefault: Double {
-        switch debandMethod {
+        switch primary.debandMethod {
         case "deband":
             return 0.015
         case "gradfun":
@@ -298,7 +305,7 @@ nonisolated extension UpscaleSettings {
 
     // Same for second set
     var debandStrength2Range: ClosedRange<Double> {
-        switch debandMethod2 {
+        switch secondary.debandMethod {
         case "deband":
             return 0.0...0.1
         case "gradfun":
@@ -311,7 +318,7 @@ nonisolated extension UpscaleSettings {
     }
 
     var debandStrength2Default: Double {
-        switch debandMethod2 {
+        switch secondary.debandMethod {
         case "deband":
             return 0.015
         case "gradfun":
@@ -356,18 +363,18 @@ nonisolated extension UpscaleSettings {
     var eqSaturationStep: Double { 0.005 }
 
     // MARK: - Metal Pipeline Derived Values
-    var colorExposureValue: Double { Double(colorExposure) ?? 1.0 }
-    var toneMapExposureValue: Double { Double(toneMapExposure) ?? 1.0 }
-    var encodeExposureValue: Double { Double(encodeExposure) ?? 1.0 }
-    var gammaBlendWeightValue: Double { max(0.0, min(1.0, Double(gammaBlendWeight) ?? 0.0)) }
-    var laplacianStrengthValue: Double { Double(laplacianStrength) ?? 0.15 }
-    var dehaloStrengthValue: Double { Double(dehaloStrength) ?? 0.25 }
-    var moireStrengthValue: Double { Double(moireStrength) ?? 0.2 }
-    var temporalStrengthValue: Double { Double(temporalStrength) ?? 0.15 }
-    var tileFeatherMarginValue: Int { Int(Double(tileFeatherMargin) ?? 0) }
-    var maskFeatherRadiusValue: Double { Double(maskFeatherRadius) ?? 0.0 }
-    var maskDilateRadiusValue: Double { Double(maskDilateRadius) ?? 0.0 }
-    var maskErodeRadiusValue: Double { Double(maskErodeRadius) ?? 0.0 }
+    var colorExposureValue: Double { Double(metal.colorExposure.text) ?? 1.0 }
+    var toneMapExposureValue: Double { Double(metal.toneMapExposure.text) ?? 1.0 }
+    var encodeExposureValue: Double { Double(metal.encodeExposure.text) ?? 1.0 }
+    var gammaBlendWeightValue: Double { max(0.0, min(1.0, Double(metal.gammaBlendWeight.text) ?? 0.0)) }
+    var laplacianStrengthValue: Double { Double(metal.laplacianStrength.text) ?? 0.15 }
+    var dehaloStrengthValue: Double { Double(metal.dehaloStrength.text) ?? 0.25 }
+    var moireStrengthValue: Double { Double(metal.moireStrength.text) ?? 0.2 }
+    var temporalStrengthValue: Double { Double(metal.temporalStrength.text) ?? 0.15 }
+    var tileFeatherMarginValue: Int { Int(Double(metal.tileFeatherMargin.text) ?? 0) }
+    var maskFeatherRadiusValue: Double { Double(metal.maskFeatherRadius.text) ?? 0.0 }
+    var maskDilateRadiusValue: Double { Double(metal.maskDilateRadius.text) ?? 0.0 }
+    var maskErodeRadiusValue: Double { Double(metal.maskErodeRadius.text) ?? 0.0 }
 
     // MARK: - Grain-specific parameter ranges
     /**
@@ -383,7 +390,7 @@ nonisolated extension UpscaleSettings {
 
     // MARK: - Validation functions
     func validateSharpenStrength(_ value: String, method: String? = nil) -> String {
-        let method = method ?? sharpenMethod
+        let method = method ?? primary.sharpenMethod
         let defaultValue = method == "unsharp" ? 1.0 : 0.25
         let range: ClosedRange<Double> = method == "unsharp" ? -2.0...5.0 : 0.0...1.0
         guard let numValue = Double(value) else {
@@ -410,7 +417,7 @@ nonisolated extension UpscaleSettings {
     }
 
     func validateSharpenStrength2(_ value: String, method: String? = nil) -> String {
-        let method = method ?? sharpenMethod2
+        let method = method ?? secondary.sharpenMethod
         let defaultValue = method == "unsharp" ? 1.0 : 0.25
         let range: ClosedRange<Double> = method == "unsharp" ? -2.0...5.0 : 0.0...1.0
         guard let numValue = Double(value) else {

@@ -47,8 +47,8 @@ struct VerticalColorEqualizerPanel: View {
                 .font(DesignSystem.Typography.caption1)
                 .fontWeight(.semibold)
                 .foregroundColor(.primary)
-            if settings.scaler == "coreml" || settings.noEq {
-                Text(settings.noEq ? "Color EQ is off" : "Preview only for Core ML")
+            if settings.upscaling.scaler == "coreml" || settings.color.noEq {
+                Text(settings.color.noEq ? "Color EQ is off" : "Preview only for Core ML")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -57,7 +57,7 @@ struct VerticalColorEqualizerPanel: View {
                 VStack(spacing: DesignSystem.Spacing.sm) {
                     VerticalParameterRow(
                         title: "Contrast",
-                        binding: $settings.eqContrast,
+                        binding: $settings.color.eqContrast.text,
                         range: 0.5...2.0,
                         step: 0.005,
                         defaultValue: 1.0,
@@ -67,7 +67,7 @@ struct VerticalColorEqualizerPanel: View {
 
                     VerticalParameterRow(
                         title: "Brightness",
-                        binding: $settings.eqBrightness,
+                        binding: $settings.color.eqBrightness.text,
                         range: -0.1...0.1,
                         step: 0.005,
                         defaultValue: 0.0,
@@ -77,7 +77,7 @@ struct VerticalColorEqualizerPanel: View {
 
                     VerticalParameterRow(
                         title: "Saturation",
-                        binding: $settings.eqSaturation,
+                        binding: $settings.color.eqSaturation.text,
                         range: 0...2,
                         step: 0.005,
                         defaultValue: 1.0,
@@ -87,7 +87,7 @@ struct VerticalColorEqualizerPanel: View {
                 }
                 .padding(6)
             }
-            .disabled(settings.noEq)
+            .disabled(settings.color.noEq)
             .background(Color(nsColor: NSColor.windowBackgroundColor))
             .cornerRadius(8)
             .shadow(color: Color.black.opacity(0.08), radius: 2, x: 0, y: 1)
@@ -175,9 +175,9 @@ struct VerticalRestorationFiltersPanel: View {
                 .font(DesignSystem.Typography.caption1)
                 .fontWeight(.semibold)
                 .foregroundColor(.primary)
-            if settings.noDenoise || settings.noSharpen {
-                Text([settings.noDenoise ? "Denoise off" : nil,
-                      settings.noSharpen ? "Sharpen off" : nil].compactMap { $0 }.joined(separator: " · "))
+            if !settings.primary.useDenoise || !settings.primary.useSharpen {
+                Text([!settings.primary.useDenoise ? "Denoise off" : nil,
+                      !settings.primary.useSharpen ? "Sharpen off" : nil].compactMap { $0 }.joined(separator: " · "))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -189,21 +189,21 @@ struct VerticalRestorationFiltersPanel: View {
                             // Denoise
                         VerticalParameterRow(
                             title: "Denoise",
-                            binding: $settings.denoiseStrength,
+                            binding: $settings.primary.denoiseStrength.text,
                             range: settings.denoiseStrengthRange,
                             step: settings.denoiseStrengthStep,
                             defaultValue: settings.denoiseStrengthDefault,
                             formatter: Formatters.oneFraction,
                             gradient: .denoise
                         )
-                        .disabled(settings.noDenoise)
+                        .disabled(!settings.primary.useDenoise)
 
                         ModernDivider()
                             .padding(.vertical, DesignSystem.Spacing.xs)
 
                         // Deringing toggle
                         HStack {
-                            Toggle(isOn: $settings.deringActive) {
+                            Toggle(isOn: $settings.primary.useDering) {
                                 Text("Dering")
                                     .font(DesignSystem.Typography.caption2)
                                     .fontWeight(.medium)
@@ -214,10 +214,10 @@ struct VerticalRestorationFiltersPanel: View {
                         }
                         .padding(.vertical, DesignSystem.Spacing.xs)
 
-                        if settings.deringActive {
+                        if settings.primary.useDering {
                             VerticalParameterRow(
                                 title: "Strength",
-                                binding: $settings.deringStrength,
+                                binding: $settings.primary.deringStrength.text,
                                 range: 0...10,
                                 step: 0.005,
                                 defaultValue: 0.5,
@@ -225,65 +225,65 @@ struct VerticalRestorationFiltersPanel: View {
                                 gradient: .dering
                             )
                             .transition(.opacity.combined(with: .move(edge: .top)))
-                            .animation(.easeInOut(duration: 0.2), value: settings.deringActive)
+                            .animation(.easeInOut(duration: 0.2), value: settings.primary.useDering)
                         }
 
                         ModernDivider()
                             .padding(.vertical, DesignSystem.Spacing.xs)
 
-                        Picker(settings.noSharpen ? "Sharpen off" : "Method", selection: $settings.sharpenMethod) {
+                        Picker(!settings.primary.useSharpen ? "Sharpen off" : "Method", selection: $settings.primary.sharpenMethod) {
                             Text("CAS").tag("cas")
                             Text("Unsharp").tag("unsharp")
                         }
                         .pickerStyle(.menu)
-                        .disabled(settings.noSharpen)
+                        .disabled(!settings.primary.useSharpen)
                         .controlSize(.mini)
                         .font(DesignSystem.Typography.caption2)
 
-                        if settings.sharpenMethod == "cas" {
+                        if settings.primary.sharpenMethod == "cas" {
                             VerticalParameterRow(
                                 title: "CAS Strength",
-                                binding: $settings.sharpenStrength,
+                                binding: $settings.primary.sharpenStrength.text,
                                 range: 0...1,
                                 step: 0.005,
                                 defaultValue: 0.25,
                                 formatter: Formatters.twoFraction,
                                 gradient: .sharpen
                             )
-                            .disabled(settings.noSharpen)
+                            .disabled(!settings.primary.useSharpen)
                         } else {
                             VerticalParameterRow(
                                 title: "Radius",
-                                binding: $settings.usmRadius,
+                                binding: $settings.primary.usmRadius.text,
                                 range: 3...23,
                                 step: 1,
                                 defaultValue: 5,
                                 formatter: Formatters.integer,
                                 gradient: .usmRadius
                             )
-                            .disabled(settings.noSharpen)
+                            .disabled(!settings.primary.useSharpen)
 
                             VerticalParameterRow(
                                 title: "Amount",
-                                binding: $settings.usmAmount,
+                                binding: $settings.primary.usmAmount.text,
                                 range: -2...5,
                                 step: 0.01,
                                 defaultValue: 1.0,
                                 formatter: Formatters.twoFraction,
                                 gradient: .usmAmount
                             )
-                            .disabled(settings.noSharpen)
+                            .disabled(!settings.primary.useSharpen)
 
                             VerticalParameterRow(
                                 title: "Threshold",
-                                binding: $settings.usmThreshold,
+                                binding: $settings.primary.usmThreshold.text,
                                 range: 0...1,
                                 step: 0.001,
                                 defaultValue: 0.03,
                                 formatter: Formatters.threeFraction,
                                 gradient: .usmThreshold
                             )
-                            .disabled(settings.noSharpen)
+                            .disabled(!settings.primary.useSharpen)
                         }
                     }
                     .padding(6)

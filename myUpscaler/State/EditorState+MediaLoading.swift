@@ -131,9 +131,7 @@ extension EditorState {
         guard let asset = videoAsset else { return }
 
         frameTask?.cancel()
-        let generation = UUID()
-        frameGeneration = generation
-        filterGeneration = UUID()
+        let generation = beginFrameRequest()
         frameTask = Task {
             let tracks = try? await asset.loadTracks(withMediaType: AVMediaType.video)
             guard let videoTrack = tracks?.first else { return }

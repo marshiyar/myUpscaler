@@ -139,243 +139,245 @@ struct UpscaleSettingsSnapshot: Codable, Equatable {
     var preview: Bool
 
     init(settings: UpscaleSettings) {
-        useHEVC = settings.useHEVC
-        crf = settings.crf
-        preset = settings.preset
-        use10Bit = settings.use10Bit
+        useHEVC = settings.codec.useHEVC
+        crf = settings.codec.crf
+        preset = settings.codec.preset
+        use10Bit = settings.codec.use10Bit
 
-        x265AqMode = settings.x265AqMode
-        x265PsyRd = settings.x265PsyRd
-        x265Deblock1 = settings.x265Deblock1
-        x265Deblock2 = settings.x265Deblock2
+        x265AqMode = settings.codec.x265AqMode.text
+        x265PsyRd = settings.codec.x265PsyRd.text
+        x265Deblock1 = settings.codec.x265Deblock1.text
+        x265Deblock2 = settings.codec.x265Deblock2.text
 
-        hwAccel = settings.hwAccel
-        encoder = settings.encoder
-        threads = settings.threads
+        hwAccel = settings.hardware.hwAccel
+        encoder = settings.hardware.encoder
+        threads = settings.hardware.threads.text
 
-        fps = settings.fps
-        scaleFactor = settings.scaleFactor
-        interpolation = settings.interpolation
+        fps = settings.video.fps.text
+        scaleFactor = settings.video.scaleFactor
+        interpolation = settings.video.interpolation
 
-        scaler = settings.scaler
-        coremlModelId = settings.coremlModelId
-        aiModelPath = settings.aiModelPath
-        aiBackend = settings.aiBackend
-        aiModelType = settings.aiModelType
-        dnnBackend = settings.dnnBackend
+        scaler = settings.upscaling.scaler
+        coremlModelId = settings.upscaling.coremlModelId
+        aiModelPath = settings.upscaling.aiModelPath
+        aiBackend = settings.upscaling.aiBackend
+        aiModelType = settings.upscaling.aiModelType
+        dnnBackend = settings.upscaling.dnnBackend
 
-        denoiser = settings.denoiser
-        denoiseStrength = settings.denoiseStrength
-        deblockMode = settings.deblockMode
-        deblockThresh = settings.deblockThresh
-        deringActive = settings.deringActive
-        deringStrength = settings.deringStrength
-        sharpenMethod = settings.sharpenMethod
-        sharpenStrength = settings.sharpenStrength
-        usmRadius = settings.usmRadius
-        usmAmount = settings.usmAmount
-        usmThreshold = settings.usmThreshold
-        debandMethod = settings.debandMethod
-        debandStrength = settings.debandStrength
-        f3kdbRange = settings.f3kdbRange
-        f3kdbY = settings.f3kdbY
-        f3kdbCbCr = settings.f3kdbCbCr
-        grainStrength = settings.grainStrength
+        denoiser = settings.primary.denoiser
+        denoiseStrength = settings.primary.denoiseStrength.text
+        deblockMode = settings.primary.deblockMode
+        deblockThresh = settings.primary.deblockThresh.text
+        deringActive = settings.primary.useDering
+        deringStrength = settings.primary.deringStrength.text
+        sharpenMethod = settings.primary.sharpenMethod
+        sharpenStrength = settings.primary.sharpenStrength.text
+        usmRadius = settings.primary.usmRadius.text
+        usmAmount = settings.primary.usmAmount.text
+        usmThreshold = settings.primary.usmThreshold.text
+        debandMethod = settings.primary.debandMethod
+        debandStrength = settings.primary.debandStrength.text
+        f3kdbRange = settings.primary.f3kdbRange.text
+        f3kdbY = settings.primary.f3kdbY.text
+        f3kdbCbCr = settings.primary.f3kdbCbCr.text
+        grainStrength = settings.primary.grainStrength.text
 
-        denoiser2 = settings.denoiser2
-        denoiseStrength2 = settings.denoiseStrength2
-        useDenoise2 = settings.useDenoise2
+        denoiser2 = settings.secondary.denoiser
+        denoiseStrength2 = settings.secondary.denoiseStrength.text
+        useDenoise2 = settings.secondary.useDenoise
 
-        deblockMode2 = settings.deblockMode2
-        deblockThresh2 = settings.deblockThresh2
-        useDeblock2 = settings.useDeblock2
+        deblockMode2 = settings.secondary.deblockMode
+        deblockThresh2 = settings.secondary.deblockThresh.text
+        useDeblock2 = settings.secondary.useDeblock
 
-        deringActive2 = settings.deringActive2
-        deringStrength2 = settings.deringStrength2
-        useDering2 = settings.useDering2
+        deringActive2 = settings.secondary.useDering
+        deringStrength2 = settings.secondary.deringStrength.text
+        useDering2 = settings.secondary.useDering
 
-        sharpenMethod2 = settings.sharpenMethod2
-        sharpenStrength2 = settings.sharpenStrength2
-        useSharpen2 = settings.useSharpen2
+        sharpenMethod2 = settings.secondary.sharpenMethod
+        sharpenStrength2 = settings.secondary.sharpenStrength.text
+        useSharpen2 = settings.secondary.useSharpen
 
-        usmRadius2 = settings.usmRadius2
-        usmAmount2 = settings.usmAmount2
-        usmThreshold2 = settings.usmThreshold2
+        usmRadius2 = settings.secondary.usmRadius.text
+        usmAmount2 = settings.secondary.usmAmount.text
+        usmThreshold2 = settings.secondary.usmThreshold.text
 
-        debandMethod2 = settings.debandMethod2
-        debandStrength2 = settings.debandStrength2
-        useDeband2 = settings.useDeband2
+        debandMethod2 = settings.secondary.debandMethod
+        debandStrength2 = settings.secondary.debandStrength.text
+        useDeband2 = settings.secondary.useDeband
 
-        f3kdbRange2 = settings.f3kdbRange2
-        f3kdbY2 = settings.f3kdbY2
-        f3kdbCbCr2 = settings.f3kdbCbCr2
-        grainStrength2 = settings.grainStrength2
-        useGrain2 = settings.useGrain2
+        f3kdbRange2 = settings.secondary.f3kdbRange.text
+        f3kdbY2 = settings.secondary.f3kdbY.text
+        f3kdbCbCr2 = settings.secondary.f3kdbCbCr.text
+        grainStrength2 = settings.secondary.grainStrength.text
+        useGrain2 = settings.secondary.useGrain
 
-        eqContrast = settings.eqContrast
-        eqBrightness = settings.eqBrightness
-        eqSaturation = settings.eqSaturation
+        eqContrast = settings.color.eqContrast.text
+        eqBrightness = settings.color.eqBrightness.text
+        eqSaturation = settings.color.eqSaturation.text
 
-        enableColorLinearize = settings.enableColorLinearize
-        colorExposure = settings.colorExposure
-        enableToneMap = settings.enableToneMap
-        toneMapExposure = settings.toneMapExposure
-        encodeToSRGB = settings.encodeToSRGB
-        encodeExposure = settings.encodeExposure
-        gammaBlendWeight = settings.gammaBlendWeight
-        useMedianPrefilter = settings.useMedianPrefilter
-        useBlueNoiseDeband = settings.useBlueNoiseDeband
-        useLaplacianSharpen = settings.useLaplacianSharpen
-        laplacianStrength = settings.laplacianStrength
-        useDehalo = settings.useDehalo
-        dehaloStrength = settings.dehaloStrength
-        useMoireSuppress = settings.useMoireSuppress
-        moireStrength = settings.moireStrength
-        alphaSafeProcessing = settings.alphaSafeProcessing
-        useCosineFeather = settings.useCosineFeather
-        tileFeatherMargin = settings.tileFeatherMargin
-        useTemporalSmoothing = settings.useTemporalSmoothing
-        temporalStrength = settings.temporalStrength
-        maskFeatherRadius = settings.maskFeatherRadius
-        maskDilateRadius = settings.maskDilateRadius
-        maskErodeRadius = settings.maskErodeRadius
+        enableColorLinearize = settings.metal.enableColorLinearize
+        colorExposure = settings.metal.colorExposure.text
+        enableToneMap = settings.metal.enableToneMap
+        toneMapExposure = settings.metal.toneMapExposure.text
+        encodeToSRGB = settings.metal.encodeToSRGB
+        encodeExposure = settings.metal.encodeExposure.text
+        gammaBlendWeight = settings.metal.gammaBlendWeight.text
+        useMedianPrefilter = settings.metal.useMedianPrefilter
+        useBlueNoiseDeband = settings.metal.useBlueNoiseDeband
+        useLaplacianSharpen = settings.metal.useLaplacianSharpen
+        laplacianStrength = settings.metal.laplacianStrength.text
+        useDehalo = settings.metal.useDehalo
+        dehaloStrength = settings.metal.dehaloStrength.text
+        useMoireSuppress = settings.metal.useMoireSuppress
+        moireStrength = settings.metal.moireStrength.text
+        alphaSafeProcessing = settings.metal.alphaSafeProcessing
+        useCosineFeather = settings.metal.useCosineFeather
+        tileFeatherMargin = settings.metal.tileFeatherMargin.text
+        useTemporalSmoothing = settings.metal.useTemporalSmoothing
+        temporalStrength = settings.metal.temporalStrength.text
+        maskFeatherRadius = settings.metal.maskFeatherRadius.text
+        maskDilateRadius = settings.metal.maskDilateRadius.text
+        maskErodeRadius = settings.metal.maskErodeRadius.text
 
-        audioBitrate = settings.audioBitrate
-        movflags = settings.movflags
+        audioBitrate = settings.output.audioBitrate
+        movflags = settings.output.movflags
 
-        noDeblock = settings.noDeblock
-        noDenoise = settings.noDenoise
-        noDecimate = settings.noDecimate
-        noInterpolate = settings.noInterpolate
-        noSharpen = settings.noSharpen
-        noDeband = settings.noDeband
-        noEq = settings.noEq
-        noGrain = settings.noGrain
-        pciSafe = settings.pciSafe
-        dryRun = settings.dryRun
-        preview = settings.preview
+        noDeblock = !settings.primary.useDeblock
+        noDenoise = !settings.primary.useDenoise
+        noDecimate = settings.modes.noDecimate
+        noInterpolate = settings.modes.noInterpolate
+        noSharpen = !settings.primary.useSharpen
+        noDeband = !settings.primary.useDeband
+        noEq = settings.color.noEq
+        noGrain = !settings.primary.useGrain
+        pciSafe = settings.modes.pciSafe
+        dryRun = settings.modes.dryRun
+        preview = settings.modes.preview
     }
 
     func apply(to settings: UpscaleSettings) {
-        settings.useHEVC = useHEVC
-        settings.crf = crf
-        settings.preset = preset
-        settings.use10Bit = use10Bit
+        var candidate = settings.configuration
+        candidate.codec.useHEVC = useHEVC
+        candidate.codec.crf = crf
+        candidate.codec.preset = preset
+        candidate.codec.use10Bit = use10Bit
 
-        settings.x265AqMode = x265AqMode
-        settings.x265PsyRd = x265PsyRd
-        settings.x265Deblock1 = x265Deblock1
-        settings.x265Deblock2 = x265Deblock2
+        candidate.codec.x265AqMode.text = x265AqMode
+        candidate.codec.x265PsyRd.text = x265PsyRd
+        candidate.codec.x265Deblock1.text = x265Deblock1
+        candidate.codec.x265Deblock2.text = x265Deblock2
 
-        settings.hwAccel = hwAccel
-        settings.encoder = encoder
-        settings.threads = threads
+        candidate.hardware.hwAccel = hwAccel
+        candidate.hardware.encoder = encoder
+        candidate.hardware.threads.text = threads
 
-        settings.fps = fps
-        settings.scaleFactor = scaleFactor
-        settings.interpolation = interpolation
+        candidate.video.fps.text = fps
+        candidate.video.scaleFactor = scaleFactor
+        candidate.video.interpolation = interpolation
 
-        settings.scaler = scaler
-        settings.coremlModelId = coremlModelId
-        settings.aiModelPath = aiModelPath
-        settings.aiBackend = aiBackend
-        settings.aiModelType = aiModelType
-        settings.dnnBackend = dnnBackend
+        candidate.upscaling.scaler = scaler
+        candidate.upscaling.coremlModelId = coremlModelId
+        candidate.upscaling.aiModelPath = aiModelPath
+        candidate.upscaling.aiBackend = aiBackend
+        candidate.upscaling.aiModelType = aiModelType
+        candidate.upscaling.dnnBackend = dnnBackend
 
-        settings.denoiser = denoiser
-        settings.denoiseStrength = denoiseStrength
-        settings.deblockMode = deblockMode
-        settings.deblockThresh = deblockThresh
-        settings.deringActive = deringActive
-        settings.deringStrength = deringStrength
-        settings.sharpenMethod = sharpenMethod
-        settings.sharpenStrength = sharpenStrength
-        settings.usmRadius = usmRadius
-        settings.usmAmount = usmAmount
-        settings.usmThreshold = usmThreshold
-        settings.debandMethod = debandMethod
-        settings.debandStrength = debandStrength
-        settings.f3kdbRange = f3kdbRange
-        settings.f3kdbY = f3kdbY
-        settings.f3kdbCbCr = f3kdbCbCr
-        settings.grainStrength = grainStrength
+        candidate.primary.denoiser = denoiser
+        candidate.primary.denoiseStrength.text = denoiseStrength
+        candidate.primary.deblockMode = deblockMode
+        candidate.primary.deblockThresh.text = deblockThresh
+        candidate.primary.useDering = deringActive
+        candidate.primary.deringStrength.text = deringStrength
+        candidate.primary.sharpenMethod = sharpenMethod
+        candidate.primary.sharpenStrength.text = sharpenStrength
+        candidate.primary.usmRadius.text = usmRadius
+        candidate.primary.usmAmount.text = usmAmount
+        candidate.primary.usmThreshold.text = usmThreshold
+        candidate.primary.debandMethod = debandMethod
+        candidate.primary.debandStrength.text = debandStrength
+        candidate.primary.f3kdbRange.text = f3kdbRange
+        candidate.primary.f3kdbY.text = f3kdbY
+        candidate.primary.f3kdbCbCr.text = f3kdbCbCr
+        candidate.primary.grainStrength.text = grainStrength
 
-        settings.denoiser2 = denoiser2
-        settings.denoiseStrength2 = denoiseStrength2
-        settings.useDenoise2 = useDenoise2
+        candidate.secondary.denoiser = denoiser2
+        candidate.secondary.denoiseStrength.text = denoiseStrength2
+        candidate.secondary.useDenoise = useDenoise2
 
-        settings.deblockMode2 = deblockMode2
-        settings.deblockThresh2 = deblockThresh2
-        settings.useDeblock2 = useDeblock2
+        candidate.secondary.deblockMode = deblockMode2
+        candidate.secondary.deblockThresh.text = deblockThresh2
+        candidate.secondary.useDeblock = useDeblock2
 
-        settings.deringStrength2 = deringStrength2
+        candidate.secondary.deringStrength.text = deringStrength2
         // Preserve the effective enabled state of presets saved with two switches.
-        settings.useDering2 = useDering2 && deringActive2
+        candidate.secondary.useDering = useDering2 && deringActive2
 
-        settings.sharpenMethod2 = sharpenMethod2
-        settings.sharpenStrength2 = sharpenStrength2
-        settings.useSharpen2 = useSharpen2
+        candidate.secondary.sharpenMethod = sharpenMethod2
+        candidate.secondary.sharpenStrength.text = sharpenStrength2
+        candidate.secondary.useSharpen = useSharpen2
 
-        settings.usmRadius2 = usmRadius2
-        settings.usmAmount2 = usmAmount2
-        settings.usmThreshold2 = usmThreshold2
+        candidate.secondary.usmRadius.text = usmRadius2
+        candidate.secondary.usmAmount.text = usmAmount2
+        candidate.secondary.usmThreshold.text = usmThreshold2
 
-        settings.debandMethod2 = debandMethod2
-        settings.debandStrength2 = debandStrength2
-        settings.useDeband2 = useDeband2
+        candidate.secondary.debandMethod = debandMethod2
+        candidate.secondary.debandStrength.text = debandStrength2
+        candidate.secondary.useDeband = useDeband2
 
-        settings.f3kdbRange2 = f3kdbRange2
-        settings.f3kdbY2 = f3kdbY2
-        settings.f3kdbCbCr2 = f3kdbCbCr2
-        settings.grainStrength2 = grainStrength2
-        settings.useGrain2 = useGrain2
+        candidate.secondary.f3kdbRange.text = f3kdbRange2
+        candidate.secondary.f3kdbY.text = f3kdbY2
+        candidate.secondary.f3kdbCbCr.text = f3kdbCbCr2
+        candidate.secondary.grainStrength.text = grainStrength2
+        candidate.secondary.useGrain = useGrain2
 
-        settings.eqContrast = eqContrast
-        settings.eqBrightness = eqBrightness
-        settings.eqSaturation = eqSaturation
+        candidate.color.eqContrast.text = eqContrast
+        candidate.color.eqBrightness.text = eqBrightness
+        candidate.color.eqSaturation.text = eqSaturation
 
-        settings.enableColorLinearize = enableColorLinearize
-        settings.colorExposure = colorExposure
-        settings.enableToneMap = enableToneMap
-        settings.toneMapExposure = toneMapExposure
-        settings.encodeToSRGB = encodeToSRGB
-        settings.encodeExposure = encodeExposure
-        settings.gammaBlendWeight = gammaBlendWeight
-        settings.useMedianPrefilter = useMedianPrefilter
-        settings.useBlueNoiseDeband = useBlueNoiseDeband
-        settings.useLaplacianSharpen = useLaplacianSharpen
-        settings.laplacianStrength = laplacianStrength
-        settings.useDehalo = useDehalo
-        settings.dehaloStrength = dehaloStrength
-        settings.useMoireSuppress = useMoireSuppress
-        settings.moireStrength = moireStrength
-        settings.alphaSafeProcessing = alphaSafeProcessing
-        settings.useCosineFeather = useCosineFeather
-        settings.tileFeatherMargin = tileFeatherMargin
-        settings.useTemporalSmoothing = useTemporalSmoothing
-        settings.temporalStrength = temporalStrength
-        settings.maskFeatherRadius = maskFeatherRadius
-        settings.maskDilateRadius = maskDilateRadius
-        settings.maskErodeRadius = maskErodeRadius
+        candidate.metal.enableColorLinearize = enableColorLinearize
+        candidate.metal.colorExposure.text = colorExposure
+        candidate.metal.enableToneMap = enableToneMap
+        candidate.metal.toneMapExposure.text = toneMapExposure
+        candidate.metal.encodeToSRGB = encodeToSRGB
+        candidate.metal.encodeExposure.text = encodeExposure
+        candidate.metal.gammaBlendWeight.text = gammaBlendWeight
+        candidate.metal.useMedianPrefilter = useMedianPrefilter
+        candidate.metal.useBlueNoiseDeband = useBlueNoiseDeband
+        candidate.metal.useLaplacianSharpen = useLaplacianSharpen
+        candidate.metal.laplacianStrength.text = laplacianStrength
+        candidate.metal.useDehalo = useDehalo
+        candidate.metal.dehaloStrength.text = dehaloStrength
+        candidate.metal.useMoireSuppress = useMoireSuppress
+        candidate.metal.moireStrength.text = moireStrength
+        candidate.metal.alphaSafeProcessing = alphaSafeProcessing
+        candidate.metal.useCosineFeather = useCosineFeather
+        candidate.metal.tileFeatherMargin.text = tileFeatherMargin
+        candidate.metal.useTemporalSmoothing = useTemporalSmoothing
+        candidate.metal.temporalStrength.text = temporalStrength
+        candidate.metal.maskFeatherRadius.text = maskFeatherRadius
+        candidate.metal.maskDilateRadius.text = maskDilateRadius
+        candidate.metal.maskErodeRadius.text = maskErodeRadius
 
-        settings.audioBitrate = audioBitrate
-        settings.movflags = movflags
+        candidate.output.audioBitrate = audioBitrate
+        candidate.output.movflags = movflags
 
-        settings.noDeblock = noDeblock
-        settings.noDenoise = noDenoise
-        settings.noDecimate = noDecimate
-        settings.noInterpolate = noInterpolate
-        settings.noSharpen = noSharpen
-        settings.noDeband = noDeband
-        settings.noEq = noEq
-        settings.noGrain = noGrain
-        settings.pciSafe = pciSafe
-        settings.dryRun = dryRun
-        settings.preview = preview
+        candidate.primary.useDeblock = !(noDeblock)
+        candidate.primary.useDenoise = !(noDenoise)
+        candidate.modes.noDecimate = noDecimate
+        candidate.modes.noInterpolate = noInterpolate
+        candidate.primary.useSharpen = !(noSharpen)
+        candidate.primary.useDeband = !(noDeband)
+        candidate.color.noEq = noEq
+        candidate.primary.useGrain = !(noGrain)
+        candidate.modes.pciSafe = pciSafe
+        candidate.modes.dryRun = dryRun
+        candidate.modes.preview = preview
+        settings.replaceConfiguration(candidate)
     }
 
     init(from decoder: Decoder) throws {
-        let defaults = UpscaleSettings()
+        let defaults = UpscaleSettingsSnapshot(settings: UpscaleSettings())
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         useHEVC = try container.decodeIfPresent(Bool.self, forKey: .useHEVC) ?? defaults.useHEVC

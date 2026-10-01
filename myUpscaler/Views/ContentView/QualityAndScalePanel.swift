@@ -21,10 +21,10 @@ struct QualityScalePanel: View {
                     // CRF Slider
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
-                            Text(settings.scaler == "coreml" || settings.encoder == "videotoolbox" ? "Compression" : "CRF")
+                            Text(settings.upscaling.scaler == "coreml" || settings.hardware.encoder == "videotoolbox" ? "Compression" : "CRF")
                                 .font(.caption.weight(.medium))
                             Spacer()
-                            Text("\(Int(localCRF ?? settings.crf))")
+                            Text("\(Int(localCRF ?? settings.codec.crf))")
                                 .font(.caption.weight(.medium))
                                 .foregroundColor(.primary)
                             Text("(Lower is better)")
@@ -33,12 +33,12 @@ struct QualityScalePanel: View {
                         }
 
                         LuxuriousSlider(value: Binding(
-                            get: { localCRF ?? settings.crf },
+                            get: { localCRF ?? settings.codec.crf },
                             set: { localCRF = $0 }
                         ), range: 0...51, step: 1, gradient: .crf, onEditingChanged: { editing in
                             if !editing {
                                 if let finalValue = localCRF {
-                                    settings.crf = finalValue
+                                    settings.codec.crf = finalValue
                                     localCRF = nil
                                 }
                             }
@@ -49,12 +49,12 @@ struct QualityScalePanel: View {
                     Divider()
                         .padding(.vertical, 2)
 
-                    if settings.encoder == "videotoolbox" && settings.scaler != "coreml" {
-                        let quality = max(1, min(100, Int((100 - (localCRF ?? settings.crf) * 99 / 51).rounded())))
+                    if settings.hardware.encoder == "videotoolbox" && settings.upscaling.scaler != "coreml" {
+                        let quality = max(1, min(100, Int((100 - (localCRF ?? settings.codec.crf) * 99 / 51).rounded())))
                         Text("VideoToolbox quality: \(quality)/100. Hardware quality differs from CPU CRF.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                    } else if settings.scaler == "coreml" {
+                    } else if settings.upscaling.scaler == "coreml" {
                         Text("Controls the Core ML writer's target bitrate; this is not software CRF encoding.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -65,21 +65,21 @@ struct QualityScalePanel: View {
                             Text("Scale")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            TextField("2.0", value: $settings.scaleFactor, format: .number)
+                            TextField("2.0", value: $settings.video.scaleFactor, format: .number)
                                 .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                                 .frame(width: 60)
                         }
 
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(settings.scaler == "coreml" ? "FPS (source)" : "FPS")
+                            Text(settings.upscaling.scaler == "coreml" ? "FPS (source)" : "FPS")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            TextField("60", text: $settings.fps)
+                            TextField("60", text: $settings.video.fps.text)
                                 .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                                 .frame(width: 60)
-                                .disabled(settings.scaler == "coreml")
+                                .disabled(settings.upscaling.scaler == "coreml")
                         }
                     }
 
@@ -92,15 +92,15 @@ struct QualityScalePanel: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Spacer()
-                        Picker("", selection: $settings.interpolation) {
+                        Picker("", selection: $settings.video.interpolation) {
                             ForEach(settings.interpolations, id: \.self) { Text($0) }
                         }
                         .pickerStyle(.menu)
                         .controlSize(.small)
                         .frame(minWidth: 140)
-                        .disabled(settings.scaler == "coreml")
+                        .disabled(settings.upscaling.scaler == "coreml")
                     }
-                    if settings.scaler == "coreml" {
+                    if settings.upscaling.scaler == "coreml" {
                         Text("Core ML preserves source frame timing; interpolation and target FPS apply to FFmpeg only.")
                             .font(.caption)
                             .foregroundStyle(.secondary)

@@ -9,17 +9,17 @@ nonisolated extension UpscaleSettings {
 
     /// Returns true if both first and second set have sharpening active
     var isSharpenStacked: Bool {
-        scaler != "coreml" && !noSharpen && useSharpen2 && (sharpenMethod == "cas" ? (Double(sharpenStrength) ?? 0) > 0 : (Double(usmAmount) ?? 0) != 0)
+        upscaling.scaler != "coreml" && primary.useSharpen && secondary.useSharpen && (primary.sharpenMethod == "cas" ? (Double(primary.sharpenStrength.text) ?? 0) > 0 : (Double(primary.usmAmount.text) ?? 0) != 0)
     }
 
     /// Returns true if both first and second set have denoising active
     var isDenoiseStacked: Bool {
-        scaler != "coreml" && !noDenoise && useDenoise2 && denoiseStrength2.lowercased() != "auto"
+        upscaling.scaler != "coreml" && primary.useDenoise && secondary.useDenoise && secondary.denoiseStrength.text.lowercased() != "auto"
     }
 
     /// Returns true if both first and second set have debanding active
     var isDebandStacked: Bool {
-        scaler != "coreml" && !noDeband && useDeband2
+        upscaling.scaler != "coreml" && primary.useDeband && secondary.useDeband
     }
 
     /// Attenuation factor for second set sharpening based on what's being combined
@@ -30,8 +30,8 @@ nonisolated extension UpscaleSettings {
     var sharpen2AttenuationFactor: Double {
         guard isSharpenStacked else { return 1.0 }
 
-        let method1 = sharpenMethod
-        let method2 = sharpenMethod2
+        let method1 = primary.sharpenMethod
+        let method2 = secondary.sharpenMethod
 
         if method1 == "unsharp" && method2 == "unsharp" {
             return 0.35  // Heavy: double unsharp is very aggressive
@@ -58,18 +58,18 @@ nonisolated extension UpscaleSettings {
 
     /// Effective CAS strength for second set (attenuated when stacked)
     var effectiveSharpenStrength2: String {
-        guard isSharpenStacked, sharpenMethod2 == "cas" else { return sharpenStrength2 }
+        guard isSharpenStacked, secondary.sharpenMethod == "cas" else { return secondary.sharpenStrength.text }
 
-        guard let value = Double(sharpenStrength2) else { return sharpenStrength2 }
+        guard let value = Double(secondary.sharpenStrength.text) else { return secondary.sharpenStrength.text }
         let attenuated = value * sharpen2AttenuationFactor
         return String(format: "%.3f", max(0, min(1.0, attenuated)))
     }
 
     /// Effective unsharp amount for second set (attenuated when stacked)
     var effectiveUsmAmount2: String {
-        guard isSharpenStacked, sharpenMethod2 == "unsharp" else { return usmAmount2 }
+        guard isSharpenStacked, secondary.sharpenMethod == "unsharp" else { return secondary.usmAmount.text }
 
-        guard let value = Double(usmAmount2) else { return usmAmount2 }
+        guard let value = Double(secondary.usmAmount.text) else { return secondary.usmAmount.text }
         let attenuated = value * sharpen2AttenuationFactor
         // Clamp to valid range for unsharp amount (-2.0 to 5.0)
         return String(format: "%.2f", max(-2.0, min(5.0, attenuated)))
@@ -77,51 +77,50 @@ nonisolated extension UpscaleSettings {
 
     /// Effective unsharp radius for second set (slightly reduced when stacked to prevent halo artifacts)
     var effectiveUsmRadius2: String {
-        guard isSharpenStacked, sharpenMethod2 == "unsharp" else { return usmRadius2 }
+        guard isSharpenStacked, secondary.sharpenMethod == "unsharp" else { return String(Int(Self.unsharpMatrixSize(secondary.usmRadius.text))) }
 
-        guard let value = Double(usmRadius2), value.isFinite else { return "3" }
+        guard let value = Double(secondary.usmRadius.text), value.isFinite else { return "3" }
         // Reduce radius slightly to prevent excessive halo when stacking
         let attenuated = max(3, min(23, value * (sharpen2AttenuationFactor + 0.2)))  // Less aggressive on radius
         // Clamp to valid range (3-23)
-        let oddSize = 2 * Int((attenuated - 1) / 2) + 1
-        return String(max(3, min(23, oddSize)))
+        return String(Int(Self.unsharpMatrixSize(String(attenuated))))
     }
 
     /// Effective denoise strength for second set (attenuated when stacked)
     var effectiveDenoiseStrength2: String {
-        guard isDenoiseStacked else { return denoiseStrength2 }
+        guard isDenoiseStacked else { return secondary.denoiseStrength.text }
 
         // Handle "auto" specially
-        if denoiseStrength2.lowercased() == "auto" { return "auto" }
+        if secondary.denoiseStrength.text.lowercased() == "auto" { return "auto" }
 
-        guard let value = Double(denoiseStrength2) else { return denoiseStrength2 }
+        guard let value = Double(secondary.denoiseStrength.text) else { return secondary.denoiseStrength.text }
         let attenuated = value * denoise2AttenuationFactor
         return String(format: "%.2f", max(0, attenuated))
     }
 
     /// Effective deband strength for second set (attenuated when stacked)
     var effectiveDebandStrength2: String {
-        guard isDebandStacked else { return debandStrength2 }
+        guard isDebandStacked else { return secondary.debandStrength.text }
 
-        guard let value = Double(debandStrength2) else { return debandStrength2 }
+        guard let value = Double(secondary.debandStrength.text) else { return secondary.debandStrength.text }
         let attenuated = value * deband2AttenuationFactor
-        return String(format: "%.4f", max(debandMethod2 == "gradfun" ? 0.51 : 0, attenuated))
+        return String(format: "%.4f", max(secondary.debandMethod == "gradfun" ? 0.51 : 0, attenuated))
     }
 
     /// Effective f3kdb Y for second set (attenuated when stacked)
     var effectiveF3kdbY2: String {
-        guard isDebandStacked, debandMethod2 == "f3kdb" else { return f3kdbY2 }
+        guard isDebandStacked, secondary.debandMethod == "f3kdb" else { return secondary.f3kdbY.text }
 
-        guard let value = Double(f3kdbY2) else { return f3kdbY2 }
+        guard let value = Double(secondary.f3kdbY.text) else { return secondary.f3kdbY.text }
         let attenuated = value * deband2AttenuationFactor
         return String(format: "%.0f", max(16, min(512, attenuated)))
     }
 
     /// Effective f3kdb CbCr for second set (attenuated when stacked)
     var effectiveF3kdbCbCr2: String {
-        guard isDebandStacked, debandMethod2 == "f3kdb" else { return f3kdbCbCr2 }
+        guard isDebandStacked, secondary.debandMethod == "f3kdb" else { return secondary.f3kdbCbCr.text }
 
-        guard let value = Double(f3kdbCbCr2) else { return f3kdbCbCr2 }
+        guard let value = Double(secondary.f3kdbCbCr.text) else { return secondary.f3kdbCbCr.text }
         let attenuated = value * deband2AttenuationFactor
         return String(format: "%.0f", max(16, min(512, attenuated)))
     }

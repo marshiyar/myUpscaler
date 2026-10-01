@@ -18,7 +18,7 @@ struct RestorationFiltersPanel: View {
             GroupBox {
                 VStack(spacing: UI.rowSpacing) {
                     ParameterRow(title: "Denoise Strength",
-                                 binding: $settings.denoiseStrength,
+                                 binding: $settings.primary.denoiseStrength.text,
                                  range: settings.denoiseStrengthRange,
                                  step: settings.denoiseStrengthStep,
                                  defaultValue: settings.denoiseStrengthDefault,
@@ -30,16 +30,16 @@ struct RestorationFiltersPanel: View {
                     Divider()
 
                     // Deringing toggle + strength
-                    Toggle(isOn: $settings.deringActive) {
+                    Toggle(isOn: $settings.primary.useDering) {
                         Text("Deringing")
                             .font(.subheadline)
                     }
                     .toggleStyle(.switch)
                     .padding(.vertical, 4)  // Add vertical padding
 
-                    if settings.deringActive {
+                    if settings.primary.useDering {
                         ParameterRow(title: "Strength",
-                                     binding: $settings.deringStrength,
+                                     binding: $settings.primary.deringStrength.text,
                                      range: 0...10,
                                      step: 0.005,
                                      defaultValue: 0.5,
@@ -49,22 +49,22 @@ struct RestorationFiltersPanel: View {
                         { _ in settings.objectWillChange.send() }
                             .transition(.opacity.combined(with: .move(edge: .top)))
                             .padding(.top, 8)
-                            .animation(.easeInOut(duration: 0.2), value: settings.deringActive)
+                            .animation(.easeInOut(duration: 0.2), value: settings.primary.useDering)
                     }
 
                     Divider()
 
                     // Sharpen
-                    Picker("Method", selection: $settings.sharpenMethod) {
+                    Picker("Method", selection: $settings.primary.sharpenMethod) {
                         Text("CAS").tag("cas")
                         Text("Unsharp Mask").tag("unsharp")
                     }
                     .pickerStyle(.menu)
                     .frame(minWidth: 160)
 
-                    if settings.sharpenMethod == "cas" {
+                    if settings.primary.sharpenMethod == "cas" {
                         ParameterRow(title: "CAS Strength",
-                                     binding: $settings.sharpenStrength,
+                                     binding: $settings.primary.sharpenStrength.text,
                                      range: settings.sharpenStrengthRange,
                                      step: settings.sharpenStrengthStep,
                                      defaultValue: settings.sharpenStrengthDefault,
@@ -75,7 +75,7 @@ struct RestorationFiltersPanel: View {
                     } else {
                         VStack(alignment: .leading, spacing: 12) {
                             ParameterRow(title: "Radius",
-                                         binding: $settings.usmRadius,
+                                         binding: $settings.primary.usmRadius.text,
                                          range: settings.usmRadiusRange,
                                          step: settings.usmRadiusStep,
                                          defaultValue: settings.usmRadiusDefault,
@@ -85,7 +85,7 @@ struct RestorationFiltersPanel: View {
                             { _ in settings.objectWillChange.send() }
 
                             ParameterRow(title: "Amount",
-                                         binding: $settings.usmAmount,
+                                         binding: $settings.primary.usmAmount.text,
                                          range: settings.usmAmountRange,
                                          step: settings.usmAmountStep,
                                          defaultValue: settings.usmAmountDefault,
@@ -95,7 +95,7 @@ struct RestorationFiltersPanel: View {
                             { _ in settings.objectWillChange.send() }
 
                             ParameterRow(title: "Threshold",
-                                         binding: $settings.usmThreshold,
+                                         binding: $settings.primary.usmThreshold.text,
                                          range: settings.usmThresholdRange,
                                          step: settings.usmThresholdStep,
                                          defaultValue: settings.usmThresholdDefault,
@@ -105,7 +105,7 @@ struct RestorationFiltersPanel: View {
                             { _ in settings.objectWillChange.send() }
                             .transition(.opacity.combined(with: .move(edge: .top)))
                         }
-                        .animation(.easeInOut(duration: 0.5), value: settings.deringActive)  // Animate changes
+                        .animation(.easeInOut(duration: 0.5), value: settings.primary.useDering)  // Animate changes
                     }
                 }
                 .padding(.top, 16)
@@ -135,13 +135,13 @@ struct RestorationPanel: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Spacer()
-                        Picker("", selection: $settings.deblockMode) {
+                        Picker("", selection: $settings.primary.deblockMode) {
                             ForEach(settings.deblockModes, id: \.self) { Text($0) }
                         }
                         .pickerStyle(.menu)
                         .controlSize(.small)
                         .frame(width: 80)
-                        TextField("Thresh", text: $settings.deblockThresh)
+                        TextField("Thresh", text: $settings.primary.deblockThresh.text)
                             .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                             .frame(width: 70)
@@ -156,7 +156,7 @@ struct RestorationPanel: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Spacer()
-                        Picker("", selection: $settings.debandMethod) {
+                        Picker("", selection: $settings.primary.debandMethod) {
                             ForEach(settings.debandMethods, id: \.self) { Text($0) }
                         }
                         .pickerStyle(.menu)
@@ -164,14 +164,14 @@ struct RestorationPanel: View {
                         .frame(width: 80)
                     }
 
-                    if settings.debandMethod == "f3kdb" {
+                    if settings.primary.debandMethod == "f3kdb" {
                         VStack(alignment: .leading, spacing: 4) {
                             HStack(spacing: 6) {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("Range")
                                         .font(.system(size: 10))
                                         .foregroundColor(.secondary)
-                                    TextField("15", text: $settings.f3kdbRange)
+                                    TextField("15", text: $settings.primary.f3kdbRange.text)
                                         .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                                         .frame(width: 40)
@@ -180,7 +180,7 @@ struct RestorationPanel: View {
                                     Text("Y")
                                         .font(.system(size: 10))
                                         .foregroundColor(.secondary)
-                                    TextField("64", text: $settings.f3kdbY)
+                                    TextField("64", text: $settings.primary.f3kdbY.text)
                                         .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                                         .frame(width: 40)
@@ -189,7 +189,7 @@ struct RestorationPanel: View {
                                     Text("CbCr")
                                         .font(.system(size: 10))
                                         .foregroundColor(.secondary)
-                                    TextField("64", text: $settings.f3kdbCbCr)
+                                    TextField("64", text: $settings.primary.f3kdbCbCr.text)
                                         .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                                         .frame(width: 40)
@@ -203,7 +203,7 @@ struct RestorationPanel: View {
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             Spacer()
-                            TextField("0.015", text: $settings.debandStrength)
+                            TextField("0.015", text: $settings.primary.debandStrength.text)
                                 .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                                 .frame(width: 55)
@@ -220,7 +220,7 @@ struct RestorationPanel: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Spacer()
-                        TextField("1.0", text: $settings.grainStrength)
+                        TextField("1.0", text: $settings.primary.grainStrength.text)
                             .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                             .frame(width: 50)

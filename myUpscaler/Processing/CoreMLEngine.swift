@@ -125,7 +125,7 @@ nonisolated class CoreMLEngine: EngineProtocol {
     private func logEffectiveKnobs(settings: UpscaleSettings, useHEVC: Bool) {
         let feather = settings.tileFeatherMarginValue > 0
         let featherNote = feather ? "\(settings.tileFeatherMarginValue)px" : "off"
-        log("CoreML honors: model=\(settings.coremlModelId.rawValue), scale=\(settings.scaleFactor)x, codec=\(useHEVC ? "hevc" : "h264"), crf=\(Int(settings.crf)), tile feather=\(featherNote).\n")
+        log("CoreML honors: model=\(settings.upscaling.coremlModelId.rawValue), scale=\(settings.video.scaleFactor)x, codec=\(useHEVC ? "hevc" : "h264"), crf=\(Int(settings.codec.crf)), tile feather=\(featherNote).\n")
     }
 
     func process(inputPath: String, settings: UpscaleSettings, outputDirectory: String) async throws {
@@ -133,17 +133,17 @@ nonisolated class CoreMLEngine: EngineProtocol {
         defer { control.finish() }
         try control.checkCancellation()
         log("CoreML Engine: Starting processing...\n")
-        let codecDecision = CodecSupport.resolve(requestHEVC: settings.useHEVC)
+        let codecDecision = CodecSupport.resolve(requestHEVC: settings.codec.useHEVC)
 
         // FIX: Force Linearize OFF for Real-ESRGAN to prevent dark/washed-out results
-        if settings.coremlModelId.rawValue.contains("RealESRGAN") {
-            settings.enableColorLinearize = false
-            settings.enableToneMap = false
-            settings.encodeToSRGB = false
+        if settings.upscaling.coremlModelId.rawValue.contains("RealESRGAN") {
+            settings.metal.enableColorLinearize = false
+            settings.metal.enableToneMap = false
+            settings.metal.encodeToSRGB = false
         }
 
         logEffectiveKnobs(settings: settings, useHEVC: codecDecision.useHEVC)
-        let modelSpec = CoreMLModelRegistry.model(for: settings.coremlModelId)
+        let modelSpec = CoreMLModelRegistry.model(for: settings.upscaling.coremlModelId)
 
         let inputURL = URL(fileURLWithPath: inputPath)
         let asset = AVURLAsset(url: inputURL)
@@ -190,7 +190,7 @@ nonisolated class CoreMLEngine: EngineProtocol {
         let renderedURL = temporaryDirectory.appendingPathComponent("rendered.mp4")
         let muxedURL = temporaryDirectory.appendingPathComponent("muxed.mp4")
 
-        let userScaleFactor = CGFloat(settings.scaleFactor)
+        let userScaleFactor = CGFloat(settings.video.scaleFactor)
         let modelScaleFactor = CGFloat(modelSpec.nativeScale)
 
         let inputSize = try await videoTrack.load(.naturalSize)
@@ -201,13 +201,13 @@ nonisolated class CoreMLEngine: EngineProtocol {
         let startedAt = ProcessInfo.processInfo.systemUptime
         var lastProgressAt = startedAt
         let geometry = try UpscaleGeometry(inputWidth: Int(inputSize.width), inputHeight: Int(inputSize.height),
-            requestedScale: settings.scaleFactor, nativeScale: modelSpec.nativeScale,
+            requestedScale: settings.video.scaleFactor, nativeScale: modelSpec.nativeScale,
             tileWidth: tileWidth, tileHeight: tileHeight)
         let outputWidth = geometry.outputWidth
         let outputHeight = geometry.outputHeight
 
         let pixelCount = Double(outputWidth) * Double(outputHeight)
-        let crfScale = 1.5 - (Double(settings.crf) / 51.0)
+        let crfScale = 1.5 - (Double(settings.codec.crf) / 51.0)
         let targetBitrate = Int(pixelCount * 0.15 * crfScale)
         let videoSettings: [String: Any] = [
             AVVideoCodecKey: codecDecision.useHEVC ? AVVideoCodecType.hevc : AVVideoCodecType.h264,
@@ -299,7 +299,7 @@ nonisolated class CoreMLEngine: EngineProtocol {
                                 destX: outX, destY: outY,
                                 width: outW, height: outH,
                                 margin: blendMargin,
-                                useCosine: settings.useCosineFeather,
+                                useCosine: settings.metal.useCosineFeather,
                                 isLeft: tileX == 0, isRight: tileX == tilesX - 1,
                                 isTop: tileY == 0, isBottom: tileY == tilesY - 1
                             )

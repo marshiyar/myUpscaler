@@ -23,7 +23,7 @@ struct X265ParametersPanel: View {
                             Text("AQ Mode")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            TextField("3", text: $settings.x265AqMode)
+                            TextField("3", text: $settings.codec.x265AqMode.text)
                                 .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                                 .frame(width: 40)
@@ -34,7 +34,7 @@ struct X265ParametersPanel: View {
                             Text("Psy-RD")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            TextField("2.0", text: $settings.x265PsyRd)
+                            TextField("2.0", text: $settings.codec.x265PsyRd.text)
                                 .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                                 .frame(width: 40)
@@ -46,14 +46,14 @@ struct X265ParametersPanel: View {
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             HStack(spacing: 4) {
-                                TextField("-2", text: $settings.x265Deblock1)
+                                TextField("-2", text: $settings.codec.x265Deblock1.text)
                                     .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                                     .frame(width: 35)
                                 Text(",")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
-                                TextField("-2", text: $settings.x265Deblock2)
+                                TextField("-2", text: $settings.codec.x265Deblock2.text)
                                     .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                                     .frame(width: 35)
@@ -91,13 +91,13 @@ struct HardwareEncodingPanel: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Spacer()
-                        Picker("", selection: $settings.hwAccel) {
+                        Picker("", selection: $settings.hardware.hwAccel) {
                             ForEach(settings.hwAccels, id: \.self) { Text($0) }
                         }
                         .pickerStyle(.menu)
                         .controlSize(.small)
                         .frame(minWidth: 140)
-                        .disabled(settings.scaler == "coreml")
+                        .disabled(settings.upscaling.scaler == "coreml")
                     }
 
                     Divider()
@@ -109,13 +109,13 @@ struct HardwareEncodingPanel: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Spacer()
-                        Picker("", selection: $settings.encoder) {
+                        Picker("", selection: $settings.hardware.encoder) {
                             ForEach(settings.encoders, id: \.self) { Text($0) }
                         }
                         .pickerStyle(.menu)
                         .controlSize(.small)
                         .frame(minWidth: 140)
-                        .disabled(settings.scaler == "coreml")
+                        .disabled(settings.upscaling.scaler == "coreml")
                     }
 
                     Divider()
@@ -124,36 +124,36 @@ struct HardwareEncodingPanel: View {
                     // Toggles
                     VStack(spacing: 6) {
                         HStack(spacing: 12) {
-                            Toggle(isOn: $settings.useHEVC) {
+                            Toggle(isOn: $settings.codec.useHEVC) {
                                 Text("Use HEVC (H.265)")
                                     .font(.caption)
                             }
                             .toggleStyle(.switch)
                             .controlSize(.mini)
 
-                            Toggle(isOn: $settings.use10Bit) {
+                            Toggle(isOn: $settings.codec.use10Bit) {
                                 Text("10‑Bit Output")
                                     .font(.caption)
                             }
                             .toggleStyle(.switch)
                             .controlSize(.mini)
 
-                            .disabled(settings.scaler == "coreml" || !settings.useHEVC)
+                            .disabled(settings.upscaling.scaler == "coreml" || !settings.codec.useHEVC)
                             .help("10-bit output requires HEVC and the FFmpeg processing path")
                             // MOV Faststart Toggle
                             Toggle(isOn: Binding(
-                                get: { settings.movflags.contains("+faststart") },
+                                get: { settings.output.movflags.contains("+faststart") },
                                 set: { isEnabled in
                                     if isEnabled {
-                                        if !settings.movflags.contains("+faststart") {
-                                            if settings.movflags.isEmpty {
-                                                settings.movflags = "+faststart"
+                                        if !settings.output.movflags.contains("+faststart") {
+                                            if settings.output.movflags.isEmpty {
+                                                settings.output.movflags = "+faststart"
                                             } else {
-                                                settings.movflags += " +faststart"
+                                                settings.output.movflags += " +faststart"
                                             }
                                         }
                                     } else {
-                                        settings.movflags = settings.movflags.replacingOccurrences(of: "+faststart", with: "").trimmingCharacters(in: .whitespaces)
+                                        settings.output.movflags = settings.output.movflags.replacingOccurrences(of: "+faststart", with: "").trimmingCharacters(in: .whitespaces)
                                     }
                                 }
                             )) {
@@ -162,7 +162,7 @@ struct HardwareEncodingPanel: View {
                             }
                             .toggleStyle(.switch)
                             .controlSize(.mini)
-                            .disabled(settings.scaler == "coreml")
+                            .disabled(settings.upscaling.scaler == "coreml")
                             .help("Moves metadata to the beginning of the file for faster web playback")
 
                             Spacer()
@@ -176,14 +176,14 @@ struct HardwareEncodingPanel: View {
                                .font(.caption)
                                .foregroundColor(.secondary)
                            Spacer()
-                           TextField("192k", text: $settings.audioBitrate)
+                           TextField("192k", text: $settings.output.audioBitrate)
                                .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                                .frame(width: 60)
-                               .disabled(settings.scaler == "coreml")
+                               .disabled(settings.upscaling.scaler == "coreml")
                        }
 
-                        Text(settings.scaler == "coreml"
+                        Text(settings.upscaling.scaler == "coreml"
                              ? "Core ML uses its own reader and writer. Decode, encoder, 10-bit, audio bitrate, and Faststart controls apply to FFmpeg only."
                              : "Decode acceleration and output encoding are independent. 10-bit output requires HEVC; PCI Safe Mode forces 8-bit.")
                             .font(.caption)
@@ -199,13 +199,13 @@ struct HardwareEncodingPanel: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Spacer()
-                        Picker("", selection: $settings.preset) {
+                        Picker("", selection: $settings.codec.preset) {
                             ForEach(settings.presets, id: \.self) { Text($0) }
                         }
                         .pickerStyle(.menu)
                         .controlSize(.small)
                         .frame(minWidth: 140)
-                        .disabled(settings.scaler == "coreml" || settings.encoder == "videotoolbox")
+                        .disabled(settings.upscaling.scaler == "coreml" || settings.hardware.encoder == "videotoolbox")
                         .help("CPU x264/x265 speed and compression tradeoff. Does not control AI inference or VideoToolbox encoding.")
                     }
 
@@ -217,11 +217,11 @@ struct HardwareEncodingPanel: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Spacer()
-                        TextField("0 (auto)", text: $settings.threads)
+                        TextField("0 (auto)", text: $settings.hardware.threads.text)
                             .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                             .frame(width: 60)
-                            .disabled(settings.scaler == "coreml")
+                            .disabled(settings.upscaling.scaler == "coreml")
                     }
                 }
                 .padding(8)

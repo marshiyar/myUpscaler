@@ -6,7 +6,7 @@ import SwiftUI
         NSApplication.shared.setActivationPolicy(.prohibited)
         let runner = UpscaleRunner()
         runner.inputPath = "/tmp/workspace-action-fixture.mp4"
-        runner.settings.scaler = "lanczos"
+        runner.settings.upscaling.scaler = "lanczos"
         var runs = 0, cancellations = 0
         let dispatcher = CommandDispatcher()
         dispatcher.configure([

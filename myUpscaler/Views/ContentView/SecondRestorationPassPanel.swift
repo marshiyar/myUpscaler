@@ -16,7 +16,7 @@ struct RestorationSecondSetPanel: View {
                 Spacer()
             }
             .padding(.bottom, 4)
-            if settings.scaler == "coreml" {
+            if settings.upscaling.scaler == "coreml" {
                 Text("Unavailable for Core ML export")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -27,7 +27,7 @@ struct RestorationSecondSetPanel: View {
                         Divider()
                             .padding(.vertical, 2)
 
-                        Text(settings.scaler == "coreml" ? "These filters are unavailable for Core ML export." : "Optional filters after scaling and the primary sharpen/deband filters. Each switch works independently of the primary filters. Grain here replaces primary grain.")
+                        Text(settings.upscaling.scaler == "coreml" ? "These filters are unavailable for Core ML export." : "Optional filters after scaling and the primary sharpen/deband filters. Each switch works independently of the primary filters. Grain here replaces primary grain.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         Text("When the same filter is enabled in both sets, fixed multipliers reduce finishing strength. This does not analyze the image or guarantee better quality. Auto denoise is unchanged.")
@@ -36,23 +36,23 @@ struct RestorationSecondSetPanel: View {
 
                         // Denoise 2
                         HStack {
-                            Toggle(isOn: $settings.useDenoise2) {
+                            Toggle(isOn: $settings.secondary.useDenoise) {
                                 Text("Denoise")
                                     .font(.caption)
-                                    .foregroundColor(settings.useDenoise2 ? .primary : .secondary)
+                                    .foregroundColor(settings.secondary.useDenoise ? .primary : .secondary)
                             }
                             .toggleStyle(.switch)
                             .controlSize(.mini)
 
-                            if settings.useDenoise2 {
+                            if settings.secondary.useDenoise {
                                 Spacer()
-                                Picker("", selection: $settings.denoiser2) {
+                                Picker("", selection: $settings.secondary.denoiser) {
                                     ForEach(settings.denoisers, id: \.self) { Text($0) }
                                 }
                                 .pickerStyle(.menu)
                                 .controlSize(.small)
                                 .frame(width: 70)
-                                TextField("Str", text: $settings.denoiseStrength2)
+                                TextField("Str", text: $settings.secondary.denoiseStrength.text)
                                     .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                                     .frame(width: 50)
@@ -73,17 +73,17 @@ struct RestorationSecondSetPanel: View {
 
                         // Deringing 2
                         HStack {
-                            Toggle(isOn: $settings.useDering2) {
+                            Toggle(isOn: $settings.secondary.useDering) {
                                 Text("Deringing")
                                     .font(.caption)
-                                    .foregroundColor(settings.useDering2 ? .primary : .secondary)
+                                    .foregroundColor(settings.secondary.useDering ? .primary : .secondary)
                             }
                             .toggleStyle(.switch)
                             .controlSize(.mini)
 
-                            if settings.useDering2 {
+                            if settings.secondary.useDering {
                                 Spacer()
-                                TextField("Strength", text: $settings.deringStrength2)
+                                TextField("Strength", text: $settings.secondary.deringStrength.text)
                                     .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                                     .frame(width: 70)
@@ -97,17 +97,17 @@ struct RestorationSecondSetPanel: View {
 
                         // Sharpen 2
                         HStack {
-                            Toggle(isOn: $settings.useSharpen2) {
+                            Toggle(isOn: $settings.secondary.useSharpen) {
                                 Text("Sharpen")
                                     .font(.caption)
-                                    .foregroundColor(settings.useSharpen2 ? .primary : .secondary)
+                                    .foregroundColor(settings.secondary.useSharpen ? .primary : .secondary)
                             }
                             .toggleStyle(.switch)
                             .controlSize(.mini)
 
-                            if settings.useSharpen2 {
+                            if settings.secondary.useSharpen {
                                 Spacer()
-                                Picker("", selection: $settings.sharpenMethod2) {
+                                Picker("", selection: $settings.secondary.sharpenMethod) {
                                     ForEach(settings.sharpenMethods, id: \.self) { Text($0) }
                                 }
                                 .pickerStyle(.menu)
@@ -118,14 +118,14 @@ struct RestorationSecondSetPanel: View {
                             }
                         }
 
-                        if settings.useSharpen2 {
-                            if settings.sharpenMethod2 == "unsharp" {
+                        if settings.secondary.useSharpen {
+                            if settings.secondary.sharpenMethod == "unsharp" {
                                 HStack(spacing: 6) {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text("Matrix")
                                             .font(.caption)
                                             .foregroundColor(.secondary)
-                                        TextField("5", text: $settings.usmRadius2)
+                                        TextField("5", text: $settings.secondary.usmRadius.text)
                                             .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                                             .frame(width: 35)
@@ -134,7 +134,7 @@ struct RestorationSecondSetPanel: View {
                                         Text("Amount")
                                             .font(.caption)
                                             .foregroundColor(.secondary)
-                                        TextField("1.0", text: $settings.usmAmount2)
+                                        TextField("1.0", text: $settings.secondary.usmAmount.text)
                                             .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                                             .frame(width: 35)
@@ -157,7 +157,7 @@ struct RestorationSecondSetPanel: View {
                                     Text("CAS")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
-                                    TextField("0.25", text: $settings.sharpenStrength2)
+                                    TextField("0.25", text: $settings.secondary.sharpenStrength.text)
                                         .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                                         .frame(width: 50)
@@ -178,17 +178,17 @@ struct RestorationSecondSetPanel: View {
 
                         // Deband 2
                         HStack {
-                            Toggle(isOn: $settings.useDeband2) {
+                            Toggle(isOn: $settings.secondary.useDeband) {
                                 Text("Deband")
                                     .font(.caption)
-                                    .foregroundColor(settings.useDeband2 ? .primary : .secondary)
+                                    .foregroundColor(settings.secondary.useDeband ? .primary : .secondary)
                             }
                             .toggleStyle(.switch)
                             .controlSize(.mini)
 
-                            if settings.useDeband2 {
+                            if settings.secondary.useDeband {
                                 Spacer()
-                                Picker("", selection: $settings.debandMethod2) {
+                                Picker("", selection: $settings.secondary.debandMethod) {
                                     ForEach(settings.debandMethods, id: \.self) { Text($0) }
                                 }
                                 .pickerStyle(.menu)
@@ -199,14 +199,14 @@ struct RestorationSecondSetPanel: View {
                             }
                         }
 
-                        if settings.useDeband2 {
-                            if settings.debandMethod2 == "f3kdb" {
+                        if settings.secondary.useDeband {
+                            if settings.secondary.debandMethod == "f3kdb" {
                                 HStack(spacing: 6) {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text("Range")
                                             .font(.caption)
                                             .foregroundColor(.secondary)
-                                        TextField("15", text: $settings.f3kdbRange2)
+                                        TextField("15", text: $settings.secondary.f3kdbRange.text)
                                             .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                                             .frame(width: 35)
@@ -215,7 +215,7 @@ struct RestorationSecondSetPanel: View {
                                         Text("Y")
                                             .font(.caption)
                                             .foregroundColor(.secondary)
-                                        TextField("64", text: $settings.f3kdbY2)
+                                        TextField("64", text: $settings.secondary.f3kdbY.text)
                                             .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                                             .frame(width: 35)
@@ -224,7 +224,7 @@ struct RestorationSecondSetPanel: View {
                                         Text("CbCr")
                                             .font(.caption)
                                             .foregroundColor(.secondary)
-                                        TextField("64", text: $settings.f3kdbCbCr2)
+                                        TextField("64", text: $settings.secondary.f3kdbCbCr.text)
                                             .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                                             .frame(width: 35)
@@ -236,7 +236,7 @@ struct RestorationSecondSetPanel: View {
                                     Text("Strength")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
-                                    TextField("0.015", text: $settings.debandStrength2)
+                                    TextField("0.015", text: $settings.secondary.debandStrength.text)
                                         .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                                         .frame(width: 55)
@@ -255,17 +255,17 @@ struct RestorationSecondSetPanel: View {
 
                         // Grain 2
                         HStack {
-                            Toggle(isOn: $settings.useGrain2) {
+                            Toggle(isOn: $settings.secondary.useGrain) {
                                 Text("Grain")
                                     .font(.caption)
-                                    .foregroundColor(settings.useGrain2 ? .primary : .secondary)
+                                    .foregroundColor(settings.secondary.useGrain ? .primary : .secondary)
                             }
                             .toggleStyle(.switch)
                             .controlSize(.mini)
 
-                            if settings.useGrain2 {
+                            if settings.secondary.useGrain {
                                 Spacer()
-                                TextField("1.0", text: $settings.grainStrength2)
+                                TextField("1.0", text: $settings.secondary.grainStrength.text)
                                     .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                                     .frame(width: 50)
@@ -300,7 +300,7 @@ struct RestorationSecondSetPanel: View {
             .groupBoxStyle(ModernGroupBoxStyle())
             .cardStyle()
         }
-        .disabled(settings.scaler == "coreml")
+        .disabled(settings.upscaling.scaler == "coreml")
         .help("The second restoration pass is available only for FFmpeg")
     }
 }

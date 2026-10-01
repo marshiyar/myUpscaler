@@ -174,7 +174,7 @@ final class Up60PEngine {
     private func makeOptions(from settings: UpscaleSettings,
                              outputDir: String) throws -> up60p_options
     {
-        guard settings.scaler == "lanczos" else {
+        guard settings.upscaling.scaler == "lanczos" else {
             throw Up60PEngineError.unsupportedScaler
         }
         try ensureInitialized()
@@ -183,99 +183,99 @@ final class Up60PEngine {
         Up60PEngine.bridge.defaultOptionsFunc(&opts)
 
         // MARK: Core
-        setString(&opts.codec, MemoryLayout.size(ofValue: opts.codec), settings.useHEVC ? "hevc" : "h264")
-        setString(&opts.crf, MemoryLayout.size(ofValue: opts.crf), String(Int(settings.crf)))
-        setString(&opts.preset, MemoryLayout.size(ofValue: opts.preset), settings.preset)
-        setString(&opts.fps, MemoryLayout.size(ofValue: opts.fps), settings.fps)
-        setString(&opts.scale_factor, MemoryLayout.size(ofValue: opts.scale_factor), String(format: "%.2f", settings.scaleFactor))
+        setString(&opts.codec, MemoryLayout.size(ofValue: opts.codec), settings.codec.useHEVC ? "hevc" : "h264")
+        setString(&opts.crf, MemoryLayout.size(ofValue: opts.crf), String(Int(settings.codec.crf)))
+        setString(&opts.preset, MemoryLayout.size(ofValue: opts.preset), settings.codec.preset)
+        setString(&opts.fps, MemoryLayout.size(ofValue: opts.fps), settings.video.fps.text)
+        setString(&opts.scale_factor, MemoryLayout.size(ofValue: opts.scale_factor), String(format: "%.2f", settings.video.scaleFactor))
 
         // MARK: Scaler / AI
-        setString(&opts.scaler, MemoryLayout.size(ofValue: opts.scaler), settings.scaler)
-        setString(&opts.ai_backend, MemoryLayout.size(ofValue: opts.ai_backend), settings.aiBackend)
-        setString(&opts.ai_model, MemoryLayout.size(ofValue: opts.ai_model), settings.aiModelPath)
-        setString(&opts.ai_model_type, MemoryLayout.size(ofValue: opts.ai_model_type), settings.aiModelType)
-        setString(&opts.dnn_backend, MemoryLayout.size(ofValue: opts.dnn_backend), settings.dnnBackend)
+        setString(&opts.scaler, MemoryLayout.size(ofValue: opts.scaler), settings.upscaling.scaler)
+        setString(&opts.ai_backend, MemoryLayout.size(ofValue: opts.ai_backend), settings.upscaling.aiBackend)
+        setString(&opts.ai_model, MemoryLayout.size(ofValue: opts.ai_model), settings.upscaling.aiModelPath)
+        setString(&opts.ai_model_type, MemoryLayout.size(ofValue: opts.ai_model_type), settings.upscaling.aiModelType)
+        setString(&opts.dnn_backend, MemoryLayout.size(ofValue: opts.dnn_backend), settings.upscaling.dnnBackend)
 
         // MARK: Filters – first set
-        setString(&opts.denoiser, MemoryLayout.size(ofValue: opts.denoiser), settings.denoiser)
-        setString(&opts.denoise_strength, MemoryLayout.size(ofValue: opts.denoise_strength), settings.denoiseStrength)
-        setString(&opts.deblock_mode, MemoryLayout.size(ofValue: opts.deblock_mode), settings.deblockMode)
-        setString(&opts.deblock_thresh, MemoryLayout.size(ofValue: opts.deblock_thresh), settings.deblockThresh)
-        opts.dering_active = settings.deringActive ? 1 : 0
-        setString(&opts.dering_strength, MemoryLayout.size(ofValue: opts.dering_strength), settings.deringStrength)
+        setString(&opts.denoiser, MemoryLayout.size(ofValue: opts.denoiser), settings.primary.denoiser)
+        setString(&opts.denoise_strength, MemoryLayout.size(ofValue: opts.denoise_strength), settings.primary.denoiseStrength.text)
+        setString(&opts.deblock_mode, MemoryLayout.size(ofValue: opts.deblock_mode), settings.primary.deblockMode)
+        setString(&opts.deblock_thresh, MemoryLayout.size(ofValue: opts.deblock_thresh), settings.primary.deblockThresh.text)
+        opts.dering_active = settings.primary.useDering ? 1 : 0
+        setString(&opts.dering_strength, MemoryLayout.size(ofValue: opts.dering_strength), settings.primary.deringStrength.text)
 
-        setString(&opts.sharpen_method, MemoryLayout.size(ofValue: opts.sharpen_method), settings.sharpenMethod)
-        setString(&opts.sharpen_strength, MemoryLayout.size(ofValue: opts.sharpen_strength), settings.sharpenStrength)
-        setString(&opts.usm_radius, MemoryLayout.size(ofValue: opts.usm_radius), settings.usmRadius)
-        setString(&opts.usm_amount, MemoryLayout.size(ofValue: opts.usm_amount), settings.usmAmount)
-        setString(&opts.usm_threshold, MemoryLayout.size(ofValue: opts.usm_threshold), settings.usmThreshold)
+        setString(&opts.sharpen_method, MemoryLayout.size(ofValue: opts.sharpen_method), settings.primary.sharpenMethod)
+        setString(&opts.sharpen_strength, MemoryLayout.size(ofValue: opts.sharpen_strength), settings.primary.sharpenStrength.text)
+        setString(&opts.usm_radius, MemoryLayout.size(ofValue: opts.usm_radius), String(Int(UpscaleSettings.unsharpMatrixSize(settings.primary.usmRadius.text))))
+        setString(&opts.usm_amount, MemoryLayout.size(ofValue: opts.usm_amount), settings.primary.usmAmount.text)
+        setString(&opts.usm_threshold, MemoryLayout.size(ofValue: opts.usm_threshold), settings.primary.usmThreshold.text)
 
-        setString(&opts.deband_method, MemoryLayout.size(ofValue: opts.deband_method), settings.debandMethod)
-        setString(&opts.deband_strength, MemoryLayout.size(ofValue: opts.deband_strength), settings.debandStrength)
-        setString(&opts.f3kdb_range, MemoryLayout.size(ofValue: opts.f3kdb_range), settings.f3kdbRange)
-        setString(&opts.f3kdb_y, MemoryLayout.size(ofValue: opts.f3kdb_y), settings.f3kdbY)
-        setString(&opts.f3kdb_cbcr, MemoryLayout.size(ofValue: opts.f3kdb_cbcr), settings.f3kdbCbCr)
+        setString(&opts.deband_method, MemoryLayout.size(ofValue: opts.deband_method), settings.primary.debandMethod)
+        setString(&opts.deband_strength, MemoryLayout.size(ofValue: opts.deband_strength), settings.primary.debandStrength.text)
+        setString(&opts.f3kdb_range, MemoryLayout.size(ofValue: opts.f3kdb_range), settings.primary.f3kdbRange.text)
+        setString(&opts.f3kdb_y, MemoryLayout.size(ofValue: opts.f3kdb_y), settings.primary.f3kdbY.text)
+        setString(&opts.f3kdb_cbcr, MemoryLayout.size(ofValue: opts.f3kdb_cbcr), settings.primary.f3kdbCbCr.text)
 
-        setString(&opts.grain_strength, MemoryLayout.size(ofValue: opts.grain_strength), settings.grainStrength)
+        setString(&opts.grain_strength, MemoryLayout.size(ofValue: opts.grain_strength), settings.primary.grainStrength.text)
 
         // MARK: Second set (using EFFECTIVE values for intelligent attenuation when stacking)
-        setString(&opts.denoiser_2, MemoryLayout.size(ofValue: opts.denoiser_2), settings.denoiser2)
+        setString(&opts.denoiser_2, MemoryLayout.size(ofValue: opts.denoiser_2), settings.secondary.denoiser)
         // Use EFFECTIVE (attenuated) denoise strength for second set
         setString(&opts.denoise_strength_2, MemoryLayout.size(ofValue: opts.denoise_strength_2), settings.effectiveDenoiseStrength2)
-        setString(&opts.deblock_mode_2, MemoryLayout.size(ofValue: opts.deblock_mode_2), settings.deblockMode2)
-        setString(&opts.deblock_thresh_2, MemoryLayout.size(ofValue: opts.deblock_thresh_2), settings.deblockThresh2)
-        opts.dering_active_2 = settings.deringActive2 ? 1 : 0
-        setString(&opts.dering_strength_2, MemoryLayout.size(ofValue: opts.dering_strength_2), settings.deringStrength2)
+        setString(&opts.deblock_mode_2, MemoryLayout.size(ofValue: opts.deblock_mode_2), settings.secondary.deblockMode)
+        setString(&opts.deblock_thresh_2, MemoryLayout.size(ofValue: opts.deblock_thresh_2), settings.secondary.deblockThresh.text)
+        opts.dering_active_2 = settings.secondary.useDering ? 1 : 0
+        setString(&opts.dering_strength_2, MemoryLayout.size(ofValue: opts.dering_strength_2), settings.secondary.deringStrength.text)
 
-        setString(&opts.sharpen_method_2, MemoryLayout.size(ofValue: opts.sharpen_method_2), settings.sharpenMethod2)
+        setString(&opts.sharpen_method_2, MemoryLayout.size(ofValue: opts.sharpen_method_2), settings.secondary.sharpenMethod)
         // Use EFFECTIVE (attenuated) values for second set to prevent over-processing when stacking
         setString(&opts.sharpen_strength_2, MemoryLayout.size(ofValue: opts.sharpen_strength_2), settings.effectiveSharpenStrength2)
         setString(&opts.usm_radius_2, MemoryLayout.size(ofValue: opts.usm_radius_2), settings.effectiveUsmRadius2)
         setString(&opts.usm_amount_2, MemoryLayout.size(ofValue: opts.usm_amount_2), settings.effectiveUsmAmount2)
-        setString(&opts.usm_threshold_2, MemoryLayout.size(ofValue: opts.usm_threshold_2), settings.usmThreshold2)
+        setString(&opts.usm_threshold_2, MemoryLayout.size(ofValue: opts.usm_threshold_2), settings.secondary.usmThreshold.text)
 
-        setString(&opts.deband_method_2, MemoryLayout.size(ofValue: opts.deband_method_2), settings.debandMethod2)
+        setString(&opts.deband_method_2, MemoryLayout.size(ofValue: opts.deband_method_2), settings.secondary.debandMethod)
         // Use EFFECTIVE (attenuated) deband values for second set
         setString(&opts.deband_strength_2, MemoryLayout.size(ofValue: opts.deband_strength_2), settings.effectiveDebandStrength2)
-        setString(&opts.f3kdb_range_2, MemoryLayout.size(ofValue: opts.f3kdb_range_2), settings.f3kdbRange2)
+        setString(&opts.f3kdb_range_2, MemoryLayout.size(ofValue: opts.f3kdb_range_2), settings.secondary.f3kdbRange.text)
         setString(&opts.f3kdb_y_2, MemoryLayout.size(ofValue: opts.f3kdb_y_2), settings.effectiveF3kdbY2)
         setString(&opts.f3kdb_cbcr_2, MemoryLayout.size(ofValue: opts.f3kdb_cbcr_2), settings.effectiveF3kdbCbCr2)
 
-        setString(&opts.grain_strength_2, MemoryLayout.size(ofValue: opts.grain_strength_2), settings.grainStrength2)
+        setString(&opts.grain_strength_2, MemoryLayout.size(ofValue: opts.grain_strength_2), settings.secondary.grainStrength.text)
 
-        opts.use_denoise_2 = settings.useDenoise2 ? 1 : 0
-        opts.use_deblock_2 = settings.useDeblock2 ? 1 : 0
-        opts.use_dering_2  = settings.useDering2  ? 1 : 0
-        opts.use_sharpen_2 = settings.useSharpen2 ? 1 : 0
-        opts.use_deband_2  = settings.useDeband2  ? 1 : 0
-        opts.use_grain_2   = settings.useGrain2   ? 1 : 0
+        opts.use_denoise_2 = settings.secondary.useDenoise ? 1 : 0
+        opts.use_deblock_2 = settings.secondary.useDeblock ? 1 : 0
+        opts.use_dering_2  = settings.secondary.useDering  ? 1 : 0
+        opts.use_sharpen_2 = settings.secondary.useSharpen ? 1 : 0
+        opts.use_deband_2  = settings.secondary.useDeband  ? 1 : 0
+        opts.use_grain_2   = settings.secondary.useGrain   ? 1 : 0
 
         // MARK: Other
-        setString(&opts.mi_mode, MemoryLayout.size(ofValue: opts.mi_mode), settings.interpolation)
-        setString(&opts.eq_contrast, MemoryLayout.size(ofValue: opts.eq_contrast), settings.eqContrast)
-        setString(&opts.eq_brightness, MemoryLayout.size(ofValue: opts.eq_brightness), settings.eqBrightness)
-        setString(&opts.eq_saturation, MemoryLayout.size(ofValue: opts.eq_saturation), settings.eqSaturation)
+        setString(&opts.mi_mode, MemoryLayout.size(ofValue: opts.mi_mode), settings.video.interpolation)
+        setString(&opts.eq_contrast, MemoryLayout.size(ofValue: opts.eq_contrast), settings.color.eqContrast.text)
+        setString(&opts.eq_brightness, MemoryLayout.size(ofValue: opts.eq_brightness), settings.color.eqBrightness.text)
+        setString(&opts.eq_saturation, MemoryLayout.size(ofValue: opts.eq_saturation), settings.color.eqSaturation.text)
         setString(&opts.x265_params, MemoryLayout.size(ofValue: opts.x265_params), settings.x265Params)
 
         setString(&opts.outdir, MemoryLayout.size(ofValue: opts.outdir), outputDir)
-        setString(&opts.audio_bitrate, MemoryLayout.size(ofValue: opts.audio_bitrate), settings.audioBitrate)
-        setString(&opts.threads, MemoryLayout.size(ofValue: opts.threads), settings.threads)
-        setString(&opts.movflags, MemoryLayout.size(ofValue: opts.movflags), settings.movflags)
+        setString(&opts.audio_bitrate, MemoryLayout.size(ofValue: opts.audio_bitrate), settings.output.audioBitrate)
+        setString(&opts.threads, MemoryLayout.size(ofValue: opts.threads), settings.hardware.threads.text)
+        setString(&opts.movflags, MemoryLayout.size(ofValue: opts.movflags), settings.output.movflags)
 
-        opts.use10        = settings.use10Bit ? 1 : 0
-        opts.preview      = settings.preview  ? 1 : 0
-        opts.no_deblock   = settings.noDeblock ? 1 : 0
-        opts.no_denoise   = settings.noDenoise ? 1 : 0
-        opts.no_decimate  = settings.noDecimate ? 1 : 0
-        opts.no_interpolate = settings.noInterpolate ? 1 : 0
-        opts.no_sharpen   = settings.noSharpen ? 1 : 0
-        opts.no_deband    = settings.noDeband ? 1 : 0
-        opts.no_eq        = settings.noEq ? 1 : 0
-        opts.no_grain     = settings.noGrain ? 1 : 0
-        opts.pci_safe_mode = settings.pciSafe ? 1 : 0
+        opts.use10        = settings.codec.use10Bit ? 1 : 0
+        opts.preview      = settings.modes.preview  ? 1 : 0
+        opts.no_deblock   = !settings.primary.useDeblock ? 1 : 0
+        opts.no_denoise   = !settings.primary.useDenoise ? 1 : 0
+        opts.no_decimate  = settings.modes.noDecimate ? 1 : 0
+        opts.no_interpolate = settings.modes.noInterpolate ? 1 : 0
+        opts.no_sharpen   = !settings.primary.useSharpen ? 1 : 0
+        opts.no_deband    = !settings.primary.useDeband ? 1 : 0
+        opts.no_eq        = settings.color.noEq ? 1 : 0
+        opts.no_grain     = !settings.primary.useGrain ? 1 : 0
+        opts.pci_safe_mode = settings.modes.pciSafe ? 1 : 0
 
-        setString(&opts.hwaccel, MemoryLayout.size(ofValue: opts.hwaccel), settings.hwAccel)
-        setString(&opts.encoder, MemoryLayout.size(ofValue: opts.encoder), settings.encoder)
+        setString(&opts.hwaccel, MemoryLayout.size(ofValue: opts.hwaccel), settings.hardware.hwAccel)
+        setString(&opts.encoder, MemoryLayout.size(ofValue: opts.encoder), settings.hardware.encoder)
 
         return opts
     }
@@ -291,9 +291,9 @@ final class Up60PEngine {
         if let previousTask { await previousTask.value }
         try Task.checkCancellation()
 
-        let codecDecision = CodecSupport.resolve(requestHEVC: settings.useHEVC)
+        let codecDecision = CodecSupport.resolve(requestHEVC: settings.codec.useHEVC)
         if let message = codecDecision.message { log(message) }
-        settings.useHEVC = codecDecision.useHEVC
+        settings.codec.useHEVC = codecDecision.useHEVC
 
         struct StackingSnapshot {
             let has: Bool
@@ -334,8 +334,8 @@ final class Up60PEngine {
                     }
                     var mutableOpts = opts
                     // Per-input metadata only; source/lock and frame selection avoid this scan.
-                    if !settings.noInterpolate, settings.interpolation != "dup",
-                       settings.fps != "source", settings.fps != "lock" {
+                    if !settings.modes.noInterpolate, settings.video.interpolation != "dup",
+                       settings.video.fps.text != "source", settings.video.fps.text != "lock" {
                         do {
                             let timing = try await SourceVideoTiming.inspect(url: URL(fileURLWithPath: inputPath))
                             mutableOpts.source_video_duration = timing.duration.seconds.isFinite ? timing.duration.seconds : 0

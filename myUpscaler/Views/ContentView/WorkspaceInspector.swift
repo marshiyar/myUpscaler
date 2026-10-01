@@ -45,11 +45,11 @@ struct WorkspaceInspector: View {
                     colorFilters
                     Section("Additional filters") {
                         DisclosureGroup("Deblock, deband and grain", isExpanded: $showExtra) {
-                            Toggle("Deblock", isOn: enabled($settings.noDeblock)).disabled(settings.scaler == "coreml")
-                            Toggle("Deband", isOn: enabled($settings.noDeband))
-                            Toggle("Grain", isOn: enabled($settings.noGrain)).disabled(settings.scaler == "coreml")
-                            RestorationPanel(settings: settings).disabled(settings.scaler == "coreml")
-                            if settings.scaler == "coreml" {
+                            Toggle("Deblock", isOn: $settings.primary.useDeblock).disabled(settings.upscaling.scaler == "coreml")
+                            Toggle("Deband", isOn: $settings.primary.useDeband)
+                            Toggle("Grain", isOn: $settings.primary.useGrain).disabled(settings.upscaling.scaler == "coreml")
+                            RestorationPanel(settings: settings).disabled(settings.upscaling.scaler == "coreml")
+                            if settings.upscaling.scaler == "coreml" {
                                 Text("Core ML debanding uses its pipeline settings in Settings.")
                                     .font(.caption).foregroundStyle(.secondary)
                             }
@@ -65,7 +65,7 @@ struct WorkspaceInspector: View {
                         DisclosureGroup("CPU HEVC parameters", isExpanded: $showEncoding) {
                             X265ParametersPanel(settings: settings)
                         }
-                        .disabled(!settings.useHEVC || settings.encoder == "videotoolbox" || settings.scaler == "coreml")
+                        .disabled(!settings.codec.useHEVC || settings.hardware.encoder == "videotoolbox" || settings.upscaling.scaler == "coreml")
                     }
                     Section("Presets") { SavedPresetsPanel(presetStore: presetStore, settings: settings, isProcessing: runner.isRunning) }
                 }
@@ -79,38 +79,38 @@ struct WorkspaceInspector: View {
 
     private var primaryFilters: some View {
         Section("Primary restoration") {
-            Toggle("Denoise", isOn: enabled($settings.noDenoise))
-            if !settings.noDenoise {
-                Picker("Denoiser", selection: $settings.denoiser) {
+            Toggle("Denoise", isOn: $settings.primary.useDenoise)
+            if settings.primary.useDenoise {
+                Picker("Denoiser", selection: $settings.primary.denoiser) {
                     ForEach(settings.denoisers, id: \.self) { Text($0).tag($0) }
-                }.disabled(settings.scaler == "coreml")
-                ParameterRow(title: "Strength", binding: $settings.denoiseStrength,
+                }.disabled(settings.upscaling.scaler == "coreml")
+                ParameterRow(title: "Strength", binding: $settings.primary.denoiseStrength.text,
                              range: settings.denoiseStrengthRange, step: settings.denoiseStrengthStep,
                              defaultValue: settings.denoiseStrengthDefault, formatter: Formatters.twoFraction,
                              sliderAccessibility: "Primary denoise strength", gradient: .denoise)
             }
-            Toggle("Deringing", isOn: $settings.deringActive).disabled(settings.scaler == "coreml")
-            if settings.deringActive {
-                ParameterRow(title: "Strength", binding: $settings.deringStrength, range: 0...10, step: 0.005,
+            Toggle("Deringing", isOn: $settings.primary.useDering).disabled(settings.upscaling.scaler == "coreml")
+            if settings.primary.useDering {
+                ParameterRow(title: "Strength", binding: $settings.primary.deringStrength.text, range: 0...10, step: 0.005,
                              defaultValue: 0.5, formatter: Formatters.twoFraction,
                              sliderAccessibility: "Primary deringing strength", gradient: .dering)
-                    .disabled(settings.scaler == "coreml")
+                    .disabled(settings.upscaling.scaler == "coreml")
             }
-            Toggle("Sharpen", isOn: enabled($settings.noSharpen))
-            if !settings.noSharpen {
-                Picker("Method", selection: $settings.sharpenMethod) {
+            Toggle("Sharpen", isOn: $settings.primary.useSharpen)
+            if settings.primary.useSharpen {
+                Picker("Method", selection: $settings.primary.sharpenMethod) {
                     Text("CAS").tag("cas"); Text("Unsharp mask").tag("unsharp")
                 }
-                if settings.sharpenMethod == "cas" {
-                    ParameterRow(title: "Strength", binding: $settings.sharpenStrength,
+                if settings.primary.sharpenMethod == "cas" {
+                    ParameterRow(title: "Strength", binding: $settings.primary.sharpenStrength.text,
                                  range: settings.sharpenStrengthRange, step: settings.sharpenStrengthStep,
                                  defaultValue: settings.sharpenStrengthDefault, formatter: Formatters.twoFraction,
                                  sliderAccessibility: "Primary sharpen strength", gradient: .sharpen)
                 } else {
-                    ParameterRow(title: "Matrix", binding: $settings.usmRadius, range: settings.usmRadiusRange,
+                    ParameterRow(title: "Matrix", binding: $settings.primary.usmRadius.text, range: settings.usmRadiusRange,
                                  step: settings.usmRadiusStep, defaultValue: settings.usmRadiusDefault,
                                  formatter: Formatters.integer, sliderAccessibility: "Unsharp matrix size", gradient: .usmRadius)
-                    ParameterRow(title: "Amount", binding: $settings.usmAmount, range: settings.usmAmountRange,
+                    ParameterRow(title: "Amount", binding: $settings.primary.usmAmount.text, range: settings.usmAmountRange,
                                  step: settings.usmAmountStep, defaultValue: settings.usmAmountDefault,
                                  formatter: Formatters.twoFraction, sliderAccessibility: "Unsharp amount", gradient: .usmAmount)
                 }
@@ -120,17 +120,17 @@ struct WorkspaceInspector: View {
 
     private var colorFilters: some View {
         Section("Color equalizer") {
-            Toggle("Color equalizer", isOn: enabled($settings.noEq))
-            if settings.scaler == "coreml" {
+            Toggle("Color equalizer", isOn: enabled($settings.color.noEq))
+            if settings.upscaling.scaler == "coreml" {
                 Text("Preview only for Core ML; these colors are not applied to its export.")
                     .font(.caption).foregroundStyle(.secondary)
             }
-            if !settings.noEq {
-                ParameterRow(title: "Contrast", binding: $settings.eqContrast, range: 0.5...2, step: 0.005,
+            if !settings.color.noEq {
+                ParameterRow(title: "Contrast", binding: $settings.color.eqContrast.text, range: 0.5...2, step: 0.005,
                              defaultValue: 1, formatter: Formatters.twoFraction, sliderAccessibility: "Contrast", gradient: .contrast)
-                ParameterRow(title: "Brightness", binding: $settings.eqBrightness, range: -0.1...0.1, step: 0.005,
+                ParameterRow(title: "Brightness", binding: $settings.color.eqBrightness.text, range: -0.1...0.1, step: 0.005,
                              defaultValue: 0, formatter: Formatters.threeFraction, sliderAccessibility: "Brightness", gradient: .brightness)
-                ParameterRow(title: "Saturation", binding: $settings.eqSaturation, range: 0...2, step: 0.005,
+                ParameterRow(title: "Saturation", binding: $settings.color.eqSaturation.text, range: 0...2, step: 0.005,
                              defaultValue: 1, formatter: Formatters.twoFraction, sliderAccessibility: "Saturation", gradient: .saturation)
             }
         }

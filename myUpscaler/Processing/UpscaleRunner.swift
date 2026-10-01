@@ -172,13 +172,13 @@ class UpscaleRunner: ObservableObject {
         lastLogFlushTime = Date().timeIntervalSince1970
         lastLogBufferTime = Date().timeIntervalSince1970
 
-        if !UpscaleRunner.isAppleSilicon && settings.hwAccel == "videotoolbox" {
-            settings.hwAccel = "none"
+        if !UpscaleRunner.isAppleSilicon && settings.hardware.hwAccel == "videotoolbox" {
+            settings.hardware.hwAccel = "none"
             log.append("Note: VideoToolbox decode not available on this Mac. Falling back to CPU decode.\n\n")
         }
 
         let selectedEngine: EngineProtocol
-        if settings.scaler == "coreml" {
+        if settings.upscaling.scaler == "coreml" {
             selectedEngine = CoreMLEngine.shared
             log.append("--- Starting CoreML Engine ---\n")
         } else {
@@ -191,19 +191,19 @@ class UpscaleRunner: ObservableObject {
             if settings.isSharpenStacked {
                 let factor = Int((1.0 - settings.sharpen2AttenuationFactor) * 100)
                 log.append("  • Sharpen 2nd set: −\(factor)%")
-                if settings.sharpenMethod2 == "cas" {
-                    log.append(" (CAS \(settings.sharpenStrength2) → \(settings.effectiveSharpenStrength2))\n")
+                if settings.secondary.sharpenMethod == "cas" {
+                    log.append(" (CAS \(settings.secondary.sharpenStrength.text) → \(settings.effectiveSharpenStrength2))\n")
                 } else {
-                    log.append(" (Unsharp amount \(settings.usmAmount2) → \(settings.effectiveUsmAmount2))\n")
+                    log.append(" (Unsharp amount \(settings.secondary.usmAmount.text) → \(settings.effectiveUsmAmount2))\n")
                 }
             }
             if settings.isDenoiseStacked {
                 let factor = Int((1.0 - settings.denoise2AttenuationFactor) * 100)
-                log.append("  • Denoise 2nd set: −\(factor)% (\(settings.denoiseStrength2) → \(settings.effectiveDenoiseStrength2))\n")
+                log.append("  • Denoise 2nd set: −\(factor)% (\(settings.secondary.denoiseStrength.text) → \(settings.effectiveDenoiseStrength2))\n")
             }
             if settings.isDebandStacked {
                 let factor = Int((1.0 - settings.deband2AttenuationFactor) * 100)
-                log.append("  • Deband 2nd set: −\(factor)% (\(settings.debandStrength2) → \(settings.effectiveDebandStrength2))\n")
+                log.append("  • Deband 2nd set: −\(factor)% (\(settings.secondary.debandStrength.text) → \(settings.effectiveDebandStrength2))\n")
             }
             log.append("Fixed multipliers; no image analysis or quality guarantee.\n\n")
         }

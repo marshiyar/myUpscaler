@@ -1,37 +1,6 @@
 import AppKit
 import CoreImage
 
-// Immutable render input; worker code never reads observable editor state.
-    nonisolated struct PreviewFilterParameters: Hashable {
-        // First set
-        let noDenoise: Bool
-        let noSharpen: Bool
-        let noEq: Bool
-        let contrast: Double
-        let brightness: Double
-        let saturation: Double
-        let denoiseStrength: Double
-        let deringActive: Bool
-        let deringStrength: Double
-        let sharpenMethod: String
-        let sharpenStrength: Double
-        let usmRadius: Double
-        let usmAmount: Double
-        let usmThreshold: Double
-        // Second set
-        let useDenoise2: Bool
-        let denoiseStrength2: Double
-        let useDering2: Bool
-        let deringActive2: Bool
-        let deringStrength2: Double
-        let useSharpen2: Bool
-        let sharpenMethod2: String
-        let sharpenStrength2: Double
-        let usmRadius2: Double
-        let usmAmount2: Double
-        let usmThreshold2: Double
-    }
-
 nonisolated enum PreviewRenderer {
     // Non-isolated helper for background processing
     static func render(_ image: NSImage, params: PreviewFilterParameters, context: CIContext) -> NSImage? {
@@ -89,14 +58,12 @@ nonisolated enum PreviewRenderer {
         if params.useDenoise2 && params.denoiseStrength2 > 0,
            let f = CIFilter(name: "CINoiseReduction") {
             f.setValue(ci, forKey: kCIInputImageKey)
-            // Apply attenuation if both sets have denoise active (stacking)
-            let attenuationFactor = !params.noDenoise && params.denoiseStrength > 0 ? 0.55 : 1.0
-            f.setValue((params.denoiseStrength2 * attenuationFactor) / 20.0, forKey: "inputNoiseLevel")
+            f.setValue(params.denoiseStrength2 / 20.0, forKey: "inputNoiseLevel")
             ci = f.outputImage ?? ci
         }
 
         // ----- Dering (2nd) -----
-        if params.useDering2,
+        if params.useDering2 && params.deringActive2,
            let f = CIFilter(name: "CINoiseReduction") {
             f.setValue(ci, forKey: kCIInputImageKey)
             f.setValue(params.deringStrength2 * 0.1, forKey: "inputNoiseLevel")
@@ -105,33 +72,18 @@ nonisolated enum PreviewRenderer {
 
         // ----- Sharpen (2nd) -----
         if params.useSharpen2 {
-            // Calculate attenuation factor based on first set sharpen being active
-            let firstSetSharpenActive = !params.noSharpen && (params.sharpenMethod == "cas" ? params.sharpenStrength > 0 : params.usmAmount != 0)
-            var attenuationFactor: Double = 1.0
-            if firstSetSharpenActive {
-                // Determine attenuation based on what's being stacked
-                if params.sharpenMethod == "unsharp" && params.sharpenMethod2 == "unsharp" {
-                    attenuationFactor = 0.35  // Heavy attenuation for double unsharp
-                } else if params.sharpenMethod == "unsharp" || params.sharpenMethod2 == "unsharp" {
-                    attenuationFactor = 0.5   // Moderate for mixed
-                } else {
-                    attenuationFactor = 0.6   // Light for CAS + CAS
-                }
-            }
-
             if params.sharpenMethod2 == "cas" {
                 if let f = CIFilter(name: "CIUnsharpMask") {
                     f.setValue(ci, forKey: kCIInputImageKey)
                     f.setValue(2.5, forKey: kCIInputRadiusKey)
-                    f.setValue(params.sharpenStrength2 * attenuationFactor, forKey: kCIInputIntensityKey)
+                    f.setValue(params.sharpenStrength2, forKey: kCIInputIntensityKey)
                     ci = f.outputImage ?? ci
                 }
             } else {
                 if let f = CIFilter(name: "CIUnsharpMask") {
                     f.setValue(ci, forKey: kCIInputImageKey)
-                    let radiusAttenuation = firstSetSharpenActive ? attenuationFactor + 0.2 : 1.0  // Less aggressive on radius
-                    f.setValue(params.usmRadius2 * radiusAttenuation, forKey: kCIInputRadiusKey)
-                    f.setValue(params.usmAmount2 * attenuationFactor, forKey: kCIInputIntensityKey)
+                    f.setValue(params.usmRadius2, forKey: kCIInputRadiusKey)
+                    f.setValue(params.usmAmount2, forKey: kCIInputIntensityKey)
                     ci = f.outputImage ?? ci
                 }
             }

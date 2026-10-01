@@ -53,22 +53,22 @@ struct SettingsView: View {
     private var aiAndFiltersTab: some View {
         Form {
                 Section {
-                    Toggle("Deblock", isOn: enabled($settings.noDeblock)).disabled(settings.scaler == "coreml")
-                    Toggle("Denoise", isOn: enabled($settings.noDenoise))
-                    Toggle("Decimate", isOn: enabled($settings.noDecimate)).disabled(settings.scaler == "coreml")
-                    Toggle("Frame interpolation", isOn: enabled($settings.noInterpolate)).disabled(settings.scaler == "coreml")
-                    Toggle("Sharpen", isOn: enabled($settings.noSharpen))
-                    Toggle("Deband", isOn: enabled($settings.noDeband))
-                    Toggle("Color equalizer", isOn: enabled($settings.noEq)).disabled(settings.scaler == "coreml")
-                    Toggle("Grain", isOn: enabled($settings.noGrain)).disabled(settings.scaler == "coreml")
-                    Toggle(isOn: $settings.pciSafe) { Label("PCI Safe Mode", systemImage: "shield") }
-                        .disabled(settings.scaler == "coreml")
+                    Toggle("Deblock", isOn: $settings.primary.useDeblock).disabled(settings.upscaling.scaler == "coreml")
+                    Toggle("Denoise", isOn: $settings.primary.useDenoise)
+                    Toggle("Decimate", isOn: enabled($settings.modes.noDecimate)).disabled(settings.upscaling.scaler == "coreml")
+                    Toggle("Frame interpolation", isOn: enabled($settings.modes.noInterpolate)).disabled(settings.upscaling.scaler == "coreml")
+                    Toggle("Sharpen", isOn: $settings.primary.useSharpen)
+                    Toggle("Deband", isOn: $settings.primary.useDeband)
+                    Toggle("Color equalizer", isOn: enabled($settings.color.noEq)).disabled(settings.upscaling.scaler == "coreml")
+                    Toggle("Grain", isOn: $settings.primary.useGrain).disabled(settings.upscaling.scaler == "coreml")
+                    Toggle(isOn: $settings.modes.pciSafe) { Label("PCI Safe Mode", systemImage: "shield") }
+                        .disabled(settings.upscaling.scaler == "coreml")
                         .help("Forces 8-bit pixel output in FFmpeg")
                 } header: {
                     Label("Enabled processing stages", systemImage: "slider.horizontal.below.rectangle")
                         .font(DesignSystem.Typography.headline)
                 } footer: {
-                    Text(settings.scaler == "coreml" ? "Core ML supports primary denoise, sharpen, and deband. Other stages apply to FFmpeg only." : "A stage is applied only when enabled. Its parameters are available in the video workspace.")
+                    Text(settings.upscaling.scaler == "coreml" ? "Core ML supports primary denoise, sharpen, and deband. Other stages apply to FFmpeg only." : "A stage is applied only when enabled. Its parameters are available in the video workspace.")
                 }
         }
         .formStyle(.grouped)

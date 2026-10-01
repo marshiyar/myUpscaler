@@ -179,7 +179,7 @@ struct NoDuration: AssetLoaderProtocol {
         let runner = UpscaleRunner(engine: engine, assetLoader: NoDuration())
         runner.inputPath = input.path
         runner.customOutputFolder = root.path
-        runner.settings.scaler = "lanczos"
+        runner.settings.upscaling.scaler = "lanczos"
         runner.run()
         precondition(runner.phase == .preparing && !runner.progressKnown)
         while engine.continuation == nil { await Task.yield() }

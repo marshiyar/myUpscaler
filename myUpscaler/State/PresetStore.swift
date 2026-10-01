@@ -308,9 +308,9 @@ struct UpscaleSettingsSnapshot: Codable, Equatable {
         settings.deblockThresh2 = deblockThresh2
         settings.useDeblock2 = useDeblock2
 
-        settings.deringActive2 = deringActive2
         settings.deringStrength2 = deringStrength2
-        settings.useDering2 = useDering2
+        // Preserve the effective enabled state of presets saved with two switches.
+        settings.useDering2 = useDering2 && deringActive2
 
         settings.sharpenMethod2 = sharpenMethod2
         settings.sharpenStrength2 = sharpenStrength2

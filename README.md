@@ -76,6 +76,12 @@ The source tests use synthetic media and do not download models. Packaged-app an
 
 Maintained application source targets about 500 lines per file, with a 600-line ceiling checked by the test script. See [architecture](docs/architecture.md), [FPS audit](tests/FPS-AUDIT.md), and the [model optimization plan](docs/model-optimization.md).
 
+## Finishing filters (FFmpeg)
+
+The optional finishing filters run after scaling and the primary sharpen/deband filters. Each switch enables its filter independently of the primary set. Deringing uses one switch and an `hqdn3d` smoothing filter; it does not detect ringing artifacts. Finishing grain replaces primary grain rather than adding a second noise filter. These controls do not apply to Core ML exports, and the Core Image preview is an approximation of FFmpeg processing.
+
+When a filter runs in both sets, fixed multipliers reduce finishing strength: CAS/CAS 0.6, mixed CAS/unsharp 0.5, unsharp/unsharp 0.35, denoise 0.55, and deband 0.6. Unsharp matrix size also shrinks, retaining an odd size. This is a parameter heuristic, not image analysis or a guarantee against artifacts. `auto` denoise keeps FFmpeg's automatic setting without numeric attenuation. Reducing strength still runs the filter and does not remove its processing cost.
+
 ## Current limitations
 
 - Full Core ML throughput and temporal-quality benchmarks need compatible model assets and representative media. Synthetic kernel and video-I/O tests do not establish end-to-end AI speed.

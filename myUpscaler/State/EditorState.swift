@@ -134,6 +134,13 @@ final class EditorState: ObservableObject {
 
         // MARK: -  Sync from external settings if provided
         if let settings = settings {
+            settings.$scaler
+                .removeDuplicates()
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    Task { @MainActor in self?.applyFilters() }
+                }
+                .store(in: &cancellables)
             syncFromSettings(settings)
 
             // Optimized: Combine settings into fewer observers with throttling
@@ -226,20 +233,16 @@ final class EditorState: ObservableObject {
                 .store(in: &cancellables)
 
             // Group 6: Second set toggles and denoise
-            Publishers.CombineLatest4(
+            Publishers.CombineLatest3(
                 settings.$useDenoise2,
                 settings.$denoiseStrength2,
-                settings.$useDering2,
-                settings.$deringActive2
+                settings.$useDering2
             )
             .throttle(for: .milliseconds(50), scheduler: DispatchQueue.main, latest: true)
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] _, _, _, _ in
+            .sink { [weak self] _, _, _ in
                 guard let self = self else { return }
-                // Use Task to ensure we're outside view update cycle
-                Task { @MainActor in
-                    self.syncFromSettings(settings)
-                }
+                Task { @MainActor in self.syncFromSettings(settings) }
             }
             .store(in: &cancellables)
 
@@ -398,12 +401,12 @@ final class EditorState: ObservableObject {
             usmAmount: usmAmount,
             usmThreshold: usmThreshold,
             // Second set
-            useDenoise2: useDenoise2,
+            useDenoise2: useDenoise2 && settings?.scaler != "coreml",
             denoiseStrength2: denoiseStrength2,
-            useDering2: useDering2,
+            useDering2: useDering2 && settings?.scaler != "coreml",
             deringActive2: deringActive2,
             deringStrength2: deringStrength2,
-            useSharpen2: useSharpen2,
+            useSharpen2: useSharpen2 && settings?.scaler != "coreml",
             sharpenMethod2: sharpenMethod2,
             sharpenStrength2: sharpenStrength2,
             usmRadius2: usmRadius2,

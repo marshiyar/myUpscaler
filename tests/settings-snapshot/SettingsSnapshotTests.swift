@@ -4,6 +4,19 @@ import XCTest
 // This target compiles the production settings, snapshot, and model registry.
 // Run's cloneSettings uses the snapshot/apply path exercised here.
 final class SettingsSnapshotTests: XCTestCase {
+    func testSingleDeringSwitchAndLegacyPresetEffectiveState() {
+        let settings = UpscaleSettings()
+        settings.useDering2 = true
+        let saved = UpscaleSettingsSnapshot(settings: settings)
+        let restored = UpscaleSettings()
+        saved.apply(to: restored)
+        XCTAssertTrue(restored.useDering2)
+        var legacy = saved
+        legacy.deringActive2 = false
+        legacy.apply(to: restored)
+        XCTAssertFalse(restored.useDering2, "Preserve the effective off state of a legacy two-switch preset")
+    }
+
     func testUpdatedModelTileSizesAreSupported() {
         let x2 = CoreMLModelRegistry.model(for: .realESRGANx2)
         let x4 = CoreMLModelRegistry.model(for: .realESRGANx4)

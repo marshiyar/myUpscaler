@@ -43,6 +43,39 @@ import Combine
         settings.noDenoise = true
         settings.noSharpen = true
         settings.noEq = true
+        settings.useDering2 = true
+        precondition(settings.deringActive2, "legacy dering alias must share one authority")
+        settings.deringActive2 = false
+        precondition(!settings.useDering2, "legacy alias must update authoritative state")
+        settings.useSharpen2 = true
+        precondition(!settings.hasFilterStacking, "disabled primary filters must not attenuate")
+        precondition(settings.effectiveSharpenStrength2 == settings.sharpenStrength2)
+        settings.noSharpen = false
+        settings.sharpenMethod = "cas"
+        settings.sharpenStrength = "0.5"
+        settings.sharpenMethod2 = "unsharp"
+        settings.usmRadius2 = "7"
+        precondition(Int(settings.effectiveUsmRadius2)! % 2 == 1, "FFmpeg unsharp requires an odd matrix size")
+        for value in ["nan", "inf", "1e300"] {
+            settings.usmRadius2 = value
+            precondition(["3", "23"].contains(settings.effectiveUsmRadius2), "invalid radius must not trap")
+        }
+        settings.debandMethod2 = "gradfun"
+        precondition(Double(settings.debandStrength2)! >= 0.51)
+        settings.debandMethod2 = "deband"
+        precondition(Double(settings.debandStrength2)! <= 0.1)
+        settings.scaler = "coreml"
+        precondition(!settings.hasFilterStacking, "Core ML does not export finishing filters")
+        settings.scaler = "lanczos"
+        settings.noSharpen = true
+        settings.useSharpen2 = false
+        settings.denoiseStrength2 = "auto"
+        settings.useDenoise2 = true
+        settings.noDenoise = false
+        precondition(settings.effectiveDenoiseStrength2 == "auto" && !settings.isDenoiseStacked,
+                     "auto denoise is unchanged; do not claim a numeric reduction")
+        settings.useDenoise2 = false
+        settings.noDenoise = true
         let editor = EditorState(settings: settings)
         var publications = 0
         let subscription = editor.$contrast.dropFirst().sink { _ in publications += 1 }

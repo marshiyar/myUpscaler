@@ -46,14 +46,14 @@ nonisolated enum SettingsNormalization {
         settings.$debandMethod
             .sink { [weak settings] newMethod in
                 guard let self = settings else { return }
-                self.debandStrength = self.validateDebandStrength(self.debandStrength)
+                self.debandStrength = String(max(newMethod == "gradfun" ? 0.51 : 0, min(newMethod == "gradfun" ? 64 : 0.1, Double(self.debandStrength) ?? (newMethod == "gradfun" ? 1.2 : 0.015))))
             }
             .store(in: &cancellables)
 
         settings.$debandMethod2
             .sink { [weak settings] newMethod in
                 guard let self = settings else { return }
-                self.debandStrength2 = self.validateDebandStrength(self.debandStrength2)
+                self.debandStrength2 = String(max(newMethod == "gradfun" ? 0.51 : 0, min(newMethod == "gradfun" ? 64 : 0.1, Double(self.debandStrength2) ?? (newMethod == "gradfun" ? 1.2 : 0.015))))
             }
             .store(in: &cancellables)
 
@@ -111,23 +111,12 @@ nonisolated enum SettingsNormalization {
                 guard let self = settings else { return }
                 if let numValue = Double(value), numValue == 0 {
                     self.useDering2 = false
-                    self.deringActive2 = false
                 }
             }
             .store(in: &cancellables)
 
 
         settings.$useDering2
-            .sink { [weak settings] isOn in
-                guard let self = settings, isOn else { return }
-                if self.isZero(self.deringStrength2) {
-                    self.deringStrength2 = self.defaultDeringStrengthString
-                }
-            }
-            .store(in: &cancellables)
-
-
-        settings.$deringActive2
             .sink { [weak settings] isOn in
                 guard let self = settings, isOn else { return }
                 if self.isZero(self.deringStrength2) {

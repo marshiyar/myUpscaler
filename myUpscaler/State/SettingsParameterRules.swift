@@ -252,7 +252,7 @@ nonisolated extension UpscaleSettings {
     // MARK: - Deband-specific parameter ranges
     /**
      * deband: strength 0.0-0.1 (typical range)
-     * gradfun: strength 0.0-0.1
+     * gradfun: strength 0.51-64
      * f3kdb: range 1-32, y 16-512, cb/cr 16-512
      */
     var debandStrengthRange: ClosedRange<Double> {
@@ -260,7 +260,7 @@ nonisolated extension UpscaleSettings {
         case "deband":
             return 0.0...0.1
         case "gradfun":
-            return 0.0...0.1
+            return 0.51...64
         case "f3kdb":
             return 0.0...0.1  // Not used for f3kdb, but keep for compatibility
         default:
@@ -273,7 +273,7 @@ nonisolated extension UpscaleSettings {
         case "deband":
             return 0.015
         case "gradfun":
-            return 0.015
+            return 1.2
         case "f3kdb":
             return 0.015
         default:
@@ -302,7 +302,7 @@ nonisolated extension UpscaleSettings {
         case "deband":
             return 0.0...0.1
         case "gradfun":
-            return 0.0...0.1
+            return 0.51...64
         case "f3kdb":
             return 0.0...0.1
         default:
@@ -315,7 +315,7 @@ nonisolated extension UpscaleSettings {
         case "deband":
             return 0.015
         case "gradfun":
-            return 0.015
+            return 1.2
         case "f3kdb":
             return 0.015
         default:

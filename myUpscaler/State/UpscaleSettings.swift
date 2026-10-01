@@ -101,7 +101,11 @@ nonisolated class UpscaleSettings: ObservableObject {
     @Published var deblockThresh2: String = ""
     @Published var useDeblock2: Bool = false
 
-    @Published var deringActive2: Bool = false
+    // Legacy preset alias; useDering2 is the sole enablement flag.
+    var deringActive2: Bool {
+        get { useDering2 }
+        set { useDering2 = newValue }
+    }
     @Published var deringStrength2: String = "0.5"
     @Published var useDering2: Bool = false
 

@@ -270,11 +270,11 @@ static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) 
         }
         else sb_fmt(&vf, "deband=1thr=%s:b=1,", S.deband_strength);
     }
-        if (S.use_dering_2 && S.dering_active_2) {
+        if (S.use_dering_2) {
             build_dering_filter(&vf, S.dering_strength_2);
         }
 
-    if (S.use_denoise_2 && !S.no_denoise) {
+    if (S.use_denoise_2) {
         if (!strcmp(S.denoiser_2, "bm3d")) {
             if (!strcmp(S.denoise_strength_2, "auto")) sb_append(&vf, "bm3d=estim=final:planes=1,");
             else {
@@ -295,14 +295,14 @@ static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) 
         }
     }
 
-    if (S.use_sharpen_2 && !S.no_sharpen) {
+    if (S.use_sharpen_2) {
         if (!strcmp(S.sharpen_method_2, "unsharp")) {
             sb_fmt(&vf, "unsharp=%s:%s:%s,", S.usm_radius_2, S.usm_radius_2, S.usm_amount_2);
         }
-        else sb_fmt(&vf, "cas=strength=%s,", S.sharpen_strength_2);
+        else if (parse_strength(S.sharpen_strength_2) > 0) sb_fmt(&vf, "cas=strength=%s,", S.sharpen_strength_2);
     }
 
-    if (S.use_deband_2 && !S.no_deband) {
+    if (S.use_deband_2) {
         if (!strcmp(S.deband_method_2, "gradfun")) sb_fmt(&vf, "gradfun=%s,", S.deband_strength_2);
         else if (!strcmp(S.deband_method_2, "f3kdb")) {
 
@@ -328,7 +328,7 @@ static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) 
     if (!S.no_eq && (contrast != 1 || brightness != 0 || saturation != 1)) {
         sb_fmt(&vf, "eq=contrast=%.9g:brightness=%.9g:saturation=%.9g,", contrast, brightness, saturation);
     }
-    if (!S.no_grain) {
+    if (S.use_grain_2 || !S.no_grain) {
         if (S.use_grain_2) sb_fmt(&vf, "noise=alls=%s:allf=t,", S.grain_strength_2);
         else sb_fmt(&vf, "noise=alls=%s:allf=t,", S.grain_strength);
     }

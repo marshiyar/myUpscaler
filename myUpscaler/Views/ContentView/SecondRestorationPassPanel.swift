@@ -10,17 +10,29 @@ struct RestorationSecondSetPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Label("Restoration (Second Set)", systemImage: "wand.and.stars.inverse")
+                Label("Finishing filters (FFmpeg)", systemImage: "wand.and.stars.inverse")
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(.primary)
                 Spacer()
             }
             .padding(.bottom, 4)
+            if settings.scaler == "coreml" {
+                Text("Unavailable for Core ML export")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             GroupBox {
                 DisclosureGroup(isExpanded: $isExpanded) {
                     VStack(alignment: .leading, spacing: 8) {
                         Divider()
                             .padding(.vertical, 2)
+
+                        Text(settings.scaler == "coreml" ? "These filters are unavailable for Core ML export." : "Optional filters after scaling and the primary sharpen/deband filters. Each switch works independently of the primary filters. Grain here replaces primary grain.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text("When the same filter is enabled in both sets, fixed multipliers reduce finishing strength. This does not analyze the image or guarantee better quality. Auto denoise is unchanged.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
 
                         // Denoise 2
                         HStack {
@@ -70,18 +82,9 @@ struct RestorationSecondSetPanel: View {
 
                             if settings.useDering2 {
                                 Spacer()
-                                Toggle(isOn: $settings.deringActive2) {
-                                    Text("On")
-                                        .font(.system(size: 10))
-                                }
-                                .toggleStyle(.switch)
-                                .controlSize(.mini)
-
-                                if settings.deringActive2 {
-                                    TextField("0.5", text: $settings.deringStrength2)
-                                        .textFieldStyle(.roundedBorder)
-                                        .frame(width: 45)
-                                }
+                                TextField("Strength", text: $settings.deringStrength2)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(width: 70)
                             } else {
                                 Spacer()
                             }
@@ -117,7 +120,7 @@ struct RestorationSecondSetPanel: View {
                             if settings.sharpenMethod2 == "unsharp" {
                                 HStack(spacing: 6) {
                                     VStack(alignment: .leading, spacing: 2) {
-                                        Text("R")
+                                        Text("Matrix")
                                             .font(.caption)
                                             .foregroundColor(.secondary)
                                         TextField("5", text: $settings.usmRadius2)
@@ -125,22 +128,13 @@ struct RestorationSecondSetPanel: View {
                                             .frame(width: 35)
                                     }
                                     VStack(alignment: .leading, spacing: 2) {
-                                        Text("A")
+                                        Text("Amount")
                                             .font(.caption)
                                             .foregroundColor(.secondary)
                                         TextField("1.0", text: $settings.usmAmount2)
                                             .textFieldStyle(.roundedBorder)
                                             .frame(width: 35)
                                     }
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text("T")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                        TextField("0.03", text: $settings.usmThreshold2)
-                                            .textFieldStyle(.roundedBorder)
-                                            .frame(width: 40)
-                                    }
-
                                     // Show effective values if attenuated
                                     if settings.isSharpenStacked {
                                         VStack(alignment: .leading, spacing: 2) {
@@ -237,6 +231,11 @@ struct RestorationSecondSetPanel: View {
                                     TextField("0.015", text: $settings.debandStrength2)
                                         .textFieldStyle(.roundedBorder)
                                         .frame(width: 55)
+                                    if settings.isDebandStacked {
+                                        Text("→\(settings.effectiveDebandStrength2)")
+                                            .font(.caption)
+                                            .foregroundStyle(.orange)
+                                    }
                                 }
                                 .padding(.leading, 8)
                             }
@@ -267,7 +266,7 @@ struct RestorationSecondSetPanel: View {
                     }
                     .padding(8)
                 } label: {
-                    Text("Second restoration pass")
+                    Text("Filters after scaling")
                         .font(.subheadline)
                     // Filter stacking indicator
                     if settings.hasFilterStacking {
@@ -275,7 +274,7 @@ struct RestorationSecondSetPanel: View {
                             Image(systemName: "bolt.fill")
                                 .foregroundColor(.orange)
                                 .font(.system(size: 10))
-                            Text("Smart Attenuation")
+                            Text("Fixed strength reduction")
                                 .font(.system(size: 9, weight: .medium))
                                 .foregroundColor(.orange)
                         }

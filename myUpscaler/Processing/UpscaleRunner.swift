@@ -187,7 +187,7 @@ class UpscaleRunner: ObservableObject {
         }
         self.activeEngine = selectedEngine
         if settings.hasFilterStacking {
-            log.append("\n⚡ SMART FILTER ⚡\n")
+            log.append("\nFixed finishing-filter strength reduction\n")
             if settings.isSharpenStacked {
                 let factor = Int((1.0 - settings.sharpen2AttenuationFactor) * 100)
                 log.append("  • Sharpen 2nd set: −\(factor)%")
@@ -205,7 +205,7 @@ class UpscaleRunner: ObservableObject {
                 let factor = Int((1.0 - settings.deband2AttenuationFactor) * 100)
                 log.append("  • Deband 2nd set: −\(factor)% (\(settings.debandStrength2) → \(settings.effectiveDebandStrength2))\n")
             }
-            log.append("This prevents over-processing while.\n\n")
+            log.append("Fixed multipliers; no image analysis or quality guarantee.\n\n")
         }
 
         log.append("Input: \(inputPath)\n")

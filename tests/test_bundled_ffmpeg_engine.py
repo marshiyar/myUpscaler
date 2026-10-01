@@ -80,6 +80,24 @@ int main(int argc, char **argv) {
     }
     return result == UP60P_PROCESS_CANCELLED ? UP60P_ERR_CANCELLED : 99;
     }
+    if (argc > 3 && strcmp(argv[1], "finishing") == 0) {
+        up60p_options opts;
+        up60p_default_options(&opts);
+        opts.no_decimate = opts.no_interpolate = true;
+        opts.no_denoise = opts.no_deblock = opts.no_sharpen = true;
+        opts.no_deband = opts.no_grain = opts.no_eq = true;
+        opts.use_denoise_2 = strcmp(argv[2], "denoise") == 0;
+        opts.use_dering_2 = strcmp(argv[2], "dering") == 0;
+        opts.dering_active_2 = 0; // Legacy switch must not veto authoritative enablement.
+        opts.use_sharpen_2 = strcmp(argv[2], "sharpen") == 0;
+        opts.use_deband_2 = strcmp(argv[2], "deband") == 0;
+        opts.use_grain_2 = strcmp(argv[2], "grain") == 0;
+        snprintf(opts.denoiser_2, sizeof(opts.denoiser_2), "hqdn3d");
+        snprintf(opts.fps, sizeof(opts.fps), "source");
+        snprintf(opts.scale_factor, sizeof(opts.scale_factor), "1");
+        if (argc > 4) snprintf(opts.sharpen_strength_2, sizeof(opts.sharpen_strength_2), "%s", argv[4]);
+        return up60p_process_path(argv[3], &opts);
+    }
     if (argc > 6 && strcmp(argv[1], "eq") == 0) {
         up60p_options opts;
         up60p_default_options(&opts);
@@ -427,6 +445,41 @@ int main(void) {
         self.assertLess(sum(pixels[3]), sum(pixels[0]))
         self.assertNotEqual(pixels[0], pixels[4])
         self.assertLessEqual(max(pixels[4][:3]) - min(pixels[4][:3]), 4)
+
+    def test_finishing_filters_are_independent_and_emitted_once(self):
+        self.bundled.write_text('#!/bin/sh\necho "$@" >&2\nexit 0\n')
+        self.bundled.chmod(0o755)
+        image = self.root / "input.png"
+        image.touch()
+        for mode, token in (("denoise", "hqdn3d="), ("dering", "hqdn3d="),
+                            ("sharpen", "cas=strength="), ("deband", "deband=1thr="),
+                            ("grain", "noise=alls=")):
+            with self.subTest(mode=mode):
+                result = self.run_engine("finishing", mode, str(image))
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertEqual(result.stdout.count(token), 1, result.stdout)
+        result = self.run_engine("finishing", "off", str(image))
+        for token in ("hqdn3d=", "cas=strength=", "deband=1thr=", "noise=alls="):
+            self.assertNotIn(token, result.stdout)
+
+    @unittest.skipUnless(shutil.which("ffmpeg"), "requires local FFmpeg")
+    def test_real_finishing_sharpen_and_reduction_change_pixels(self):
+        ffmpeg = shutil.which("ffmpeg")
+        shutil.copy2(ffmpeg, self.bundled)
+        image = self.root / "input.png"
+        subprocess.run([ffmpeg, "-v", "error", "-f", "lavfi", "-i",
+                        "testsrc2=size=64x64", "-frames:v", "1", "-y", str(image)], check=True, timeout=8)
+        pixels = []
+        for mode, strength in (("off", "0"), ("sharpen", "0"), ("sharpen", "0.6"), ("sharpen", "0.36")):
+            result = self.run_engine("finishing", mode, str(image), strength)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            raw = subprocess.check_output([ffmpeg, "-v", "error", "-i",
+                str(self.root / "input_[restored].png"), "-pix_fmt", "rgb24", "-f", "rawvideo", "-"])
+            self.assertEqual(len(raw), 64 * 64 * 3)
+            pixels.append(raw)
+        self.assertEqual(pixels[0], pixels[1], "zero CAS must match bypass")
+        self.assertNotEqual(pixels[0], pixels[2], "independent finishing sharpen must affect pixels")
+        self.assertNotEqual(pixels[2], pixels[3], "fixed strength reduction must affect pixels")
 
     def busy_bundle(self, ignore_term=False, descendant_file=None, once=False):
         pidfile = self.root / "ffmpeg.pid"

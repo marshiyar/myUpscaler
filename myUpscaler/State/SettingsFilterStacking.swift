@@ -5,21 +5,21 @@ import Foundation
 nonisolated extension UpscaleSettings {
     // MARK: - Filter Stacking Orchestration
     // These computed properties provide attenuated values when multiple filters of the same type are active.
-    // This prevents the cumulative effect from becoming excessive (e.g., unsharp + CAS causing extreme sharpening).
+    // These are fixed heuristics, not image analysis or a quality guarantee.
 
     /// Returns true if both first and second set have sharpening active
     var isSharpenStacked: Bool {
-        !noSharpen && useSharpen2
+        scaler != "coreml" && !noSharpen && useSharpen2 && (sharpenMethod == "cas" ? (Double(sharpenStrength) ?? 0) > 0 : (Double(usmAmount) ?? 0) != 0)
     }
 
     /// Returns true if both first and second set have denoising active
     var isDenoiseStacked: Bool {
-        !noDenoise && useDenoise2
+        scaler != "coreml" && !noDenoise && useDenoise2 && denoiseStrength2.lowercased() != "auto"
     }
 
     /// Returns true if both first and second set have debanding active
     var isDebandStacked: Bool {
-        !noDeband && useDeband2
+        scaler != "coreml" && !noDeband && useDeband2
     }
 
     /// Attenuation factor for second set sharpening based on what's being combined
@@ -79,11 +79,12 @@ nonisolated extension UpscaleSettings {
     var effectiveUsmRadius2: String {
         guard isSharpenStacked, sharpenMethod2 == "unsharp" else { return usmRadius2 }
 
-        guard let value = Double(usmRadius2) else { return usmRadius2 }
+        guard let value = Double(usmRadius2), value.isFinite else { return "3" }
         // Reduce radius slightly to prevent excessive halo when stacking
-        let attenuated = value * (sharpen2AttenuationFactor + 0.2)  // Less aggressive on radius
+        let attenuated = max(3, min(23, value * (sharpen2AttenuationFactor + 0.2)))  // Less aggressive on radius
         // Clamp to valid range (3-23)
-        return String(format: "%.0f", max(3, min(23, attenuated)))
+        let oddSize = 2 * Int((attenuated - 1) / 2) + 1
+        return String(max(3, min(23, oddSize)))
     }
 
     /// Effective denoise strength for second set (attenuated when stacked)
@@ -104,7 +105,7 @@ nonisolated extension UpscaleSettings {
 
         guard let value = Double(debandStrength2) else { return debandStrength2 }
         let attenuated = value * deband2AttenuationFactor
-        return String(format: "%.4f", max(0, attenuated))
+        return String(format: "%.4f", max(debandMethod2 == "gradfun" ? 0.51 : 0, attenuated))
     }
 
     /// Effective f3kdb Y for second set (attenuated when stacked)

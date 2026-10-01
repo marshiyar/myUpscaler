@@ -86,7 +86,7 @@ nonisolated enum PreviewRenderer {
         // MARK: - SECOND SET (applies after first set)
 
         // ----- Denoise (2nd) -----
-        if !params.noDenoise && params.useDenoise2 && params.denoiseStrength2 > 0,
+        if params.useDenoise2 && params.denoiseStrength2 > 0,
            let f = CIFilter(name: "CINoiseReduction") {
             f.setValue(ci, forKey: kCIInputImageKey)
             // Apply attenuation if both sets have denoise active (stacking)
@@ -96,7 +96,7 @@ nonisolated enum PreviewRenderer {
         }
 
         // ----- Dering (2nd) -----
-        if params.useDering2 && params.deringActive2,
+        if params.useDering2,
            let f = CIFilter(name: "CINoiseReduction") {
             f.setValue(ci, forKey: kCIInputImageKey)
             f.setValue(params.deringStrength2 * 0.1, forKey: "inputNoiseLevel")
@@ -104,9 +104,9 @@ nonisolated enum PreviewRenderer {
         }
 
         // ----- Sharpen (2nd) -----
-        if !params.noSharpen && params.useSharpen2 {
+        if params.useSharpen2 {
             // Calculate attenuation factor based on first set sharpen being active
-            let firstSetSharpenActive = !params.noSharpen && (params.sharpenMethod == "cas" ? params.sharpenStrength > 0 : params.usmAmount > 0)
+            let firstSetSharpenActive = !params.noSharpen && (params.sharpenMethod == "cas" ? params.sharpenStrength > 0 : params.usmAmount != 0)
             var attenuationFactor: Double = 1.0
             if firstSetSharpenActive {
                 // Determine attenuation based on what's being stacked
@@ -129,7 +129,7 @@ nonisolated enum PreviewRenderer {
             } else {
                 if let f = CIFilter(name: "CIUnsharpMask") {
                     f.setValue(ci, forKey: kCIInputImageKey)
-                    let radiusAttenuation = attenuationFactor + 0.2  // Less aggressive on radius
+                    let radiusAttenuation = firstSetSharpenActive ? attenuationFactor + 0.2 : 1.0  // Less aggressive on radius
                     f.setValue(params.usmRadius2 * radiusAttenuation, forKey: kCIInputRadiusKey)
                     f.setValue(params.usmAmount2 * attenuationFactor, forKey: kCIInputIntensityKey)
                     ci = f.outputImage ?? ci

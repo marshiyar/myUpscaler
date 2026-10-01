@@ -358,16 +358,16 @@ final class Up60PEngine {
 
                     if stackingSnapshot.has {
                         await MainActor.run {
-                            Up60PEngine.currentLogHandler?("\n⚡ Filter Stacking Detected - Applying Smart Attenuation:\n")
+                            Up60PEngine.currentLogHandler?("\nFixed finishing-filter strength reduction:\n")
 
                             if stackingSnapshot.sharpen {
-                                Up60PEngine.currentLogHandler?("  • Sharpen 2nd set: reduced by \(stackingSnapshot.sharpenPct)% to prevent over-sharpening\n")
+                                Up60PEngine.currentLogHandler?("  • Sharpen 2nd set: reduced by \(stackingSnapshot.sharpenPct)%\n")
                             }
                             if stackingSnapshot.denoise {
-                                Up60PEngine.currentLogHandler?("  • Denoise 2nd set: reduced by \(stackingSnapshot.denoisePct)% to prevent over-smoothing\n")
+                                Up60PEngine.currentLogHandler?("  • Denoise 2nd set: reduced by \(stackingSnapshot.denoisePct)%\n")
                             }
                             if stackingSnapshot.deband {
-                                Up60PEngine.currentLogHandler?("  • Deband 2nd set: reduced by \(stackingSnapshot.debandPct)% to prevent banding artifacts\n")
+                                Up60PEngine.currentLogHandler?("  • Deband 2nd set: reduced by \(stackingSnapshot.debandPct)%\n")
                             }
 
                             Up60PEngine.currentLogHandler?("\n")

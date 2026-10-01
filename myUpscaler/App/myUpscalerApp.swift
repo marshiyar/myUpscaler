@@ -13,8 +13,11 @@ struct myUpscalerApp: App {
         WindowGroup {
 
             ContentView()
-                .frame(minWidth: 800, minHeight: 600)
+                .frame(minWidth: 720, minHeight: 600)
+                .navigationTitle("myUpscaler")
         }
+        .windowToolbarStyle(.unifiedCompact)
+        .commands { UpscalerCommands() }
     }
 
     func openTestDashboard() {

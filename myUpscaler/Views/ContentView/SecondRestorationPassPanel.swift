@@ -53,7 +53,8 @@ struct RestorationSecondSetPanel: View {
                                 .controlSize(.small)
                                 .frame(width: 70)
                                 TextField("Str", text: $settings.denoiseStrength2)
-                                    .textFieldStyle(.roundedBorder)
+                                    .labelsHidden()
+                                .textFieldStyle(.roundedBorder)
                                     .frame(width: 50)
 
                                 // Show effective value if attenuated
@@ -83,7 +84,8 @@ struct RestorationSecondSetPanel: View {
                             if settings.useDering2 {
                                 Spacer()
                                 TextField("Strength", text: $settings.deringStrength2)
-                                    .textFieldStyle(.roundedBorder)
+                                    .labelsHidden()
+                                .textFieldStyle(.roundedBorder)
                                     .frame(width: 70)
                             } else {
                                 Spacer()
@@ -124,7 +126,8 @@ struct RestorationSecondSetPanel: View {
                                             .font(.caption)
                                             .foregroundColor(.secondary)
                                         TextField("5", text: $settings.usmRadius2)
-                                            .textFieldStyle(.roundedBorder)
+                                            .labelsHidden()
+                                .textFieldStyle(.roundedBorder)
                                             .frame(width: 35)
                                     }
                                     VStack(alignment: .leading, spacing: 2) {
@@ -132,7 +135,8 @@ struct RestorationSecondSetPanel: View {
                                             .font(.caption)
                                             .foregroundColor(.secondary)
                                         TextField("1.0", text: $settings.usmAmount2)
-                                            .textFieldStyle(.roundedBorder)
+                                            .labelsHidden()
+                                .textFieldStyle(.roundedBorder)
                                             .frame(width: 35)
                                     }
                                     // Show effective values if attenuated
@@ -154,7 +158,8 @@ struct RestorationSecondSetPanel: View {
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                     TextField("0.25", text: $settings.sharpenStrength2)
-                                        .textFieldStyle(.roundedBorder)
+                                        .labelsHidden()
+                                .textFieldStyle(.roundedBorder)
                                         .frame(width: 50)
 
                                     // Show effective value if attenuated
@@ -202,7 +207,8 @@ struct RestorationSecondSetPanel: View {
                                             .font(.caption)
                                             .foregroundColor(.secondary)
                                         TextField("15", text: $settings.f3kdbRange2)
-                                            .textFieldStyle(.roundedBorder)
+                                            .labelsHidden()
+                                .textFieldStyle(.roundedBorder)
                                             .frame(width: 35)
                                     }
                                     VStack(alignment: .leading, spacing: 2) {
@@ -210,7 +216,8 @@ struct RestorationSecondSetPanel: View {
                                             .font(.caption)
                                             .foregroundColor(.secondary)
                                         TextField("64", text: $settings.f3kdbY2)
-                                            .textFieldStyle(.roundedBorder)
+                                            .labelsHidden()
+                                .textFieldStyle(.roundedBorder)
                                             .frame(width: 35)
                                     }
                                     VStack(alignment: .leading, spacing: 2) {
@@ -218,7 +225,8 @@ struct RestorationSecondSetPanel: View {
                                             .font(.caption)
                                             .foregroundColor(.secondary)
                                         TextField("64", text: $settings.f3kdbCbCr2)
-                                            .textFieldStyle(.roundedBorder)
+                                            .labelsHidden()
+                                .textFieldStyle(.roundedBorder)
                                             .frame(width: 35)
                                     }
                                 }
@@ -229,7 +237,8 @@ struct RestorationSecondSetPanel: View {
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                     TextField("0.015", text: $settings.debandStrength2)
-                                        .textFieldStyle(.roundedBorder)
+                                        .labelsHidden()
+                                .textFieldStyle(.roundedBorder)
                                         .frame(width: 55)
                                     if settings.isDebandStacked {
                                         Text("→\(settings.effectiveDebandStrength2)")
@@ -257,7 +266,8 @@ struct RestorationSecondSetPanel: View {
                             if settings.useGrain2 {
                                 Spacer()
                                 TextField("1.0", text: $settings.grainStrength2)
-                                    .textFieldStyle(.roundedBorder)
+                                    .labelsHidden()
+                                .textFieldStyle(.roundedBorder)
                                     .frame(width: 50)
                             } else {
                                 Spacer()

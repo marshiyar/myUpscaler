@@ -66,6 +66,7 @@ struct QualityScalePanel: View {
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             TextField("2.0", value: $settings.scaleFactor, format: .number)
+                                .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                                 .frame(width: 60)
                         }
@@ -75,6 +76,7 @@ struct QualityScalePanel: View {
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             TextField("60", text: $settings.fps)
+                                .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                                 .frame(width: 60)
                                 .disabled(settings.scaler == "coreml")

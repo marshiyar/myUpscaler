@@ -10,14 +10,14 @@ struct TimelineView: View {
 
     var body: some View {
         ScrollViewReader { proxy in
-            ScrollView(.vertical) {
-                LazyVStack(spacing: 4) {
+            ScrollView(.horizontal) {
+                LazyHStack(spacing: 10) {
                     ForEach(state.timelineFrames.indices, id: \.self) { i in
                         thumbnail(i)
                             .id(i)
                     }
                 }
-                .padding(.vertical, 4)
+                .padding(6)
             }
             .scrollContentBackground(.hidden)
             .background(Color.clear)
@@ -39,14 +39,14 @@ struct TimelineView: View {
             Image(nsImage: state.timelineFrames[index])
                 .resizable()
                 .aspectRatio(contentMode: .fill)
-                .frame(width: 70, height: 45)
+                .frame(width: 104, height: 64)
                 .cornerRadius(3)
 
             RoundedRectangle(cornerRadius: 3)
                 .stroke(selected ? Color.accentColor : Color.gray.opacity(0.3),
                         lineWidth: selected ? 3 : 1)
                 .matchedGeometryEffect(id: "sel", in: ns, isSource: selected)
-                .frame(width: 70, height: 45)
+                .frame(width: 104, height: 64)
                 .shadow(color: selected ? Color.accentColor.opacity(0.6) : .clear,
                         radius: selected ? 6 : 0)
 
@@ -61,9 +61,13 @@ struct TimelineView: View {
                 .cornerRadius(2)
                 .padding(4)
         }
-        .scaleEffect(selected ? 1.07 : (hoverIndex == index ? 1.02 : 1))
+
         .onHover { hoverIndex = $0 ? index : nil }
         .onTapGesture { state.selectFrame(index) }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Frame \(index + 1), \(state.formatTime(state.timelineFrameTimes[index]))")
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { state.selectFrame(index) }
         .help(state.formatTime(state.timelineFrameTimes[index]))
 
         .focusable(false)

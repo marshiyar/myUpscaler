@@ -41,15 +41,11 @@ struct DragDropView: View {
                         Spacer()
                         if let chooseInput {
                             Button("Change video", action: chooseInput)
-                                .dynamicKeyboardShortcut(actionId: "chooseInput", action: chooseInput)
                                 .disabled(isProcessingFullUpscale)
                         }
                     }
 
                     HStack(alignment: .center, spacing: 12) {
-                        if let settings {
-                            VerticalColorEqualizerPanel(settings: settings)
-                        }
                         ZStack {
                             if let image = state.thumbnailImage {
                                 Image(nsImage: image)
@@ -72,15 +68,14 @@ struct DragDropView: View {
                         .background(Color.appTertiaryBackground, in: RoundedRectangle(cornerRadius: 8))
                         .layoutPriority(1)
 
-                        if let settings {
-                            VerticalRestorationFiltersPanel(settings: settings)
-                        }
-                        if !state.timelineFrames.isEmpty {
-                            TimelineView(state: state)
-                                .frame(width: 76)
-                        }
                     }
                     .disabled(isProcessingFullUpscale)
+                    if !state.timelineFrames.isEmpty {
+                        Divider()
+                        TimelineView(state: state)
+                            .frame(height: 82)
+                            .disabled(isProcessingFullUpscale)
+                    }
                 }
                 .padding(16)
             }

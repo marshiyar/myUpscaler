@@ -26,7 +26,6 @@ struct ImportVideoView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-                .dynamicKeyboardShortcut(actionId: "chooseInput", action: chooseInput)
             }
             HStack(spacing: 20) {
                 Label("Import", systemImage: "1.circle")

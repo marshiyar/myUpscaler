@@ -23,7 +23,8 @@ struct SavedPresetsPanel: View {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack(spacing: 8) {
                         TextField("Preset name", text: $newPresetName)
-                            .textFieldStyle(.roundedBorder)
+                            .labelsHidden()
+                                .textFieldStyle(.roundedBorder)
                             .frame(maxWidth: .infinity)
                             .disabled(isProcessing)
 
@@ -98,7 +99,8 @@ struct PresetRow: View {
             HStack {
                 if isRenaming {
                     TextField("Preset name", text: $nameDraft)
-                        .textFieldStyle(.roundedBorder)
+                        .labelsHidden()
+                                .textFieldStyle(.roundedBorder)
                         .onSubmit(commitRename)
                 } else {
                     Text(preset.name)

@@ -142,7 +142,8 @@ struct RestorationPanel: View {
                         .controlSize(.small)
                         .frame(width: 80)
                         TextField("Thresh", text: $settings.deblockThresh)
-                            .textFieldStyle(.roundedBorder)
+                            .labelsHidden()
+                                .textFieldStyle(.roundedBorder)
                             .frame(width: 70)
                     }
 
@@ -171,7 +172,8 @@ struct RestorationPanel: View {
                                         .font(.system(size: 10))
                                         .foregroundColor(.secondary)
                                     TextField("15", text: $settings.f3kdbRange)
-                                        .textFieldStyle(.roundedBorder)
+                                        .labelsHidden()
+                                .textFieldStyle(.roundedBorder)
                                         .frame(width: 40)
                                 }
                                 VStack(alignment: .leading, spacing: 2) {
@@ -179,7 +181,8 @@ struct RestorationPanel: View {
                                         .font(.system(size: 10))
                                         .foregroundColor(.secondary)
                                     TextField("64", text: $settings.f3kdbY)
-                                        .textFieldStyle(.roundedBorder)
+                                        .labelsHidden()
+                                .textFieldStyle(.roundedBorder)
                                         .frame(width: 40)
                                 }
                                 VStack(alignment: .leading, spacing: 2) {
@@ -187,7 +190,8 @@ struct RestorationPanel: View {
                                         .font(.system(size: 10))
                                         .foregroundColor(.secondary)
                                     TextField("64", text: $settings.f3kdbCbCr)
-                                        .textFieldStyle(.roundedBorder)
+                                        .labelsHidden()
+                                .textFieldStyle(.roundedBorder)
                                         .frame(width: 40)
                                 }
                             }
@@ -200,6 +204,7 @@ struct RestorationPanel: View {
                                 .foregroundColor(.secondary)
                             Spacer()
                             TextField("0.015", text: $settings.debandStrength)
+                                .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                                 .frame(width: 55)
                         }
@@ -216,7 +221,8 @@ struct RestorationPanel: View {
                             .foregroundColor(.secondary)
                         Spacer()
                         TextField("1.0", text: $settings.grainStrength)
-                            .textFieldStyle(.roundedBorder)
+                            .labelsHidden()
+                                .textFieldStyle(.roundedBorder)
                             .frame(width: 50)
                     }
 

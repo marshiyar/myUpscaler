@@ -53,7 +53,6 @@ struct OutputPanel: View {
 
                             Button("Choose", action: chooseFolder)
                                 .controlSize(.mini)
-                                .dynamicKeyboardShortcut(actionId: "chooseOutput", action: chooseFolder)
                         }
                         .padding(.horizontal, 4)
                         .padding(.vertical, 6)
@@ -90,9 +89,12 @@ struct ActionButtons: View {
     @ObservedObject var runner: UpscaleRunner
     @ObservedObject var settings: UpscaleSettings
 
+    let run: () -> Void
+    let cancel: () -> Void
+
     var body: some View {
         HStack(spacing: 12) {
-            Button(action: runner.run) {
+            Button { run() } label: {
                 HStack {
                     if runner.isRunning {
                         ProgressView()
@@ -109,12 +111,9 @@ struct ActionButtons: View {
             .controlSize(.regular)
             .frame(height: UI.buttonHeight)
             .disabled(runner.isRunning || runner.inputPath.isEmpty || settings.upscalingUnavailableReason != nil)
-            .dynamicKeyboardShortcut(actionId: "runUpscaler") {
-                if !runner.isRunning && !runner.inputPath.isEmpty && settings.upscalingUnavailableReason == nil { runner.run() }
-            }
 
             if runner.isRunning {
-            Button(action: runner.cancel) {
+            Button { cancel() } label: {
                 Label("Cancel", systemImage: "stop.fill")
                     .frame(maxWidth: .infinity)
             }
@@ -122,9 +121,6 @@ struct ActionButtons: View {
             .controlSize(.regular)
             .frame(height: UI.buttonHeight)
             .disabled(runner.isCancelling)
-            .dynamicKeyboardShortcut(actionId: "cancel") {
-                if runner.isRunning { runner.cancel() }
-            }
             }
         }
     }
@@ -180,7 +176,7 @@ struct ProgressDetails: View {
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
             } else if runner.completedOutputPath == nil && !runner.inputPath.isEmpty {
-                Text("Export uses the settings above.")
+                Text("Export uses the current settings.")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }

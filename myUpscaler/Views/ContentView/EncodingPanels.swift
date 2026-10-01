@@ -24,6 +24,7 @@ struct X265ParametersPanel: View {
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             TextField("3", text: $settings.x265AqMode)
+                                .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                                 .frame(width: 40)
                         }
@@ -34,6 +35,7 @@ struct X265ParametersPanel: View {
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             TextField("2.0", text: $settings.x265PsyRd)
+                                .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                                 .frame(width: 40)
                         }
@@ -45,13 +47,15 @@ struct X265ParametersPanel: View {
                                 .foregroundColor(.secondary)
                             HStack(spacing: 4) {
                                 TextField("-2", text: $settings.x265Deblock1)
-                                    .textFieldStyle(.roundedBorder)
+                                    .labelsHidden()
+                                .textFieldStyle(.roundedBorder)
                                     .frame(width: 35)
                                 Text(",")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                                 TextField("-2", text: $settings.x265Deblock2)
-                                    .textFieldStyle(.roundedBorder)
+                                    .labelsHidden()
+                                .textFieldStyle(.roundedBorder)
                                     .frame(width: 35)
                             }
                         }
@@ -173,7 +177,8 @@ struct HardwareEncodingPanel: View {
                                .foregroundColor(.secondary)
                            Spacer()
                            TextField("192k", text: $settings.audioBitrate)
-                               .textFieldStyle(.roundedBorder)
+                               .labelsHidden()
+                                .textFieldStyle(.roundedBorder)
                                .frame(width: 60)
                                .disabled(settings.scaler == "coreml")
                        }
@@ -213,7 +218,8 @@ struct HardwareEncodingPanel: View {
                             .foregroundColor(.secondary)
                         Spacer()
                         TextField("0 (auto)", text: $settings.threads)
-                            .textFieldStyle(.roundedBorder)
+                            .labelsHidden()
+                                .textFieldStyle(.roundedBorder)
                             .frame(width: 60)
                             .disabled(settings.scaler == "coreml")
                     }

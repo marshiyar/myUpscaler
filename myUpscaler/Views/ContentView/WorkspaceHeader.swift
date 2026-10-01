@@ -29,7 +29,6 @@ struct InputSection: View {
     var body: some View {
         VStack(spacing: 0) {
             dragDropView()
-                .frame(height: 340)
                 .layoutPriority(1)
         }
         .background(Color.appSecondaryBackground, in: RoundedRectangle(cornerRadius: 14))

@@ -34,20 +34,3 @@ private struct CommandMenuItems: View {
         }
     }
 }
-
-// Transitional native binding used by existing button sites until the workspace
-// switches to the focused command menu in the following UI commit.
-private struct ExistingCommandShortcut: ViewModifier {
-    @ObservedObject private var manager = KeyboardShortcutsManager.shared
-    let command: AppCommand
-    func body(content: Content) -> some View {
-        content.keyboardShortcut(manager.binding(for: command).native)
-    }
-}
-extension View {
-    @ViewBuilder func dynamicKeyboardShortcut(actionId: String, action: @escaping () -> Void) -> some View {
-        if let command = AppCommand(rawValue: actionId) {
-            modifier(ExistingCommandShortcut(command: command))
-        } else { self }
-    }
-}

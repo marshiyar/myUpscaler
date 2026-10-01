@@ -48,9 +48,10 @@ var cardBackground: Color {
 
 // MARK: - CardStyle Modifier (re‑usable visual style)
 struct CardStyle: ViewModifier {
+    @Environment(\.workspaceInspector) private var inInspector
     func body(content: Content) -> some View {
         content
-            .background(Color.appTertiaryBackground, in: RoundedRectangle(cornerRadius: UI.cardCornerRadius))
+            .background(inInspector ? Color.clear : Color.appTertiaryBackground, in: RoundedRectangle(cornerRadius: UI.cardCornerRadius))
     }
 }
 extension View {

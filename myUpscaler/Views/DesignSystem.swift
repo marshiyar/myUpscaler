@@ -178,6 +178,7 @@ extension ButtonStyle where Self == SecondaryButtonStyle {
 }
 
 struct ModernGroupBoxStyle: GroupBoxStyle {
+    @Environment(\.workspaceInspector) private var inInspector
     func makeBody(configuration: Configuration) -> some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
             configuration.label
@@ -185,10 +186,10 @@ struct ModernGroupBoxStyle: GroupBoxStyle {
                 .foregroundColor(.secondary)
             configuration.content
         }
-        .padding(DesignSystem.Spacing.md)
+        .padding(inInspector ? 0 : DesignSystem.Spacing.md)
         .background {
             RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
-                .fill(Color.appTertiaryBackground)
+                .fill(inInspector ? Color.clear : Color.appTertiaryBackground)
         }
     }
 }
@@ -238,3 +239,11 @@ struct LoadingView: View {
     }
 }
 
+
+private struct WorkspaceInspectorKey: EnvironmentKey { static let defaultValue = false }
+extension EnvironmentValues {
+    var workspaceInspector: Bool {
+        get { self[WorkspaceInspectorKey.self] }
+        set { self[WorkspaceInspectorKey.self] = newValue }
+    }
+}

@@ -35,6 +35,15 @@ a real prediction with each, alongside the XCTest unit tests.
 
 Contributing
 ---------------
+The **macOS build, test and bundle** Actions workflow runs for pull requests,
+pushes to `main`, and manual runs. It builds a Release app and uploads a unique
+`myUpscaler-macos-arm64-<run>-<attempt>` artifact containing a DMG, an inner ZIP
+that preserves app permissions, checksums, and build information. Artifacts are
+retained for 90 days and are never overwritten or deleted by the workflow.
+GitHub expires them after that period. These builds are ad hoc signed and are
+not notarized. The workflow has read-only repository permissions and does not
+publish to GitHub Releases.
+
 Issues and pull requests are welcome.
 
 Please ensure:

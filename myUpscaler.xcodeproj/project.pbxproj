@@ -590,10 +590,8 @@
 				MTL_MATH_MODE = FAST;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = (
-					"\"-Ofast -march=native -mtune=native\"",
+					"-O3",
 					"-flto",
-					"-funroll-loops",
-					"-fmerge-all-constants",
 				);
 				OTHER_LDFLAGS = "";
 				OTHER_SWIFT_FLAGS = "";

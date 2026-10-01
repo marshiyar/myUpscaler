@@ -11,15 +11,15 @@
 
 /* Resolve only the executable shipped inside the running .app. Neither PATH
  * nor environment overrides participate. Reject links escaping the bundle. */
-static inline bool up60p_resolve_bundled_ffmpeg(const char *executable,
-                                               char *output, size_t capacity) {
+static inline bool up60p_resolve_bundled_executable(const char *executable, const char *relative_path,
+                                                   char *output, size_t capacity) {
     char executable_path[PATH_MAX];
     char candidate[PATH_MAX];
     char resolved[PATH_MAX];
     struct stat st;
     if (!output || capacity == 0) return false;
     output[0] = '\0';
-    if (!executable || !realpath(executable, executable_path)) return false;
+    if (!executable || !relative_path || !realpath(executable, executable_path)) return false;
     char *name = strrchr(executable_path, '/');
     if (!name) return false;
     *name = '\0';
@@ -30,7 +30,7 @@ static inline bool up60p_resolve_bundled_ffmpeg(const char *executable,
         return false;
     }
     int written = snprintf(candidate, sizeof(candidate),
-                           "%s/ThirdParty/FFmpeg/ffmpeg", executable_path);
+                           "%s/%s", executable_path, relative_path);
     if (written < 0 || (size_t)written >= sizeof(candidate) ||
         !realpath(candidate, resolved) || strcmp(candidate, resolved) != 0 ||
         stat(resolved, &st) != 0 || !S_ISREG(st.st_mode) ||
@@ -39,6 +39,11 @@ static inline bool up60p_resolve_bundled_ffmpeg(const char *executable,
     }
     memcpy(output, resolved, strlen(resolved) + 1);
     return true;
+}
+
+static inline bool up60p_resolve_bundled_ffmpeg(const char *executable,
+                                               char *output, size_t capacity) {
+    return up60p_resolve_bundled_executable(executable, "ThirdParty/FFmpeg/ffmpeg", output, capacity);
 }
 
 #endif

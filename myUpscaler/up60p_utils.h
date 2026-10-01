@@ -26,6 +26,7 @@ bool is_image(const char *path);
 
 
 bool up60p_is_cancelled(void);
+void up60p_reset_cancel(void);
 void up60p_request_cancel(void);
 
 

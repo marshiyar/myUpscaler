@@ -53,7 +53,7 @@ jobs:
             exit "$status"
           fi
 
-      - name: Test bundled executable resolution
+      - name: Test bundled engine lifecycle and architecture
         run: python3 -m unittest discover -s tests -p 'test_bundled_ffmpeg*.py'
 
       - name: Test upscaling mode availability
@@ -85,6 +85,9 @@ jobs:
           set -euo pipefail
           app="$RUNNER_TEMP/myUpscaler-DerivedData/Build/Products/Debug/myUpscaler.app"
           test -x "$app/Contents/MacOS/myUpscaler"
+          test -x "$app/Contents/MacOS/up60p-ffmpeg-supervisor"
+          xcrun lipo "$app/Contents/MacOS/up60p-ffmpeg-supervisor" -verify_arch arm64 x86_64
+          codesign --verify --strict "$app/Contents/MacOS/up60p-ffmpeg-supervisor"
           test -x "$app/Contents/MacOS/ThirdParty/FFmpeg/ffmpeg"
           test -f "$app/Contents/Resources/FFmpeg-COPYING.txt"
           test -f "$app/Contents/Resources/FFmpeg-NOTICE.txt"

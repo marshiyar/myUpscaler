@@ -23,6 +23,10 @@ struct myUpscalerApp: App {
 }
 
 class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationWillTerminate(_ notification: Notification) {
+        up60p_shutdown()
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         setenv("MTL_SHADER_VALIDATION", "0", 1)
         setenv("MTL_DEBUG_LAYER", "0", 1)

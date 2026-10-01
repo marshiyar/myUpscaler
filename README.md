@@ -57,7 +57,7 @@ The macOS CI also runs the Swift upscaling-availability checks in
 Troubleshooting
 ---------------
 
-# Contributing
+Contributing
 ---------------
 Issues and pull requests are welcome.
 

@@ -1,0 +1,85 @@
+name: macOS build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Select Xcode 26
+        shell: bash
+        run: |
+          set -euo pipefail
+          # This project uses Xcode 26 Swift build settings. Select the newest
+          # installed Xcode 26 rather than relying on the runner's default.
+          xcode_app=$(find /Applications -maxdepth 1 -name 'Xcode_26*.app' | sort -V | tail -n 1)
+          if [[ -z "$xcode_app" ]]; then
+            echo '::error::This runner image does not have Xcode 26 installed.'
+            exit 1
+          fi
+          sudo xcode-select --switch "$xcode_app/Contents/Developer"
+          xcodebuild -version
+          xcrun --sdk macosx --show-sdk-version
+
+      - name: Prepare bundled FFmpeg
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/prepare-bundled-ffmpeg.sh
+
+      - name: Test bundled executable resolution
+        run: python3 -m unittest discover -s tests -p 'test_bundled_ffmpeg*.py'
+
+      - name: Build Debug app
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project myUpscaler.xcodeproj \
+            -scheme myUpscaler \
+            -configuration Debug \
+            -destination 'generic/platform=macOS' \
+            -derivedDataPath "$RUNNER_TEMP/myUpscaler-DerivedData" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY=- \
+            DEVELOPMENT_TEAM= \
+            ENABLE_USER_SCRIPT_SANDBOXING=NO \
+            build 2>&1 | tee "$RUNNER_TEMP/myUpscaler-build.log"
+
+      - name: Verify build outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="$RUNNER_TEMP/myUpscaler-DerivedData/Build/Products/Debug/myUpscaler.app"
+          test -x "$app/Contents/MacOS/myUpscaler"
+          test -x "$app/Contents/MacOS/ThirdParty/FFmpeg/ffmpeg"
+          test -f "$app/Contents/Resources/FFmpeg-COPYING.txt"
+          test -f "$app/Contents/Resources/FFmpeg-NOTICE.txt"
+          xcrun lipo -verify_arch arm64 x86_64 "$app/Contents/MacOS/ThirdParty/FFmpeg/ffmpeg"
+          codesign --verify --strict "$app/Contents/MacOS/ThirdParty/FFmpeg/ffmpeg"
+          "$app/Contents/MacOS/ThirdParty/FFmpeg/ffmpeg" -version
+          # This verifies packaging, not GUI or CoreML runtime behavior.
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-build-log
+          path: ${{ runner.temp }}/myUpscaler-build.log
+          if-no-files-found: ignore

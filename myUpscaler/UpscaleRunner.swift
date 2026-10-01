@@ -331,7 +331,7 @@ class UpscaleRunner: ObservableObject {
                     var errorMessage = "\n--- ERROR: "
                     switch error {
                     case .ffmpegNotFound:
-                        errorMessage += "FFmpeg executable not found.\n"
+                        errorMessage += "Bundled FFmpeg is missing or invalid. Reinstall the app; external FFmpeg is not supported.\n"
                     case .invalidOptions:
                         errorMessage += "Invalid options provided.\n"
                     case .io:

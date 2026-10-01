@@ -100,44 +100,12 @@ final class Up60PEngine {
             if let handler = Up60PEngine.currentLogHandler {
                 DispatchQueue.main.async {
                     handler("Initializing C engine...\n")
-                    if let envPath = getenv("UP60P_FFMPEG") {
-                        let pathStr = String(cString: envPath)
-                        handler("UP60P_FFMPEG env var set to: \(pathStr)\n")
-                    }
                 }
             }
         }
-        
-        // Resolve bundled ffmpeg relative to the app executable (Contents/MacOS/ffmpeg)
-        if getenv("UP60P_FFMPEG") == nil {
-            if let exeURL = Bundle.main.executableURL {
-                let ffmpegURL = exeURL
-                    .deletingLastPathComponent()
-                    .appendingPathComponent("ffmpeg")
-                
-                if FileManager.default.isExecutableFile(atPath: ffmpegURL.path) {
-                 _ = ffmpegURL.path.withCString { cStr in
-                        setenv("UP60P_FFMPEG", cStr, 1)
-                    }
-                    
-                    Up60PEngine.logHandlerQueue.sync {
-                        if let handler = Up60PEngine.currentLogHandler {
-                            DispatchQueue.main.async {
-                                handler("Using bundled ffmpeg at: \(ffmpegURL.path)\n")
-                            }
-                        }
-                    }
-                } else {
-                    Up60PEngine.logHandlerQueue.sync {
-                        if let handler = Up60PEngine.currentLogHandler {
-                            DispatchQueue.main.async {
-                                handler("ERROR: Bundled ffmpeg not found or not executable at expected path.\n")
-                            }
-                        }
-                    }
-                }
-            }
-        }
+
+        // The C engine owns bundle resolution and validates the same path at
+        // initialization and before processing. Do not set or honor overrides.
         let result = Self.bridge.initFunc(nil, callback)
         
         if result != UP60P_OK {

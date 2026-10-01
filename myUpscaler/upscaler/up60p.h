@@ -128,6 +128,10 @@ extern void (*global_log_cb)(const char *message);
 
 up60p_error up60p_init(const char *app_support_dir, up60p_log_callback log_cb);
 
+/* Returns the validated bundle path, or NULL. Never searches PATH or accepts
+ * an environment override. The returned storage belongs to the engine. */
+const char *up60p_bundled_ffmpeg_path(void);
+
 void up60p_default_options(up60p_options *out_opts);
 
 up60p_error up60p_process_path(const char *input_path,

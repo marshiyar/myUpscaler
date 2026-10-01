@@ -1,0 +1,17 @@
+myUpscaler includes the separately executed FFmpeg program, version 8.1.2,
+under GNU GPL version 3 or later. See FFmpeg-COPYING.txt for the license.
+
+Binary producer: Shaka Project static-ffmpeg-binaries
+Upstream release:
+https://github.com/shaka-project/static-ffmpeg-binaries/releases/tag/n8.1.2-1
+
+The macOS executable combines the upstream ffmpeg-osx-arm64 and ffmpeg-osx-x64
+assets and is signed during app packaging. It requires macOS 15.0 or newer.
+
+The exact corresponding-source inputs, build scripts, and checksums are
+documented in:
+https://github.com/marshiyar/mpvfx/blob/fd4367d52408d772c1ff10f83015a6b2c9c91662/studio/legal/NOTICES/FFMPEG_SOURCE.md
+
+Public binary releases of myUpscaler must provide the matching FFmpeg
+corresponding source alongside the release. See docs/FFMPEG.md in the
+myUpscaler source repository for the matching archive and checksum.

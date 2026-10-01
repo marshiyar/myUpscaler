@@ -7,11 +7,18 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <termios.h>
+#include "up60p_ffmpeg_path.h"
 
 Settings DEF;
 Settings S;
 
 int execute_ffmpeg_command(char *const argv[]) {
+    const char *bundled_ffmpeg = up60p_bundled_ffmpeg_path();
+    if (!bundled_ffmpeg || !argv || !argv[0] ||
+        strcmp(argv[0], bundled_ffmpeg) != 0) {
+        if (global_log_cb) global_log_cb("Bundled FFmpeg is missing or invalid; external executables are not supported.\n");
+        return -1;
+    }
     int stdout_pipe[2];
     int stderr_pipe[2];
     pid_t pid;
@@ -30,10 +37,10 @@ int execute_ffmpeg_command(char *const argv[]) {
         close(stderr_pipe[0]);
         close(stderr_pipe[1]);
         
-        execvp(argv[0], argv);
+        execv(bundled_ffmpeg, argv);
         
         // exec failed
-        fprintf(stderr, "execvp failed: %s (%d)\n", strerror(errno), errno);
+        fprintf(stderr, "Bundled FFmpeg execv failed: %s (%d)\n", strerror(errno), errno);
         _exit(127);
     }
     
@@ -74,27 +81,11 @@ static volatile sig_atomic_t cancel_requested = 0;
 static char FFMPEG_PATH[PATH_MAX] = {0};
 int DRY_RUN = 0;
 
-static const char* get_bundled_ffmpeg_path(void) {
-    if (FFMPEG_PATH[0] != '\0') {
-        return FFMPEG_PATH;
-    }
-    
+const char *up60p_bundled_ffmpeg_path(void) {
     char exe_path[PATH_MAX];
     uint32_t size = sizeof(exe_path);
-    
-    if (_NSGetExecutablePath(exe_path, &size) != 0) {
-        return NULL;
-    }
-    
-    char exe_dir_buf[PATH_MAX];
-    strncpy(exe_dir_buf, exe_path, sizeof(exe_dir_buf) - 1);
-    exe_dir_buf[sizeof(exe_dir_buf) - 1] = '\0';
-    
-    char *exe_dir = dirname(exe_dir_buf);
-    
-    snprintf(FFMPEG_PATH, sizeof(FFMPEG_PATH), "%s/ThirdParty/FFmpeg/ffmpeg", exe_dir);
-    
-    if (access(FFMPEG_PATH, X_OK) != 0) {
+    if (_NSGetExecutablePath(exe_path, &size) != 0 ||
+        !up60p_resolve_bundled_ffmpeg(exe_path, FFMPEG_PATH, sizeof(FFMPEG_PATH))) {
         FFMPEG_PATH[0] = '\0';
         return NULL;
     }
@@ -537,9 +528,15 @@ up60p_error up60p_init(const char *app_support_dir, up60p_log_callback log_cb) {
     global_log_cb = log_cb;
     init_paths();
     set_defaults();
-    if (!get_bundled_ffmpeg_path()) {
-        fprintf(stderr, "Fatal: bundled ffmpeg binary not found\n");
-        return 1;
+    const char *ffmpeg = up60p_bundled_ffmpeg_path();
+    if (!ffmpeg) {
+        if (global_log_cb) global_log_cb("Bundled FFmpeg is missing or invalid at Contents/MacOS/ThirdParty/FFmpeg/ffmpeg. Reinstall the app; external FFmpeg is not supported.\n");
+        return UP60P_ERR_FFMPEG_NOT_FOUND;
+    }
+    if (global_log_cb) {
+        char message[PATH_MAX + 32];
+        snprintf(message, sizeof(message), "Using bundled FFmpeg: %s\n", ffmpeg);
+        global_log_cb(message);
     }
     
 //    char name[64];
@@ -556,6 +553,8 @@ up60p_error up60p_process_path(const char *input_path,
                                const up60p_options *opts)
 {
     if (!input_path || !opts) return UP60P_ERR_INVALID_OPTIONS;
+    const char *ffmpeg = up60p_bundled_ffmpeg_path();
+    if (!ffmpeg) return UP60P_ERR_FFMPEG_NOT_FOUND;
     
     cancel_requested = 0;
     
@@ -564,9 +563,9 @@ up60p_error up60p_process_path(const char *input_path,
     struct stat st;
     if (stat(input_path, &st) == 0) {
         if (S_ISDIR(st.st_mode)) {
-            process_directory(input_path, get_bundled_ffmpeg_path());
+            process_directory(input_path, ffmpeg);
         } else {
-            process_file(input_path, get_bundled_ffmpeg_path(), false);
+            process_file(input_path, ffmpeg, false);
         }
         return UP60P_OK;
     }

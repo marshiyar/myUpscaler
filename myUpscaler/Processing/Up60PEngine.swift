@@ -1,4 +1,5 @@
 import Foundation
+import CoreMedia
 import Darwin
 
 enum Up60PEngineError: Error, Equatable {

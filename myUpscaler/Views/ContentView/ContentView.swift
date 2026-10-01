@@ -85,7 +85,7 @@ struct ContentView: View {
                     ProgressDetails(runner: runner).frame(maxWidth: .infinity, alignment: .leading)
                     ActionButtons(runner: runner, settings: settings,
                                   run: { dispatcher.perform(.runUpscaler) },
-                                  cancel: { dispatcher.perform(.cancel) }).frame(width: runner.isRunning ? 270 : 150)
+                                  cancel: { dispatcher.perform(.cancel) }).frame(width: 150)
                 }
                 .padding(16)
                 .background(.bar)

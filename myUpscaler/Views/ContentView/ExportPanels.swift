@@ -95,36 +95,23 @@ struct ActionButtons: View {
     let cancel: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
-            Button { run() } label: {
-                HStack {
-                    if runner.isRunning {
-                        ProgressView()
-                            .scaleEffect(0.7)
-                    } else {
-                        Image(systemName: "play.fill")
-                    }
-                    Text(runner.isCancelling ? "Stopping…" : runner.isRunning ? "Exporting…" : "Export video")
-                }
-                .frame(maxWidth: .infinity)
-            }
-
-            .buttonStyle(.borderedProminent)
-            .controlSize(.regular)
-            .frame(height: UI.buttonHeight)
-            .disabled(runner.isRunning || runner.inputPath.isEmpty || settings.upscalingUnavailableReason != nil)
-
+        Button {
+            guard !runner.isCancelling else { return }
             if runner.isRunning {
-            Button { cancel() } label: {
-                Label("Cancel", systemImage: "stop.fill")
-                    .frame(maxWidth: .infinity)
+                cancel()
+            } else if !runner.inputPath.isEmpty && settings.upscalingUnavailableReason == nil {
+                run()
             }
-            .buttonStyle(.bordered)
-            .controlSize(.regular)
-            .frame(height: UI.buttonHeight)
-            .disabled(runner.isCancelling)
-            }
+        } label: {
+            Label(runner.isCancelling ? "Stopping…" : runner.isRunning ? "Cancel" : "Export video",
+                  systemImage: runner.isRunning ? "stop.fill" : "play.fill")
+                .frame(maxWidth: .infinity)
         }
+        .buttonStyle(.borderedProminent)
+        .controlSize(.regular)
+        .frame(width: 150, height: UI.buttonHeight)
+        .disabled(runner.isCancelling || (!runner.isRunning &&
+                  (runner.inputPath.isEmpty || settings.upscalingUnavailableReason != nil)))
     }
 }
 

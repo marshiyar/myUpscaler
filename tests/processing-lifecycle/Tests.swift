@@ -266,6 +266,10 @@ struct NoDuration: AssetLoaderProtocol {
         let completionTime = Date().timeIntervalSince(completionStart)
         precondition(runner.completedOutputPath != nil && runner.progress == 1 && runner.phase == .idle)
         precondition(completionTime < 0.5, "completion still polls file size")
+        engine.handler?("stage=finalizing\n")
+        try await Task.sleep(nanoseconds: 10_000_000)
+        precondition(!runner.isRunning && runner.phase == .idle && runner.progress == 1,
+                     "late same-run log changed completed state")
         let completedPath = runner.completedOutputPath
         runner.inputPath = input.path
         precondition(runner.completedOutputPath == completedPath, "unchanged input invalidated export")

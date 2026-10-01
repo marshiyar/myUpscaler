@@ -79,7 +79,7 @@ Maintained application source targets about 500 lines per file, with a 600-line 
 ## Current limitations
 
 - Full Core ML throughput and temporal-quality benchmarks need compatible model assets and representative media. Synthetic kernel and video-I/O tests do not establish end-to-end AI speed.
-- Motion interpolation needs future frames and can truncate endpoint frames. Numeric targets at or below source FPS still need a source-rate-aware optimization; use source FPS or frame selection when interpolation is unnecessary.
+- Numeric motion interpolation checks source sample timing. Verified constant-rate clips retain their duration through the final held frame; targets at or below source rate use frame selection. Variable-rate or unverified clips use conservative interpolation and may lose endpoint frames. Source/lock preserves original timestamps.
 - Core ML preserves compatible MP4 audio without re-encoding it; unsupported audio fails visibly. Final muxing writes an additional compressed file. It omits FFmpeg-specific EQ, deblock, grain, second-pass restoration, FPS conversion and CPU codec options. Preview color EQ is not applied by that engine.
 - CI app artifacts are ad hoc signed, not notarized. [Build artifacts](https://github.com/marshiyar/myUpscaler/actions/workflows/macos-build.yml) expire after 90 days; the workflow does not publish releases.
 

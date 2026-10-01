@@ -11,6 +11,7 @@
 #include "up60p_process.h"
 #include <pthread.h>
 #include <math.h>
+#include "up60p_fps.h"
 
 Settings DEF;
 Settings S;
@@ -233,15 +234,9 @@ static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) 
     }
 
 
-    // Source/lock means preserve timestamps: omitting minterpolate's fps option
-    // would silently use its 60 FPS default. Numeric targets still need frame
-    // selection/duplication when motion interpolation is disabled.
-    if (!img && strcmp(S.fps, "source") && strcmp(S.fps, "lock")) {
-        if (S.no_interpolate || !strcmp(S.mi_mode, "dup")) {
-            sb_fmt(&vf, "fps=fps=%s,", S.fps);
-        } else {
-            sb_fmt(&vf, "minterpolate=fps=%s:mi_mode=%s:mc_mode=aobmc:me_mode=bidir:vsbmc=1,", S.fps, S.mi_mode);
-        }
+    if (!img && !up60p_build_fps_filter(&vf, &S)) {
+        free(vf.buf);
+        return UP60P_ERR_INVALID_OPTIONS;
     }
 
     sb_fmt(&vf, "scale=trunc(iw*%s/2)*2:trunc(ih*%s/2)*2:flags=lanczos+accurate_rnd,", S.scale_factor, S.scale_factor);

@@ -69,6 +69,11 @@ struct Settings {
 
 
     char hwaccel[16]; char encoder[16];
+    /* Optional per-file timing, verified from source video samples. Zero means unknown. */
+    double source_video_duration;
+    int64_t source_rate_num, source_rate_den;
+    int source_cfr_verified;
+    int64_t source_frame_count;
 };
 
 void init_paths(void);

@@ -47,6 +47,7 @@ static inline int _NSGetExecutablePath(char *buffer, uint32_t *size) {
 #include <pthread.h>
 #include <unistd.h>
 #include <time.h>
+#include <stdlib.h>
 #include "up60p_process.h"
 extern int execute_ffmpeg_command(char *const argv[]);
 static void log_message(const char *message) { fputs(message, stdout); }
@@ -101,15 +102,32 @@ int main(int argc, char **argv) {
         opts.use10 = strcmp(argv[4], "10") == 0;
         return up60p_process_path(argv[5], &opts);
     }
-    if (argc > 4 && strcmp(argv[1], "fps") == 0) {
+    if (argc > 4 && (strcmp(argv[1], "fps") == 0 || strcmp(argv[1], "fps-known") == 0)) {
         up60p_options opts;
         up60p_default_options(&opts);
         snprintf(opts.fps, sizeof(opts.fps), "%s", argv[2]);
         opts.no_interpolate = strcmp(argv[3], "off") == 0;
         if (strcmp(argv[3], "dup") == 0) snprintf(opts.mi_mode, sizeof(opts.mi_mode), "dup");
-        opts.no_decimate = true;
+        if (strcmp(argv[1], "fps-known") == 0 && argc > 8) {
+            opts.source_video_duration = atof(argv[5]);
+            opts.source_rate_num = atoll(argv[6]);
+            opts.source_rate_den = atoll(argv[7]);
+            opts.source_frame_count = atoll(argv[8]);
+            opts.source_cfr_verified = 1;
+            if (strcmp(argv[3], "blend") == 0) snprintf(opts.mi_mode, sizeof(opts.mi_mode), "blend");
+        }
+        opts.no_decimate = !(argc > 9 && strcmp(argv[9], "decimate") == 0);
         opts.no_denoise = opts.no_deblock = opts.no_sharpen = true;
         opts.no_deband = opts.no_grain = true;
+        if (argc > 11 && strcmp(argv[10], "cancel") == 0) {
+            control_mode = "cancel";
+            ready_file = argv[11];
+            pthread_t thread;
+            pthread_create(&thread, NULL, control, NULL);
+            int result = up60p_process_path(argv[4], &opts);
+            pthread_join(thread, NULL);
+            return result;
+        }
         return up60p_process_path(argv[4], &opts);
     }
     if (argc > 2 && strcmp(argv[1], "scaler") == 0) {

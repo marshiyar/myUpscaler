@@ -332,6 +332,20 @@ final class Up60PEngine {
                         try self.makeOptions(from: settings, outputDir: outputDirectory)
                     }
                     var mutableOpts = opts
+                    // Per-input metadata only; source/lock and frame selection avoid this scan.
+                    if !settings.noInterpolate, settings.interpolation != "dup",
+                       settings.fps != "source", settings.fps != "lock" {
+                        do {
+                            let timing = try await SourceVideoTiming.inspect(url: URL(fileURLWithPath: inputPath))
+                            mutableOpts.source_video_duration = timing.duration.seconds.isFinite ? timing.duration.seconds : 0
+                            mutableOpts.source_frame_count = timing.frameCount ?? 0
+                            mutableOpts.source_rate_num = timing.rateNumerator ?? 0
+                            mutableOpts.source_rate_den = timing.rateDenominator ?? 0
+                            mutableOpts.source_cfr_verified = timing.isVerifiedCFR ? 1 : 0
+                        } catch is CancellationError { throw CancellationError() }
+                        catch { await MainActor.run { self.log("Source timing could not be verified; using conservative FPS conversion.\n") } }
+                    }
+                    try Task.checkCancellation()
 
                     // Logging (safe)
                     let handler = Up60PEngine.logHandlerQueue.sync { Up60PEngine.currentLogHandler }

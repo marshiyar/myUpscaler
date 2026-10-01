@@ -44,15 +44,41 @@ Hardware execution passes `-allow_sw 0`; it cannot silently fall back to a CPU
 encoder. CPU presets/CRF flags are omitted for VideoToolbox. H.264 10-bit is
 rejected; HEVC 10-bit supplies `p010le` to the encoder.
 
+## Verified CFR endpoint correction
+
+The bridge accepts optional per-file video duration, exact source-rate numerator
+and denominator, verified CFR flag, and source frame count. Default zero values
+mean unknown. The caller must verify timing from video sample timestamps;
+`nominalFrameRate` alone does not establish constant frame rate.
+
+For verified CFR sources, numeric conversion holds the last source image until
+`trim=end_frame=N` reaches the finite requested count. `N` is the nearest integer
+of video duration × requested FPS, with ties rounded upward and a minimum of one
+frame. The clone pad terminates through this downstream trim. This also restores
+static tails removed by `mpdecimate`. Motion interpolation remains before scaling.
+Equal/lower targets and one-frame sources use frame selection instead of motion
+estimation; there are no intermediate motion frames to invent for one image.
+
+`test_fps_endpoints.py` validates one-frame, two-frame, and full clips at 24000/1001
+and 30000/1001 with MCI, blend, and duplicate modes: exact output counts, regular
+presentation timestamps, and video/audio duration within one output frame. It
+also tests a decimated two-second static tail, finite completion, cancellation of
+a deliberately long padded target, invalid rational rates, and count overflow.
+
+```sh
+python3 -m unittest discover -s tests -p 'test_fps_endpoints.py' -v
+```
+
 ## Remaining limitations
 
-Numeric motion interpolation still runs when the requested rate equals or is
-below the source rate: this C path has no reliable source-rate metadata probe.
-Motion/blend interpolation can omit the last source frames that lack future
-neighbors. In the one-second 24→60 fixture it produced 56 frames and 0.933 seconds
-of video. Fixing that safely requires duration-aware padding/trimming and
-additional quality validation; audio duration is not shortened to mask it.
-CoreML target FPS handling is a separate path.
+Unknown or variable-rate timing retains the existing motion interpolation path
+and logs that endpoint shortening remains possible. Correcting VFR endpoints
+needs reliable per-frame timing and an explicit conversion policy. CFR output
+duration is quantized to the requested frame period, so a source duration that
+falls between output frames cannot be represented exactly. CoreML target FPS
+handling is a separate path. Motion interpolation quality has not been compared
+across representative real footage; this change retains its existing settings
+and holds only the final available image at the endpoint.
 
 FFmpeg primary references:
 

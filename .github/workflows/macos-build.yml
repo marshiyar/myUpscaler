@@ -115,7 +115,9 @@ jobs:
           echo '::notice::External prebuilt model ZIP/directory, cache replacement and checksum requirement passed.'
 
       - name: Test bundled engine lifecycle and architecture
-        run: python3 -m unittest discover -s tests -p 'test_bundled_ffmpeg*.py'
+        run: |
+          python3 -m unittest discover -s tests -p 'test_bundled_ffmpeg*.py'
+          python3 -m unittest discover -s tests -p 'test_fps_endpoints.py'
 
       - name: Test upscaling mode availability
         run: |

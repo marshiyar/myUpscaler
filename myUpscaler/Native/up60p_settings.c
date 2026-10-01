@@ -110,6 +110,11 @@ void up60p_options_from_settings(up60p_options *dst, const Settings *src) {
 
     snprintf(dst->hwaccel, sizeof(dst->hwaccel), "%s", src->hwaccel);
     snprintf(dst->encoder, sizeof(dst->encoder), "%s", src->encoder);
+    dst->source_video_duration = src->source_video_duration;
+    dst->source_rate_num = src->source_rate_num;
+    dst->source_rate_den = src->source_rate_den;
+    dst->source_cfr_verified = src->source_cfr_verified;
+    dst->source_frame_count = src->source_frame_count;
 }
 
 
@@ -210,6 +215,11 @@ void settings_from_up60p_options(Settings *dst, const up60p_options *src) {
 
     snprintf(dst->hwaccel, sizeof(dst->hwaccel), "%s", src->hwaccel);
     snprintf(dst->encoder, sizeof(dst->encoder), "%s", src->encoder);
+    dst->source_video_duration = src->source_video_duration;
+    dst->source_rate_num = src->source_rate_num;
+    dst->source_rate_den = src->source_rate_den;
+    dst->source_cfr_verified = src->source_cfr_verified;
+    dst->source_frame_count = src->source_frame_count;
 }
 
 void init_paths(void) {

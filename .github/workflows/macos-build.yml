@@ -53,6 +53,12 @@ jobs:
             exit "$status"
           fi
 
+      - name: Prepare bundled CoreML models
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/prepare-bundled-models.sh
+
       - name: Test bundled engine lifecycle and architecture
         run: python3 -m unittest discover -s tests -p 'test_bundled_ffmpeg*.py'
 
@@ -111,9 +117,32 @@ jobs:
           import json, sys
           summary = json.load(open(sys.argv[1]))
           passed, failed = summary.get('passedTests', 0), summary.get('failedTests', 0)
-          assert passed >= 6 and failed == 0, summary
+          assert passed >= 7 and failed == 0, summary
           print(f'::notice::XCTest: {passed} passed, {failed} failed.')
           PYSUMMARY
+
+      - name: Verify packaged CoreML models and inference
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="$RUNNER_TEMP/myUpscaler-DerivedData/Build/Products/Debug/myUpscaler.app"
+          python3 scripts/verify-bundled-models.py "$app/Contents/Resources"
+          xcrun swiftc myUpscaler/CoreMLModelRegistry.swift tests/packaged-models/main.swift \
+            -o "$RUNNER_TEMP/packaged-model-tests"
+          status=0
+          python3 - "$RUNNER_TEMP/packaged-model-tests" "$app" > "$RUNNER_TEMP/model-verification.log" 2>&1 <<'PYRUN' || status=$?
+          import subprocess, sys
+          subprocess.run(sys.argv[1:], check=True, timeout=600)
+          PYRUN
+          cat "$RUNNER_TEMP/model-verification.log"
+          if [[ $status -ne 0 ]]; then
+            python3 - "$RUNNER_TEMP/model-verification.log" <<'PYLOG'
+          import pathlib, sys
+          message = pathlib.Path(sys.argv[1]).read_text()[-8000:]
+          print('::error::' + message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A'))
+          PYLOG
+            exit "$status"
+          fi
 
       - name: Verify build outputs
         shell: bash
@@ -145,14 +174,16 @@ jobs:
           PY
             exit "$status"
           fi
-          # Verifies packaging and a sandboxed launch; GUI/CoreML need separate checks.
+          # Verifies FFmpeg packaging and a sandboxed launch; GUI use needs manual checks.
 
       - name: Upload build log
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: macos-build-log
-          path: ${{ runner.temp }}/myUpscaler-build.log
+          path: |
+            ${{ runner.temp }}/myUpscaler-build.log
+            ${{ runner.temp }}/model-verification.log
           if-no-files-found: ignore
 
       - name: Upload XCTest results

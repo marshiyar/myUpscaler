@@ -91,7 +91,6 @@ typedef struct {
     char eq_contrast[16];
     char eq_brightness[16];
     char eq_saturation[16];
-//    char lut3d_file[PATH_MAX];
 
     /* Encoder extra */
     char x265_params[256];

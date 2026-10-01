@@ -219,7 +219,7 @@ class UpscaleRunner: ObservableObject {
             }
 
             Task { @MainActor in
-                guard self.currentRunID == runID, !self.isCancelling else { return }
+                guard self.currentRunID == runID, self.isRunning, !self.isCancelling else { return }
                 let now = Date().timeIntervalSince1970
                 let lower = message.lowercased()
                 let isError = lower.contains("error") || lower.contains("fail")
@@ -264,10 +264,9 @@ class UpscaleRunner: ObservableObject {
                 }
 
                 let lowerMessage = message.lowercased()
-                let hasElapsed = lowerMessage.contains("elapsed=")
                 let isDoneMessage = message.trimmingCharacters(in: .whitespacesAndNewlines) == "Done."
 
-                if hasElapsed || isDoneMessage || lowerMessage.contains("stage=finalizing") {
+                if isDoneMessage || lowerMessage.contains("stage=finalizing") {
                     self.flushLogBuffer()
 
                     self.phase = .finalizing

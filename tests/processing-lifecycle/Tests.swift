@@ -182,6 +182,8 @@ struct NoDuration: AssetLoaderProtocol {
     @MainActor static func main() async throws {
         let measured = FFmpegParser.parse(line: "time=00:00:05.000 fps=10 speed=0.5x", currentDuration: 10)
         precondition(measured.progress == 0.5 && measured.eta == "0:10")
+        let padded = FFmpegParser.parse(line: "frame= 383 fps= 42 time=00:00:06.35 speed= 0.7x elapsed=0:00:09.07", currentDuration: 12)
+        precondition(padded.fps == "42" && padded.eta != "--:--" && padded.progress! < 1)
         let unknownETA = FFmpegParser.parse(line: "time=00:00:05 fps=10", currentDuration: 10)
         precondition(unknownETA.eta == "--:--")
         precondition(FFmpegParser.parse(line: "time=5", currentDuration: 0).progress == nil)
@@ -241,7 +243,13 @@ struct NoDuration: AssetLoaderProtocol {
         // An early elapsed log and a stable file cannot end an active engine.
         try Data([2]).write(to: URL(fileURLWithPath: runner.outputVideoPath))
         try await Task.sleep(nanoseconds: 2_100_000_000)
-        precondition(runner.isRunning && runner.progress < 1 && !runner.progressKnown && runner.phase == .finalizing, "early log/file stability faked completion")
+        precondition(runner.isRunning && runner.progress < 1 && !runner.progressKnown && runner.phase == .preparing, "ordinary elapsed field changed phase or faked completion")
+        engine.handler?("Duration: 00:00:12.00 time=00:00:06.35 fps= 42 speed= 0.7x elapsed=0:00:09.07\n")
+        try await Task.sleep(nanoseconds: 10_000_000)
+        precondition(runner.phase == .processing && runner.progressKnown && runner.fpsString == "42")
+        engine.handler?("Done.\n")
+        try await Task.sleep(nanoseconds: 10_000_000)
+        precondition(runner.phase == .finalizing && runner.isRunning && runner.completedOutputPath == nil)
         runner.cancel()
         runner.run()
         precondition(runner.isRunning && engine.starts == 1 && engine.cancels == 1,

@@ -11,7 +11,7 @@ nonisolated struct FFmpegProgressState {
 nonisolated class FFmpegParser {
     // Combined regex that captures duration, time, and fps in one pass
     private static let combinedRegex = try? NSRegularExpression(
-        pattern: "(?:Duration:\\s*([0-9:.]+))|(?:time=([0-9:\\.]+))|(?:fps=([0-9\\.]+))|(?:speed=([0-9\\.]+)x)"
+        pattern: "(?:Duration:\\s*([0-9:.]+))|(?:time=\\s*([0-9:\\.]+))|(?:fps=\\s*([0-9\\.]+))|(?:speed=\\s*([0-9\\.]+)x)"
     )
 
     static func parse(line: String, currentDuration: Double) -> FFmpegProgressState {

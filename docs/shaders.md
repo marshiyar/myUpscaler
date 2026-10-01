@@ -3,7 +3,7 @@
 `myUpscaler/Native/Process/Shaders/` contains one `.ci.metal` translation unit
 per effect. The 21 `extern "C"` entrypoints keep the names, sampler arguments,
 scalar parameter order, return types and algorithms used by
-`CoreMLEngine.ShaderRegistry`. `ShaderCommon.h` shares Metal/Core Image includes
+`CoreMLProcessingJob.ShaderRegistry`. `ShaderCommon.h` shares Metal/Core Image includes
 and color helpers with internal linkage. Bilateral tables and the unsharp box
 blur stay with their owning effects.
 
@@ -12,6 +12,13 @@ The application target uses Xcode synchronized folder membership. All 21
 include, not an independently compiled shader. Xcode combines these units into
 `Contents/Resources/default.metallib`, which the existing Swift registry loads
 once. No individual library paths or Swift kernel names need to change.
+
+The compiled library is required. The former runtime-source fallback referenced
+the removed monolithic file and could not load its extern-C ABI: a local test of
+the original source returned `CIKernel error 12`. Apple's runtime
+[Metal-string API](https://developer.apple.com/documentation/coreimage/cikernel/kernels(withmetalstring:))
+requires `[[stitchable]]` functions, as documented in the installed SDK header.
+The stale fallback was removed; compiled kernel names and behavior are unchanged.
 
 For Xcode 27, keep `MTL_COMPILER_FLAGS = -fcikernel` and
 `MTLLINKER_FLAGS = -fcikernel`. Both phases use the **metal driver**. When invoking

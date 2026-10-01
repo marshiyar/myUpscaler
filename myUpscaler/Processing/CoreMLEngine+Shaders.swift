@@ -71,17 +71,9 @@ nonisolated extension CoreMLProcessingJob {
                     print("CoreMLEngine: Failed to load kernels from metallib: \(error.localizedDescription)")
                 }
             }
-            if let url = Bundle.main.url(forResource: "Shaders", withExtension: "ci.metal"),
-               let code = try? String(contentsOf: url, encoding: .utf8) {
-                do {
-                    for kernel in try CIKernel.kernels(withMetalString: code) where names.contains(kernel.name) {
-                        result[kernel.name] = kernel
-                    }
-                    print("CoreMLEngine: Loaded Metal kernels from source")
-                } catch {
-                    print("CoreMLEngine: Failed to compile kernels from source: \(error.localizedDescription)")
-                }
-            }
+            // These extern-C kernels use the compiled Core Image library ABI.
+            // Runtime Metal strings require stitchable kernels and cannot load them.
+            print("CoreMLEngine: Bundled default.metallib is required for custom Metal filters")
             return result
         }
     }

@@ -25,6 +25,14 @@ nonisolated struct RestorationStage: Equatable, Sendable {
     var f3kdbCbCr: NumericDraft = NumericDraft(text: "64")
     var grainStrength: NumericDraft = NumericDraft(text: "1.0")
     var useDeblock: Bool = true
+    var debandChoice: String {
+        get { useDeband ? (debandMethod == "f3kdb" ? "deband" : debandMethod) : "off" }
+        set {
+            useDeband = newValue != "off"
+            if useDeband && !(newValue == "deband" && debandMethod == "f3kdb") { debandMethod = newValue }
+        }
+    }
+
     var deringAmount: String {
         get { useDering ? deringStrength.text : "0" }
         set {

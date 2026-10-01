@@ -64,7 +64,7 @@ struct RestorationSecondSetPanel: View {
                             .padding(.vertical, 2)
 
                         // Sharpen 2
-                        HStack {
+                        VStack(alignment: .leading) {
                             Toggle(isOn: $settings.secondary.useSharpen) {
                                 Text("Sharpen")
                                     .font(.caption)
@@ -74,15 +74,12 @@ struct RestorationSecondSetPanel: View {
                             .controlSize(.mini)
 
                             if settings.secondary.useSharpen {
-                                Spacer()
                                 Picker("", selection: $settings.secondary.sharpenMethod) {
                                     ForEach(settings.sharpenMethods, id: \.self) { Text($0) }
                                 }
                                 .pickerStyle(.menu)
                                 .controlSize(.small)
                                 .frame(width: 90)
-                            } else {
-                                Spacer()
                             }
                         }
 
@@ -97,28 +94,13 @@ struct RestorationSecondSetPanel: View {
                         Divider()
                             .padding(.vertical, 2)
 
-                        // Deband 2
-                        HStack {
-                            Toggle(isOn: $settings.secondary.useDeband) {
-                                Text("Deband")
-                                    .font(.caption)
-                                    .foregroundColor(settings.secondary.useDeband ? .primary : .secondary)
-                            }
-                            .toggleStyle(.switch)
-                            .controlSize(.mini)
-
-                            if settings.secondary.useDeband {
-                                Spacer()
-                                Picker("", selection: $settings.secondary.debandMethod) {
-                                    ForEach(settings.debandMethods, id: \.self) { Text($0) }
-                                }
-                                .pickerStyle(.menu)
-                                .controlSize(.small)
-                                .frame(width: 70)
-                            } else {
-                                Spacer()
-                            }
+                        Picker("Deband", selection: $settings.secondary.debandChoice) {
+                            Text("Off").tag("off")
+                            Text("Deband").tag("deband")
+                            Text("Gradfun").tag("gradfun")
                         }
+                        .pickerStyle(.menu)
+                        .controlSize(.small)
 
                         if settings.secondary.useDeband {
                             if settings.secondary.debandMethod == "f3kdb" {
@@ -147,7 +129,7 @@ struct RestorationSecondSetPanel: View {
                             .padding(.vertical, 2)
 
                         // Grain 2
-                        HStack {
+                        VStack(alignment: .leading) {
                             Toggle(isOn: $settings.secondary.useGrain) {
                                 Text("Grain")
                                     .font(.caption)
@@ -157,13 +139,10 @@ struct RestorationSecondSetPanel: View {
                             .controlSize(.mini)
 
                             if settings.secondary.useGrain {
-                                Spacer()
                                 TextField("1.0", text: $settings.secondary.grainStrength.text)
                                     .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
                                     .frame(width: 50)
-                            } else {
-                                Spacer()
                             }
                         }
                     }

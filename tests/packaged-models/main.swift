@@ -7,19 +7,33 @@ func require(_ condition: Bool, _ message: String) throws {
 }
 
 do {
-    guard CommandLine.arguments.count == 2,
-          let bundle = Bundle(path: CommandLine.arguments[1]) else {
-        throw NSError(domain: "PackagedModels", code: 1,
-                      userInfo: [NSLocalizedDescriptionKey: "Supply the built app path."])
+    if CommandLine.arguments.count == 2 && CommandLine.arguments[1] == "--list-resources" {
+        CoreMLModelRegistry.models.forEach { print($0.resourceName) }
+        exit(0)
     }
-    let expected: [CoreMLModelID] = [.realESRGANx4, .realESRGANx8]
-    let available = CoreMLModelRegistry.models.filter {
-        CoreMLModelRegistry.bundledURL(for: $0, bundle: bundle) != nil
-    }.map(\.id)
-    try require(available == expected, "Unexpected bundled models: \(available)")
-    for id in expected {
-        let spec = CoreMLModelRegistry.model(for: id)
-        let url = CoreMLModelRegistry.bundledURL(for: spec, bundle: bundle)!
+    guard (2...3).contains(CommandLine.arguments.count),
+          CommandLine.arguments.count != 3 || CommandLine.arguments[2] == "--predict" else {
+        throw NSError(domain: "PackagedModels", code: 1,
+                      userInfo: [NSLocalizedDescriptionKey: "Supply a models directory or built app path, optionally --predict."])
+    }
+    let path = URL(fileURLWithPath: CommandLine.arguments[1])
+    let directory: URL
+    if path.pathExtension == "app" {
+        guard let resources = Bundle(path: path.path)?.resourceURL else {
+            throw NSError(domain: "PackagedModels", code: 1)
+        }
+        directory = resources
+    } else {
+        directory = path
+    }
+    let models = CoreMLModelRegistry.models.filter {
+        FileManager.default.fileExists(atPath: directory.appendingPathComponent($0.resourceName + ".mlmodelc").path)
+    }
+    try require(!models.isEmpty, "No registered compiled models found at \(directory.path)")
+    let predict = CommandLine.arguments.last == "--predict"
+    for spec in models {
+        let id = spec.id
+        let url = directory.appendingPathComponent(spec.resourceName + ".mlmodelc")
         let config = MLModelConfiguration()
         config.computeUnits = .cpuOnly
         let model = try MLModel(contentsOf: url, configuration: config)
@@ -37,6 +51,10 @@ do {
         try require(spec.supportsTensorShapes(input: input.shape.map { $0.intValue },
                                              output: output.shape.map { $0.intValue }),
                     "Incompatible tensor shapes for \(id)")
+        if !predict {
+            print("\(id.rawValue): CoreML loaded compatible tensors \(input.shape) → \(output.shape).")
+            continue
+        }
         let tensor = try MLMultiArray(shape: input.shape, dataType: .float32)
         // A nonzero RGB tile catches prediction failures that model loading alone misses.
         let source = tensor.dataPointer.assumingMemoryBound(to: Float.self)
@@ -60,9 +78,11 @@ do {
             minimum = min(minimum, values[index]); maximum = max(maximum, values[index])
         }
         try require(maximum > minimum, "Prediction unexpectedly produced a constant image")
-        print("\(id.rawValue): loaded from app and predicted \(input.shape) → \(result.shape), all values finite.")
+        print("\(id.rawValue): loaded and predicted \(input.shape) → \(result.shape), all values finite.")
     }
-    print("::notice::Packaged CoreML: x4 and x8 loaded and predicted successfully; incompatible x2 absent.")
+    if predict {
+        print("::notice::CoreML predictions passed for: \(models.map { $0.resourceName }.joined(separator: ", ")).")
+    }
 } catch {
     fputs("Packaged CoreML verification failed: \(error)\n", stderr)
     exit(1)

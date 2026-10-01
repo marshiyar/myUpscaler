@@ -16,7 +16,7 @@ struct CoreMLModelSpec: Identifiable, Hashable {
         guard input.count == 4, output.count == 4,
               input[0] == 1, output[0] == 1,
               input[1] == 3, output[1] == 3,
-              input[2] > 16, input[3] > 16 else { return false }
+              input[2] > 16, input[2] == input[3] else { return false }
         return Double(output[2]) == Double(input[2]) * nativeScale
             && Double(output[3]) == Double(input[3]) * nativeScale
     }

@@ -15,43 +15,9 @@ Users:
 - macOS 15.2+
 - Apple Silicon required; Intel Macs are unsupported
   
-Troubleshooting
----------------
-Before building on macOS,
-run `bash scripts/prepare-bundled-ffmpeg.sh`
-This downloads and SHA-256-verifies the same Shaka FFmpeg 8.1.2 macOS binaries pinned by [mpvfx](https://github.com/marshiyar/mpvfx).
-
-Also run `bash scripts/prepare-bundled-models.sh`. It verifies the pinned
-[v0.0.2-beta DMG](https://github.com/marshiyar/myUpscaler/releases/tag/v0.0.2-beta)
-and extracts its compiled x4 and x8 models into the ignored `third_party/CoreML/`
-directory. Xcode's **Embed CoreML models** phase verifies and copies them into
-the app's Resources before signing. Builds fail with a setup command if the
-assets are missing or corrupt; no manual target-membership changes are needed.
-
-The released x2 model expects 12 input channels, which the engine's RGB tensor
-conversion does not support, so it is excluded. Native model scale and final
-output scale are separate settings. CI verifies the packaged models and runs
-a real prediction with each, alongside the XCTest unit tests.
-
 Contributing
 ---------------
-The **macOS build, test and bundle** Actions workflow runs for pull requests,
-pushes to `main`, and manual runs. It builds a Release app and uploads a unique
-`myUpscaler-macos-arm64-<run>-<attempt>` artifact containing a DMG, an inner ZIP
-that preserves app permissions, checksums, and build information. Artifacts are
-retained for 90 days and are never overwritten or deleted by the workflow.
-GitHub expires them after that period. These builds are ad hoc signed and are
-not notarized. The workflow has read-only repository permissions and does not
-publish to GitHub Releases.
-
-Issues and pull requests are welcome.
-
-Please ensure:
-- Code builds with Xcode 26+
-- Existing tests pass/Successful Build
-- Xcode 26 or newer (to build with the project's current settings)
-- New behavior includes tests where applicable
-By contributing, you agree that your contributions will be licensed under the same license as this project.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, testing, and contribution guidelines.
 
 License
 -------

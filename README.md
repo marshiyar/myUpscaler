@@ -21,17 +21,33 @@ Before building on macOS,
 run `bash scripts/prepare-bundled-ffmpeg.sh`
 This downloads and SHA-256-verifies the same Shaka FFmpeg 8.1.2 macOS binaries pinned by [mpvfx](https://github.com/marshiyar/mpvfx).
 
-Also run `bash scripts/prepare-bundled-models.sh`. It verifies the pinned
-[v0.0.2-beta DMG](https://github.com/marshiyar/myUpscaler/releases/tag/v0.0.2-beta)
-and extracts its compiled x4 and x8 models into the ignored `third_party/CoreML/`
-directory. Xcode's **Embed CoreML models** phase verifies and copies them into
-the app's Resources before signing. Builds fail with a setup command if the
-assets are missing or corrupt; no manual target-membership changes are needed.
+Models are prepared outside this repository. Supply a directory of prebuilt
+`.mlmodelc` folders with
+`COREML_MODELS_DIR=/path/to/models bash scripts/prepare-bundled-models.sh`.
+Use the registered resource names (`RealESRGAN_x2`, `RealESRGAN_x4`,
+`RealESRGAN_x8`); their native scales are defined in `CoreMLModelRegistry.swift`.
+At least one compatible model is required. Updated weights and square tile
+sizes do not require an asset manifest or hash changes in the app repository.
+Preparation loads each supplied model through CoreML and runs a real prediction,
+checking Float32 RGB input/output, native scale, output layout and finite pixels.
+It does not train, create or convert models.
 
-The released x2 model expects 12 input channels, which the engine's RGB tensor
-conversion does not support, so it is excluded. Native model scale and final
-output scale are separate settings. CI verifies the packaged models and runs
-a real prediction with each, alongside the XCTest unit tests.
+For a downloaded model ZIP, set `COREML_MODEL_ARCHIVE_URL` and
+`COREML_MODEL_ARCHIVE_SHA256` instead. The ZIP must contain the `.mlmodelc`
+folders at its root. These inputs are also available on manual Actions runs.
+The checksum verifies the supplied download, without pinning individual weights
+or compiled metadata files. Explicit sources replace any existing cache after
+validation. Xcode's **Embed CoreML models** phase loads and checks the prepared
+assets, copies them into Resources, and removes models dropped from the set.
+
+Without an explicit source, `bash scripts/prepare-bundled-models.sh` reuses a
+validated cache or extracts the prebuilt x4/x8 models from the checksum-verified
+[v0.0.2-beta DMG](https://github.com/marshiyar/myUpscaler/releases/tag/v0.0.2-beta).
+That particular release's x2 model expects 12 channels and is excluded; a future
+RGB x2 supplied explicitly can pass validation. Assets are stored in the ignored
+`third_party/CoreML/` directory. Builds report the preparation command for missing
+or incompatible assets. Native model scale and final output scale remain separate
+settings. CI tests the supplied set and predicts with the packaged models.
 
 Contributing
 ---------------

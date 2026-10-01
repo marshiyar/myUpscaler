@@ -24,7 +24,7 @@ verify_app() {
     codesign --verify --strict "$executable"
   done
   codesign --verify --deep --strict "$bundle"
-  python3 "$repo_dir/scripts/verify-bundled-models.py" "$bundle/Contents/Resources"
+  bash "$repo_dir/scripts/validate-bundled-models.sh" "$bundle"
   cmp "$repo_dir/myUpscaler/ThirdParty/RealESRGAN-LICENSE.txt" "$bundle/Contents/Resources/RealESRGAN-LICENSE.txt"
 }
 
@@ -56,7 +56,7 @@ Run: ${BUILD_RUN_URL:-local build}
 Configuration: Release
 Signing: ad hoc; not Developer ID signed or notarized.
 
-This artifact includes the app, bundled FFmpeg, and CoreML x4/x8 models.
+This artifact includes the app, bundled FFmpeg, and validated CoreML models.
 Use the DMG to copy myUpscaler.app into Applications, or extract the inner
 MyUpscaler-arm64.zip to preserve the app's executable permissions.
 macOS may require approval in System Settings > Privacy & Security > Open Anyway.

@@ -5,6 +5,15 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      model_archive_url:
+        description: 'Optional HTTPS ZIP of externally prepared .mlmodelc folders at archive root'
+        required: false
+        type: string
+      model_archive_sha256:
+        description: 'SHA-256 of the supplied model ZIP (required when a URL is supplied)'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -17,6 +26,9 @@ jobs:
   build:
     runs-on: macos-26
     timeout-minutes: 30
+    env:
+      COREML_MODEL_ARCHIVE_URL: ${{ inputs.model_archive_url || '' }}
+      COREML_MODEL_ARCHIVE_SHA256: ${{ inputs.model_archive_sha256 || '' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -68,6 +80,39 @@ jobs:
           PYLOG
             exit "$status"
           fi
+
+      - name: Test externally supplied model sets
+        shell: bash
+        run: |
+          set -euo pipefail
+          saved="$RUNNER_TEMP/prebuilt-models"
+          single="$RUNNER_TEMP/single-model"
+          unpacked="$RUNNER_TEMP/model-archive"
+          ditto third_party/CoreML "$saved"
+          # Use a subset of real prebuilt models to exercise cache replacement,
+          # optional model selection, and the documented external ZIP layout.
+          mkdir -p "$single" "$unpacked"
+          selected=$(find "$saved" -maxdepth 1 -name '*.mlmodelc' -type d | sort | head -n 1)
+          test -n "$selected"
+          ditto "$selected" "$single/$(basename "$selected")"
+          ditto -c -k "$single" "$RUNNER_TEMP/prebuilt-models.zip"
+          ditto -x -k "$RUNNER_TEMP/prebuilt-models.zip" "$unpacked"
+          COREML_MODEL_ARCHIVE_URL= COREML_MODEL_ARCHIVE_SHA256= \
+            COREML_MODELS_DIR="$unpacked" bash scripts/prepare-bundled-models.sh
+          count=$(find third_party/CoreML -maxdepth 1 -name '*.mlmodelc' -type d | wc -l | tr -d ' ')
+          test "$count" = 1
+          test -d "third_party/CoreML/$(basename "$selected")"
+          # Missing transport checksums must fail even if a valid cache exists.
+          if COREML_MODELS_DIR= COREML_MODEL_ARCHIVE_SHA256= \
+              COREML_MODEL_ARCHIVE_URL=https://example.invalid/models.zip \
+              bash scripts/prepare-bundled-models.sh; then
+            echo '::error::A model download without a checksum was accepted.'
+            exit 1
+          fi
+          COREML_MODEL_ARCHIVE_URL= COREML_MODEL_ARCHIVE_SHA256= \
+            COREML_MODELS_DIR="$saved" bash scripts/prepare-bundled-models.sh
+          diff -qr "$saved" third_party/CoreML
+          echo '::notice::External prebuilt model ZIP/directory, cache replacement and checksum requirement passed.'
 
       - name: Test bundled engine lifecycle and architecture
         run: python3 -m unittest discover -s tests -p 'test_bundled_ffmpeg*.py'
@@ -137,7 +182,7 @@ jobs:
           import json, sys
           summary = json.load(open(sys.argv[1]))
           passed, failed = summary.get('passedTests', 0), summary.get('failedTests', 0)
-          assert passed >= 7 and failed == 0, summary
+          assert passed >= 8 and failed == 0, summary
           print(f'::notice::XCTest: {passed} passed, {failed} failed.')
           PYSUMMARY
 
@@ -146,15 +191,10 @@ jobs:
         run: |
           set -euo pipefail
           app="$RUNNER_TEMP/myUpscaler-DerivedData/Build/Products/Debug/myUpscaler.app"
-          python3 scripts/verify-bundled-models.py "$app/Contents/Resources"
           cmp myUpscaler/ThirdParty/RealESRGAN-LICENSE.txt "$app/Contents/Resources/RealESRGAN-LICENSE.txt"
-          xcrun swiftc myUpscaler/CoreMLModelRegistry.swift tests/packaged-models/main.swift \
-            -o "$RUNNER_TEMP/packaged-model-tests"
           status=0
-          python3 - "$RUNNER_TEMP/packaged-model-tests" "$app" > "$RUNNER_TEMP/model-verification.log" 2>&1 <<'PYRUN' || status=$?
-          import subprocess, sys
-          subprocess.run(sys.argv[1:], check=True, timeout=600)
-          PYRUN
+          bash scripts/validate-bundled-models.sh "$app" --predict \
+            > "$RUNNER_TEMP/model-verification.log" 2>&1 || status=$?
           cat "$RUNNER_TEMP/model-verification.log"
           if [[ $status -ne 0 ]]; then
             python3 - "$RUNNER_TEMP/model-verification.log" <<'PYLOG'

@@ -48,6 +48,12 @@ struct ContentView: View {
                 }
             }
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("myUpscaler")
+                        .frame(maxWidth: .infinity, minHeight: 24)
+                        .contentShape(Rectangle())
+                        .gesture(WindowDragGesture())
+                }
                 ToolbarItem(placement: .navigation) {
                     Button { dispatcher.perform(.chooseInput) } label: { Label("Import", systemImage: "folder.badge.plus") }
                         .disabled(runner.isRunning)

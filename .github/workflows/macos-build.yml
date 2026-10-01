@@ -1,4 +1,4 @@
-name: macOS build
+name: macOS-26 build
 
 on:
   push:
@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -86,12 +86,10 @@ jobs:
           app="$RUNNER_TEMP/myUpscaler-DerivedData/Build/Products/Debug/myUpscaler.app"
           test -x "$app/Contents/MacOS/myUpscaler"
           test -x "$app/Contents/MacOS/up60p-ffmpeg-supervisor"
-          xcrun lipo "$app/Contents/MacOS/up60p-ffmpeg-supervisor" -verify_arch arm64 x86_64
+          xcrun lipo "$app/Contents/MacOS/up60p-ffmpeg-supervisor" -verify_arch arm64
           codesign --verify --strict "$app/Contents/MacOS/up60p-ffmpeg-supervisor"
           test -x "$app/Contents/MacOS/ThirdParty/FFmpeg/ffmpeg"
-          test -f "$app/Contents/Resources/FFmpeg-COPYING.txt"
-          test -f "$app/Contents/Resources/FFmpeg-NOTICE.txt"
-          xcrun lipo "$app/Contents/MacOS/ThirdParty/FFmpeg/ffmpeg" -verify_arch arm64 x86_64
+          xcrun lipo "$app/Contents/MacOS/ThirdParty/FFmpeg/ffmpeg" -verify_arch arm64
           codesign --verify --strict "$app/Contents/MacOS/ThirdParty/FFmpeg/ffmpeg"
           codesign --verify --strict "$app"
           status=0

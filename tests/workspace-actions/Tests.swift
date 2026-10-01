@@ -42,6 +42,6 @@ import SwiftUI
         content.cancel()
         precondition(cancellations == 1, "Repeat cancellation must remain guarded")
         print("PASS production ActionButtons layout without environment objects; explicit export/cancel callbacks and live dispatcher guards")
-        print("UNVERIFIED native button presses: invisible SwiftUI host exposes no accessibility buttons and does not deliver synthetic mouse actions")
+        print("UNVERIFIED native button presses: initialized background non-key SwiftUI host also exposes no accessibility buttons; foreground activation was not attempted")
     }
 }

@@ -147,6 +147,7 @@ jobs:
           set -euo pipefail
           app="$RUNNER_TEMP/myUpscaler-DerivedData/Build/Products/Debug/myUpscaler.app"
           python3 scripts/verify-bundled-models.py "$app/Contents/Resources"
+          cmp myUpscaler/ThirdParty/RealESRGAN-LICENSE.txt "$app/Contents/Resources/RealESRGAN-LICENSE.txt"
           xcrun swiftc myUpscaler/CoreMLModelRegistry.swift tests/packaged-models/main.swift \
             -o "$RUNNER_TEMP/packaged-model-tests"
           status=0

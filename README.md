@@ -52,6 +52,8 @@ See LICENSE for details.
 Models were converted to CoreML by the author of this project.
 Original license applies to the underlying weights.
 See the Real-ESRGAN repository for full license terms.
+The upstream BSD 3-Clause license is included in the app resources as
+`RealESRGAN-LICENSE.txt`.
 
 The separately distributed FFmpeg executable is GPL-3.0-or-later. The GPL text
 and a distribution notice are included as app resources.

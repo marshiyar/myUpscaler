@@ -11,6 +11,7 @@ bash tests/test-editor-state.sh
 bash tests/test-timeline.sh
 bash tests/test-workspace-actions.sh
 bash tests/test-processing-lifecycle.sh
+bash tests/test-batch.sh
 bash tests/logging/run.sh
 bash tests/apple-api/run.sh
 bash tests/apple-api/run-audio.sh

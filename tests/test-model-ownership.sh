@@ -18,7 +18,7 @@ cat > "$app/Info.plist" <<'PLIST'
 PLIST
 xcrun swiftc -O -whole-module-optimization -parse-as-library -swift-version 5 -default-isolation MainActor -target arm64-apple-macos15.2 -strict-concurrency=complete -warnings-as-errors \
  -module-cache-path "$work/cache" \
- myUpscaler/Processing/UpscaleRunner.swift myUpscaler/State/{UpscaleSettings,PresetStore}.swift myUpscaler/State/Settings*.swift \
+ myUpscaler/Processing/{UpscaleRunner,UpscaleRunner+Batch,BatchPlan}.swift myUpscaler/State/{UpscaleSettings,PresetStore}.swift myUpscaler/State/Settings*.swift \
  myUpscaler/Models/{CoreMLModelRegistry,UpscalingModeSupport}.swift myUpscaler/Support/{CodecSupport,Protocols,FFmpegParser,ProcessingErrors}.swift \
  myUpscaler/Processing/{CoreMLEngine,CoreMLEngine+Shaders,CoreMLModelManager,CoreMLProcessingJob,CoreMLBufferAccess,ProcessingControl,UpscaleGeometry,VideoIO,VideoAudioMuxer,ProgressUpdateGate}.swift \
  tests/processing-lifecycle/{TestSupport,ModelOwnershipTests}.swift -o "$app/MacOS/ModelOwnership"

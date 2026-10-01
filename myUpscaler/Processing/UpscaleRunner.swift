@@ -22,6 +22,8 @@ class UpscaleRunner: ObservableObject {
             guard inputPath != oldValue else { return }
             completedOutputPath = nil
             if !isRunning {
+                batchTotal = 0
+                batchCompleted = 0
                 progress = 0
                 progressKnown = false
             }
@@ -44,6 +46,8 @@ class UpscaleRunner: ObservableObject {
     @Published var isRunning = false
     @Published var log = ""
     @Published var completedOutputPath: String? = nil
+    @Published private(set) var batchTotal = 0
+    @Published var batchCompleted = 0
 
     // MARK: - Progress Stats
     @Published var progress: Double = 0.0
@@ -81,6 +85,9 @@ class UpscaleRunner: ObservableObject {
 
     var predictedOutputName: String {
         let inputURL = URL(fileURLWithPath: inputPath)
+        if (try? fileSystem.attributesOfItem(atPath: inputPath)[.type] as? FileAttributeType) == .typeDirectory {
+            return inputURL.lastPathComponent + "_[restored]"
+        }
         let base = inputURL.deletingPathExtension().lastPathComponent
         let ext = inputURL.pathExtension.lowercased()
         if ["png", "jpg", "jpeg", "tif", "tiff", "bmp", "webp"].contains(ext) {
@@ -142,6 +149,8 @@ class UpscaleRunner: ObservableObject {
         timeString = "0:00"
         etaString = "--:--"
         completedOutputPath = nil
+        batchTotal = 0
+        batchCompleted = 0
         expectedOutputPath = nil
         isCancelling = false
         isRunning = true
@@ -185,9 +194,10 @@ class UpscaleRunner: ObservableObject {
             log.append("Fixed multipliers; no image analysis or quality guarantee.\n\n")
         }
 
+        let isBatch = (try? fileSystem.attributesOfItem(atPath: inputPath)[.type] as? FileAttributeType) == .typeDirectory
         log.append("Input: \(inputPath)\n")
         log.append("Output: \(outputFolder())\n\n")
-        log.append("Expected output file: \(outputVideoPath)\n\n")
+        if !isBatch { log.append("Expected output file: \(outputVideoPath)\n\n") }
 
         // Capture safe state for the background callback
         let safeState = SafeDuration(duration: self.videoDuration)
@@ -244,7 +254,7 @@ class UpscaleRunner: ObservableObject {
                 if let fps = parseState.fps, fps != self.fpsString { self.fpsString = fps }
                 if let time = parseState.timeString, time != self.timeString { self.timeString = time }
                 if let eta = parseState.eta, eta != self.etaString { self.etaString = eta }
-                if let prog = parseState.progress {
+                if let prog = parseState.progress, self.batchTotal == 0 {
                     if prog >= 1 {
                         self.phase = .finalizing
                         self.progressKnown = false
@@ -264,7 +274,7 @@ class UpscaleRunner: ObservableObject {
                 let lowerMessage = message.lowercased()
                 let isDoneMessage = message.trimmingCharacters(in: .whitespacesAndNewlines) == "Done."
 
-                if isDoneMessage || lowerMessage.contains("stage=finalizing") {
+                if self.batchTotal == 0 && (isDoneMessage || lowerMessage.contains("stage=finalizing")) {
                     self.flushLogBuffer()
 
                     self.phase = .finalizing
@@ -274,7 +284,7 @@ class UpscaleRunner: ObservableObject {
             }
         }
 
-        loadVideoDuration(progressDuration: safeState)
+        if !isBatch { loadVideoDuration(progressDuration: safeState) }
 
         let capturedInputPath = inputPath
         let capturedSettings = cloneSettings(settings)
@@ -322,6 +332,16 @@ class UpscaleRunner: ObservableObject {
                 await Task.yield()
                 try Task.checkCancellation()
 
+                if isBatch {
+                    let plan = try await Self.makeBatchPlan(input: capturedInputPath, output: capturedOutputDirectory,
+                                                          coreML: capturedSettings.upscaling.scaler == "coreml")
+                    self.batchTotal = plan.items.count
+                    try await self.processBatch(plan, engine: selectedEngine, settings: capturedSettings)
+                    try Task.checkCancellation()
+                    guard self.currentRunID == runID else { return }
+                    self.markAsComplete(outputPath: plan.outputRoot.path)
+                    return
+                }
                 let tunedSettings = capturedSettings
                 try await selectedEngine.process(
                     inputPath: capturedInputPath,

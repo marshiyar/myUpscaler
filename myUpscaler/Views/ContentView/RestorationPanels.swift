@@ -97,9 +97,10 @@ struct RestorationPanel: View {
                             Text("Off").tag("off")
                             ForEach(settings.deblockModes, id: \.self) { Text($0) }
                         }
+                        .labelsHidden()
                         .pickerStyle(.menu)
                         .controlSize(.small)
-                        .frame(width: 80)
+                        .frame(width: 110)
                         .accessibilityLabel("Primary deblock mode")
                         .disabled(settings.upscaling.scaler == "coreml")
 
@@ -124,9 +125,10 @@ struct RestorationPanel: View {
                                 Text(method == "deband" ? "FFmpeg deband" : method == "gradfun" ? "Gradfun" : "FFmpeg deband (strict)").tag(method)
                             }
                         }
+                        .labelsHidden()
                         .pickerStyle(.menu)
                         .controlSize(.small)
-                        .frame(width: 80)
+                        .frame(width: 200)
                         .accessibilityLabel("Primary deband method")
                         .help("Strict preserves the legacy f3kdb preset ID but uses FFmpeg deband thresholds. Gradfun adds dither intended for playback; lossy encoding may remove it.")
                         .disabled(settings.upscaling.scaler == "coreml")

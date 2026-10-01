@@ -23,14 +23,14 @@ The preview approximates restoration with Core Image. It is useful for choosing 
 
 ## Use the app
 
-1. Use **Import** or drop an individual video into the import area. See the folder-processing limitation below before using a batch folder. Open **Adjustments** in the toolbar to configure the docked side panel before or after importing; it starts collapsed and never covers the video.
+1. Use **Import** to choose a video or batch folder, or drop an individual video into the import area. Open **Adjustments** in the toolbar to configure the docked side panel before or after importing; it starts collapsed and never covers the video.
 2. Choose **Lanczos** or an included named model such as **Real-ESRGAN x4** or **Real-ESRGAN x8** in the single **Scaler** picker, then set the final output multiplier.
 3. Adjust supported restoration settings using the approximate preview. The side panel groups **Upscale**, **Restore**, and **Output** controls. Encoding details, additional restoration, processing details, and saved presets expand when needed.
-4. Choose an output folder and start the export. Outputs use `<input>_[restored].mp4` or `.png`; an existing output with that name can be replaced.
+4. Choose an output folder and start the export. Individual outputs use `<input>_[restored].mp4` or `.png`; an existing individual output with that name can be replaced. Folder jobs preserve existing files as described below.
 
 The model multiplier and output multiplier are separate. For example, a native 4× model with 2× output predicts 4× tiles and resizes them once to 2×. Selecting an 8× model for 2× output still incurs its native inference cost; the app does not silently substitute a different model. Final video dimensions round down to even pixels. There is no custom width/height or aspect-ratio override.
 
-Progress measures processed media timestamps when duration is known. Preparation and finalization are indeterminate. Completion requires engine success and a nonempty output file; cancellation keeps the job occupied until its resources stop. Remaining-time estimates depend on measured processing speed and can vary with the content.
+Single-file progress measures processed media timestamps when duration is known. Folder progress counts verified completed files. Preparation and finalization are indeterminate. Completion requires engine success and a nonempty output file; cancellation keeps the job occupied until its resources stop. Remaining-time estimates depend on measured processing speed and can vary with the content.
 
 **Encoding controls:** CPU presets trade encoding time against compression efficiency; they do not set bitrate or AI inference speed. VideoToolbox has a separate quality scale: the existing compression value maps to `100 − compression × 99/51`, not an equivalent CPU CRF. H.264 10-bit is rejected; 10-bit requires HEVC on the FFmpeg path.
 
@@ -74,9 +74,10 @@ Additional checks run independently:
 bash tests/test-native-sanitizers.sh
 python3 tests/metal-kernels/run.py
 bash tests/test-model-ownership.sh build/Build/Products/Release/myUpscaler.app/Contents/Resources
+bash tests/test-batch-real.sh build/Build/Products/Release/myUpscaler.app
 ```
 
-The model check uses existing assets to test repeated inference, UI responsiveness, a small video export and cancellation. The native sanitizer script runs Address/Undefined Behavior Sanitizer checks separately from Thread Sanitizer.
+The model check uses existing assets to test repeated inference, UI responsiveness, a small video export and cancellation. The real batch check uses the app’s bundled FFmpeg and existing models to decode and verify tiny nested folder exports through both engines. The native sanitizer script runs Address/Undefined Behavior Sanitizer checks separately from Thread Sanitizer.
 
 - `myUpscaler/App/` — app entry point.
 - `myUpscaler/Views/` — native controls and media workspace.
@@ -90,7 +91,7 @@ Maintained application source targets about 500 lines per file, with a 600-line 
 
 ## Finishing filters (FFmpeg)
 
-Additional Filters uses **Off** to bypass Deblock. Deband strength and grain amount at zero bypass their effects while their editors remain visible. Deblock thresholds are optional named FFmpeg values such as `alpha=0.1:beta=0.05`, each from 0 to 1; blank uses the defaults. Stored disabled filters retain their saved values.
+Additional Filters uses **Off** to bypass Deblock. Deband strength and grain amount at zero bypass their effects while their editors remain visible. Deblock has four optional fields, alpha/beta/gamma/delta, each from 0 to 1; blank uses FFmpeg defaults (0.098/0.05/0.05/0.05). Stored disabled filters retain their saved values.
 
 The **Interpolation** picker offers Off, MCI and Blend. New/reset settings use Off; saved enabled choices are preserved. Target FPS can still select or duplicate frames with interpolation Off.
 
@@ -100,7 +101,7 @@ When a filter runs in both sets, fixed multipliers reduce finishing strength: CA
 
 ## Current limitations
 
-- Folder processing is not yet reliable end to end: FFmpeg enumerates files, but completion verification assumes one output, flat output names can collide, and case handling is inconsistent. Core ML accepts individual videos. Use individual files while the explicit batch output plan is repaired.
+- Folder export plans `.mp4`, `.mkv`, `.mov` and supported images by case-insensitive extension, skips hidden files and symlinks, and preserves subfolders inside `<folder>_[restored]` under the chosen output location. Core ML folder jobs accept videos only; any supported image rejects the plan before processing. Colliding names or existing destinations reject the plan; choose another output location. Files run sequentially, stop on the first failure or cancellation, and retain verified completed outputs. Limits: 10,000 media files and 100,000 directory entries per job. Unknown extensions are skipped. The completion action opens the output folder.
 
 - Full Core ML throughput and temporal-quality benchmarks need compatible model assets and representative media. Synthetic kernel and video-I/O tests do not establish end-to-end AI speed.
 - Numeric motion interpolation checks source sample timing. Verified constant-rate clips retain their duration through the final held frame; targets at or below source rate use frame selection. Variable-rate or unverified clips use conservative interpolation and may lose endpoint frames. Source/lock preserves original timestamps.

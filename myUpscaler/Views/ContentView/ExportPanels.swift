@@ -30,6 +30,7 @@ struct OutputPanel: View {
                             Text("Same folder").tag(UpscaleRunner.OutputMode.same)
                             Text("Custom folder").tag(UpscaleRunner.OutputMode.custom)
                         }
+                        .labelsHidden()
                         .pickerStyle(.menu)
                         .controlSize(.small)
                         .frame(width: 120)
@@ -68,7 +69,7 @@ struct OutputPanel: View {
                         Image(systemName: "doc.text.fill")
                             .foregroundColor(.accentColor)
                             .font(.system(size: 10))
-                        Text("Output file:")
+                        Text("Output:")
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Text(predictedName)
@@ -140,10 +141,11 @@ struct ProgressDetails: View {
         if runner.isCancelling { return "Stopping…" }
         switch runner.phase {
         case .preparing: return "Preparing video…"
-        case .processing: return "Processing frames"
+        case .processing: return runner.batchTotal > 0 ? "Folder export: \(runner.batchCompleted)/\(runner.batchTotal) completed" : "Processing frames"
         case .finalizing: return "Finalizing export…"
         case .idle:
             if runner.completedOutputPath != nil { return "Export complete" }
+            if runner.batchTotal > 0 { return "Folder export stopped: \(runner.batchCompleted)/\(runner.batchTotal) completed" }
             if runner.inputPath.isEmpty { return "Import a video to begin" }
             return settings.upscalingUnavailableReason == nil ? "Ready to export" : "Choose an available upscaling mode"
         }
@@ -168,6 +170,7 @@ struct ProgressDetails: View {
                 } else {
                     ProgressView(value: max(0, min(1, runner.progress))).accessibilityLabel("Export progress")
                 }
+                if runner.batchTotal == 0 {
                 HStack(spacing: 14) {
                     Text("Processing: \(runner.fpsString) fps")
                     Text("Media time: \(runner.timeString)")
@@ -176,6 +179,7 @@ struct ProgressDetails: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
+                }
             } else if runner.completedOutputPath == nil && !runner.inputPath.isEmpty {
                 Text("Export uses the current settings.")
                     .font(.caption).foregroundStyle(.secondary)

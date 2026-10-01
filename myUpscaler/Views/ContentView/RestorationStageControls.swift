@@ -157,7 +157,9 @@ struct DeblockThresholdControls: View {
                         Text(key).font(.caption2).foregroundStyle(.secondary)
                         TextField(key == "alpha" ? "0.098" : "0.05", text: Binding(
                             get: { DeblockThresholds.value(key, in: text) },
-                            set: { text = DeblockThresholds.replacing(key, with: $0, in: text) }))
+                            set: { text = DeblockThresholds.replacing(key, with: $0, in: text) }),
+                            prompt: Text(key == "alpha" ? "0.098" : "0.05"))
+                            .labelsHidden()
                             .textFieldStyle(.roundedBorder)
                             .accessibilityLabel("Deblock \(key) threshold")
                     }

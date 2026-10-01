@@ -79,6 +79,42 @@ jobs:
             ENABLE_USER_SCRIPT_SANDBOXING=NO \
             build 2>&1 | tee "$RUNNER_TEMP/myUpscaler-build.log"
 
+      - name: Run XCTest unit tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=0
+          xcodebuild \
+            -project myUpscaler.xcodeproj \
+            -scheme myUpscaler \
+            -configuration Debug \
+            -destination 'platform=macOS,arch=arm64' \
+            -derivedDataPath "$RUNNER_TEMP/myUpscaler-DerivedData" \
+            -resultBundlePath "$RUNNER_TEMP/myUpscaler-UnitTests.xcresult" \
+            -parallel-testing-enabled NO \
+            CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= \
+            ENABLE_USER_SCRIPT_SANDBOXING=NO \
+            test > "$RUNNER_TEMP/myUpscaler-unit-tests.log" 2>&1 || status=$?
+          cat "$RUNNER_TEMP/myUpscaler-unit-tests.log"
+          if [[ $status -ne 0 ]]; then
+            python3 - "$RUNNER_TEMP/myUpscaler-unit-tests.log" <<'PYLOG'
+          import pathlib, sys
+          message = pathlib.Path(sys.argv[1]).read_text()[-8000:]
+          print('::error::' + message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A'))
+          PYLOG
+            exit "$status"
+          fi
+
+          xcrun xcresulttool get test-results summary \
+            --path "$RUNNER_TEMP/myUpscaler-UnitTests.xcresult" > "$RUNNER_TEMP/unit-test-summary.json"
+          python3 - "$RUNNER_TEMP/unit-test-summary.json" <<'PYSUMMARY'
+          import json, sys
+          summary = json.load(open(sys.argv[1]))
+          passed, failed = summary.get('passedTests', 0), summary.get('failedTests', 0)
+          assert passed >= 6 and failed == 0, summary
+          print(f'::notice::XCTest: {passed} passed, {failed} failed.')
+          PYSUMMARY
+
       - name: Verify build outputs
         shell: bash
         run: |
@@ -117,4 +153,15 @@ jobs:
         with:
           name: macos-build-log
           path: ${{ runner.temp }}/myUpscaler-build.log
+          if-no-files-found: ignore
+
+      - name: Upload XCTest results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-unit-test-results
+          path: |
+            ${{ runner.temp }}/myUpscaler-unit-tests.log
+            ${{ runner.temp }}/unit-test-summary.json
+            ${{ runner.temp }}/myUpscaler-UnitTests.xcresult
           if-no-files-found: ignore

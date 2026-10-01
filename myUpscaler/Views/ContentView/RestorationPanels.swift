@@ -119,11 +119,16 @@ struct RestorationPanel: View {
                         Text("Deband")
                             .font(.caption)
                         Spacer()
-                        Picker("", selection: $settings.additionalDebandMethod) {
-                            Text("Off").tag("off")
-                            ForEach(settings.debandMethods, id: \.self) { method in
-                                Text(method == "deband" ? "FFmpeg deband" : method == "gradfun" ? "Gradfun" : "FFmpeg deband (strict)").tag(method)
-                            }
+                        if settings.upscaling.scaler == "coreml" {
+                            Text("Gradient-aware smoothing")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Picker("", selection: $settings.additionalDebandMethod) {
+                                Text("Off").tag("off")
+                                ForEach(settings.debandMethods, id: \.self) { method in
+                                    Text(method == "deband" ? "FFmpeg deband" : method == "gradfun" ? "Gradfun" : "FFmpeg deband (strict)").tag(method)
+                                }
                         }
                         .labelsHidden()
                         .pickerStyle(.menu)
@@ -132,6 +137,7 @@ struct RestorationPanel: View {
                         .accessibilityLabel("Primary deband method")
                         .help("Strict preserves the legacy f3kdb preset ID but uses FFmpeg deband thresholds. Gradfun adds dither intended for playback; lossy encoding may remove it.")
                         .disabled(settings.upscaling.scaler == "coreml")
+                        }
                     }
 
                     if settings.primary.debandMethod == "f3kdb" && settings.upscaling.scaler != "coreml" {

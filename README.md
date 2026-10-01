@@ -91,7 +91,7 @@ Maintained application source targets about 500 lines per file, with a 600-line 
 
 ## Finishing filters (FFmpeg)
 
-Additional Filters uses **Off** to bypass Deblock. Deband strength and grain amount at zero bypass their effects while their editors remain visible. Deblock has four optional fields, alpha/beta/gamma/delta, each from 0 to 1; blank uses FFmpeg defaults (0.098/0.05/0.05/0.05). Stored disabled filters retain their saved values.
+The **Processor** tab uses **Off** to bypass Deblock. Deband strength and grain amount at zero bypass their effects while their editors remain visible. Deblock has four optional fields, alpha/beta/gamma/delta, each from 0 to 1; blank uses FFmpeg defaults (0.098/0.05/0.05/0.05). Stored disabled filters retain their saved values.
 
 The **Interpolation** picker offers Off, MCI and Blend. New/reset settings use Off; saved enabled choices are preserved. Target FPS can still select or duplicate frames with interpolation Off.
 

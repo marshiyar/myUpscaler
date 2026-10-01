@@ -7,7 +7,7 @@ struct WorkspaceInspector: View {
     @ObservedObject var presetStore: PresetStore
     let chooseOutputFolder: () -> Void
     enum Page: String, CaseIterable, Identifiable {
-        case upscale = "Upscale", restore = "Restore", output = "Output"
+        case upscale = "Upscale", restore = "Restore", processor = "Processor", output = "Output"
         var id: Self { self }
     }
     @State private var page: Page = .upscale
@@ -47,16 +47,22 @@ struct WorkspaceInspector: View {
                 case .restore:
                     primaryFilters
                     colorFilters
-                    Section {
-                        DisclosureGroup("Additional filters", isExpanded: $showExtra) {
-                            RestorationPanel(settings: settings)
-                            if settings.upscaling.scaler == "coreml" {
-                                Text("Core ML debanding uses its pipeline settings in Settings.")
-                                    .font(.caption).foregroundStyle(.secondary)
-                            }
-                        }
-                    }
                     Section { RestorationSecondSetPanel(settings: settings, initiallyExpanded: finishingInitiallyExpanded) }
+                case .processor:
+                    Section { RestorationPanel(settings: settings) }
+                    Section {
+                        Toggle("Remove near-duplicate frames", isOn: enabled($settings.modes.noDecimate))
+                            .disabled(settings.upscaling.scaler == "coreml")
+                            .help("FFmpeg Decimate removes near-duplicate frames before output frame-rate conversion.")
+                    }
+                    Section {
+                        Button {
+                            settings.resetToDefaults()
+                        } label: {
+                            Label("Reset processing settings", systemImage: "arrow.counterclockwise")
+                        }
+                        .help("Reset all processing settings to their defaults")
+                    }
                 case .output:
                     Section { OutputPanel(outputMode: $runner.outputMode, customOutputFolder: $runner.customOutputFolder,
                                           predictedName: runner.inputPath.isEmpty ? "Choose a video first" : runner.predictedOutputName,

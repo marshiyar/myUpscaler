@@ -9,6 +9,13 @@ import Foundation
         precondition(primary.useDenoise && primary.denoiser == "bm3d")
         secondary.denoiserChoice = "off"
         precondition(!secondary.useDenoise && secondary.denoiser == "nlmeans" && primary.useDenoise)
+        secondary.debandMethod = "f3kdb"
+        secondary.debandChoice = "off"
+        precondition(!secondary.useDeband && secondary.debandMethod == "f3kdb")
+        secondary.debandChoice = "deband"
+        precondition(secondary.useDeband && secondary.debandMethod == "f3kdb" && secondary.debandChoice == "deband")
+        secondary.debandChoice = "gradfun"
+        precondition(secondary.debandMethod == "gradfun")
         for original in [primary, secondary] {
             var stage = original
             stage.deringStrength.text = "0.75"; stage.useDering = false

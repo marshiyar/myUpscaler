@@ -88,6 +88,7 @@ int main(int argc, char **argv) {
         opts.no_deband = opts.no_grain = opts.no_eq = true;
         opts.use_denoise_2 = strcmp(argv[2], "denoise") == 0;
         opts.use_dering_2 = strcmp(argv[2], "dering") == 0;
+        opts.dering_active = strcmp(argv[2], "primary-dering") == 0;
         opts.dering_active_2 = 0; // Legacy switch must not veto authoritative enablement.
         opts.use_sharpen_2 = strcmp(argv[2], "sharpen") == 0;
         opts.use_deband_2 = strcmp(argv[2], "deband") == 0;
@@ -452,7 +453,7 @@ int main(void) {
         image = self.root / "input.png"
         image.touch()
         for mode, token in (("denoise", "hqdn3d="), ("dering", "hqdn3d="),
-                            ("sharpen", "cas=strength="), ("deband", "deband=1thr="),
+                            ("primary-dering", "hqdn3d="), ("sharpen", "cas=strength="), ("deband", "deband=1thr="),
                             ("grain", "noise=alls=")):
             with self.subTest(mode=mode):
                 result = self.run_engine("finishing", mode, str(image))

@@ -234,6 +234,10 @@ static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) 
     }
 
 
+    if (S.dering_active) {
+        build_dering_filter(&vf, S.dering_strength);
+    }
+
     if (!img && !up60p_build_fps_filter(&vf, &S)) {
         free(vf.buf);
         return UP60P_ERR_INVALID_OPTIONS;

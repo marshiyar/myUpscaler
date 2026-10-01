@@ -87,7 +87,7 @@ The model check uses existing assets to test repeated inference, UI responsivene
 - `myUpscaler/Native/` — C FFmpeg pipeline and supervised subprocess lifecycle.
 - `scripts/`, `tests/`, `docs/` — preparation, reproducible checks and design notes.
 
-Maintained application source targets about 500 lines per file, with a 600-line ceiling checked by the test script. See [architecture](docs/architecture.md), [FPS audit](tests/FPS-AUDIT.md), and the [model optimization plan](docs/model-optimization.md).
+Maintained application source targets about 500 lines per file, with a 600-line ceiling checked by the test script. See [architecture](docs/architecture.md), [FPS audit](tests/FPS-AUDIT.md).
 
 ## Finishing filters (FFmpeg)
 
@@ -110,7 +110,7 @@ When a filter runs in both sets, fixed multipliers reduce finishing strength: CA
 
 ## License and credits
 
-Application code is [Apache-2.0](LICENSE). The author converted the included model assets to Core ML; the underlying [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN) weights retain their upstream BSD 3-Clause license, included as [`RealESRGAN-LICENSE.txt`](myUpscaler/ThirdParty/RealESRGAN-LICENSE.txt).
+Application code is [Apache-2.0](LICENSE). Core ML model assets are provided by Marshiyar. The underlying [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN) weights retain their upstream BSD 3-Clause license, included as [`RealESRGAN-LICENSE.txt`](myUpscaler/ThirdParty/RealESRGAN-LICENSE.txt).
 
 The separately distributed [FFmpeg](https://ffmpeg.org/) executable is GPL-3.0-or-later. Its [license](myUpscaler/ThirdParty/FFmpeg-COPYING.txt) and [distribution notice](myUpscaler/ThirdParty/FFmpeg-NOTICE.txt) are included in app resources. FFmpeg is a trademark of Fabrice Bellard.
 

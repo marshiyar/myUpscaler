@@ -90,8 +90,19 @@ jobs:
           test -f "$app/Contents/Resources/FFmpeg-NOTICE.txt"
           xcrun lipo "$app/Contents/MacOS/ThirdParty/FFmpeg/ffmpeg" -verify_arch arm64 x86_64
           codesign --verify --strict "$app/Contents/MacOS/ThirdParty/FFmpeg/ffmpeg"
-          "$app/Contents/MacOS/ThirdParty/FFmpeg/ffmpeg" -version
-          # This verifies packaging, not GUI or CoreML runtime behavior.
+          codesign --verify --strict "$app"
+          status=0
+          bash tests/verify-packaged-ffmpeg.sh "$app" > "$RUNNER_TEMP/ffmpeg-verification.log" 2>&1 || status=$?
+          cat "$RUNNER_TEMP/ffmpeg-verification.log"
+          if [[ $status -ne 0 ]]; then
+            python3 - "$RUNNER_TEMP/ffmpeg-verification.log" <<'PY'
+          import pathlib, sys
+          message = pathlib.Path(sys.argv[1]).read_text()[-8000:]
+          print('::error::' + message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A'))
+          PY
+            exit "$status"
+          fi
+          # Verifies packaging and a sandboxed launch; GUI/CoreML need separate checks.
 
       - name: Upload build log
         if: always()

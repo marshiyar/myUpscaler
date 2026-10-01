@@ -22,6 +22,12 @@ identity. Runtime resolution uses the running executable's canonical app path,
 never a system install or an environment override. A symlink replacing the
 binary or its containing directory is rejected.
 
+The helper's sandbox entitlements contain only `app-sandbox` and `inherit`.
+It inherits the app's sandbox instead of specifying independent permissions.
+CI verifies its signature and launches the packaged helper from a sandboxed
+launcher in a copy of the app bundle; it does not launch an inherit-sandbox
+executable directly from an unsandboxed shell.
+
 Filter availability is separate from executable provenance. mpvfx's shared build
 configuration enables libx264, libx265, libvpx, libsvtav1, libmp3lame, libopus,
 Mbed TLS, GPL, and version 3 licensing. It does not enable TensorFlow or OpenVINO.

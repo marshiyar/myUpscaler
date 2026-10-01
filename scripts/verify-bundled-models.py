@@ -12,7 +12,9 @@ def verify(root):
         folder = root / (model['name'] + '.mlmodelc')
         for relative, expected in model['sha256'].items():
             path = folder / relative
-            if any(p.is_symlink() for p in [folder, path, *path.parents]):
+            # Check the model tree only: macOS /var and /tmp themselves are symlinks.
+            parents = [folder / p for p in pathlib.Path(relative).parents]
+            if any(p.is_symlink() for p in [folder, path, *parents]):
                 raise ValueError(f'Symlink in model path: {path}')
             if hashlib.sha256(path.read_bytes()).hexdigest() != expected:
                 raise ValueError(f'Model checksum mismatch: {path}')

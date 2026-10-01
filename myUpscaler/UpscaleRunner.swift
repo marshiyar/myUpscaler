@@ -131,6 +131,10 @@ class UpscaleRunner: ObservableObject {
     }
     
     func run() {
+        if let reason = settings.upscalingUnavailableReason {
+            log.append("ERROR: \(reason)\n")
+            return
+        }
         guard !inputPath.isEmpty else {
             log.append("ERROR: No input file selected.\n")
             return
@@ -331,7 +335,7 @@ class UpscaleRunner: ObservableObject {
                     var errorMessage = "\n--- ERROR: "
                     switch error {
                     case .ffmpegNotFound:
-                        errorMessage += "FFmpeg executable not found.\n"
+                        errorMessage += "Bundled FFmpeg is missing or invalid. Reinstall the app; external FFmpeg is not supported.\n"
                     case .invalidOptions:
                         errorMessage += "Invalid options provided.\n"
                     case .io:
@@ -340,6 +344,8 @@ class UpscaleRunner: ObservableObject {
                         errorMessage += "Internal error occurred.\n"
                     case .notInitialized:
                         errorMessage += "Engine not initialized.\n"
+                    case .unsupportedScaler:
+                        errorMessage += "The selected upscaling mode is not supported by the bundled FFmpeg engine. Choose Lanczos.\n"
                     case .unknownStatus(let code):
                         errorMessage += "Unknown error (code: \(code)).\n"
                     }

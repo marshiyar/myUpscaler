@@ -29,9 +29,8 @@ extension UpscaleSettings {
         mock.movflags          = "+faststart"
 
         mock.scaler            = mock.scalers.first ?? "bicubic"
-        mock.aiBackend         = mock.aiBackends.first ?? "none"
-        mock.dnnBackend        = mock.dnnBackends.first ?? "none"
-        mock.aiModelType       = mock.aiModelTypes.first ?? "none"
+        // Legacy AI metadata is retained for preset compatibility, not offered
+        // as a selectable processing mode.
         mock.aiModelPath       = ""
 
         mock.denoiser          = mock.denoisers.first ?? "none"

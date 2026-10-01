@@ -23,6 +23,18 @@ enum CoreMLModelRegistry {
     ]
     
     static var defaultModel: CoreMLModelSpec { models.first(where: { $0.id == .realESRGANx4 }) ?? models[0] }
+
+    static var bundledModels: [CoreMLModelSpec] {
+        models.filter { bundledURL(for: $0) != nil }
+    }
+
+    static func bundledURL(for spec: CoreMLModelSpec, bundle: Bundle = .main) -> URL? {
+        for ext in ["mlmodelc", "mlpackage", "mlmodel"] {
+            if let url = bundle.url(forResource: spec.resourceName, withExtension: ext),
+               FileManager.default.isReadableFile(atPath: url.path) { return url }
+        }
+        return nil
+    }
     
     static func model(for id: CoreMLModelID) -> CoreMLModelSpec {
         models.first(where: { $0.id == id }) ?? defaultModel
@@ -42,13 +54,6 @@ class ModelManager {
     static let shared = ModelManager()
     private init() {}
     
-    private func bundledModelURL(resourceName: String) -> URL? {
-        if let url = Bundle.main.url(forResource: resourceName, withExtension: "mlmodelc") { return url }
-        if let url = Bundle.main.url(forResource: resourceName, withExtension: "mlpackage") { return url }
-        if let url = Bundle.main.url(forResource: resourceName, withExtension: "mlmodel") { return url }
-        return nil
-    }
-    
     private func sourceModelURL(resourceName: String) -> URL? {
         if let url = Bundle.main.url(forResource: resourceName, withExtension: "mlpackage") { return url }
         if let url = Bundle.main.url(forResource: resourceName, withExtension: "mlmodel") { return url }
@@ -60,7 +65,7 @@ class ModelManager {
         config.computeUnits = .all
         config.allowLowPrecisionAccumulationOnGPU = true
         
-        guard let modelURL = bundledModelURL(resourceName: spec.resourceName) else {
+        guard let modelURL = CoreMLModelRegistry.bundledURL(for: spec) else {
             throw ModelError.modelNotFound
         }
         let sourceURL = sourceModelURL(resourceName: spec.resourceName)

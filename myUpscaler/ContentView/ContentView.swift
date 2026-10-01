@@ -226,7 +226,7 @@ struct ContentView: View {
                 .controlSize(.small)
                 .disabled(runner.inputPath.isEmpty)
                 
-                ActionButtons(runner: runner)
+                ActionButtons(runner: runner, settings: runner.settings)
             }
             
             // Group 4: Progress & Status

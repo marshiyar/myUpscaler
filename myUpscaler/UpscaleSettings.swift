@@ -451,8 +451,14 @@ class UpscaleSettings: ObservableObject {
     // Constants
     let presets = ["veryfast", "faster", "medium"] // REMOVED  "slow", "slower", "veryslow"
     let interpolations = ["mci", "blend"]
-    let scalers = ["ai", "lanczos", "zscale", "hw", "coreml"]
-    let coremlModels = CoreMLModelRegistry.models
+    var coremlModels: [CoreMLModelSpec] { CoreMLModelRegistry.bundledModels }
+    var scalers: [String] {
+        UpscalingModeSupport.scalers(bundledModelIDs: coremlModels.map { $0.id.rawValue })
+    }
+    var upscalingUnavailableReason: String? {
+        UpscalingModeSupport.unavailableReason(scaler: scaler, modelID: coremlModelId.rawValue,
+                                               bundledModelIDs: coremlModels.map { $0.id.rawValue })
+    }
     let denoisers = ["bm3d", "nlmeans", "hqdn3d", "atadenoise"]
     let sharpenMethods = ["cas", "unsharp"]
     let debandMethods = ["deband", "gradfun", "f3kdb"]
@@ -465,11 +471,7 @@ class UpscaleSettings: ObservableObject {
     let hwAccels = ["none", "videotoolbox"]
     let encoders = ["auto", "cpu", "videotoolbox"]
     #endif
-    // Stick to the builtin FFmpeg DNN backend that does not require external runtimes on macOS.
-    let dnnBackends = ["native"]
     let deblockModes = ["weak", "strong"]
-    let aiBackends = ["sr", "dnn"]
-    let aiModelTypes = ["srcnn", "espcn", "edsr", "fsrcnn"]
     
     // MARK: - Helper methods to check if values are zero
     func isZero(_ value: String) -> Bool {

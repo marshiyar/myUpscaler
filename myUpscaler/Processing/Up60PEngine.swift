@@ -1,6 +1,7 @@
 import Foundation
 import CoreMedia
 import Darwin
+import Synchronization
 
 enum Up60PEngineError: Error, Equatable {
     case invalidOptions
@@ -44,8 +45,10 @@ final class Up60PEngine {
     private var isInitialized = false
     private static var bridgeOverride: Up60PBridge?
     private static var bridge: Up60PBridge { bridgeOverride ?? .live }
-    nonisolated(unsafe) private static var currentLogHandler: ((String) -> Void)?
-    nonisolated private static let logHandlerQueue = DispatchQueue(label: "com.myupscaler.loghandler")
+    nonisolated private static let logHandlerState = Mutex<(@Sendable (String) -> Void)?>(nil)
+    nonisolated private static var currentLogHandler: (@Sendable (String) -> Void)? {
+        logHandlerState.withLock { $0 }
+    }
 
     static var shared: Up60PEngine {
         if let existing = _shared {
@@ -56,10 +59,8 @@ final class Up60PEngine {
         return instance
     }
 
-    static func setLogHandler(_ handler: @escaping (String) -> Void) {
-        logHandlerQueue.sync {
-            currentLogHandler = handler
-        }
+    static func setLogHandler(_ handler: @escaping @Sendable (String) -> Void) {
+        logHandlerState.withLock { $0 = handler }
     }
 
     private init() {
@@ -87,58 +88,30 @@ final class Up60PEngine {
             // Clean up control characters if any (simple scan)
             let cleaned = string.filter { $0.isASCII || $0.isWhitespace || $0.isPunctuation }
 
-            Up60PEngine.logHandlerQueue.sync {
-                // The runner parses/throttles on the producer before enqueueing UI updates.
-                // Other consumers must perform their own UI actor hop.
-                Up60PEngine.currentLogHandler?(cleaned)
-            }
+            // Snapshot the callback under the lock; invoke it after releasing it.
+            Up60PEngine.currentLogHandler?(cleaned)
         }
 
-        // Log initialization start
-        Up60PEngine.logHandlerQueue.sync {
-            if let handler = Up60PEngine.currentLogHandler {
-                DispatchQueue.main.async {
-                    handler("Initializing C engine...\n")
-                }
-            }
-        }
+        // Snapshot callbacks before dispatch; never invoke user code under a lock.
+        log("Initializing C engine...\n")
 
         // The C engine owns bundle resolution and validates the same path at
         // initialization and before processing. Do not set or honor overrides.
         let result = Self.bridge.initFunc(nil, callback)
 
         if result != UP60P_OK {
-            // Log error before throwing
-            Up60PEngine.logHandlerQueue.sync {
-                if let handler = Up60PEngine.currentLogHandler {
-                    DispatchQueue.main.async {
-                        handler("ERROR: C engine initialization failed (code: \(result.rawValue))\n")
-                    }
-                }
-            }
+            log("ERROR: C engine initialization failed (code: \(result.rawValue))\n")
             throw mapError(result) ?? .unknownStatus(Int32(result.rawValue))
         }
 
-        // Log successful initialization
-        Up60PEngine.logHandlerQueue.sync {
-            if let handler = Up60PEngine.currentLogHandler {
-                DispatchQueue.main.async {
-                    handler("C engine initialized successfully.\n")
-                }
-            }
-        }
+        log("C engine initialized successfully.\n")
 
         isInitialized = true
     }
 
     private func log(_ message: String) {
-        Up60PEngine.logHandlerQueue.sync {
-            if let handler = Up60PEngine.currentLogHandler {
-                DispatchQueue.main.async {
-                    handler(message)
-                }
-            }
-        }
+        guard let handler = Self.currentLogHandler else { return }
+        DispatchQueue.main.async { handler(message) }
     }
 
     private func mapError(_ code: up60p_error) -> Up60PEngineError? {
@@ -351,7 +324,7 @@ final class Up60PEngine {
                     try Task.checkCancellation()
 
                     // Logging (safe)
-                    let handler = Up60PEngine.logHandlerQueue.sync { Up60PEngine.currentLogHandler }
+                    let handler = Up60PEngine.currentLogHandler
                     if handler != nil {
                         await MainActor.run {
                             Up60PEngine.currentLogHandler?("Starting Video Processing...\n")

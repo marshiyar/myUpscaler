@@ -14,7 +14,7 @@ protocol FileSystemProtocol {
 protocol EngineProtocol {
     func process(inputPath: String, settings: UpscaleSettings, outputDirectory: String) async throws
     func cancel()
-    func setLogHandler(_ handler: @escaping (String) -> Void)
+    func setLogHandler(_ handler: @escaping @Sendable (String) -> Void)
 }
 
 /// Protocol defining video asset loading
@@ -27,7 +27,7 @@ protocol AssetLoaderProtocol {
 extension FileManager: FileSystemProtocol {}
 
 extension Up60PEngine: EngineProtocol {
-    func setLogHandler(_ handler: @escaping (String) -> Void) {
+    func setLogHandler(_ handler: @escaping @Sendable (String) -> Void) {
         Up60PEngine.setLogHandler(handler)
     }
 }

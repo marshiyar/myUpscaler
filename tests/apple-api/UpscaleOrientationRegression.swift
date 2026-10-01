@@ -20,13 +20,15 @@ enum Up60PEngineError: Error { case invalidOptions }
                 width: geometry.outputWidth, height: geometry.outputHeight,
                 transform: expected, forceLegacy: legacy)
             for frame in 0..<3 {
-                let buffer = try writer.makePixelBuffer()
+                let owned = try writer.makeFrame()
+                try owned.withPixelBuffer { buffer in
                 CVPixelBufferLockBaseAddress(buffer, [])
                 if let base = CVPixelBufferGetBaseAddress(buffer) {
                     memset(base, 0, CVPixelBufferGetBytesPerRow(buffer) * CVPixelBufferGetHeight(buffer))
                 }
                 CVPixelBufferUnlockBaseAddress(buffer, [])
-                try await writer.append(buffer, at: CMTime(value: Int64(frame), timescale: 30))
+                }
+                try await writer.append(try owned.freeze(), at: CMTime(value: Int64(frame), timescale: 30))
             }
             try await writer.finish()
             let asset = AVURLAsset(url: url)

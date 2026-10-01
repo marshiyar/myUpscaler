@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 import Combine
 import SwiftUI
 import AVFoundation
@@ -73,10 +74,10 @@ class UpscaleRunner: ObservableObject {
     // MARK: - Initialization
 
     init(fileSystem: FileSystemProtocol = FileManager.default,
-         engine: EngineProtocol = Up60PEngine.shared,
+         engine: EngineProtocol? = nil,
          assetLoader: AssetLoaderProtocol = AVAssetLoader()) {
         self.fileSystem = fileSystem
-        self.engine = engine
+        self.engine = engine ?? Up60PEngine.shared
         self.assetLoader = assetLoader
         if let downloads = fileSystem.urls(for: .downloadsDirectory, in: .userDomainMask).first {
             self.customOutputFolder = downloads.path
@@ -119,26 +120,13 @@ class UpscaleRunner: ObservableObject {
     }
 
     // MARK: - Execution Logic
-    nonisolated class SafeDuration {
-         var _duration: Double = 0.0
-         let lock = NSLock()
-
+    nonisolated final class SafeDuration: Sendable {
+        private let state: Mutex<Double>
         var duration: Double {
-            get {
-                lock.lock()
-                defer { lock.unlock() }
-                return _duration
-            }
-            set {
-                lock.lock()
-                defer { lock.unlock() }
-                _duration = newValue
-            }
+            get { state.withLock { $0 } }
+            set { state.withLock { $0 = newValue } }
         }
-
-        init(duration: Double) {
-            self._duration = duration
-        }
+        init(duration: Double) { state = Mutex(duration) }
     }
 
     func run() {

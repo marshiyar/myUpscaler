@@ -29,6 +29,7 @@ nonisolated extension VideoIOError: LocalizedError {
         switch self {
         case .invalidConfiguration: return "The video reader or encoder does not support this configuration."
         case .failed: return "Video reading or encoding stopped before completion."
+        case .frameAlreadyFrozen: return "The video frame is already finalized and cannot be changed."
         }
     }
 }

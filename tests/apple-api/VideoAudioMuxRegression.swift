@@ -1,5 +1,6 @@
 import AVFoundation
 import Foundation
+import Synchronization
 
 @main struct VideoAudioMuxRegression {
     static func main() async {
@@ -35,12 +36,12 @@ import Foundation
         precondition(sourceTransform == outputTransform)
         let originalReader = try VideoFrameReader(asset: rendered, track: originalVideo)
         var timestamps: [CMTime] = []
-        while let sample = try await originalReader.next() { timestamps.append(CMSampleBufferGetPresentationTimeStamp(sample)) }
+        while let sample = try await originalReader.next() { timestamps.append(sample.presentationTimeStamp) }
         let videoReader = try VideoFrameReader(asset: output, track: video)
         var frameCount = 0
         while let sample = try await videoReader.next() {
-            precondition(CMSampleBufferGetImageBuffer(sample) != nil)
-            close(CMSampleBufferGetPresentationTimeStamp(sample), timestamps[frameCount])
+            try sample.withPixelBuffer { buffer in precondition(CVPixelBufferGetWidth(buffer) == 64) }
+            close(sample.presentationTimeStamp, timestamps[frameCount])
             frameCount += 1
         }
         precondition(frameCount == timestamps.count && frameCount == 38)
@@ -69,11 +70,11 @@ import Foundation
         }
         do { try await task.value; fatalError("Cancellation accepted") } catch is CancellationError { }
         precondition(!FileManager.default.fileExists(atPath: cancelOutput.path))
-        var checkpoints = 0
+        let checkpoints = Mutex(0)
         do {
             try await VideoAudioMuxer.preserveAudio(renderedVideoURL: renderedURL, originalURL: sourceURL, outputURL: cancelOutput, checkCancellation: {
-                checkpoints += 1
-                if checkpoints >= 6 { throw CancellationError() }
+                let count = checkpoints.withLock { $0 += 1; return $0 }
+                if count >= 6 { throw CancellationError() }
             })
             fatalError("Custom cancellation accepted")
         } catch is CancellationError { }

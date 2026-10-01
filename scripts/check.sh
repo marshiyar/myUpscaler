@@ -13,6 +13,7 @@ bash tests/test-processing-lifecycle.sh
 bash tests/apple-api/run.sh
 bash tests/apple-api/run-audio.sh
 bash tests/apple-api/run-timing.sh
+bash tests/apple-api/run-orientation.sh
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 xcrun swiftc -module-cache-path "$work/cache" myUpscaler/Models/UpscalingModeSupport.swift \

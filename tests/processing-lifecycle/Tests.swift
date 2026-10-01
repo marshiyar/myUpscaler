@@ -8,7 +8,7 @@ import CoreGraphics
     var cancels = 0
     var handler: ((String) -> Void)?
     var continuation: CheckedContinuation<Void, Never>?
-    func setLogHandler(_ handler: @escaping (String) -> Void) { self.handler = handler }
+    func setLogHandler(_ handler: @escaping @Sendable (String) -> Void) { self.handler = handler }
     func process(inputPath: String, settings: UpscaleSettings, outputDirectory: String) async throws {
         starts += 1
         handler?("elapsed=1\n")
@@ -52,7 +52,7 @@ struct NoDuration: AssetLoaderProtocol {
         for channel in 0..<3 {
             for y in 0..<2 { for x in 0..<2 { storage[channel * 10 + y * 4 + x] = Float(channel + 1) / 4 } }
         }
-        let engine = CoreMLEngine()
+        let engine = CoreMLProcessingJob()
         let pixels = try engine.tensorToPixelBuffer(tensor: tensor, width: 2, height: 2)
         CVPixelBufferLockBaseAddress(pixels, .readOnly)
         let bytes = CVPixelBufferGetBaseAddress(pixels)!.assumingMemoryBound(to: UInt8.self)
@@ -144,7 +144,7 @@ struct NoDuration: AssetLoaderProtocol {
         let weights = UnsafeMutablePointer<Float>.allocate(capacity: size * size)
         weights.initialize(repeating: 0, count: size * size)
         defer { weights.deallocate() }
-        let engine = CoreMLEngine()
+        let engine = CoreMLProcessingJob()
         func run(_ old: Bool, _ cosine: Bool) throws {
             weights.update(repeating: 0, count: size * size)
             if old {

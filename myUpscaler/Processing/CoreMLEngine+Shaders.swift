@@ -5,7 +5,7 @@ import CoreVideo
 
 // MARK: - CoreML Engine Shader Extension
 
-nonisolated extension CoreMLEngine {
+nonisolated extension CoreMLProcessingJob {
 
     /// Manages the custom Metal kernels for video restoration
     /// Loaded once, then immutable. Core Image kernels are SDK-declared Sendable.
@@ -330,7 +330,7 @@ nonisolated extension CoreMLEngine {
                             arguments: [mask, CGFloat(radius)]) ?? mask
     }
 
-    func processMask(_ mask: CIImage, settings: UpscaleSettings) -> CIImage {
+    func processMask(_ mask: CIImage, settings: SettingsConfiguration) -> CIImage {
         var m = mask
         if settings.maskDilateRadiusValue > 0 {
             m = dilateMask(m, radius: settings.maskDilateRadiusValue)
@@ -369,7 +369,7 @@ nonisolated extension CoreMLEngine {
 
     /// Helper to apply all active filters in the correct order
     /// Pipeline: Color → Denoise → Deband → Sharpen → Artifact cleanup → Encode
-    func applyPostProcessing(to input: CIImage, original: CIImage? = nil, settings: UpscaleSettings) -> CIImage {
+    func applyPostProcessing(to input: CIImage, original: CIImage? = nil, settings: SettingsConfiguration) -> CIImage {
         var processed = input
         let source = original ?? input
 
@@ -453,7 +453,7 @@ nonisolated extension CoreMLEngine {
     // MARK: - Buffer Bridging (CVPixelBuffer)
 
     /// Pre-filter before feeding CoreML (color normalization + light denoise)
-    func applyPreProcessing(to input: CIImage, settings: UpscaleSettings) -> CIImage {
+    func applyPreProcessing(to input: CIImage, settings: SettingsConfiguration) -> CIImage {
         var processed = input
 
         if settings.metal.alphaSafeProcessing {
@@ -494,7 +494,7 @@ nonisolated extension CoreMLEngine {
     }
 
     /// Run pre-processing on a tile buffer prior to CoreML inference.
-    func preprocessTileBuffer(_ buffer: CVPixelBuffer, settings: UpscaleSettings) {
+    func preprocessTileBuffer(_ buffer: CVPixelBuffer, settings: SettingsConfiguration) {
         guard settings.metal.enableColorLinearize
                 || settings.metal.useMedianPrefilter
                 || (settings.metal.useCosineFeather && settings.tileFeatherMarginValue > 0)
@@ -503,13 +503,13 @@ nonisolated extension CoreMLEngine {
         }
         let ci = CIImage(cvPixelBuffer: buffer)
         let processed = applyPreProcessing(to: ci, settings: settings)
-        CoreMLEngine.ciContext.render(processed, to: buffer, bounds: processed.extent, colorSpace: CoreMLEngine.srgbColorSpace)
+        CoreMLProcessingJob.ciContext.render(processed, to: buffer, bounds: processed.extent, colorSpace: CoreMLProcessingJob.srgbColorSpace)
     }
 
     /// Run post-processing on a full frame buffer and optionally apply temporal smoothing.
     func postprocessFrameBuffer(_ buffer: CVPixelBuffer,
                                 previous: CVPixelBuffer?,
-                                settings: UpscaleSettings) {
+                                settings: SettingsConfiguration) {
         var ci = CIImage(cvPixelBuffer: buffer)
         let original = ci
         ci = applyPostProcessing(to: ci, original: original, settings: settings)
@@ -519,7 +519,7 @@ nonisolated extension CoreMLEngine {
             ci = applyTemporalSmooth(current: ci, previous: prevCI, strength: settings.temporalStrengthValue)
         }
 
-        CoreMLEngine.ciContext.render(ci, to: buffer, bounds: ci.extent, colorSpace: CoreMLEngine.srgbColorSpace)
+        CoreMLProcessingJob.ciContext.render(ci, to: buffer, bounds: ci.extent, colorSpace: CoreMLProcessingJob.srgbColorSpace)
     }
 
     // MARK: - Helpers

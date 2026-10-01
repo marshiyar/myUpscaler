@@ -19,8 +19,8 @@ nonisolated enum VideoAudioMuxError: Error, LocalizedError {
 
 /// Adds original audio without re-encoding the rendered video or shortening either stream.
 nonisolated enum VideoAudioMuxer {
-    static func preserveAudio(renderedVideoURL: URL, originalURL: URL, outputURL: URL,
-        checkCancellation: @escaping () throws -> Void = { try Task.checkCancellation() }) async throws {
+    @concurrent static func preserveAudio(renderedVideoURL: URL, originalURL: URL, outputURL: URL,
+        checkCancellation: @escaping @Sendable () throws -> Void = { try Task.checkCancellation() }) async throws {
         try checkCancellation()
         guard !FileManager.default.fileExists(atPath: outputURL.path) else {
             throw VideoAudioMuxError.destinationExists
@@ -67,13 +67,14 @@ nonisolated enum VideoAudioMuxer {
             let exporter = AVAssetExportSession(asset: composition, presetName: AVAssetExportPresetPassthrough) else {
             throw VideoAudioMuxError.unsupportedMP4Audio
         }
+        let exportJob = PassthroughExportJob(exporter: exporter)
         try checkCancellation()
         ownsOutput = true
         // Task cancellation interrupts AVFoundation export; the monitor also supports
         // direct engine cancellation flags while export is suspended.
         try await withThrowingTaskGroup(of: Void.self) { group in
             defer { group.cancelAll() }
-            group.addTask { try await exporter.export(to: outputURL, as: .mp4) }
+            group.addTask { try await exportJob.export(to: outputURL) }
             group.addTask {
                 while true {
                     try await Task.sleep(nanoseconds: 50_000_000)
@@ -84,5 +85,14 @@ nonisolated enum VideoAudioMuxer {
         }
         try checkCancellation()
         completed = true
+    }
+}
+
+/// Only this actor accesses the mutable exporter once ownership is transferred.
+private actor PassthroughExportJob {
+    private let exporter: AVAssetExportSession
+    init(exporter: sending AVAssetExportSession) { self.exporter = exporter }
+    func export(to outputURL: URL) async throws {
+        try await exporter.export(to: outputURL, as: .mp4, isolation: self)
     }
 }

@@ -1,12 +1,12 @@
 import Foundation
 
 /// Editable numeric draft: preserve partial input until a render snapshot parses it.
-nonisolated struct NumericDraft: Equatable {
+nonisolated struct NumericDraft: Equatable, Sendable {
     var text: String
     var finiteValue: Double? { guard let value = Double(text), value.isFinite else { return nil }; return value }
 }
 
-nonisolated struct RestorationStage: Equatable {
+nonisolated struct RestorationStage: Equatable, Sendable {
     var denoiser: String = "bm3d"
     var denoiseStrength: NumericDraft = NumericDraft(text: "2.5")
     var deblockMode: String = "strong"
@@ -42,7 +42,7 @@ nonisolated struct RestorationStage: Equatable {
     }
 }
 
-nonisolated struct CodecSettings: Equatable {
+nonisolated struct CodecSettings: Equatable, Sendable {
     var useHEVC: Bool = false
     var crf: Double = 20.0
     var preset: String = "faster"
@@ -53,19 +53,19 @@ nonisolated struct CodecSettings: Equatable {
     var x265Deblock2: NumericDraft = NumericDraft(text: "-2")
 }
 
-nonisolated struct HardwareSettings: Equatable {
+nonisolated struct HardwareSettings: Equatable, Sendable {
     var hwAccel: String = UpscaleSettings.defaultHwAccel
     var encoder: String = UpscaleSettings.defaultEncoder
     var threads: NumericDraft = NumericDraft(text: "0")
 }
 
-nonisolated struct VideoSettings: Equatable {
+nonisolated struct VideoSettings: Equatable, Sendable {
     var fps: NumericDraft = NumericDraft(text: "60")
     var scaleFactor: Double = 2.0
     var interpolation: String = "mci"
 }
 
-nonisolated struct UpscalingSettings: Equatable {
+nonisolated struct UpscalingSettings: Equatable, Sendable {
     var scaler: String = "lanczos"
     var coremlModelId: CoreMLModelID = .realESRGANx4
     var aiModelPath: String = ""
@@ -74,14 +74,14 @@ nonisolated struct UpscalingSettings: Equatable {
     var dnnBackend: String = "native"
 }
 
-nonisolated struct ColorSettings: Equatable {
+nonisolated struct ColorSettings: Equatable, Sendable {
     var eqContrast: NumericDraft = NumericDraft(text: "1.0")
     var eqBrightness: NumericDraft = NumericDraft(text: "0.0")
     var eqSaturation: NumericDraft = NumericDraft(text: "1.0")
     var noEq: Bool = false
 }
 
-nonisolated struct MetalSettings: Equatable {
+nonisolated struct MetalSettings: Equatable, Sendable {
     var enableColorLinearize: Bool = true
     var colorExposure: NumericDraft = NumericDraft(text: "1.0")
     var enableToneMap: Bool = false
@@ -107,12 +107,12 @@ nonisolated struct MetalSettings: Equatable {
     var maskErodeRadius: NumericDraft = NumericDraft(text: "0")
 }
 
-nonisolated struct OutputSettings: Equatable {
+nonisolated struct OutputSettings: Equatable, Sendable {
     var audioBitrate: String = "192k"
     var movflags: String = "+faststart"
 }
 
-nonisolated struct ModesSettings: Equatable {
+nonisolated struct ModesSettings: Equatable, Sendable {
     var noDecimate: Bool = false
     var noInterpolate: Bool = false
     var useQualityAnalyzer: Bool = false
@@ -122,7 +122,7 @@ nonisolated struct ModesSettings: Equatable {
     var preview: Bool = false
 }
 
-nonisolated struct SettingsConfiguration: Equatable {
+nonisolated struct SettingsConfiguration: Equatable, Sendable {
     var codec = CodecSettings()
     var hardware = HardwareSettings()
     var video = VideoSettings()

@@ -1,7 +1,7 @@
 // Pre-fix blending implementation, retained only for parity and timing.
 import Foundation
 import CoreVideo
-nonisolated extension CoreMLEngine {
+nonisolated extension CoreMLProcessingJob {
     func legacyBlendTileIntoCanvas(
         source: CVPixelBuffer,
         target: CVPixelBuffer,

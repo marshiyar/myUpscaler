@@ -4,7 +4,7 @@ A native macOS app for restoring and upscaling video, with a frame preview, save
 
 <img src="https://github.com/user-attachments/assets/0c40540b-d83c-4f9b-bad5-07c0baa4b978" alt="myUpscaler workspace" width="600">
 
-**Requirements:** Apple Silicon, macOS 15.2 or later. Intel Macs are unsupported. Development requires Xcode 26 or later and its Metal compiler component.
+**Requirements:** Apple Silicon, macOS 15.2 or later. Intel Macs are unsupported. Development uses Xcode 27 and its Metal compiler component.
 
 ## Choose an engine
 
@@ -58,6 +58,8 @@ xcodebuild -project myUpscaler.xcodeproj -scheme myUpscaler \
 
 Release Swift code uses `-O`. The app bundles its own FFmpeg; PATH and external FFmpeg overrides are not used. On macOS 26+, the Core ML engine uses asynchronous AVFoundation providers/receivers, with a compatibility path for older supported macOS versions.
 
+Debug and Release use Complete Swift concurrency checking and treat Swift/C warnings as errors. Swift language mode remains 5. The Metal compiler and linker driver both use `-fcikernel`; the individual kernel sources produce one bundled `default.metallib`.
+
 ## Tests and project layout
 
 ```sh
@@ -65,6 +67,16 @@ bash scripts/check.sh
 ```
 
 The source tests use synthetic media and do not download models. Packaged-app and actual model inference checks require prepared assets; see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+Additional checks run independently:
+
+```sh
+bash tests/test-native-sanitizers.sh
+python3 tests/metal-kernels/run.py
+bash tests/test-model-ownership.sh build/Build/Products/Release/myUpscaler.app/Contents/Resources
+```
+
+The model check uses existing assets to test repeated inference, UI responsiveness, a small video export and cancellation. The native sanitizer script runs Address/Undefined Behavior Sanitizer checks separately from Thread Sanitizer.
 
 - `myUpscaler/App/` — app entry point.
 - `myUpscaler/Views/` — native controls and media workspace.

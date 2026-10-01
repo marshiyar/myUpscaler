@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 /// Both passes edit their own stage; presentation and annotations are view concerns.
 struct RestorationSharpenControls: View {

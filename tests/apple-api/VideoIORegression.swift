@@ -22,8 +22,10 @@ import CoreVideo
                 AVVideoCodecKey: AVVideoCodecType.h264,
                 AVVideoWidthKey: 64, AVVideoHeightKey: 48
             ], width: 64, height: 48, forceLegacy: legacy)
+            var previous: ReadOnlyVideoFrame?
             for index in 0..<30 {
-                let buffer = try writer.makePixelBuffer()
+                let frame = try writer.makeFrame()
+                try frame.withPixelBuffer { buffer in
                 CVPixelBufferLockBaseAddress(buffer, [])
                 let bytes = CVPixelBufferGetBaseAddress(buffer)!.assumingMemoryBound(to: UInt8.self)
                 let stride = CVPixelBufferGetBytesPerRow(buffer)
@@ -35,7 +37,22 @@ import CoreVideo
                     bytes[offset + 3] = 255
                 } }
                 CVPixelBufferUnlockBaseAddress(buffer, [])
-                try await writer.append(buffer, at: CMTime(value: Int64(index), timescale: 30))
+                }
+                if let previous {
+                    previous.withPixelBuffer { buffer in
+                        CVPixelBufferLockBaseAddress(buffer, .readOnly)
+                        defer { CVPixelBufferUnlockBaseAddress(buffer, .readOnly) }
+                        let bytes = CVPixelBufferGetBaseAddress(buffer)!.assumingMemoryBound(to: UInt8.self)
+                        precondition(bytes[0] == UInt8(32 + index - 1), "Pool reuse changed a retained immutable frame")
+                    }
+                }
+                let frozen = try frame.freeze()
+                do { try frame.withPixelBuffer { _ in }; fatalError("Frozen frame remained mutable") }
+                catch VideoIOError.frameAlreadyFrozen {}
+                do { _ = try frame.freeze(); fatalError("Second freeze succeeded") }
+                catch VideoIOError.frameAlreadyFrozen {}
+                try await writer.append(frozen, at: CMTime(value: Int64(index), timescale: 30))
+                previous = frozen
             }
             try await writer.finish()
             let asset = AVURLAsset(url: url)
@@ -43,14 +60,15 @@ import CoreVideo
             let reader = try VideoFrameReader(asset: asset, track: tracks[0], forceLegacy: legacy)
             var count = 0
             while let sample = try await reader.next() {
-                precondition(CMSampleBufferGetPresentationTimeStamp(sample) == CMTime(value: Int64(count), timescale: 30))
-                let buffer = CMSampleBufferGetImageBuffer(sample)!
+                precondition(sample.presentationTimeStamp == CMTime(value: Int64(count), timescale: 30))
+                try sample.withPixelBuffer { buffer in
                 precondition(CVPixelBufferGetWidth(buffer) == 64 && CVPixelBufferGetHeight(buffer) == 48)
                 CVPixelBufferLockBaseAddress(buffer, .readOnly)
                 let bytes = CVPixelBufferGetBaseAddress(buffer)!.assumingMemoryBound(to: UInt8.self)
                 precondition(Int(bytes[2]) > Int(bytes[1]) + 40)
                 precondition(Int(bytes[1]) > Int(bytes[0]) + 10)
                 CVPixelBufferUnlockBaseAddress(buffer, .readOnly)
+                }
                 count += 1
             }
             precondition(count == 30)
@@ -61,7 +79,7 @@ import CoreVideo
             let cancelledWriter = try VideoFrameWriter(outputURL: root.appendingPathComponent("cancel-\(legacy).mp4"),
                 videoSettings: [AVVideoCodecKey: AVVideoCodecType.h264, AVVideoWidthKey: 64, AVVideoHeightKey: 48],
                 width: 64, height: 48, forceLegacy: legacy)
-            let pendingBuffer = try cancelledWriter.makePixelBuffer()
+            let pendingBuffer = try cancelledWriter.makeFrame().freeze()
             cancelledWriter.cancel()
             do { try await cancelledWriter.append(pendingBuffer, at: .zero); fatalError("Cancelled writer must fail") }
             catch { }
@@ -71,7 +89,7 @@ import CoreVideo
             }
             do { try await task.value; fatalError("Task cancellation must fail") }
             catch is CancellationError { }
-            print("PASS \(legacy ? "legacy" : "modern") 30 frames, exact PTS, dimensions, BGRA colors, reader/writer/task cancellation; \(start.duration(to: .now))")
+            print("PASS \(legacy ? "legacy" : "modern") 30 frames, exact PTS, dimensions, BGRA colors, freeze ownership, reader/writer/task cancellation; \(start.duration(to: .now))")
         }
     }
 }

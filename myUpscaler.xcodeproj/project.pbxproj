@@ -15,6 +15,9 @@
 		D27000000000000000000011 = {isa = PBXBuildFile; fileRef = D27000000000000000000001; };
 		D27000000000000000000012 = {isa = PBXBuildFile; fileRef = D27000000000000000000002; };
 		D27000000000000000000013 = {isa = PBXBuildFile; fileRef = D27000000000000000000003; };
+		E27100000000000000000011 /* myUpscaler/State/SettingsConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = E27100000000000000000001 /* myUpscaler/State/SettingsConfiguration.swift */; };
+		E27100000000000000000012 /* myUpscaler/State/SettingsPreviewParameters.swift in Sources */ = {isa = PBXBuildFile; fileRef = E27100000000000000000002 /* myUpscaler/State/SettingsPreviewParameters.swift */; };
+		E27100000000000000000013 /* myUpscaler/State/SettingsRenderSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = E27100000000000000000003 /* myUpscaler/State/SettingsRenderSnapshot.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -41,6 +44,9 @@
 		D27000000000000000000001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/State/SettingsNormalization.swift; sourceTree = SOURCE_ROOT; };
 		D27000000000000000000002 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/State/SettingsParameterRules.swift; sourceTree = SOURCE_ROOT; };
 		D27000000000000000000003 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/State/SettingsFilterStacking.swift; sourceTree = SOURCE_ROOT; };
+		E27100000000000000000001 /* myUpscaler/State/SettingsConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/State/SettingsConfiguration.swift; sourceTree = SOURCE_ROOT; };
+		E27100000000000000000002 /* myUpscaler/State/SettingsPreviewParameters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/State/SettingsPreviewParameters.swift; sourceTree = SOURCE_ROOT; };
+		E27100000000000000000003 /* myUpscaler/State/SettingsRenderSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/State/SettingsRenderSnapshot.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -96,7 +102,7 @@
 		C02700000000000000000007 = {isa = PBXGroup; children = (C02700000000000000000008, C02700000000000000000009, C0270000000000000000000A, C0270000000000000000000B, C0270000000000000000000C,
 				D27000000000000000000003,
 				D27000000000000000000002,
-				D27000000000000000000001, ); name = "Unit Test Sources"; sourceTree = "<group>"; };
+				D27000000000000000000001, E27100000000000000000001, E27100000000000000000002, E27100000000000000000003, ); name = "Unit Test Sources"; sourceTree = "<group>"; };
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -196,6 +202,7 @@
 		};
 		5EE165482EF4EEB20060947E /* Run Script */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
@@ -222,7 +229,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		C02700000000000000000004 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (C0270000000000000000000D, C0270000000000000000000E, C0270000000000000000000F, C02700000000000000000010, C02700000000000000000011, D27000000000000000000013, D27000000000000000000012, D27000000000000000000011, ); runOnlyForDeploymentPostprocessing = 0; };
+		C02700000000000000000004 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (C0270000000000000000000D, C0270000000000000000000E, C0270000000000000000000F, C02700000000000000000010, C02700000000000000000011, D27000000000000000000013, D27000000000000000000012, D27000000000000000000011, E27100000000000000000011, E27100000000000000000012, E27100000000000000000013, ); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
@@ -319,7 +326,15 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
-				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_SUPPRESS_WARNINGS = NO;
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
+				GCC_WARN_SHADOW = YES;
+				GCC_WARN_SIGN_COMPARE = YES;
+				CLANG_WARN_ASSIGN_ENUM = YES;
+				CLANG_ENABLE_SECURITY_COMPILER_WARNINGS = YES;
+				CLANG_STATIC_ANALYZER_MODE = deep;
 			};
 			name = Debug;
 		};
@@ -411,7 +426,15 @@
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
-				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_SUPPRESS_WARNINGS = NO;
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
+				GCC_WARN_SHADOW = YES;
+				GCC_WARN_SIGN_COMPARE = YES;
+				CLANG_WARN_ASSIGN_ENUM = YES;
+				CLANG_ENABLE_SECURITY_COMPILER_WARNINGS = YES;
+				CLANG_STATIC_ANALYZER_MODE = deep;
 			};
 			name = Release;
 		};
@@ -422,7 +445,6 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				APPLY_RULES_IN_COPY_HEADERS = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				AUTOMATION_APPLE_EVENTS = NO;
 				CODE_SIGN_ENTITLEMENTS = "";
@@ -514,7 +536,7 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_PRECOMPILE_BRIDGING_HEADER = YES;
 				SWIFT_SKIP_AUTOLINKING_LIBRARIES = "";
-				SWIFT_STRICT_CONCURRENCY = targeted;
+				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_SYSTEM_INCLUDE_PATHS = "";
 				SWIFT_UPCOMING_FEATURE_GLOBAL_CONCURRENCY = NO;
 				SWIFT_UPCOMING_FEATURE_INFER_SENDABLE_FROM_CAPTURES = NO;
@@ -533,7 +555,6 @@
 				APPLY_RULES_IN_COPY_HEADERS = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				"ASSETCATALOG_COMPILER_APPICON_NAME[sdk=macosx*]" = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				AUTOMATION_APPLE_EVENTS = NO;
 				CODE_SIGN_ENTITLEMENTS = "";
@@ -627,7 +648,7 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_PRECOMPILE_BRIDGING_HEADER = YES;
 				SWIFT_SKIP_AUTOLINKING_LIBRARIES = "";
-				SWIFT_STRICT_CONCURRENCY = targeted;
+				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_SYSTEM_INCLUDE_PATHS = "";
 				SWIFT_UPCOMING_FEATURE_GLOBAL_CONCURRENCY = NO;
 				SWIFT_UPCOMING_FEATURE_INFER_SENDABLE_FROM_CAPTURES = NO;
@@ -654,6 +675,7 @@
                 PRODUCT_NAME = "$(TARGET_NAME)";
                 SDKROOT = macosx;
                 SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+                SWIFT_STRICT_CONCURRENCY = complete;
                 SWIFT_VERSION = 5.0;
             }; name = Debug; };
 		C02700000000000000000003 = {isa = XCBuildConfiguration; buildSettings = {
@@ -672,6 +694,7 @@
                 PRODUCT_NAME = "$(TARGET_NAME)";
                 SDKROOT = macosx;
                 SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+                SWIFT_STRICT_CONCURRENCY = complete;
                 SWIFT_VERSION = 5.0;
             }; name = Release; };
 /* End XCBuildConfiguration section */

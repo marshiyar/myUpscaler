@@ -14,7 +14,6 @@
 		C02700000000000000000011 = {isa = PBXBuildFile; fileRef = C0270000000000000000000C; };
 		D27000000000000000000011 = {isa = PBXBuildFile; fileRef = D27000000000000000000001; };
 		D27000000000000000000012 = {isa = PBXBuildFile; fileRef = D27000000000000000000002; };
-		D27000000000000000000013 = {isa = PBXBuildFile; fileRef = D27000000000000000000003; };
 		E27100000000000000000011 /* myUpscaler/State/SettingsConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = E27100000000000000000001 /* myUpscaler/State/SettingsConfiguration.swift */; };
 		E27100000000000000000012 /* myUpscaler/State/SettingsPreviewParameters.swift in Sources */ = {isa = PBXBuildFile; fileRef = E27100000000000000000002 /* myUpscaler/State/SettingsPreviewParameters.swift */; };
 		E27100000000000000000013 /* myUpscaler/State/SettingsRenderSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = E27100000000000000000003 /* myUpscaler/State/SettingsRenderSnapshot.swift */; };
@@ -43,7 +42,6 @@
 		C02700000000000000000006 = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = myUpscalerUnitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D27000000000000000000001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/State/SettingsNormalization.swift; sourceTree = SOURCE_ROOT; };
 		D27000000000000000000002 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/State/SettingsParameterRules.swift; sourceTree = SOURCE_ROOT; };
-		D27000000000000000000003 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/State/SettingsFilterStacking.swift; sourceTree = SOURCE_ROOT; };
 		E27100000000000000000001 /* myUpscaler/State/SettingsConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/State/SettingsConfiguration.swift; sourceTree = SOURCE_ROOT; };
 		E27100000000000000000002 /* myUpscaler/State/SettingsPreviewParameters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/State/SettingsPreviewParameters.swift; sourceTree = SOURCE_ROOT; };
 		E27100000000000000000003 /* myUpscaler/State/SettingsRenderSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/State/SettingsRenderSnapshot.swift; sourceTree = SOURCE_ROOT; };
@@ -100,7 +98,6 @@
 			sourceTree = "<group>";
 		};
 		C02700000000000000000007 = {isa = PBXGroup; children = (C02700000000000000000008, C02700000000000000000009, C0270000000000000000000A, C0270000000000000000000B, C0270000000000000000000C,
-				D27000000000000000000003,
 				D27000000000000000000002,
 				D27000000000000000000001, E27100000000000000000001, E27100000000000000000002, E27100000000000000000003, ); name = "Unit Test Sources"; sourceTree = "<group>"; };
 /* End PBXGroup section */
@@ -229,7 +226,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		C02700000000000000000004 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (C0270000000000000000000D, C0270000000000000000000E, C0270000000000000000000F, C02700000000000000000010, C02700000000000000000011, D27000000000000000000013, D27000000000000000000012, D27000000000000000000011, E27100000000000000000011, E27100000000000000000012, E27100000000000000000013, ); runOnlyForDeploymentPostprocessing = 0; };
+		C02700000000000000000004 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (C0270000000000000000000D, C0270000000000000000000E, C0270000000000000000000F, C02700000000000000000010, C02700000000000000000011, D27000000000000000000012, D27000000000000000000011, E27100000000000000000011, E27100000000000000000012, E27100000000000000000013, ); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */

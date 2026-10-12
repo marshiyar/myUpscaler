@@ -3,24 +3,19 @@ import AppKit
 import Combine
 struct HeaderView: View {
     var body: some View {
-        HStack {
-            HStack(spacing: 10) {
-                Text("MyUpscaler")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundColor(.primary)
+        HStack(spacing: 10) {
+            Image(systemName: "video.badge.waveform")
+                .font(.title2)
+                .foregroundStyle(.tint)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Video workspace").font(.title2.weight(.semibold))
+                Text("Preview your adjustments, choose output settings, then export.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
             }
             Spacer()
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.black.opacity(0.18))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.white.opacity(0.06), lineWidth: 1)
-                )
-        )
+        .padding(.vertical, 4)
     }
 }
 
@@ -126,7 +121,7 @@ struct RestorationFiltersPanel: View {
                         Text("Unsharp Mask").tag("unsharp")
                     }
                     .pickerStyle(.menu)
-                    .frame(width: 140)
+                    .frame(minWidth: 160)
                     
                     if settings.sharpenMethod == "cas" {
                         ParameterRow(title: "CAS Strength",
@@ -343,7 +338,7 @@ struct RestorationSecondSetPanel: View {
                                 // Show effective value if attenuated
                                 if settings.isDenoiseStacked {
                                     Text("→\(settings.effectiveDenoiseStrength2)")
-                                        .font(.system(size: 9))
+                                        .font(.caption)
                                         .foregroundColor(.orange)
                                 }
                             } else {
@@ -414,7 +409,7 @@ struct RestorationSecondSetPanel: View {
                                 HStack(spacing: 6) {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text("R")
-                                            .font(.system(size: 9))
+                                            .font(.caption)
                                             .foregroundColor(.secondary)
                                         TextField("5", text: $settings.usmRadius2)
                                             .textFieldStyle(.roundedBorder)
@@ -422,7 +417,7 @@ struct RestorationSecondSetPanel: View {
                                     }
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text("A")
-                                            .font(.system(size: 9))
+                                            .font(.caption)
                                             .foregroundColor(.secondary)
                                         TextField("1.0", text: $settings.usmAmount2)
                                             .textFieldStyle(.roundedBorder)
@@ -430,7 +425,7 @@ struct RestorationSecondSetPanel: View {
                                     }
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text("T")
-                                            .font(.system(size: 9))
+                                            .font(.caption)
                                             .foregroundColor(.secondary)
                                         TextField("0.03", text: $settings.usmThreshold2)
                                             .textFieldStyle(.roundedBorder)
@@ -441,10 +436,10 @@ struct RestorationSecondSetPanel: View {
                                     if settings.isSharpenStacked {
                                         VStack(alignment: .leading, spacing: 2) {
                                             Text("→")
-                                                .font(.system(size: 9))
+                                                .font(.caption)
                                                 .foregroundColor(.orange)
                                             Text("\(settings.effectiveUsmAmount2)")
-                                                .font(.system(size: 9))
+                                                .font(.caption)
                                                 .foregroundColor(.orange)
                                         }
                                     }
@@ -462,7 +457,7 @@ struct RestorationSecondSetPanel: View {
                                     // Show effective value if attenuated
                                     if settings.isSharpenStacked {
                                         Text("→\(settings.effectiveSharpenStrength2)")
-                                            .font(.system(size: 9))
+                                            .font(.caption)
                                             .foregroundColor(.orange)
                                     }
                                 }
@@ -501,7 +496,7 @@ struct RestorationSecondSetPanel: View {
                                 HStack(spacing: 6) {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text("Range")
-                                            .font(.system(size: 9))
+                                            .font(.caption)
                                             .foregroundColor(.secondary)
                                         TextField("15", text: $settings.f3kdbRange2)
                                             .textFieldStyle(.roundedBorder)
@@ -509,7 +504,7 @@ struct RestorationSecondSetPanel: View {
                                     }
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text("Y")
-                                            .font(.system(size: 9))
+                                            .font(.caption)
                                             .foregroundColor(.secondary)
                                         TextField("64", text: $settings.f3kdbY2)
                                             .textFieldStyle(.roundedBorder)
@@ -517,7 +512,7 @@ struct RestorationSecondSetPanel: View {
                                     }
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text("CbCr")
-                                            .font(.system(size: 9))
+                                            .font(.caption)
                                             .foregroundColor(.secondary)
                                         TextField("64", text: $settings.f3kdbCbCr2)
                                             .textFieldStyle(.roundedBorder)
@@ -563,8 +558,8 @@ struct RestorationSecondSetPanel: View {
                     }
                     .padding(8)
                 } label: {
-                    
-                    
+                    Text("Second restoration pass")
+                        .font(.subheadline)
                     // Filter stacking indicator
                     if settings.hasFilterStacking {
                         HStack(spacing: 4) {
@@ -587,6 +582,8 @@ struct RestorationSecondSetPanel: View {
             .groupBoxStyle(ModernGroupBoxStyle())
             .cardStyle()
         }
+        .disabled(settings.scaler == "coreml")
+        .help("The second restoration pass is available only for FFmpeg")
     }
 }
 
@@ -609,7 +606,7 @@ struct X265ParametersPanel: View {
                         // AQ Mode
                         VStack(alignment: .leading, spacing: 2) {
                             Text("AQ Mode")
-                                .font(.system(size: 9))
+                                .font(.caption)
                                 .foregroundColor(.secondary)
                             TextField("3", text: $settings.x265AqMode)
                                 .textFieldStyle(.roundedBorder)
@@ -619,7 +616,7 @@ struct X265ParametersPanel: View {
                         // Psy-RD
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Psy-RD")
-                                .font(.system(size: 9))
+                                .font(.caption)
                                 .foregroundColor(.secondary)
                             TextField("2.0", text: $settings.x265PsyRd)
                                 .textFieldStyle(.roundedBorder)
@@ -629,7 +626,7 @@ struct X265ParametersPanel: View {
                         // Deblock
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Deblock")
-                                .font(.system(size: 9))
+                                .font(.caption)
                                 .foregroundColor(.secondary)
                             HStack(spacing: 4) {
                                 TextField("-2", text: $settings.x265Deblock1)
@@ -672,7 +669,7 @@ struct HardwareEncodingPanel: View {
                 VStack(spacing: 8) {
                     // HW Acceleration
                     HStack {
-                        Text("HW Acceleration")
+                        Text("Decode acceleration")
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Spacer()
@@ -681,7 +678,8 @@ struct HardwareEncodingPanel: View {
                         }
                         .pickerStyle(.menu)
                         .controlSize(.small)
-                        .frame(width: 100)
+                        .frame(minWidth: 140)
+                        .disabled(settings.scaler == "coreml")
                     }
                     
                     Divider()
@@ -698,7 +696,8 @@ struct HardwareEncodingPanel: View {
                         }
                         .pickerStyle(.menu)
                         .controlSize(.small)
-                        .frame(width: 100)
+                        .frame(minWidth: 140)
+                        .disabled(settings.scaler == "coreml")
                     }
                     
                     Divider()
@@ -721,6 +720,8 @@ struct HardwareEncodingPanel: View {
                             .toggleStyle(.switch)
                             .controlSize(.mini)
                             
+                            .disabled(settings.scaler == "coreml" || !settings.useHEVC)
+                            .help("10-bit output requires HEVC and the FFmpeg processing path")
                             // MOV Faststart Toggle
                             Toggle(isOn: Binding(
                                 get: { settings.movflags.contains("+faststart") },
@@ -743,6 +744,7 @@ struct HardwareEncodingPanel: View {
                             }
                             .toggleStyle(.switch)
                             .controlSize(.mini)
+                            .disabled(settings.scaler == "coreml")
                             .help("Moves metadata to the beginning of the file for faster web playback")
                             
                             Spacer()
@@ -759,26 +761,22 @@ struct HardwareEncodingPanel: View {
                            TextField("192k", text: $settings.audioBitrate)
                                .textFieldStyle(.roundedBorder)
                                .frame(width: 60)
+                               .disabled(settings.scaler == "coreml")
                        }
 
-                        #if arch(arm64)
-                        Text("VideoToolbox decode")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                            .padding(.top, 2)
-                        #else
-                        Text("If hardware decode fails, set HW Acceleration to None.")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                            .padding(.top, 2)
-                        #endif
+                        Text(settings.scaler == "coreml"
+                             ? "Core ML uses its own reader and writer. Decode, encoder, 10-bit, audio bitrate, and Faststart controls apply to FFmpeg only."
+                             : "Decode acceleration and output encoding are independent. 10-bit output requires HEVC; PCI Safe Mode forces 8-bit.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     
                     Divider()
                         .padding(.vertical, 2)
                     
                     HStack {
-                        Text("Preset")
+                        Text("CPU encoding speed")
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Spacer()
@@ -787,7 +785,9 @@ struct HardwareEncodingPanel: View {
                         }
                         .pickerStyle(.menu)
                         .controlSize(.small)
-                        .frame(width: 100)
+                        .frame(minWidth: 140)
+                        .disabled(settings.scaler == "coreml" || settings.encoder == "videotoolbox")
+                        .help("CPU x264/x265 speed and compression tradeoff. Does not control AI inference or VideoToolbox encoding.")
                     }
                     
                     Divider()
@@ -801,6 +801,7 @@ struct HardwareEncodingPanel: View {
                         TextField("0 (auto)", text: $settings.threads)
                             .textFieldStyle(.roundedBorder)
                             .frame(width: 60)
+                            .disabled(settings.scaler == "coreml")
                     }
                 }
                 .padding(8)
@@ -851,8 +852,11 @@ struct OutputPanel: View {
                             Image(systemName: "folder")
                                 .foregroundColor(.secondary)
                                 .font(.system(size: 10))
-                            Text(customOutputFolder)
-                                .font(.system(size: 9))
+                            Text(customOutputFolder.isEmpty ? "Choose an output folder" : customOutputFolder)
+                                .help(customOutputFolder)
+                                .textSelection(.enabled)
+                                .truncationMode(.middle)
+                                .font(.caption)
                                 .lineLimit(1)
                                 .foregroundColor(.secondary)
                             Spacer()
@@ -874,11 +878,11 @@ struct OutputPanel: View {
                         Image(systemName: "doc.text.fill")
                             .foregroundColor(.accentColor)
                             .font(.system(size: 10))
-                        Text("Will output:")
-                            .font(.system(size: 9))
+                        Text("Output file:")
+                            .font(.caption)
                             .foregroundColor(.secondary)
                         Text(predictedName)
-                            .font(.system(size: 9))
+                            .font(.caption)
                             .fontWeight(.medium)
                             .foregroundColor(.primary)
                             .lineLimit(1)
@@ -936,28 +940,43 @@ struct ActionButtons: View {
 }
 struct ProgressDetails: View {
     @ObservedObject var runner: UpscaleRunner
-    
+
+    private var status: String {
+        if runner.isCancelling { return "Stopping…" }
+        switch runner.phase {
+        case .preparing: return "Preparing video…"
+        case .processing: return "Processing frames"
+        case .finalizing: return "Finalizing export…"
+        case .idle: return runner.completedOutputPath == nil ? "Ready to export" : "Export complete"
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            ProgressView(value: runner.progress)
-                .tint(.accentColor)
-                .frame(height: 4)
-                .scaleEffect(x: 1, y: 1.5, anchor: .center)// slim native bar
-                .fixedSize(horizontal: false, vertical: true)
-            
-            HStack(spacing: 14) {
-                Label(runner.fpsString, systemImage: "gauge")
-                Label(runner.timeString, systemImage: "clock")
-                Label(runner.etaString, systemImage: "hourglass")
+            HStack {
+                Text(status).font(.caption.weight(.semibold))
                 Spacer()
+                if runner.progressKnown {
+                    Text(runner.progress, format: .percent.precision(.fractionLength(0)))
+                        .font(.caption.monospacedDigit())
+                }
+            }
+            if runner.isRunning && (runner.phase != .processing || !runner.progressKnown) {
+                ProgressView().progressViewStyle(.linear)
+                    .accessibilityLabel(status)
+            } else {
+                ProgressView(value: max(0, min(1, runner.progress)))
+                    .accessibilityLabel("Export progress")
+            }
+            HStack(spacing: 14) {
+                Text("Processing: \(runner.fpsString) fps")
+                Text("Elapsed: \(runner.timeString)")
+                Text("Remaining: \(runner.etaString)")
             }
             .font(.caption)
-            .foregroundColor(.secondary)
+            .foregroundStyle(.secondary)
+            .monospacedDigit()
         }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 12)
-        .background(Color.accentColor.opacity(0.07))
-        .cornerRadius(6)
     }
 }
 
@@ -978,25 +997,20 @@ struct LogPanel: View {
                 VStack(spacing: 8) {
                     ScrollViewReader { reader in
                         ScrollView {
-                            Text(runner.log.isEmpty ? "Waiting to start processing…" : runner.log)
+                            Text(runner.log.isEmpty ? "Processing details appear here when you export." : runner.log)
+                                .textSelection(.enabled)
                                 .font(.system(size: 11, design: .monospaced))
                                 .frame(maxWidth: .infinity, alignment: .topLeading)
                                 .padding(6)                      // tight inner padding
                                 .id("BOTTOM")
                         }
-                        .padding(.vertical, 30)  // Add this
                         .onChange(of: runner.log) { _, _ in
-                            withAnimation { reader.scrollTo("BOTTOM", anchor: .bottom) }
-                            
+                            reader.scrollTo("BOTTOM", anchor: .bottom)
                         }
                     }
                     .frame(height: 170) 
                     
                     if !runner.isRunning, let outputPath = runner.completedOutputPath {
-                        if FileManager.default.fileExists(atPath: outputPath),
-                           let attributes = try? FileManager.default.attributesOfItem(atPath: outputPath),
-                           let fileSize = attributes[.size] as? Int64,
-                           fileSize > 0 {
                             Divider()
                                 .padding(.vertical, 4)
                             
@@ -1024,7 +1038,6 @@ struct LogPanel: View {
                                 .controlSize(.small)
                             }
                             .transition(.opacity.combined(with: .move(edge: .bottom)))
-                        }
                     }
                 }
             }
@@ -1263,14 +1276,14 @@ struct QualityScalePanel: View {
                     // CRF Slider
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
-                            Text("CRF")
+                            Text(settings.scaler == "coreml" || settings.encoder == "videotoolbox" ? "Compression" : "CRF")
                                 .font(.caption.weight(.medium))
                             Spacer()
                             Text("\(Int(localCRF ?? settings.crf))")
                                 .font(.caption.weight(.medium))
                                 .foregroundColor(.primary)
                             Text("(Lower is better)")
-                                .font(.system(size: 9))
+                                .font(.caption)
                                 .foregroundColor(.secondary)
                         }
                         
@@ -1291,6 +1304,16 @@ struct QualityScalePanel: View {
                     Divider()
                         .padding(.vertical, 2)
                     
+                    if settings.encoder == "videotoolbox" && settings.scaler != "coreml" {
+                        let quality = max(1, min(100, Int((100 - (localCRF ?? settings.crf) * 99 / 51).rounded())))
+                        Text("VideoToolbox quality: \(quality)/100. Hardware quality differs from CPU CRF.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else if settings.scaler == "coreml" {
+                        Text("Controls the Core ML writer's target bitrate; this is not software CRF encoding.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                     // Scale Factor and FPS
                     HStack(spacing: 12) {
                         VStack(alignment: .leading, spacing: 2) {
@@ -1303,12 +1326,13 @@ struct QualityScalePanel: View {
                         }
                         
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("FPS")
+                            Text(settings.scaler == "coreml" ? "FPS (source)" : "FPS")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             TextField("60", text: $settings.fps)
                                 .textFieldStyle(.roundedBorder)
                                 .frame(width: 60)
+                                .disabled(settings.scaler == "coreml")
                         }
                     }
                     
@@ -1326,7 +1350,13 @@ struct QualityScalePanel: View {
                         }
                         .pickerStyle(.menu)
                         .controlSize(.small)
-                        .frame(width: 100)
+                        .frame(minWidth: 140)
+                        .disabled(settings.scaler == "coreml")
+                    }
+                    if settings.scaler == "coreml" {
+                        Text("Core ML preserves source frame timing; interpolation and target FPS apply to FFmpeg only.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                 }
                 .padding(8)
@@ -1371,7 +1401,7 @@ struct AIEnginePanel: View {
                         }
                         .pickerStyle(.menu)
                         .controlSize(.small)
-                        .frame(width: 100)
+                        .frame(minWidth: 140)
                     }
                     
                     if settings.scaler == "coreml" && !settings.coremlModels.isEmpty {
@@ -1393,10 +1423,24 @@ struct AIEnginePanel: View {
                             }
                             .pickerStyle(.menu)
                             .controlSize(.small)
-                            .frame(width: 140)
+                            .frame(minWidth: 160)
                         }
                     }
                     
+
+                    if settings.scaler == "coreml" {
+                        Text("Core ML supports primary denoise, sharpen, and deband. Deblock, dering, grain, and the second restoration pass apply to FFmpeg only. Preview is approximate.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        let model = CoreMLModelRegistry.model(for: settings.coremlModelId)
+                        Text(model.nativeScale == settings.scaleFactor
+                             ? "Model and output use \(model.nativeScale.formatted())× scaling."
+                             : "Model predicts at \(model.nativeScale.formatted())×; output is resized once to \(settings.scaleFactor.formatted())×.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
 
                     if let reason = settings.upscalingUnavailableReason {
                         Text(reason)

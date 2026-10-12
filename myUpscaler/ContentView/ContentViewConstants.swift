@@ -50,12 +50,7 @@ var cardBackground: Color {
 struct CardStyle: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .background(cardBackground)
-            .cornerRadius(UI.cardCornerRadius)
-            .shadow(color: Color.black.opacity(0.08),
-                    radius: UI.cardShadowRadius,
-                    x: 0, y: 0.5)
-            .padding(.horizontal, 8)
+            .background(Color.appTertiaryBackground, in: RoundedRectangle(cornerRadius: UI.cardCornerRadius))
     }
 }
 extension View {
@@ -103,118 +98,5 @@ enum SliderGradient {
     case usmAmount    // Unsharp amount
     case usmThreshold  // Unsharp threshold
     
-    var gradient: LinearGradient {
-        switch self {
-        case .crf:
-            return LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 0.2, green: 0.4, blue: 0.9),   // Deep blue
-                    Color(red: 0.5, green: 0.3, blue: 0.9),  // Purple
-                    Color(red: 0.7, green: 0.2, blue: 0.8)  // Deep purple
-                ]),
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        case .denoise:
-            return LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 0.0, green: 0.7, blue: 0.9),  // Cyan
-                    Color(red: 0.2, green: 0.5, blue: 0.9),   // Sky blue
-                    Color(red: 0.3, green: 0.4, blue: 0.95)   // Deep blue
-                ]),
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        case .dering:
-            return LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 0.0, green: 0.8, blue: 0.7),   // Teal
-                    Color(red: 0.2, green: 0.7, blue: 0.6),  // Aqua
-                    Color(red: 0.3, green: 0.8, blue: 0.5)    // Green
-                ]),
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        case .sharpen:
-            return LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 1.0, green: 0.9, blue: 0.3),  // Bright yellow
-                    Color(red: 1.0, green: 0.95, blue: 0.6),  // Light yellow
-                    Color(red: 1.0, green: 1.0, blue: 0.9)     // Near white
-                ]),
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        case .contrast:
-            return LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 0.6, green: 0.2, blue: 0.8),  // Purple
-                    Color(red: 0.8, green: 0.3, blue: 0.7),  // Magenta
-                    Color(red: 1.0, green: 0.4, blue: 0.6)   // Pink
-                ]),
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        case .brightness:
-            return LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 1.0, green: 0.8, blue: 0.2),  // Golden yellow
-                    Color(red: 1.0, green: 0.9, blue: 0.5),  // Light yellow
-                    Color(red: 1.0, green: 1.0, blue: 0.9)  // Cream white
-                ]),
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        case .saturation:
-            return LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 1.0, green: 0.0, blue: 0.5),   // Hot pink
-                    Color(red: 1.0, green: 0.5, blue: 0.0),   // Orange
-                    Color(red: 0.8, green: 1.0, blue: 0.0)   // Lime green
-                ]),
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        case .scale:
-            return LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 0.3, green: 0.5, blue: 0.9),   // Blue
-                    Color(red: 0.5, green: 0.4, blue: 0.9),  // Indigo
-                    Color(red: 0.7, green: 0.3, blue: 0.8)   // Purple
-                ]),
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        case .usmRadius:
-            return LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 1.0, green: 0.5, blue: 0.0),  // Orange
-                    Color(red: 1.0, green: 0.7, blue: 0.2),  // Light orange
-                    Color(red: 1.0, green: 0.9, blue: 0.4)  // Yellow-orange
-                ]),
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        case .usmAmount:
-            return LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 0.9, green: 0.2, blue: 0.2),  // Red
-                    Color(red: 1.0, green: 0.4, blue: 0.2), // Red-orange
-                    Color(red: 1.0, green: 0.6, blue: 0.3)  // Orange
-                ]),
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        case .usmThreshold:
-            return LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 1.0, green: 0.4, blue: 0.7),   // Pink
-                    Color(red: 0.9, green: 0.3, blue: 0.8),   // Magenta
-                    Color(red: 0.7, green: 0.2, blue: 0.9)   // Purple
-                ]),
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        }
-    }
+
 }

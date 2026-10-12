@@ -8,67 +8,18 @@ struct LuxuriousSlider: View {
     let step: Double
     let gradient: SliderGradient
     var onEditingChanged: ((Bool) -> Void)? = nil
+    @State private var isEditing = false
     
     var body: some View {
-        GeometryReader { geometry in
-            let progress = CGFloat((value - range.lowerBound) / (range.upperBound - range.lowerBound))
-            let thumbPosition = progress * geometry.size.width
-            let trackHeight: CGFloat = 8
-            let thumbSize: CGFloat = 18
-            
-            ZStack(alignment: .leading) {
-                // Background track (larger)
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(Color.gray.opacity(0.2))
-                    .frame(height: trackHeight)
-                
-                // Filled track withgradient (larger)
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(gradient.gradient)
-                    .frame(width: max(0, min(geometry.size.width, thumbPosition)))
-                    .frame(height: trackHeight)
-                
-                // Thumb/indicator (visible, easier to grab)
-                Circle()
-                    .fill(Color.white)
-                    .shadow(color: Color.black.opacity(0.3), radius: 3, x: 0, y: 1)
-                    .frame(width: thumbSize, height: thumbSize)
-                    .overlay(
-                        Circle()
-                            .stroke(gradient.gradient, lineWidth: 2)
-                    )
-                    .offset(x: max(thumbSize/2, min(geometry.size.width - thumbSize/2, thumbPosition - thumbSize/2)))
-            }
-            // TODO: REVIEW CODE
-            .frame(height: trackHeight)
-            .padding(.vertical, 8) // Extra padding for easier grabbing
-            .drawingGroup() // Offload rendering to GPU to prevent Main Thread hangs
-            .contentShape(Rectangle()) // Make entire area interactive
-            .gesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { dragValue in
-                        if let onEditingChanged = onEditingChanged { onEditingChanged(true) }
-                        let percentage = max(0, min(1, dragValue.location.x / geometry.size.width))
-                        let newValue = range.lowerBound + (range.upperBound - range.lowerBound) * Double(percentage)
-                        let steppedValue = round(newValue / step) * step
-                        value = max(range.lowerBound, min(range.upperBound, steppedValue))
-                    }
-                    .onEnded { _ in
-                        if let onEditingChanged = onEditingChanged { onEditingChanged(false) }
-                    }
-            )
-            .onTapGesture { location in
-                let percentage = max(0, min(1, location.x / geometry.size.width))
-                let newValue = range.lowerBound + (range.upperBound - range.lowerBound) * Double(percentage)
-                let steppedValue = round(newValue / step) * step
-                value = max(range.lowerBound, min(range.upperBound, steppedValue))
-                if let onEditingChanged = onEditingChanged {
-                    onEditingChanged(true)
-                    onEditingChanged(false)
-                }
-            }
-        }
-        .frame(height: 32) // Increased from 20 to 32 for better accessibility
+        Slider(value: Binding(get: { value }, set: { next in
+            value = next
+            // Keyboard and accessibility adjustments also commit, without a drag.
+            if !isEditing { onEditingChanged?(false) }
+        }), in: range, step: step, onEditingChanged: { editing in
+            isEditing = editing
+            onEditingChanged?(editing)
+        })
+        .controlSize(.regular)
     }
 }
 
@@ -99,10 +50,6 @@ struct ParameterRow: View {
         )
     }
     
-    private var isZero: Bool {
-        displayValue == 0
-    }
-    
     var body: some View {
         HStack(alignment: .center, spacing: 8) {
             Text(title)
@@ -127,29 +74,26 @@ struct ParameterRow: View {
             Text(formatter.string(from: NSNumber(value: displayValue)) ?? "")
                 .font(.subheadline.weight(.medium))
                 .frame(width: 40, alignment: .trailing)
-                .foregroundColor(isZero ? .orange : .primary)
+                .foregroundColor(.primary)
             
             // Reset button
-            Button("R") {
+            Button {
                 binding.wrappedValue = formatter.string(from: NSNumber(value: defaultValue))!
                 localValue = nil
                 onChange?(defaultValue)
             }
+            label: {
+                Image(systemName: "arrow.counterclockwise")
+            }
+            .accessibilityLabel("Reset \(title)")
+            .help("Reset \(title) to default")
             .buttonStyle(UI.resetButtonStyle)
             .controlSize(.small)
             .frame(width: 28)
             .foregroundColor(.accentColor)
         }
         .padding(.vertical, 2)
-        .padding(.horizontal, isZero ? 4 : 0)
-        .background(
-            RoundedRectangle(cornerRadius: 6)
-                .fill(isZero ? Color.orange.opacity(0.15) : Color.clear)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6)
-                        .stroke(isZero ? Color.orange.opacity(0.6) : Color.clear, lineWidth: 2)
-                )
-        )
+
     }
 }
 
@@ -172,11 +116,11 @@ struct MatteCardGroup<Content: View>: View {
         .frame(maxWidth: .infinity)
         .background(
             RoundedRectangle(cornerRadius: 14)
-                .fill(Color.black.opacity(0.18)) // Matte blackish background
+                .fill(Color.appSecondaryBackground)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .stroke(Color.white.opacity(0.06), lineWidth: 1) // Subtle border for definition
+                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
         )
     }
 }

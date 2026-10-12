@@ -210,100 +210,7 @@ private enum CompactSliderGradient {
     case usmAmount
     case usmThreshold
     
-    var gradient: LinearGradient {
-        switch self {
-        case .denoise:
-            return LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 0.0, green: 0.7, blue: 0.9),  // Cyan
-                    Color(red: 0.2, green: 0.5, blue: 0.9),   // Sky blue
-                    Color(red: 0.3, green: 0.4, blue: 0.95)   // Deep blue
-                ]),
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        case .dering:
-            return LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 0.0, green: 0.8, blue: 0.7),   // Teal
-                    Color(red: 0.2, green: 0.7, blue: 0.6),  // Aqua
-                    Color(red: 0.3, green: 0.8, blue: 0.5)    // Green
-                ]),
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        case .sharpen:
-            return LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 1.0, green: 0.9, blue: 0.3),  // Bright yellow
-                    Color(red: 1.0, green: 0.95, blue: 0.6),  // Light yellow
-                    Color(red: 1.0, green: 1.0, blue: 0.9)     // Near white
-                ]),
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        case .contrast:
-            return LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 0.6, green: 0.2, blue: 0.8),  // Purple
-                    Color(red: 0.8, green: 0.3, blue: 0.7),  // Magenta
-                    Color(red: 1.0, green: 0.4, blue: 0.6)   // Pink
-                ]),
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        case .brightness:
-            return LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 1.0, green: 0.8, blue: 0.2),  // Golden yellow
-                    Color(red: 1.0, green: 0.9, blue: 0.5),  // Light yellow
-                    Color(red: 1.0, green: 1.0, blue: 0.9)  // Cream white
-                ]),
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        case .saturation:
-            return LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 1.0, green: 0.0, blue: 0.5),   // Hot pink
-                    Color(red: 1.0, green: 0.5, blue: 0.0),   // Orange
-                    Color(red: 0.8, green: 1.0, blue: 0.0)   // Lime green
-                ]),
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        case .usmRadius:
-            return LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 1.0, green: 0.5, blue: 0.0),  // Orange
-                    Color(red: 1.0, green: 0.7, blue: 0.2),  // Light orange
-                    Color(red: 1.0, green: 0.9, blue: 0.4)  // Yellow-orange
-                ]),
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        case .usmAmount:
-            return LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 0.9, green: 0.2, blue: 0.2),  // Red
-                    Color(red: 1.0, green: 0.4, blue: 0.2), // Red-orange
-                    Color(red: 1.0, green: 0.6, blue: 0.3)  // Orange
-                ]),
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        case .usmThreshold:
-            return LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 1.0, green: 0.4, blue: 0.7),   // Pink
-                    Color(red: 0.9, green: 0.3, blue: 0.8),   // Magenta
-                    Color(red: 0.7, green: 0.2, blue: 0.9)   // Purple
-                ]),
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        }
-    }
+
 }
 
 // MARK: - COMPACT SLIDER
@@ -313,66 +220,18 @@ private struct CompactSlider: View {
     let step: Double
     let gradient: CompactSliderGradient
     var onEditingChanged: ((Bool) -> Void)? = nil
+    @State private var isEditing = false
     
     var body: some View {
-        GeometryReader { geometry in
-            let progress = CGFloat((value - range.lowerBound) / (range.upperBound - range.lowerBound))
-            let thumbPosition = progress * geometry.size.width
-            let trackHeight: CGFloat = 6
-            let thumbSize: CGFloat = 14
-            
-            ZStack(alignment: .leading) {
-                // Background track (larger)
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(Color.gray.opacity(0.2))
-                    .frame(height: trackHeight)
-                
-                // Filled track with custom gradient (larger)
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(gradient.gradient)
-                    .frame(width: max(0, min(geometry.size.width, thumbPosition)))
-                    .frame(height: trackHeight)
-                
-                // Thumb/indicator (visible, easier to grab)
-                Circle()
-                    .fill(Color.white)
-                    .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 1)
-                    .frame(width: thumbSize, height: thumbSize)
-                    .overlay(
-                        Circle()
-                            .stroke(gradient.gradient, lineWidth: 1.5)
-                    )
-                    .offset(x: max(thumbSize/2, min(geometry.size.width - thumbSize/2, thumbPosition - thumbSize/2)))
-            }
-            .frame(height: trackHeight)
-            .padding(.vertical, 6) // Extra padding for easier grabbing
-            .drawingGroup() // Offload rendering to GPU to prevent Main Thread hangs
-            .contentShape(Rectangle())
-            .gesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { dragValue in
-                        if let onEditingChanged = onEditingChanged { onEditingChanged(true) }
-                        let percentage = max(0, min(1, dragValue.location.x / geometry.size.width))
-                        let newValue = range.lowerBound + (range.upperBound - range.lowerBound) * Double(percentage)
-                        let steppedValue = round(newValue / step) * step
-                        value = max(range.lowerBound, min(range.upperBound, steppedValue))
-                    }
-                    .onEnded { _ in
-                        if let onEditingChanged = onEditingChanged { onEditingChanged(false) }
-                    }
-            )
-            .onTapGesture { location in
-                let percentage = max(0, min(1, location.x / geometry.size.width))
-                let newValue = range.lowerBound + (range.upperBound - range.lowerBound) * Double(percentage)
-                let steppedValue = round(newValue / step) * step
-                value = max(range.lowerBound, min(range.upperBound, steppedValue))
-                if let onEditingChanged = onEditingChanged {
-                    onEditingChanged(true)
-                    onEditingChanged(false)
-                }
-            }
-        }
-        .frame(height: 24) // Increased from 16 to 24 for better accessibility
+        Slider(value: Binding(get: { value }, set: { next in
+            value = next
+            // Keyboard and accessibility adjustments also commit, without a drag.
+            if !isEditing { onEditingChanged?(false) }
+        }), in: range, step: step, onEditingChanged: { editing in
+            isEditing = editing
+            onEditingChanged?(editing)
+        })
+        .controlSize(.small)
     }
 }
 
@@ -526,6 +385,7 @@ private struct VerticalParameterRow: View {
                         }
                     }
                 })
+                .accessibilityLabel(title)
                 
                 Button {
                     binding = formatter.string(from: NSNumber(value: defaultValue))!
@@ -538,6 +398,7 @@ private struct VerticalParameterRow: View {
                 .controlSize(.mini)
                 .frame(width: 20, height: 20)
                 .foregroundColor(.accentColor)
+                .accessibilityLabel("Reset \(title)")
                 .help("Reset to default")
             }
         }
@@ -740,18 +601,7 @@ private struct VerticalRestorationFiltersPanel: View {
                     .shadow(color: Color.black.opacity(0.08), radius: 2, x: 0, y: 1)
                     .padding(.trailing, 10)
                 }
-                .mask(
-                    LinearGradient(
-                        gradient: Gradient(stops: [
-                            .init(color: .clear, location: 0),
-                            .init(color: .black, location: 0.05),
-                            .init(color: .black, location: 0.95),
-                            .init(color: .clear, location: 1)
-                        ]),
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
+
             }
         }
         .frame(width: 140)
@@ -860,7 +710,7 @@ struct DragDropView: View {
                             EmptyStateView(
                                 icon: "video.fill",
                                 title: "Drop a video",
-                                message: ""
+                                message: "Drop a video or use Browse Files to begin."
                             )
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                         }

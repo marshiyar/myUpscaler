@@ -16,6 +16,8 @@ struct ContentView: View {
     @State private var showEnlargedColorEqualizer: Bool = false
     @State private var showPiPPreview: Bool = false
     @State private var editorState: EditorState? = nil
+    @State private var showEncoding = false
+    @State private var showRestoration = false
 
     init(runner: UpscaleRunner = UpscaleRunner()) {
         _runner = StateObject(wrappedValue: runner)
@@ -61,6 +63,21 @@ struct ContentView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(minWidth: UI.windowMinWidth, minHeight: UI.windowMinHeight)
+        .background(Color.appBackground)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            VStack(spacing: 8) {
+                Divider()
+                HStack(spacing: 24) {
+                    ProgressDetails(runner: runner)
+                        .frame(maxWidth: .infinity)
+                    ActionButtons(runner: runner, settings: runner.settings)
+                        .frame(width: 280)
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 12)
+            }
+            .background(Color.appBackground)
+        }
         // ---------- TOOLBAR ----------
         .toolbar {
             ToolbarItemGroup(placement: .automatic) {
@@ -168,7 +185,7 @@ struct ContentView: View {
     @ViewBuilder
      func adaptiveColumnsLayout(geometry: GeometryProxy) -> some View {
         let availableWidth = geometry.size.width - (2 * responsiveHorizontalPadding(for: geometry.size.width))
-        let useStackedLayout = availableWidth < 680
+        let useStackedLayout = availableWidth < 780
         
         if useStackedLayout {
             // Stacked layout for narrow windows (half screen, etc.)
@@ -202,14 +219,21 @@ struct ContentView: View {
             // Group 1: Configuration & Encoding
             MatteCardGroup(spacing: 8) {
                 QualityScalePanel(settings: runner.settings)
-                HardwareEncodingPanel(settings: runner.settings)
-                X265ParametersPanel(settings: runner.settings)
+                DisclosureGroup("Encoding options", isExpanded: $showEncoding) {
+                    HardwareEncodingPanel(settings: runner.settings)
+                    X265ParametersPanel(settings: runner.settings)
+                        .disabled(!runner.settings.useHEVC || runner.settings.encoder == "videotoolbox" || runner.settings.scaler == "coreml")
+                }
+                .padding(.top, 8)
             }
             // Group 2: AI & Restoration
             MatteCardGroup(spacing: 8) {
                 AIEnginePanel(settings: runner.settings)
-                RestorationPanel(settings: runner.settings)
-                RestorationSecondSetPanel(settings: runner.settings)
+                DisclosureGroup("Additional restoration", isExpanded: $showRestoration) {
+                    RestorationPanel(settings: runner.settings)
+                    RestorationSecondSetPanel(settings: runner.settings)
+                }
+                .padding(.top, 8)
             }
         }
     }
@@ -225,13 +249,11 @@ struct ContentView: View {
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 .disabled(runner.inputPath.isEmpty)
-                
-                ActionButtons(runner: runner, settings: runner.settings)
+
             }
             
             // Group 4: Progress & Status
             MatteCardGroup(spacing: 8) {
-                ProgressDetails(runner: runner)
                 LogPanel(runner: runner)
             }
             
@@ -248,6 +270,7 @@ struct ContentView: View {
     @MainActor
     private func chooseInput() {
         let panel = NSOpenPanel()
+        panel.title = "Choose a video or batch folder"
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = true
         panel.canChooseFiles = true

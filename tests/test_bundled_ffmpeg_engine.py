@@ -130,17 +130,17 @@ int main(int argc, char **argv) {
 ''')
         cls.engine = folder / "engine"
         subprocess.run([os.environ.get("CC", "cc"), "-std=gnu11", "-D_XOPEN_SOURCE=700",
-                        *architecture_flags, *include_flags, "-I", str(ROOT / "myUpscaler/upscaler"),
-                        str(source), str(ROOT / "myUpscaler/up60p_restore_beast_main.c"),
-                        str(ROOT / "myUpscaler/up60p_settings.c"),
-                        str(ROOT / "myUpscaler/up60p_utils.c"),
-                        str(ROOT / "myUpscaler/upscaler/up60p_process.c"), "-pthread", "-lm", "-o", str(cls.engine)],
+                        *architecture_flags, *include_flags, "-I", str(ROOT / "myUpscaler/Native/Process"),
+                        str(source), str(ROOT / "myUpscaler/Native/up60p_restore_beast_main.c"),
+                        str(ROOT / "myUpscaler/Native/up60p_settings.c"),
+                        str(ROOT / "myUpscaler/Native/up60p_utils.c"),
+                        str(ROOT / "myUpscaler/Native/Process/up60p_process.c"), "-pthread", "-lm", "-o", str(cls.engine)],
                        check=True)
 
         cls.supervisor = folder / "up60p-ffmpeg-supervisor"
         subprocess.run([os.environ.get("CC", "cc"), "-std=c11", "-D_XOPEN_SOURCE=700",
                         *(["-arch", "arm64"] if sys.platform == "darwin" else []),
-                        "-I", str(ROOT / "myUpscaler/upscaler"),
+                        "-I", str(ROOT / "myUpscaler/Native/Process"),
                         str(ROOT / "scripts/up60p-ffmpeg-supervisor.c"), "-o", str(cls.supervisor)], check=True)
 
         if sys.platform == "darwin":

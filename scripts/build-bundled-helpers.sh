@@ -10,7 +10,7 @@ if [[ ! -f "$ffmpeg" ]]; then
 fi
 xcrun clang -std=c11 -arch arm64 \
   -mmacosx-version-min="${MACOSX_DEPLOYMENT_TARGET}" -isysroot "$SDKROOT" \
-  -I "${PROJECT_DIR}/myUpscaler/upscaler" \
+  -I "${PROJECT_DIR}/myUpscaler/Native/Process" \
   "${PROJECT_DIR}/scripts/up60p-ffmpeg-supervisor.c" -o "$supervisor"
 identity="${EXPANDED_CODE_SIGN_IDENTITY:--}"
 for executable in "$ffmpeg" "$supervisor"; do

@@ -457,7 +457,7 @@
 				GCC_STRICT_ALIASING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				GENERATE_PRELINK_OBJECT_FILE = NO;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/myUpscaler/upscaler";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/myUpscaler/Native/Process";
 				INFOPLIST_FILE = myUpscaler/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MyUpscaler;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
@@ -501,7 +501,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_ENABLE_EMIT_CONST_VALUES = NO;
 				SWIFT_INCLUDE_PATHS = "";
-				SWIFT_OBJC_BRIDGING_HEADER = myUpscaler/upscaler/Up60PBridging.h;
+				SWIFT_OBJC_BRIDGING_HEADER = myUpscaler/Native/Process/Up60PBridging.h;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_PRECOMPILE_BRIDGING_HEADER = YES;
 				SWIFT_SKIP_AUTOLINKING_LIBRARIES = "";
@@ -568,7 +568,7 @@
 				GCC_STRICT_ALIASING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				GENERATE_PRELINK_OBJECT_FILE = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/myUpscaler/upscaler";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/myUpscaler/Native/Process";
 				INFOPLIST_FILE = myUpscaler/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MyUpscaler;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
@@ -614,7 +614,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_ENABLE_EMIT_CONST_VALUES = NO;
 				SWIFT_INCLUDE_PATHS = "";
-				SWIFT_OBJC_BRIDGING_HEADER = myUpscaler/upscaler/Up60PBridging.h;
+				SWIFT_OBJC_BRIDGING_HEADER = myUpscaler/Native/Process/Up60PBridging.h;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_PRECOMPILE_BRIDGING_HEADER = YES;
 				SWIFT_SKIP_AUTOLINKING_LIBRARIES = "";

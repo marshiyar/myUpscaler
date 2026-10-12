@@ -52,10 +52,10 @@ int main(void) {
     return 0;
 }
 C
-xcrun clang -std=gnu11 -D_XOPEN_SOURCE=700 -I "$repo_dir/myUpscaler/upscaler" \
-  "$work_dir/probe.c" "$repo_dir/myUpscaler/up60p_restore_beast_main.c" \
-  "$repo_dir/myUpscaler/up60p_settings.c" "$repo_dir/myUpscaler/up60p_utils.c" \
-  "$repo_dir/myUpscaler/upscaler/up60p_process.c" -pthread -lm \
+xcrun clang -std=gnu11 -D_XOPEN_SOURCE=700 -I "$repo_dir/myUpscaler/Native/Process" \
+  "$work_dir/probe.c" "$repo_dir/myUpscaler/Native/up60p_restore_beast_main.c" \
+  "$repo_dir/myUpscaler/Native/up60p_settings.c" "$repo_dir/myUpscaler/Native/up60p_utils.c" \
+  "$repo_dir/myUpscaler/Native/Process/up60p_process.c" -pthread -lm \
   -o "$probe_app/Contents/MacOS/myUpscaler"
 cat > "$work_dir/probe.entitlements" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>

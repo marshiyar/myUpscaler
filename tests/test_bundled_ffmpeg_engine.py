@@ -4,6 +4,7 @@ On Linux only, adapt dyld's executable-path lookup to /proc/self/exe. The
 resolver, initialization, and child execution are the actual app C sources.
 """
 import os
+import json
 from pathlib import Path
 import shutil
 import subprocess
@@ -77,6 +78,17 @@ int main(int argc, char **argv) {
         return up60p_process_path(argv[3], &opts);
     }
     return result == UP60P_PROCESS_CANCELLED ? UP60P_ERR_CANCELLED : 99;
+    }
+    if (argc > 4 && strcmp(argv[1], "fps") == 0) {
+        up60p_options opts;
+        up60p_default_options(&opts);
+        snprintf(opts.fps, sizeof(opts.fps), "%s", argv[2]);
+        opts.no_interpolate = strcmp(argv[3], "off") == 0;
+        if (strcmp(argv[3], "dup") == 0) snprintf(opts.mi_mode, sizeof(opts.mi_mode), "dup");
+        opts.no_decimate = true;
+        opts.no_denoise = opts.no_deblock = opts.no_sharpen = true;
+        opts.no_deband = opts.no_grain = true;
+        return up60p_process_path(argv[4], &opts);
     }
     if (argc > 2 && strcmp(argv[1], "scaler") == 0) {
         up60p_options opts;
@@ -223,6 +235,86 @@ int main(void) {
         result = self.run_engine("scaler", "lanczos", str(image))
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertIn("BUNDLED_EXECUTED", result.stdout)
+
+    def capture_fps_filter(self, fps, interpolation):
+        self.bundled.write_text("#!/bin/sh\nprintf '%s\\n' \"$@\"\n")
+        self.bundled.chmod(0o755)
+        video = self.root / "input.mp4"
+        video.touch()
+        result = self.run_engine("fps", fps, interpolation, str(video))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        return result.stdout
+
+    def test_source_and_lock_never_use_default_60fps_interpolation(self):
+        for fps in ("source", "lock"):
+            for interpolation in ("on", "off"):
+                command = self.capture_fps_filter(fps, interpolation)
+                self.assertNotIn("minterpolate=", command)
+                self.assertNotIn("fps=fps=", command)
+                self.assertIn("-fps_mode\npassthrough", command)
+
+    def test_numeric_fps_without_interpolation_uses_frame_selection(self):
+        for fps in ("24", "30000/1001", "23.976"):
+            command = self.capture_fps_filter(fps, "off")
+            self.assertIn(f"fps=fps={fps},scale=", command)
+            self.assertNotIn("minterpolate=", command)
+
+    def test_duplicate_mode_uses_frame_selection_without_interpolator_latency(self):
+        command = self.capture_fps_filter("60", "dup")
+        self.assertIn("fps=fps=60,scale=", command)
+        self.assertNotIn("minterpolate=", command)
+
+    def test_interpolation_retains_exact_rate_and_runs_before_upscale(self):
+        command = self.capture_fps_filter("60000/1001", "on")
+        self.assertIn("minterpolate=fps=60000/1001:", command)
+        self.assertLess(command.index("minterpolate="), command.index("scale="))
+
+    @unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe"), "requires local FFmpeg/ffprobe")
+    def test_real_rational_fps_conversion_preserves_audio_duration(self):
+        ffmpeg, ffprobe = shutil.which("ffmpeg"), shutil.which("ffprobe")
+        shutil.copy2(ffmpeg, self.bundled)
+        video = self.root / "input.mp4"
+        subprocess.run([ffmpeg, "-v", "error", "-f", "lavfi", "-i",
+                        "testsrc2=size=160x90:rate=24000/1001:duration=3",
+                        "-f", "lavfi", "-i", "sine=frequency=440:duration=3",
+                        "-c:v", "libx264", "-preset", "ultrafast", "-c:a", "aac",
+                        "-y", str(video)], check=True, timeout=8)
+        for fps, expected_rate, expected_frames in (("source", "24000/1001", 72),
+                                                    ("30000/1001", "30000/1001", 90),
+                                                    ("12", "12/1", 36)):
+            result = self.run_engine("fps", fps, "off", str(video))
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            output = self.root / "input_[restored].mp4"
+            streams = json.loads(subprocess.check_output([ffprobe, "-v", "error",
+                                 "-show_streams", "-of", "json", str(output)]))["streams"]
+            v = next(item for item in streams if item["codec_type"] == "video")
+            audio = next(item for item in streams if item["codec_type"] == "audio")
+            self.assertEqual(v["avg_frame_rate"], expected_rate)
+            self.assertEqual(int(v["nb_frames"]), expected_frames)
+            self.assertLess(abs(float(v["duration"]) - float(audio["duration"])), 1 / 12)
+
+    @unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe"), "requires local FFmpeg/ffprobe")
+    def test_real_source_mode_preserves_variable_frame_timestamps(self):
+        ffmpeg, ffprobe = shutil.which("ffmpeg"), shutil.which("ffprobe")
+        shutil.copy2(ffmpeg, self.bundled)
+        video = self.root / "input.mp4"
+        subprocess.run([ffmpeg, "-v", "error", "-f", "lavfi", "-i",
+                        "testsrc2=size=160x90:rate=24:duration=2", "-vf", "select=mod(n\\,3)",
+                        "-fps_mode", "passthrough", "-c:v", "libx264", "-preset", "ultrafast",
+                        "-y", str(video)], check=True, timeout=8)
+        def timestamps(path):
+            frames = json.loads(subprocess.check_output([ffprobe, "-v", "error", "-select_streams", "v:0",
+                               "-show_frames", "-show_entries", "frame=best_effort_timestamp_time",
+                               "-of", "json", str(path)]))["frames"]
+            points = [float(frame["best_effort_timestamp_time"]) for frame in frames]
+            return [point - points[0] for point in points]
+        source_pts = timestamps(video)
+        result = self.run_engine("fps", "source", "off", str(video))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        output_pts = timestamps(self.root / "input_[restored].mp4")
+        self.assertEqual(len(source_pts), len(output_pts))
+        for before, after in zip(source_pts, output_pts):
+            self.assertAlmostEqual(before, after, places=5)
 
     def busy_bundle(self, ignore_term=False, descendant_file=None, once=False):
         pidfile = self.root / "ffmpeg.pid"

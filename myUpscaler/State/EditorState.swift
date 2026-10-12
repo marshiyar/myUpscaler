@@ -36,7 +36,7 @@ final class EditorState: ObservableObject {
     @Published var usmRadius: Double = 5.0
     @Published var usmAmount: Double = 1.0
     @Published var usmThreshold: Double = 0.0
-    
+
     // MARK: - Filters (Second Set)
     @Published var useDenoise2: Bool = false
     @Published var denoiseStrength2: Double = 2.5
@@ -51,36 +51,6 @@ final class EditorState: ObservableObject {
     @Published var usmThreshold2: Double = 0.0
 
     // MARK: - Internal
-    
-    struct FilterParameters: Hashable {
-        // First set
-        let noDenoise: Bool
-        let noSharpen: Bool
-        let noEq: Bool
-        let contrast: Double
-        let brightness: Double
-        let saturation: Double
-        let denoiseStrength: Double
-        let deringActive: Bool
-        let deringStrength: Double
-        let sharpenMethod: String
-        let sharpenStrength: Double
-        let usmRadius: Double
-        let usmAmount: Double
-        let usmThreshold: Double
-        // Second set
-        let useDenoise2: Bool
-        let denoiseStrength2: Double
-        let useDering2: Bool
-        let deringActive2: Bool
-        let deringStrength2: Double
-        let useSharpen2: Bool
-        let sharpenMethod2: String
-        let sharpenStrength2: Double
-        let usmRadius2: Double
-        let usmAmount2: Double
-        let usmThreshold2: Double
-    }
 
     private var cancellables = Set<AnyCancellable>()
     private var filterCache = NSCache<NSString, NSImage>()
@@ -88,13 +58,14 @@ final class EditorState: ObservableObject {
     private var settings: UpscaleSettings?
     private var isProcessingFullUpscale: Bool = false
     private var pendingFilterUpdate: Bool = false
-    private var mediaGeneration = UUID()
-    private var frameGeneration = UUID()
-    private var filterGeneration = UUID()
+    // Internal access is limited to the media-loading extension; state owns all requests.
+    var mediaGeneration = UUID()
+    var frameGeneration = UUID()
+    var filterGeneration = UUID()
     private var isRenderingFilter = false
-    private var thumbnailTask: Task<Void, Never>?
-    private var timelineTask: Task<Void, Never>?
-    private var frameTask: Task<Void, Never>?
+    var thumbnailTask: Task<Void, Never>?
+    var timelineTask: Task<Void, Never>?
+    var frameTask: Task<Void, Never>?
 
     private func invalidateMedia() {
         mediaGeneration = UUID()
@@ -106,7 +77,7 @@ final class EditorState: ObservableObject {
         filterCache.removeAllObjects()
     }
 
-    private func installOriginal(_ image: NSImage) {
+    func installOriginal(_ image: NSImage) {
         frameGeneration = UUID()
         filterGeneration = UUID()
         filterCache.removeAllObjects()
@@ -114,10 +85,10 @@ final class EditorState: ObservableObject {
         thumbnailImage = image
         applyFilters()
     }
-    
+
     // Background queue for heavy filter operations
     private let filterQueue = DispatchQueue(label: "com.myupscaler.filter", qos: .userInitiated)
-    
+
     // Lazy initialization of CIContext to avoid expensive Metal setup on app startup
     private var ciContext: CIContext {
         if let existing = _ciContext {
@@ -141,11 +112,11 @@ final class EditorState: ObservableObject {
 
     init(settings: UpscaleSettings? = nil) {
         self.settings = settings
-        
+
         // Configure filter cache limits to prevent excessive memory usage
         filterCache.countLimit = 10 // Only cache last 10 filtered images
         filterCache.totalCostLimit = 50 * 1024 * 1024 // 50MB limit
-        
+
         // MARK: Reload video on path change
         $filePath
             .dropFirst()
@@ -164,7 +135,7 @@ final class EditorState: ObservableObject {
         // MARK: -  Sync from external settings if provided
         if let settings = settings {
             syncFromSettings(settings)
-            
+
             // Optimized: Combine settings into fewer observers with throttling
             Publishers.CombineLatest3(settings.$noDenoise, settings.$noSharpen, settings.$noEq)
                 .dropFirst()
@@ -189,7 +160,7 @@ final class EditorState: ObservableObject {
                 }
             }
             .store(in: &cancellables)
-            
+
             // Group 2: Deringing and sharpen settings
             Publishers.CombineLatest4(
                 settings.$deringActive,
@@ -207,7 +178,7 @@ final class EditorState: ObservableObject {
                 }
             }
             .store(in: &cancellables)
-            
+
             // Group 3: USM parameters (only needed when unsharp is selected)
             Publishers.CombineLatest3(
                 settings.$usmRadius,
@@ -224,7 +195,7 @@ final class EditorState: ObservableObject {
                 }
             }
             .store(in: &cancellables)
-            
+
             // Group 4: Deband settings (less frequently updated)
             Publishers.CombineLatest(
                 settings.$debandMethod,
@@ -240,7 +211,7 @@ final class EditorState: ObservableObject {
                 }
             }
             .store(in: &cancellables)
-            
+
             // Group 5: Denoiser changes (affects denoise strength range)
             settings.$denoiser
                 .throttle(for: .milliseconds(100), scheduler: DispatchQueue.main, latest: true)
@@ -253,7 +224,7 @@ final class EditorState: ObservableObject {
                     }
                 }
                 .store(in: &cancellables)
-            
+
             // Group 6: Second set toggles and denoise
             Publishers.CombineLatest4(
                 settings.$useDenoise2,
@@ -271,7 +242,7 @@ final class EditorState: ObservableObject {
                 }
             }
             .store(in: &cancellables)
-            
+
             // Group 7: Second set sharpen
             Publishers.CombineLatest4(
                 settings.$useSharpen2,
@@ -289,7 +260,7 @@ final class EditorState: ObservableObject {
                 }
             }
             .store(in: &cancellables)
-            
+
             // Group 8: Second set USM parameters
             Publishers.CombineLatest3(
                 settings.$usmRadius2,
@@ -348,7 +319,7 @@ final class EditorState: ObservableObject {
             }
             .store(in: &cancellables)
     }
-    
+
     // MARK: -  Sync from UpscaleSettings
     func syncFromSettings(_ settings: UpscaleSettings) {
         // First set
@@ -363,7 +334,7 @@ final class EditorState: ObservableObject {
         if usmRadius != (Double(settings.usmRadius) ?? 5.0) { usmRadius = Double(settings.usmRadius) ?? 5.0 }
         if usmAmount != (Double(settings.usmAmount) ?? 1.0) { usmAmount = Double(settings.usmAmount) ?? 1.0 }
         if usmThreshold != (Double(settings.usmThreshold) ?? 0.0) { usmThreshold = Double(settings.usmThreshold) ?? 0.0 }
-        
+
         // Second set
         if useDenoise2 != (settings.useDenoise2) { useDenoise2 = settings.useDenoise2 }
         if denoiseStrength2 != (Double(settings.denoiseStrength2) ?? 2.5) { denoiseStrength2 = Double(settings.denoiseStrength2) ?? 2.5 }
@@ -401,179 +372,6 @@ final class EditorState: ObservableObject {
         }
     }
 
-    // MARK: - Load Thumbnail
-    func loadThumbnail(_ path: String) {
-        let url = URL(fileURLWithPath: path)
-        let ext = url.pathExtension.lowercased()
-        
-        if ["png", "jpg", "jpeg", "tif", "tiff", "bmp", "webp"].contains(ext) {
-            if let image = NSImage(contentsOf: url) {
-                self.installOriginal(image)
-                self.videoAsset = nil
-                return
-            }
-        }
-
-        let asset = AVURLAsset(url: url)
-        videoAsset = asset
-
-        let generation = mediaGeneration
-        let selectedFrame = frameGeneration
-        thumbnailTask?.cancel()
-        thumbnailTask = Task {
-            let imageGenerator = AVAssetImageGenerator(asset: asset)
-            imageGenerator.appliesPreferredTrackTransform = true
-
-            let time = CMTime(seconds: 0.0, preferredTimescale: 600)
-
-            do {
-                let (cgImage, _) = try await imageGenerator.image(at: time)
-                let nsImage = NSImage(cgImage: cgImage, size: .zero)
-               
-                await MainActor.run {
-                    guard generation == self.mediaGeneration, selectedFrame == self.frameGeneration, !Task.isCancelled else { return }
-                    self.installOriginal(nsImage)
-                }
-            } catch {
-                print("Thumbnail error: \(error)")
-            }
-        }
-    }
-
-    // MARK: -  Load Timeline
-    func loadTimeline(_ path: String) {
-        let url = URL(fileURLWithPath: path)
-        let ext = url.pathExtension.lowercased()
-        
-        if ["png", "jpg", "jpeg", "tif", "tiff", "bmp", "webp"].contains(ext) {
-            if let image = NSImage(contentsOf: url) {
-                self.videoFPS = 0
-                self.totalFrames = 1
-                self.timelineFrames = [image]
-                self.timelineFrameTimes = [0.0]
-                return
-            }
-        }
-
-        let asset = AVURLAsset(url: url)
-        videoAsset = asset
-
-        let generation = mediaGeneration
-        timelineTask?.cancel()
-        timelineTask = Task {
-            guard let track = try? await asset.loadTracks(withMediaType: .video).first else { return }
-
-            guard let durationTime = try? await asset.load(.duration) else { return }
-            let duration = durationTime.seconds
-           
-            let fpsFloat = try? await track.load(.nominalFrameRate)
-            let reportedFPS = Double(fpsFloat ?? 30.0)
-            let fps = reportedFPS.isFinite && reportedFPS > 0 ? reportedFPS : 30.0
-            guard duration.isFinite, duration >= 0, !Task.isCancelled else { return }
-           
-            await MainActor.run {
-                guard generation == self.mediaGeneration, !Task.isCancelled else { return }
-                self.videoFPS = fps
-                self.totalFrames = Int(duration * fps)
-                self.timelineFrames.removeAll()
-                self.timelineFrameTimes.removeAll()
-            }
-
-            let generator = AVAssetImageGenerator(asset: asset)
-            generator.appliesPreferredTrackTransform = true
-            generator.maximumSize = CGSize(width: 200, height: 200)
-
-            // Prepare times - limit to 50 frames for better memory performance
-            var times: [CMTime] = []
-            let count = min(Int(duration * fps), 50) // Reduced from 200 to 50
-            for i in 0..<count {
-                let t = Double(i) / fps
-                times.append(CMTime(seconds: t, preferredTimescale: 600))
-            }
-           
-            var loadedImages: [NSImage] = []
-            var loadedTimes: [Double] = []
-           
-            for await result in generator.images(for: times) {
-                guard generation == self.mediaGeneration, !Task.isCancelled else { return }
-                switch result {
-                case .success(requestedTime: let req, image: let img, actualTime: _):
-                    loadedImages.append(NSImage(cgImage: img, size: .zero))
-                    loadedTimes.append(req.seconds)
-                case .failure:
-                    continue
-                }
-            }
-           
-            let finalImages = loadedImages
-            let finalTimes = loadedTimes
-           
-            await MainActor.run {
-                guard generation == self.mediaGeneration, !Task.isCancelled else { return }
-                self.timelineFrames = finalImages
-                self.timelineFrameTimes = finalTimes
-            }
-        }
-    }
-
-    // MARK: -  Load Full-Res Frame
-    func loadFullResolutionFrame(at timeSeconds: Double) {
-        if videoAsset == nil, !timelineFrames.isEmpty {
-             if let original = originalThumbnail {
-                 self.installOriginal(original)
-             }
-             return
-        }
-
-        guard let asset = videoAsset else { return }
-
-        frameTask?.cancel()
-        let generation = UUID()
-        frameGeneration = generation
-        filterGeneration = UUID()
-        frameTask = Task {
-            let tracks = try? await asset.loadTracks(withMediaType: AVMediaType.video)
-            guard let videoTrack = tracks?.first else { return }
-
-            let naturalSize = try? await videoTrack.load(.naturalSize)
-            let preferredTransform = try? await videoTrack.load(.preferredTransform)
-
-            var videoSize = naturalSize ?? CGSize(width: 1920, height: 1080)
-
-            if let t = preferredTransform,
-               (t.a == 0 && t.b == 1 && t.c == -1 && t.d == 0) ||
-               (t.a == 0 && t.b == -1 && t.c == 1 && t.d == 0) {
-                videoSize = CGSize(width: videoSize.height, height: videoSize.width)
-            }
-
-            let generator = AVAssetImageGenerator(asset: asset)
-            generator.appliesPreferredTrackTransform = true
-            generator.maximumSize = videoSize
-            generator.requestedTimeToleranceBefore = .zero
-            generator.requestedTimeToleranceAfter = .zero
-
-            let time = CMTime(seconds: timeSeconds, preferredTimescale: 600)
-
-            do {
-                let (cgImage, _) = try await generator.image(at: time)
-                let ns = NSImage(cgImage: cgImage, size: .zero)
-               
-                await MainActor.run {
-                    guard generation == self.frameGeneration, !Task.isCancelled else { return }
-                    self.installOriginal(ns)
-                }
-            } catch {
-                await MainActor.run {
-                    guard generation == self.frameGeneration, !Task.isCancelled else { return }
-                    if self.selectedFrameIndex < self.timelineFrames.count {
-                        let fallback = self.timelineFrames[self.selectedFrameIndex]
-                        self.installOriginal(fallback)
-                    }
-                }
-            }
-        }
-    }
-
     // MARK: -  Filters
     func applyFilters() {
         guard let original = originalThumbnail else { return }
@@ -582,9 +380,9 @@ final class EditorState: ObservableObject {
         guard !isProcessingFullUpscale else { pendingFilterUpdate = true; return }
         guard !isRenderingFilter else { pendingFilterUpdate = true; return }
         pendingFilterUpdate = false
-        
+
         // Capture parameters on MainActor to avoid isolation issues
-        let params = FilterParameters(
+        let params = PreviewFilterParameters(
             noDenoise: settings?.noDenoise ?? false,
             noSharpen: settings?.noSharpen ?? false,
             noEq: settings?.noEq ?? false,
@@ -612,25 +410,25 @@ final class EditorState: ObservableObject {
             usmAmount2: usmAmount2,
             usmThreshold2: usmThreshold2
         )
-        
+
         // Create cache key from filter parameters (including second set)
         let cacheKeyString = "\(frameGeneration)_\(String(reflecting: params))"
-        
+
         // Check cache first
         if let cached = filterCache.object(forKey: cacheKeyString as NSString) {
             thumbnailImage = cached
             return
         }
-        
+
         let context = self.ciContext
-        
+
         isRenderingFilter = true
         filterQueue.async { [weak self] in
             guard let self = self else { return }
-            
+
             // Use static nonisolated method
-            let filteredImage = EditorState.processImage(original, params: params, context: context)
-            
+            let filteredImage = PreviewRenderer.render(original, params: params, context: context)
+
             // Update UI on main thread
             DispatchQueue.main.async {
                 self.isRenderingFilter = false
@@ -647,7 +445,7 @@ final class EditorState: ObservableObject {
             }
         }
     }
-    
+
     // MARK: - Upscaling State Management
     func setProcessingFullUpscale(_ isProcessing: Bool) {
         isProcessingFullUpscale = isProcessing
@@ -656,115 +454,6 @@ final class EditorState: ObservableObject {
             applyFilters()
         }
     }
-
-    // Non-isolated helper for background processing
-    nonisolated static func processImage(_ image: NSImage, params: FilterParameters, context: CIContext) -> NSImage? {
-        guard let cg = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return image }
-        var ci = CIImage(cgImage: cg)
-
-        // MARK: -  ===== FIRST SET =====
-        
-        // ----- Denoise (1st) -----
-        if !params.noDenoise && params.denoiseStrength > 0,
-           let f = CIFilter(name: "CINoiseReduction") {
-            f.setValue(ci, forKey: kCIInputImageKey)
-            f.setValue(params.denoiseStrength / 20.0, forKey: "inputNoiseLevel")
-            ci = f.outputImage ?? ci
-        }
-
-        // ----- Dering (1st) -----
-        if params.deringActive,
-           let f = CIFilter(name: "CINoiseReduction") {
-            f.setValue(ci, forKey: kCIInputImageKey)
-            f.setValue(params.deringStrength * 0.1, forKey: "inputNoiseLevel")
-            ci = f.outputImage ?? ci
-        }
-
-        // ----- Color -----
-        if !params.noEq, let f = CIFilter(name: "CIColorControls") {
-            f.setValue(ci, forKey: kCIInputImageKey)
-            f.setValue(params.contrast, forKey: kCIInputContrastKey)
-            f.setValue(params.brightness, forKey: kCIInputBrightnessKey)
-            f.setValue(params.saturation, forKey: kCIInputSaturationKey)
-            ci = f.outputImage ?? ci
-        }
-
-        // ----- Sharpen (1st) -----
-        if !params.noSharpen && params.sharpenMethod == "cas" {
-            if let f = CIFilter(name: "CIUnsharpMask") {
-                f.setValue(ci, forKey: kCIInputImageKey)
-                f.setValue(2.5, forKey: kCIInputRadiusKey)
-                f.setValue(params.sharpenStrength, forKey: kCIInputIntensityKey)
-                ci = f.outputImage ?? ci
-            }
-        } else if !params.noSharpen {
-            if let f = CIFilter(name: "CIUnsharpMask") {
-                f.setValue(ci, forKey: kCIInputImageKey)
-                f.setValue(params.usmRadius, forKey: kCIInputRadiusKey)
-                f.setValue(params.usmAmount, forKey: kCIInputIntensityKey)
-                ci = f.outputImage ?? ci
-            }
-        }
-        
-        
-        // MARK: - SECOND SET (applies after first set)
-        
-        // ----- Denoise (2nd) -----
-        if !params.noDenoise && params.useDenoise2 && params.denoiseStrength2 > 0,
-           let f = CIFilter(name: "CINoiseReduction") {
-            f.setValue(ci, forKey: kCIInputImageKey)
-            // Apply attenuation if both sets have denoise active (stacking)
-            let attenuationFactor = !params.noDenoise && params.denoiseStrength > 0 ? 0.55 : 1.0
-            f.setValue((params.denoiseStrength2 * attenuationFactor) / 20.0, forKey: "inputNoiseLevel")
-            ci = f.outputImage ?? ci
-        }
-
-        // ----- Dering (2nd) -----
-        if params.useDering2 && params.deringActive2,
-           let f = CIFilter(name: "CINoiseReduction") {
-            f.setValue(ci, forKey: kCIInputImageKey)
-            f.setValue(params.deringStrength2 * 0.1, forKey: "inputNoiseLevel")
-            ci = f.outputImage ?? ci
-        }
-
-        // ----- Sharpen (2nd) -----
-        if !params.noSharpen && params.useSharpen2 {
-            // Calculate attenuation factor based on first set sharpen being active
-            let firstSetSharpenActive = !params.noSharpen && (params.sharpenMethod == "cas" ? params.sharpenStrength > 0 : params.usmAmount > 0)
-            var attenuationFactor: Double = 1.0
-            if firstSetSharpenActive {
-                // Determine attenuation based on what's being stacked
-                if params.sharpenMethod == "unsharp" && params.sharpenMethod2 == "unsharp" {
-                    attenuationFactor = 0.35  // Heavy attenuation for double unsharp
-                } else if params.sharpenMethod == "unsharp" || params.sharpenMethod2 == "unsharp" {
-                    attenuationFactor = 0.5   // Moderate for mixed
-                } else {
-                    attenuationFactor = 0.6   // Light for CAS + CAS
-                }
-            }
-            
-            if params.sharpenMethod2 == "cas" {
-                if let f = CIFilter(name: "CIUnsharpMask") {
-                    f.setValue(ci, forKey: kCIInputImageKey)
-                    f.setValue(2.5, forKey: kCIInputRadiusKey)
-                    f.setValue(params.sharpenStrength2 * attenuationFactor, forKey: kCIInputIntensityKey)
-                    ci = f.outputImage ?? ci
-                }
-            } else {
-                if let f = CIFilter(name: "CIUnsharpMask") {
-                    f.setValue(ci, forKey: kCIInputImageKey)
-                    let radiusAttenuation = attenuationFactor + 0.2  // Less aggressive on radius
-                    f.setValue(params.usmRadius2 * radiusAttenuation, forKey: kCIInputRadiusKey)
-                    f.setValue(params.usmAmount2 * attenuationFactor, forKey: kCIInputIntensityKey)
-                    ci = f.outputImage ?? ci
-                }
-            }
-        }
-
-        guard let out = context.createCGImage(ci, from: ci.extent) else { return image }
-        return NSImage(cgImage: out, size: .zero)
-    }
-    
 
     // MARK: - Timing
     func formatTime(_ s: Double) -> String {

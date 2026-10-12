@@ -10,6 +10,7 @@
 #include "up60p_ffmpeg_path.h"
 #include "up60p_process.h"
 #include <pthread.h>
+#include <math.h>
 
 Settings DEF;
 Settings S;
@@ -45,6 +46,15 @@ const char *up60p_bundled_ffmpeg_path(void) {
     }
     
     return FFMPEG_PATH;
+}
+
+static bool parse_eq_value(const char *text, double minimum, double maximum, double *value) {
+    char *end;
+    errno = 0;
+    double parsed = strtod(text, &end);
+    if (end == text || *end || errno == ERANGE || !isfinite(parsed) || parsed < minimum || parsed > maximum) return false;
+    *value = parsed;
+    return true;
 }
 
 static up60p_error process_file(const char *in, const char *ffmpeg, bool batch);
@@ -146,6 +156,15 @@ static void build_deblock_filter(SB *vf, const char *mode, const char *thresh) {
 }
 
 
+static bool parse_eq_value(const char *text, double minimum, double maximum, double *value) {
+    char *end;
+    errno = 0;
+    double parsed = strtod(text, &end);
+    if (end == text || *end || errno == ERANGE || !isfinite(parsed) || parsed < minimum || parsed > maximum) return false;
+    *value = parsed;
+    return true;
+}
+
 static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) {
     (void)batch; char outdir[PATH_MAX], base[PATH_MAX], out[PATH_MAX];
     bool img = is_image(in);
@@ -173,6 +192,14 @@ static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) 
     if (img) snprintf(out, sizeof(out), "%s/%s_[restored].png", outdir, base);
     else snprintf(out, sizeof(out), "%s/%s_[restored].mp4", outdir, base);
     
+    double contrast = 1, brightness = 0, saturation = 1;
+    if (!S.no_eq && (!parse_eq_value(S.eq_contrast, -1000, 1000, &contrast) ||
+                     !parse_eq_value(S.eq_brightness, -1, 1, &brightness) ||
+                     !parse_eq_value(S.eq_saturation, 0, 3, &saturation))) {
+        if (global_log_cb) global_log_cb("Invalid EQ values: contrast -1000..1000, brightness -1..1, saturation 0..3; finite numbers required.\n");
+        return UP60P_ERR_INVALID_OPTIONS;
+    }
+
     SB vf = {0};
     
     
@@ -304,6 +331,10 @@ static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) 
             sb_fmt(&vf, "deband=1thr=%.5f:2thr=%.5f:3thr=%.5f:range=%d:blur=0,", thr_y, thr_c, thr_c, r);
         }
         else sb_fmt(&vf, "deband=1thr=%s:b=1,", S.deband_strength_2);
+    }
+    // Neutral EQ is a true bypass and avoids an extra colorspace conversion.
+    if (!S.no_eq && (contrast != 1 || brightness != 0 || saturation != 1)) {
+        sb_fmt(&vf, "eq=contrast=%.9g:brightness=%.9g:saturation=%.9g,", contrast, brightness, saturation);
     }
     if (!S.no_grain) {
         if (S.use_grain_2) sb_fmt(&vf, "noise=alls=%s:allf=t,", S.grain_strength_2);

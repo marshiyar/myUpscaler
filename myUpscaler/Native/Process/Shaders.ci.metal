@@ -94,7 +94,7 @@ extern "C" float4 gamma_correct_blend(coreimage::sampler a,
 // Input: src (image), sharpness (0.0 - 1.0)
 extern "C" float4 cas_sharpen(coreimage::sampler src, float sharpness) {
     float2 dc = src.coord();
-    
+
     float4 e = src.sample(dc);
     float4 a = src.sample(dc + float2(-1.0, -1.0));
     float4 b = src.sample(dc + float2( 0.0, -1.0));
@@ -104,7 +104,7 @@ extern "C" float4 cas_sharpen(coreimage::sampler src, float sharpness) {
     float4 g = src.sample(dc + float2(-1.0,  1.0));
     float4 h = src.sample(dc + float2( 0.0,  1.0));
     float4 i = src.sample(dc + float2( 1.0,  1.0));
-    
+
     // Min/max over neighborhood (RGB)
     float3 min_rgb = min(min(min(d.rgb, e.rgb), min(f.rgb, b.rgb)), h.rgb);
     float3 max_rgb = max(max(max(d.rgb, e.rgb), max(f.rgb, b.rgb)), h.rgb);
@@ -112,23 +112,23 @@ extern "C" float4 cas_sharpen(coreimage::sampler src, float sharpness) {
     float3 max_rgb2 = max(max(max(a.rgb, c.rgb), max(g.rgb, i.rgb)), max_rgb);
     min_rgb += min_rgb2;
     max_rgb += max_rgb2;
-    
+
     float4 cross_sum = b + d + f + h;
     float4 low_pass = cross_sum * 0.25;
     float4 high_pass = e - low_pass;
-    
+
     // Use scalar contrast (luma) to drive adaptation
     const float3 lumaW = float3(0.299, 0.587, 0.114);
     float minL = dot(min_rgb * (1.0 / 2.0), lumaW);
     float maxL = dot(max_rgb * (1.0 / 2.0), lumaW);
     float localContrast = maxL - minL;
-    
+
     // Softer rolloff: strong suppression only at very high contrast
     float adapt = 1.0 - smoothstep(0.15, 0.6, localContrast);
-    
+
     float s = clamp(sharpness, 0.0, 1.0);
     float3 out_rgb = e.rgb + high_pass.rgb * (s * 4.0 * adapt);
-    
+
     return float4(clamp(out_rgb, 0.0, 1.0), e.a);
 }
 
@@ -139,32 +139,32 @@ extern "C" float4 cas_sharpen(coreimage::sampler src, float sharpness) {
 extern "C" float4 deband_dither(coreimage::sampler src, float threshold, float amount) {
     float2 dc = src.coord();
     float4 center = src.sample(dc);
-    
+
     float4 s1 = src.sample(dc + float2(-2.0, -2.0));
     float4 s2 = src.sample(dc + float2( 2.0, -2.0));
     float4 s3 = src.sample(dc + float2(-2.0,  2.0));
     float4 s4 = src.sample(dc + float2( 2.0,  2.0));
-    
+
     float3 avg = (s1.rgb + s2.rgb + s3.rgb + s4.rgb) * 0.25;
-    
+
     const float3 lumaW = float3(0.299, 0.587, 0.114);
     float lc = dot(center.rgb, lumaW);
     float la = dot(avg,        lumaW);
-    
+
     float diffL = fabs(lc - la);
-    
+
     // Additional local contrast check: we only deband in very flat regions
     float localVar =
     fabs(dot(s1.rgb - s2.rgb, lumaW)) +
     fabs(dot(s3.rgb - s4.rgb, lumaW));
-    
+
     float flatFactor = 1.0 - smoothstep(threshold * 2.0, threshold * 6.0, localVar);
-    
+
     float bandFactor = 1.0 - smoothstep(0.0, threshold, diffL);
     float factor = bandFactor * flatFactor;
-    
+
     if (factor <= 0.0) return center;
-    
+
     float blend = clamp(amount * factor, 0.0, 1.0);
     float3 out_rgb = mix(center.rgb, avg, blend);
     return float4(out_rgb, center.a);
@@ -180,43 +180,43 @@ extern "C" float4 bilateral_denoise(coreimage::sampler src,
     float2 dc = src.coord();
     float4 c4 = src.sample(dc);
     float3 c  = c4.rgb;
-    
+
     // If sigma_range is ~0, early-out – no reason to spend time
     if (sigma_range <= 0.0 || sigma_spatial <= 0.0) {
         return c4;
     }
-    
+
     float invTwoSigmaSpatial2 = 1.0 / max(2.0 * sigma_spatial * sigma_spatial, 1e-4);
     float invTwoSigmaRange2   = 1.0 / max(2.0 * sigma_range   * sigma_range,   1e-4);
-    
+
     float3 sum = float3(0.0);
     float  wsum = 0.0;
-    
+
     // 5x5 kernel, precomputed offsets & dist²
     for (int i = 0; i < kBilatKernelSize; ++i) {
         float2 offset = kBilatOffsets[i];
         float4 s4 = src.sample(dc + offset);
         float3 s  = s4.rgb;
-        
+
         float3 diff = c - s;
         float  colorDist2 = dot(diff, diff);
         float  dist2 = kBilatDist2[i];
-        
+
         // Single exponent: spatial + range in one go
         float w = fast::exp(-dist2 * invTwoSigmaSpatial2
                             - colorDist2 * invTwoSigmaRange2);
-        
+
         sum  += s * w;
         wsum += w;
     }
-    
+
     float invW = (wsum > 0.0) ? (1.0 / wsum) : 1.0;
     float3 denoised = sum * invW;
-    
+
     // Prevent over-smoothing: mix back some original based on sigma_range
     float mixOriginal = clamp(1.0 - sigma_range * 4.0, 0.0, 0.5);
     float3 out = mix(denoised, c, mixOriginal);
-    
+
     return float4(out, c4.a);
 }
 // MARK: - Drift Guard (Color Stabilization)
@@ -229,50 +229,50 @@ extern "C" float4 drift_guard(coreimage::sampler ai,
     float2 dc = ai.coord();
     float4 s4 = ai.sample(dc);
     float4 b4 = base.sample(dc);
-    
+
     float3 s = s4.rgb;
     float3 b = b4.rgb;
-    
+
     // Raw per-pixel difference
     float3 diff = abs(s - b);
     float max_diff = max(max(diff.r, diff.g), diff.b);
-    
+
     // Local neighborhood for detail measure (simple 4-neighbor cross)
     float3 sL = ai.sample(dc + float2(-1.0,  0.0)).rgb;
     float3 sR = ai.sample(dc + float2( 1.0,  0.0)).rgb;
     float3 sU = ai.sample(dc + float2( 0.0, -1.0)).rgb;
     float3 sD = ai.sample(dc + float2( 0.0,  1.0)).rgb;
-    
+
     float3 bL = base.sample(dc + float2(-1.0,  0.0)).rgb;
     float3 bR = base.sample(dc + float2( 1.0,  0.0)).rgb;
     float3 bU = base.sample(dc + float2( 0.0, -1.0)).rgb;
     float3 bD = base.sample(dc + float2( 0.0,  1.0)).rgb;
-    
+
     const float3 lW = float3(0.299, 0.587, 0.114);
-    
+
     float sDetail =
     fabs(dot(sL - s, lW)) +
     fabs(dot(sR - s, lW)) +
     fabs(dot(sU - s, lW)) +
     fabs(dot(sD - s, lW));
-    
+
     float bDetail =
     fabs(dot(bL - b, lW)) +
     fabs(dot(bR - b, lW)) +
     fabs(dot(bU - b, lW)) +
     fabs(dot(bD - b, lW));
-    
+
     // If AI has significantly *less* detail than baseline, we want stronger guard
     float detailRatio = (bDetail + 1e-3) / (sDetail + 1e-3); // >1 means baseline has more HF
     float detailGuard = clamp(detailRatio - 1.0, 0.0, 1.0); // 0..1
-    
+
     // Base guard factor from overall color difference
     float guard = smoothstep(threshold, threshold * 2.0, max_diff);
-    
+
     // Combine: only strong guard where AI both differs a lot and has less HF detail
     float t = guard * detailGuard * amount;
     float3 out_rgb = mix(s, b, t);
-    
+
     return float4(out_rgb, s4.a);
 }
 
@@ -350,17 +350,17 @@ extern "C" float4 median_denoise(coreimage::sampler src) {
 extern "C" float4 blue_noise_deband(coreimage::sampler src, float threshold, float amount) {
     float2 dc = src.coord();
     float4 center = src.sample(dc);
-    
+
     float4 n1 = src.sample(dc + float2(-1.0, -1.0));
     float4 n2 = src.sample(dc + float2(1.0, 1.0));
     float3 avg = (n1.rgb + n2.rgb + center.rgb) / 3.0;
-    
+
     float3 diff = abs(center.rgb - avg);
     float max_diff = max(max(diff.r, diff.g), diff.b);
-    
+
     float factor = 1.0 - smoothstep(0.0, threshold, max_diff);
     if (factor <= 0.0) { return center; }
-    
+
     float blend = clamp(amount * factor, 0.0, 1.0);
     float3 out_rgb = mix(center.rgb, avg, blend);
     return float4(out_rgb, center.a);
@@ -371,19 +371,19 @@ extern "C" float4 blue_noise_deband(coreimage::sampler src, float threshold, flo
 extern "C" float4 dehalo(coreimage::sampler src, float strength) {
     float2 dc = src.coord();
     float4 c = src.sample(dc);
-    
+
     float3 ring = (src.sample(dc + float2(-1.0, 0.0)).rgb +
                    src.sample(dc + float2(1.0, 0.0)).rgb +
                    src.sample(dc + float2(0.0, -1.0)).rgb +
                    src.sample(dc + float2(0.0, 1.0)).rgb) * 0.25;
-    
+
     float3 low = min(min(ring, c.rgb),
                      min(src.sample(dc + float2(-1.0, -1.0)).rgb,
                          src.sample(dc + float2( 1.0,  1.0)).rgb));
     float3 high = max(max(ring, c.rgb),
                       max(src.sample(dc + float2(-1.0, -1.0)).rgb,
                           src.sample(dc + float2( 1.0,  1.0)).rgb));
-    
+
     float3 halo = clamp(c.rgb - ring, 0.0, 1.0);
     float3 suppressed = mix(c.rgb, clamp(c.rgb - halo, low, high), strength);
     return float4(suppressed, c.a);

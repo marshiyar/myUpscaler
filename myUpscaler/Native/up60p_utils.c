@@ -37,7 +37,7 @@ void sanitize_path(char *p) {
 
 void sb_append(SB *s, const char *str) {
     if (!s || !str) return;
-    
+
     if (!s->buf) {
         s->cap = 1024;
         s->buf = malloc(s->cap);
@@ -48,9 +48,9 @@ void sb_append(SB *s, const char *str) {
         }
         s->buf[0] = '\0';
     }
-    
+
     size_t l = strlen(str);
-    
+
     if (s->len + l + 1 >= s->cap) {
         size_t new_cap = (s->cap + l) * 2;
         char *tmp = realloc(s->buf, new_cap);
@@ -58,7 +58,7 @@ void sb_append(SB *s, const char *str) {
         s->buf = tmp;
         s->cap = new_cap;
     }
-    
+
     memcpy(s->buf + s->len, str, l + 1);
     s->len += l;
 }

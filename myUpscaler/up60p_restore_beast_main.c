@@ -48,15 +48,6 @@ const char *up60p_bundled_ffmpeg_path(void) {
     return FFMPEG_PATH;
 }
 
-static bool parse_eq_value(const char *text, double minimum, double maximum, double *value) {
-    char *end;
-    errno = 0;
-    double parsed = strtod(text, &end);
-    if (end == text || *end || errno == ERANGE || !isfinite(parsed) || parsed < minimum || parsed > maximum) return false;
-    *value = parsed;
-    return true;
-}
-
 static up60p_error process_file(const char *in, const char *ffmpeg, bool batch);
 static up60p_error process_directory(const char *dir, const char *ffmpeg);
 //static int ar_menu_choose(const char *prompt, const char **items, int n, int start_index);

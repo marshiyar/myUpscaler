@@ -1,0 +1,71 @@
+[
+  {
+    "shortDescription" : "--",
+    "metadataOutputVersion" : "3.0",
+    "outputSchema" : [
+      {
+        "hasShapeFlexibility" : "0",
+        "isOptional" : "0",
+        "dataType" : "Float32",
+        "formattedType" : "MultiArray (Float32 1 × 3 × 1024 × 1024)",
+        "shortDescription" : "--",
+        "shape" : "[1, 3, 1024, 1024]",
+        "name" : "var_4053",
+        "type" : "MultiArray"
+      }
+    ],
+    "version" : "--",
+    "modelParameters" : [
+
+    ],
+    "author" : "--",
+    "specificationVersion" : 6,
+    "storagePrecision" : "Float16",
+    "license" : "--",
+    "mlProgramOperationTypeHistogram" : {
+      "Concat" : 276,
+      "Cast" : 2,
+      "Conv" : 351,
+      "Mul" : 23,
+      "Add" : 93,
+      "UpsampleNearestNeighbor" : 2,
+      "LeakyRelu" : 279
+    },
+    "computePrecision" : "Mixed (Float16, Float32, Int32)",
+    "stateSchema" : [
+
+    ],
+    "isUpdatable" : "0",
+    "availability" : {
+      "macOS" : "12.0",
+      "tvOS" : "15.0",
+      "visionOS" : "1.0",
+      "watchOS" : "8.0",
+      "iOS" : "15.0",
+      "macCatalyst" : "15.0"
+    },
+    "modelType" : {
+      "name" : "MLModelType_mlProgram"
+    },
+    "inputSchema" : [
+      {
+        "hasShapeFlexibility" : "0",
+        "isOptional" : "0",
+        "dataType" : "Float32",
+        "formattedType" : "MultiArray (Float32 1 × 3 × 256 × 256)",
+        "shortDescription" : "--",
+        "shape" : "[1, 3, 256, 256]",
+        "name" : "x",
+        "type" : "MultiArray"
+      }
+    ],
+    "userDefinedMetadata" : {
+      "com.github.apple.coremltools.conversion_date" : "2025-12-09",
+      "com.github.apple.coremltools.source" : "torch==2.9.1",
+      "com.github.apple.coremltools.version" : "9.0",
+      "com.github.apple.coremltools.source_dialect" : "TorchScript"
+    },
+    "generatedClassName" : "RealESRGAN_x4",
+    "method" : "predict"
+  }
+]

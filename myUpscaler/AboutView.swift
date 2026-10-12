@@ -3,7 +3,12 @@ import SwiftUI
 struct AboutView: View {
 
     private let websiteURL = URL(string: "https://github.com/marshiyar/myUpscaler")!
-    @Environment(\.presentationMode) var presentationMode
+    @Environment(\.dismiss) private var dismiss
+    private var version: String {
+        let release = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Development"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+        return build.map { "\(release) (\($0))" } ?? release
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.lg) {
@@ -24,16 +29,14 @@ struct AboutView: View {
                 .font(DesignSystem.Typography.title1)
                 .foregroundColor(.accentColor)
 
-            Text("Version: 0.0.1 Public Beta")
+            Text("Version \(version)")
                 .font(DesignSystem.Typography.subheadline)
                 .foregroundColor(.secondary)
 
             ModernDivider()
                 .padding(.vertical, DesignSystem.Spacing.xs)
 
-            Text("""
-                Thank you for using it!
-                """)
+            Text("Preview, restore, and upscale video with FFmpeg and optional Core ML models.")
                 .font(DesignSystem.Typography.body)
                 .foregroundColor(.primary)
 
@@ -63,7 +66,7 @@ struct AboutView: View {
             }
             
             Button(action: {
-                presentationMode.wrappedValue.dismiss()
+                dismiss()
             }) {
                 HStack {
                     Spacer()

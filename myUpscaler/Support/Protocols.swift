@@ -38,7 +38,7 @@ class AVAssetLoader: AssetLoaderProtocol {
         if ["png", "jpg", "jpeg", "tif", "tiff", "bmp", "webp"].contains(ext) {
             return 0.0
         }
-        
+
         let url = URL(fileURLWithPath: path)
         let asset = AVURLAsset(url: url)
         let duration = try await asset.load(.duration)

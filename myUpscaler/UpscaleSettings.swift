@@ -75,14 +75,14 @@ class UpscaleSettings: ObservableObject {
         $sharpenMethod
             .sink { [weak self] newMethod in
                 guard let self = self else { return }
-                self.sharpenStrength = self.validateSharpenStrength(self.sharpenStrength)
+                self.sharpenStrength = self.validateSharpenStrength(self.sharpenStrength, method: newMethod)
             }
             .store(in: &cancellables)
         
         $sharpenMethod2
             .sink { [weak self] newMethod in
                 guard let self = self else { return }
-                self.sharpenStrength2 = self.validateSharpenStrength(self.sharpenStrength2)
+                self.sharpenStrength2 = self.validateSharpenStrength2(self.sharpenStrength2, method: newMethod)
             }
             .store(in: &cancellables)
         
@@ -852,11 +852,14 @@ class UpscaleSettings: ObservableObject {
     var grainStrength2Step: Double { 0.1 }
     
     // MARK: - Validation functions
-    func validateSharpenStrength(_ value: String) -> String {
+    func validateSharpenStrength(_ value: String, method: String? = nil) -> String {
+        let method = method ?? sharpenMethod
+        let defaultValue = method == "unsharp" ? 1.0 : 0.25
+        let range: ClosedRange<Double> = method == "unsharp" ? -2.0...5.0 : 0.0...1.0
         guard let numValue = Double(value) else {
-            return String(format: "%.2f", sharpenStrengthDefault)
+            return String(format: "%.2f", defaultValue)
         }
-        let clamped = max(sharpenStrengthRange.lowerBound, min(sharpenStrengthRange.upperBound, numValue))
+        let clamped = max(range.lowerBound, min(range.upperBound, numValue))
         return String(format: "%.2f", clamped)
     }
     
@@ -876,11 +879,14 @@ class UpscaleSettings: ObservableObject {
         return String(format: "%.3f", clamped)
     }
     
-    func validateSharpenStrength2(_ value: String) -> String {
+    func validateSharpenStrength2(_ value: String, method: String? = nil) -> String {
+        let method = method ?? sharpenMethod2
+        let defaultValue = method == "unsharp" ? 1.0 : 0.25
+        let range: ClosedRange<Double> = method == "unsharp" ? -2.0...5.0 : 0.0...1.0
         guard let numValue = Double(value) else {
-            return String(format: "%.2f", sharpenStrength2Default)
+            return String(format: "%.2f", defaultValue)
         }
-        let clamped = max(sharpenStrength2Range.lowerBound, min(sharpenStrength2Range.upperBound, numValue))
+        let clamped = max(range.lowerBound, min(range.upperBound, numValue))
         return String(format: "%.2f", clamped)
     }
     

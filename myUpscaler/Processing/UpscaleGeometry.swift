@@ -29,6 +29,6 @@ nonisolated struct UpscaleGeometry {
         guard outputWidth <= Int.max / outputHeight / MemoryLayout<Float>.stride else {
             throw Up60PEngineError.invalidOptions
         }
-        requiresResampling = abs(requestedScale - nativeScale) > 0.001
+        requiresResampling = requestedScale != nativeScale
     }
 }

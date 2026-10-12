@@ -29,8 +29,8 @@
 
 /* Begin PBXFileReference section */
 		5ECE7BB52EF2A63C00603DA9 /* myUpscaler.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = myUpscaler.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		C02700000000000000000008 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/CoreMLModelRegistry.swift; sourceTree = SOURCE_ROOT; };
-		C02700000000000000000009 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/UpscalingModeSupport.swift; sourceTree = SOURCE_ROOT; };
+		C02700000000000000000008 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/Models/CoreMLModelRegistry.swift; sourceTree = SOURCE_ROOT; };
+		C02700000000000000000009 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/Models/UpscalingModeSupport.swift; sourceTree = SOURCE_ROOT; };
 		C0270000000000000000000A = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/UpscaleSettings.swift; sourceTree = SOURCE_ROOT; };
 		C0270000000000000000000B = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/PresetStore.swift; sourceTree = SOURCE_ROOT; };
 		C0270000000000000000000C = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = tests/settings-snapshot/SettingsSnapshotTests.swift; sourceTree = SOURCE_ROOT; };

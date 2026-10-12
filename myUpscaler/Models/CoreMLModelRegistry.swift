@@ -27,7 +27,7 @@ nonisolated enum CoreMLModelRegistry {
         CoreMLModelSpec(id: .realESRGANx4, displayName: "Real-ESRGAN x4", resourceName: "RealESRGAN_x4", nativeScale: 4.0),
         CoreMLModelSpec(id: .realESRGANx8, displayName: "Real-ESRGAN x8", resourceName: "RealESRGAN_x8", nativeScale: 8.0),
     ]
-    
+
     static var defaultModel: CoreMLModelSpec { models.first(where: { $0.id == .realESRGANx4 }) ?? models[0] }
 
     static var bundledModels: [CoreMLModelSpec] {
@@ -41,7 +41,7 @@ nonisolated enum CoreMLModelRegistry {
         }
         return nil
     }
-    
+
     static func model(for id: CoreMLModelID) -> CoreMLModelSpec {
         models.first(where: { $0.id == id }) ?? defaultModel
     }

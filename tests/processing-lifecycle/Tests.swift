@@ -1,0 +1,212 @@
+import Foundation
+import CoreVideo
+import CoreML
+
+@MainActor final class SuspendedEngine: EngineProtocol {
+    var starts = 0
+    var cancels = 0
+    var handler: ((String) -> Void)?
+    var continuation: CheckedContinuation<Void, Never>?
+    func setLogHandler(_ handler: @escaping (String) -> Void) { self.handler = handler }
+    func process(inputPath: String, settings: UpscaleSettings, outputDirectory: String) async throws {
+        starts += 1
+        handler?("elapsed=1\n")
+        await withCheckedContinuation { continuation = $0 }
+    }
+    func cancel() { cancels += 1 }
+    func finish() { continuation?.resume(); continuation = nil }
+}
+struct NoDuration: AssetLoaderProtocol {
+    func loadDuration(from path: String) async throws -> Double { 0 }
+}
+
+@main struct ProcessingTests {
+    nonisolated static func testGeometryAndTensor() throws {
+        for native in [2.0, 4.0, 8.0] {
+            for requested in [0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 8.0] {
+                for (width, height) in [(1920, 1080), (127, 73)] {
+                    let plan = try UpscaleGeometry(inputWidth: width, inputHeight: height,
+                        requestedScale: requested, nativeScale: native, tileWidth: 64, tileHeight: 64)
+                    precondition(plan.outputWidth == Int(Double(width) * requested / 2) * 2)
+                    precondition(plan.outputHeight == Int(Double(height) * requested / 2) * 2)
+                    precondition(plan.nativeTileWidth == 64 * Int(native))
+                    precondition(plan.requiresResampling == (requested != native))
+                }
+            }
+        }
+        for scale in [0.0, -1.0, Double.nan, Double.infinity] {
+            do {
+                _ = try UpscaleGeometry(inputWidth: 100, inputHeight: 100, requestedScale: scale,
+                    nativeScale: 4, tileWidth: 64, tileHeight: 64)
+                fatalError("invalid scale accepted")
+            } catch Up60PEngineError.invalidOptions {}
+        }
+        // A padded/strided output tensor must produce the same RGB values.
+        let storage = UnsafeMutablePointer<Float>.allocate(capacity: 32)
+        storage.initialize(repeating: -99, count: 32)
+        defer { storage.deallocate() }
+        let tensor = try MLMultiArray(dataPointer: storage, shape: [1, 3, 2, 2], dataType: .float32,
+            strides: [32, 10, 4, 1], deallocator: nil)
+        for channel in 0..<3 {
+            for y in 0..<2 { for x in 0..<2 { storage[channel * 10 + y * 4 + x] = Float(channel + 1) / 4 } }
+        }
+        let engine = CoreMLEngine()
+        let pixels = try engine.tensorToPixelBuffer(tensor: tensor, width: 2, height: 2)
+        CVPixelBufferLockBaseAddress(pixels, .readOnly)
+        let bytes = CVPixelBufferGetBaseAddress(pixels)!.assumingMemoryBound(to: UInt8.self)
+        precondition(bytes[0] == 191 && bytes[1] == 127 && bytes[2] == 63 && bytes[3] == 255)
+        CVPixelBufferUnlockBaseAddress(pixels, .readOnly)
+        storage[0] = .nan
+        do { _ = try engine.tensorToPixelBuffer(tensor: tensor, width: 2, height: 2); fatalError("NaN output accepted") }
+        catch ModelError.invalidModel {}
+        // Cropped tiles must resize only the valid native region, excluding padding.
+        var nativeTile: CVPixelBuffer?
+        precondition(CVPixelBufferCreate(nil, 8, 8, kCVPixelFormatType_32BGRA, nil, &nativeTile) == kCVReturnSuccess)
+        CVPixelBufferLockBaseAddress(nativeTile!, [])
+        let rowBytes = CVPixelBufferGetBytesPerRow(nativeTile!)
+        let base = CVPixelBufferGetBaseAddress(nativeTile!)!
+        memset(base, 0, rowBytes * 8)
+        for row in 0..<4 { memset(base + row * rowBytes, 255, 4 * 4) }
+        CVPixelBufferUnlockBaseAddress(nativeTile!, [])
+        let resized = try engine.resizePixelBuffer(nativeTile!, width: 2, height: 2, sourceWidth: 4, sourceHeight: 4)
+        CVPixelBufferLockBaseAddress(resized, .readOnly)
+        let resizedBytes = CVPixelBufferGetBaseAddress(resized)!.assumingMemoryBound(to: UInt8.self)
+        precondition(resizedBytes[0] == 255 && resizedBytes[4] == 255, "tile padding contaminated resized pixels")
+        CVPixelBufferUnlockBaseAddress(resized, .readOnly)
+        print("PASS: native/requested scale matrix, fractional/even dimensions, invalid scale, strided/NaN tensor, cropped resampling")
+    }
+
+    nonisolated static func testBlend() throws {
+        let size = 512
+        func buffer() -> CVPixelBuffer {
+            var result: CVPixelBuffer?
+            precondition(CVPixelBufferCreate(nil, size, size, kCVPixelFormatType_32BGRA, nil, &result) == kCVReturnSuccess)
+            let buffer = result!
+            CVPixelBufferLockBaseAddress(buffer, [])
+            memset(CVPixelBufferGetBaseAddress(buffer), 127, CVPixelBufferGetBytesPerRow(buffer) * size)
+            CVPixelBufferUnlockBaseAddress(buffer, [])
+            return buffer
+        }
+        let source = buffer(), legacy = buffer(), current = buffer()
+        let weights = UnsafeMutablePointer<Float>.allocate(capacity: size * size)
+        weights.initialize(repeating: 0, count: size * size)
+        defer { weights.deallocate() }
+        let engine = CoreMLEngine()
+        func run(_ old: Bool, _ cosine: Bool) throws {
+            weights.update(repeating: 0, count: size * size)
+            if old {
+                try engine.legacyBlendTileIntoCanvas(source: source, target: legacy, weightMap: weights,
+                    destX: 0, destY: 0, width: size, height: size, margin: 64, useCosine: cosine,
+                    isLeft: false, isRight: false, isTop: false, isBottom: false)
+            } else {
+                try engine.blendTileIntoCanvas(source: source, target: current, weightMap: weights,
+                    destX: 0, destY: 0, width: size, height: size, margin: 64, useCosine: cosine,
+                    isLeft: false, isRight: false, isTop: false, isBottom: false)
+            }
+        }
+        for cosine in [false, true] {
+            try run(true, cosine); try run(false, cosine)
+            CVPixelBufferLockBaseAddress(legacy, .readOnly)
+            CVPixelBufferLockBaseAddress(current, .readOnly)
+            for row in 0..<size {
+                let oldRow = CVPixelBufferGetBaseAddress(legacy)! + row * CVPixelBufferGetBytesPerRow(legacy)
+                let newRow = CVPixelBufferGetBaseAddress(current)! + row * CVPixelBufferGetBytesPerRow(current)
+                precondition(memcmp(oldRow, newRow, size * 4) == 0, "blend pixels changed")
+            }
+            CVPixelBufferUnlockBaseAddress(legacy, .readOnly)
+            CVPixelBufferUnlockBaseAddress(current, .readOnly)
+        }
+        func time(_ old: Bool) throws -> Double {
+            let start = Date()
+            for _ in 0..<40 { try run(old, true) }
+            return Date().timeIntervalSince(start)
+        }
+        let before = try time(true), after = try time(false)
+        print("PASS: linear and cosine feather pixel parity")
+        print(String(format: "Blend microbenchmark (40 x 512-square tiles): before %.3fs, after %.3fs (%.2fx)", before, after, before / after))
+    }
+
+    @MainActor static func main() async throws {
+        let measured = FFmpegParser.parse(line: "time=00:00:05.000 fps=10 speed=0.5x", currentDuration: 10)
+        precondition(measured.progress == 0.5 && measured.eta == "0:10")
+        let unknownETA = FFmpegParser.parse(line: "time=00:00:05 fps=10", currentDuration: 10)
+        precondition(unknownETA.eta == "--:--")
+        precondition(FFmpegParser.parse(line: "time=5", currentDuration: 0).progress == nil)
+        let gate = ProgressUpdateGate()
+        precondition(gate.shouldEmit("time=1 fps=20", now: 0))
+        precondition(!gate.shouldEmit("time=2 fps=20", now: 0.1))
+        precondition(gate.shouldEmit("ERROR: time=2", now: 0.1))
+        precondition(gate.shouldEmit("stage=finalizing", now: 0.1))
+        precondition(gate.shouldEmit("time=3 fps=20", now: 0.3))
+        print("PASS: measured/unknown progress, speed-based ETA, bounded progress events, terminal/error delivery")
+        try testGeometryAndTensor()
+        try testBlend()
+        let control = ProcessingControl()
+        try control.begin()
+        do { try control.begin(); fatalError("overlapping engine accepted") }
+        catch ProcessingControl.Failure.alreadyRunning {}
+        let start = Date()
+        let waiting = Task {
+            try await control.waitUntilReady(isReady: { false }, failure: { nil })
+        }
+        try await Task.sleep(nanoseconds: 20_000_000)
+        control.cancel()
+        do { try await waiting.value; fatalError("cancelled wait succeeded") }
+        catch is CancellationError {}
+        precondition(Date().timeIntervalSince(start) < 1)
+        control.finish()
+        try control.begin()
+        enum WriterFailure: Error { case stopped }
+        do {
+            try await control.waitUntilReady(isReady: { false }, failure: { WriterFailure.stopped })
+            fatalError("failed writer kept waiting")
+        } catch WriterFailure.stopped {}
+        try await control.waitUntilReady(isReady: { true }, failure: { nil })
+        let taskCancelled = Task {
+            try await control.waitUntilReady(isReady: { false }, failure: { nil })
+        }
+        taskCancelled.cancel()
+        do { try await taskCancelled.value; fatalError("task cancellation ignored") }
+        catch is CancellationError {}
+        control.finish()
+
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let input = root.appendingPathComponent("input.mp4")
+        try Data([1]).write(to: input)
+        let engine = SuspendedEngine()
+        let runner = UpscaleRunner(engine: engine, assetLoader: NoDuration())
+        runner.inputPath = input.path
+        runner.customOutputFolder = root.path
+        runner.settings.scaler = "lanczos"
+        runner.run()
+        precondition(runner.phase == .preparing && !runner.progressKnown)
+        while engine.continuation == nil { await Task.yield() }
+        runner.run()
+        precondition(engine.starts == 1, "runner accepted duplicate start")
+        // An early elapsed log and a stable file cannot end an active engine.
+        try Data([2]).write(to: URL(fileURLWithPath: runner.outputVideoPath))
+        try await Task.sleep(nanoseconds: 2_100_000_000)
+        precondition(runner.isRunning && runner.progress < 1 && !runner.progressKnown && runner.phase == .finalizing, "early log/file stability faked completion")
+        runner.cancel()
+        runner.run()
+        precondition(runner.isRunning && engine.starts == 1 && engine.cancels == 1,
+                     "cancel released ownership before engine stopped")
+        engine.finish()
+        while runner.isRunning { await Task.yield() }
+        precondition(runner.completedOutputPath == nil && runner.progress < 1 && !runner.progressKnown, "cancel marked success")
+
+        runner.run()
+        while engine.continuation == nil { await Task.yield() }
+        let completionStart = Date()
+        engine.finish()
+        while runner.isRunning { await Task.yield() }
+        let completionTime = Date().timeIntervalSince(completionStart)
+        precondition(runner.completedOutputPath != nil && runner.progress == 1 && runner.phase == .idle)
+        precondition(completionTime < 0.5, "completion still polls file size")
+        print("PASS: engine overlap, engine cancellation, task cancellation, writer failure/readiness")
+        print("PASS: duplicate run, early completion log, cancel/restart ownership, immediate completion")
+        print(String(format: "Completion after engine return: %.4f seconds (old polling minimum: 2.0 seconds)", completionTime))
+    }
+}

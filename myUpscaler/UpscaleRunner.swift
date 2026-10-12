@@ -6,6 +6,9 @@ import AVFoundation
 class UpscaleRunner: ObservableObject {
     
     enum OutputMode { case same, custom }
+    enum ProcessingPhase { case idle, preparing, processing, finalizing }
+    @Published var phase: ProcessingPhase = .idle
+    @Published var progressKnown = false
     
      static let isAppleSilicon: Bool = {
 #if arch(arm64)
@@ -49,15 +52,13 @@ class UpscaleRunner: ObservableObject {
     
      var currentTask: Task<Void, Never>?
     private var currentRunID = UUID()
-     var completionCheckTask: Task<Void, Never>?
-     var lastFileSize: Int64 = 0
-     var fileSizeCheckCount: Int = 0
+    @Published private(set) var isCancelling = false
     
      var logBuffer: String = ""
      var lastLogFlushTime: TimeInterval = 0
-     let logFlushInterval: TimeInterval = 1.0  // Flush logs every 3 seconds to reduce performance overhead
+     let logFlushInterval: TimeInterval = 1.0
      var lastLogBufferTime: TimeInterval = 0
-     let logBufferInterval: TimeInterval = 0.1  // Only buffer messages every {x} seconds to reduce string concatenation overhead
+     let logBufferInterval: TimeInterval = 0.1
      var lastErrorLogLine: String?
     
     // MARK: - Initialization
@@ -109,7 +110,7 @@ class UpscaleRunner: ObservableObject {
     }
     
     // MARK: - Execution Logic
-    class SafeDuration {
+    nonisolated class SafeDuration {
          var _duration: Double = 0.0
          let lock = NSLock()
         
@@ -132,6 +133,7 @@ class UpscaleRunner: ObservableObject {
     }
     
     func run() {
+        guard !isRunning else { return }
         if let reason = settings.upscalingUnavailableReason {
             log.append("ERROR: \(reason)\n")
             return
@@ -145,16 +147,16 @@ class UpscaleRunner: ObservableObject {
         
         log = ""
         progress = 0.0
+        videoDuration = 0.0
         fpsString = "0"
         timeString = "0:00"
         etaString = "--:--"
         completedOutputPath = nil
         expectedOutputPath = nil
-        lastFileSize = 0
-        fileSizeCheckCount = 0
-        completionCheckTask?.cancel()
-        completionCheckTask = nil
+        isCancelling = false
         isRunning = true
+        phase = .preparing
+        progressKnown = false
         lastErrorLogLine = nil
         
         logBuffer = ""
@@ -203,11 +205,13 @@ class UpscaleRunner: ObservableObject {
         
         // Capture safe state for the background callback
         let safeState = SafeDuration(duration: self.videoDuration)
+        let updateGate = ProgressUpdateGate()
         
         // Set up log handler for the ACTIVE engine
         selectedEngine.setLogHandler { [weak self] message in
             guard let self = self else { return }
             
+            guard updateGate.shouldEmit(message) else { return }
             // 1. Parse on background thread immediately using safe state
             let currentDur = safeState.duration
             let parseState = FFmpegParser.parse(line: message, currentDuration: currentDur)
@@ -218,7 +222,7 @@ class UpscaleRunner: ObservableObject {
             }
             
             Task { @MainActor in
-                guard self.currentRunID == runID else { return }
+                guard self.currentRunID == runID, !self.isCancelling else { return }
                 let now = Date().timeIntervalSince1970
                 let lower = message.lowercased()
                 let isError = lower.contains("error") || lower.contains("fail")
@@ -228,7 +232,8 @@ class UpscaleRunner: ObservableObject {
                     self.lastErrorLogLine = message
                 }
                 
-                let shouldBuffer = isError || (now - self.lastLogBufferTime >= self.logBufferInterval)
+                let isProgressMessage = lower.contains("time=") || lower.contains("fps=")
+                let shouldBuffer = !isProgressMessage || isError || (now - self.lastLogBufferTime >= self.logBufferInterval)
                 
                 if shouldBuffer {
                     self.logBuffer.append(message)
@@ -241,12 +246,17 @@ class UpscaleRunner: ObservableObject {
                 if let newDur = parseState.newDuration {
                     self.videoDuration = newDur
                 }
-                if let fps = parseState.fps { self.fpsString = fps }
-                if let time = parseState.timeString { self.timeString = time }
-                if let eta = parseState.eta { self.etaString = eta }
+                if let fps = parseState.fps, fps != self.fpsString { self.fpsString = fps }
+                if let time = parseState.timeString, time != self.timeString { self.timeString = time }
+                if let eta = parseState.eta, eta != self.etaString { self.etaString = eta }
                 if let prog = parseState.progress {
-                    if prog > self.progress {
-                        self.progress = prog
+                    if prog >= 1 {
+                        self.phase = .finalizing
+                        self.progressKnown = false
+                    } else if self.phase != .finalizing {
+                        self.phase = .processing
+                        self.progressKnown = true
+                        if prog > self.progress { self.progress = prog }
                     }
                 }
                 
@@ -260,22 +270,17 @@ class UpscaleRunner: ObservableObject {
                 let hasElapsed = lowerMessage.contains("elapsed=")
                 let isDoneMessage = message.trimmingCharacters(in: .whitespacesAndNewlines) == "Done."
                 
-                if hasElapsed || isDoneMessage {
+                if hasElapsed || isDoneMessage || lowerMessage.contains("stage=finalizing") {
                     self.flushLogBuffer()
                     
-                    if self.videoDuration > 0 {
-                        self.progress = 1.0
-                    }
-                    if hasElapsed && self.isRunning {
-                        self.startCompletionCheck()
-                    }
+                    self.phase = .finalizing
+                    self.progressKnown = false
+
                 }
             }
         }
         
         loadVideoDuration()
-        
-        currentTask?.cancel()
         
         let capturedInputPath = inputPath
         let capturedSettings = cloneSettings(settings)
@@ -298,6 +303,7 @@ class UpscaleRunner: ObservableObject {
             log.append("Path: \(capturedOutputDirectory)\n")
             log.append("Error: \(error.localizedDescription)\n")
             isRunning = false
+            phase = .idle
             accessStopper?()
             activeOutputFolder = nil
             return
@@ -308,7 +314,9 @@ class UpscaleRunner: ObservableObject {
             log.append("\n--- ERROR: Input file does not exist ---\n")
             log.append("Path: \(capturedInputPath)\n")
             isRunning = false
+            phase = .idle
             activeOutputFolder = nil
+            accessStopper?()
             return
         }
         
@@ -328,55 +336,33 @@ class UpscaleRunner: ObservableObject {
                 )
                 try Task.checkCancellation()
                 
-                await MainActor.run {
+                try await MainActor.run {
                     guard self.currentRunID == runID else { return }
-                    if self.isRunning {
-                        self.startCompletionCheck()
+                    guard let path = self.expectedOutputPath,
+                          let attributes = try? self.fileSystem.attributesOfItem(atPath: path),
+                          let size = attributes[.size] as? NSNumber, size.int64Value > 0 else {
+                        throw Up60PEngineError.io
                     }
+                    self.markAsComplete(outputPath: path)
                 }
             }
-            catch let error as Up60PEngineError {
+            catch {
                 await MainActor.run {
                     guard self.currentRunID == runID else { return }
-                    var errorMessage = "\n--- ERROR: "
-                    switch error {
-                    case .ffmpegNotFound:
-                        errorMessage += "Bundled FFmpeg is missing or invalid. Reinstall the app; external FFmpeg is not supported.\n"
-                    case .invalidOptions:
-                        errorMessage += "Invalid options provided.\n"
-                    case .io:
-                        errorMessage += "I/O error occurred. Please check file paths and permissions.\n"
-                    case .internalError:
-                        errorMessage += "Internal error occurred.\n"
-                    case .notInitialized:
-                        errorMessage += "Engine not initialized.\n"
-                    case .unsupportedScaler:
-                        errorMessage += "The selected upscaling mode is not supported by the bundled FFmpeg engine. Choose Lanczos.\n"
-                    case .unknownStatus(let code):
-                        errorMessage += "Unknown error (code: \(code)).\n"
+                    self.flushLogBuffer()
+                    if !(error is CancellationError) && !self.isCancelling {
+                        self.log.append("\n--- ERROR: \(error.localizedDescription) ---\n")
+                        if let context = self.lastErrorLogLine {
+                            self.log.append("Context: \(context)\n")
+                        }
                     }
-                    if let errorLine = self.lastErrorLogLine {
-                        errorMessage += "Context: \(errorLine)\n"
-                    }
-                    errorMessage += "Input: \(capturedInputPath)\n"
-                    errorMessage += "---\n"
-                    self.log.append(errorMessage)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        guard self.currentRunID == runID else { return }
-                        self.isRunning = false
-                        self.currentTask = nil
-                    }
-                }
-            } catch {
-                await MainActor.run {
-                    guard self.currentRunID == runID else { return }
-                    self.log.append("\n--- ERROR: \(error.localizedDescription) ---\n")
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        guard self.currentRunID == runID else { return }
-                        self.isRunning = false
-                        self.currentTask = nil
-                        self.activeOutputFolder = nil
-                    }
+                    self.isRunning = false
+                    self.phase = .idle
+                    self.progressKnown = false
+                    self.isCancelling = false
+                    self.expectedOutputPath = nil
+                    self.currentTask = nil
+                    self.activeOutputFolder = nil
                 }
             }
         }
@@ -384,27 +370,14 @@ class UpscaleRunner: ObservableObject {
     
     func cancel() {
         guard isRunning else { return }
-        currentRunID = UUID()
-        
-        if let engine = activeEngine {
-            engine.cancel()
-        } else {
-            engine.cancel()
-        }
-        
+        guard !isCancelling else { return }
+        isCancelling = true
+        (activeEngine ?? engine).cancel()
         currentTask?.cancel()
-        currentTask = nil
-        completionCheckTask?.cancel()
-        completionCheckTask = nil
-        
-        isRunning = false
         completedOutputPath = nil
         expectedOutputPath = nil
-        activeOutputFolder = nil
-        
-        log.append("\n--- User Canceled Process ---\n")
-        
-        objectWillChange.send()
+        log.append("\n--- User Canceled Process (stopping engine) ---\n")
+        // Keep the run occupied until process() exits and releases its resources.
     }
     
     // MARK: - Video Duration Loading
@@ -415,15 +388,19 @@ class UpscaleRunner: ObservableObject {
             return
         }
         
+        let path = inputPath
+        let runID = currentRunID
         Task {
             do {
-                let duration = try await assetLoader.loadDuration(from: inputPath)
+                let duration = try await assetLoader.loadDuration(from: path)
                 await MainActor.run {
+                    guard self.currentRunID == runID, self.inputPath == path else { return }
                     self.videoDuration = duration
                     self.log.append("Video Duration: \(FFmpegParser.formatTime(self.videoDuration))\n")
                 }
             } catch {
                 await MainActor.run {
+                    guard self.currentRunID == runID, self.inputPath == path else { return }
                     self.videoDuration = 0.0
                     print("Failed to load video duration: \(error)")
                 }
@@ -431,104 +408,13 @@ class UpscaleRunner: ObservableObject {
         }
     }
     
-    // MARK: - Output File Checking
-    
-    func checkForCompletedOutput() {
-        guard let outputPath = expectedOutputPath ?? Optional(outputVideoPath) else { return }
-        if fileSystem.fileExists(atPath: outputPath) {
-            if let attributes = try? fileSystem.attributesOfItem(atPath: outputPath),
-               let fileSize = attributes[.size] as? Int64,
-               fileSize > 0 {
-                completedOutputPath = outputPath
-                
-                return
-            }
-        }
-        
-        if !isRunning && completedOutputPath == nil {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                self.checkForCompletedOutputDelayed()
-            }
-        }
-    }
-    
-    func checkForCompletedOutputDelayed() {
-        guard let outputPath = expectedOutputPath ?? Optional(outputVideoPath) else { return }
-        
-        if fileSystem.fileExists(atPath: outputPath) {
-            if let attributes = try? fileSystem.attributesOfItem(atPath: outputPath),
-               let fileSize = attributes[.size] as? Int64,
-               fileSize > 0 {
-                completedOutputPath = outputPath
-            }
-        }
-    }
-    
-    // MARK: - Completion Detection
-    
-func startCompletionCheck() {
-        completionCheckTask?.cancel()
-        
-        completionCheckTask = Task { [weak self] in
-            guard let self = self else { return }
-            
-            let outputPath = self.expectedOutputPath ?? self.outputVideoPath
-            var stableCount = 0
-            var lastSize: Int64 = 0
-            let requiredStableChecks = 3
-            
-            for i in 0..<20 {
-                try? await Task.sleep(nanoseconds: 500_000_000)
-                
-                let stillRunning = await MainActor.run { self.isRunning }
-                guard stillRunning else { return }
-                
-                if fileSystem.fileExists(atPath: outputPath) {
-                    if let attributes = try? fileSystem.attributesOfItem(atPath: outputPath),
-                       let fileSize = attributes[.size] as? Int64,
-                       fileSize > 0 {
-                        
-                        if fileSize == lastSize {
-                            stableCount += 1
-                            if stableCount >= requiredStableChecks {
-                                await MainActor.run {
-                                    self.markAsComplete(outputPath: outputPath)
-                                }
-                                return
-                            }
-                        } else {
-                            stableCount = 0
-                            lastSize = fileSize
-                        }
-                    }
-                }
-                
-                if i > 10 {
-                    await MainActor.run {
-                        if self.fileSystem.fileExists(atPath: outputPath) {
-                            self.markAsComplete(outputPath: outputPath)
-                            return
-                        }
-                    }
-                }
-            }
-            
-            await MainActor.run {
-                if self.fileSystem.fileExists(atPath: outputPath),
-                   let attributes = try? self.fileSystem.attributesOfItem(atPath: outputPath),
-                   let fileSize = attributes[.size] as? Int64,
-                   fileSize > 0 {
-                    self.markAsComplete(outputPath: outputPath)
-                } else {
-                    self.markAsComplete(outputPath: nil)
-                }
-            }
-        }
-    }
-    
+    // MARK: - Engine-owned completion
+
     func markAsComplete(outputPath: String?) {
         guard isRunning else { return }
         progress = 1.0
+        progressKnown = true
+        phase = .idle
         if videoDuration > 0 {
             timeString = FFmpegParser.formatTime(videoDuration)
         }
@@ -545,10 +431,8 @@ func startCompletionCheck() {
         flushLogBuffer()
         
         isRunning = false
-        currentTask?.cancel()
         currentTask = nil
-        completionCheckTask?.cancel()
-        completionCheckTask = nil
+        isCancelling = false
     }
     
     func flushLogBuffer() {

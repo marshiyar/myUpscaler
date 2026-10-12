@@ -87,12 +87,9 @@ final class Up60PEngine {
             let cleaned = string.filter { $0.isASCII || $0.isWhitespace || $0.isPunctuation }
             
             Up60PEngine.logHandlerQueue.sync {
-                if let handler = Up60PEngine.currentLogHandler {
-                    // Dispatch to main thread for UI updates
-                    DispatchQueue.main.async {
-                        handler(cleaned)
-                    }
-                }
+                // The runner parses/throttles on the producer before enqueueing UI updates.
+                // Other consumers must perform their own UI actor hop.
+                Up60PEngine.currentLogHandler?(cleaned)
             }
         }
         

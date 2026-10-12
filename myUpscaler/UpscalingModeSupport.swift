@@ -2,7 +2,7 @@ import Foundation
 
 /// Modes implemented and supported by the pinned FFmpeg bundle. Legacy DNN,
 /// zscale, and hardware-scaler presets remain decodable, but are not runnable.
-enum UpscalingModeSupport {
+nonisolated enum UpscalingModeSupport {
     static func scalers(bundledModelIDs: [String]) -> [String] {
         bundledModelIDs.isEmpty ? ["lanczos"] : ["lanczos", "coreml"]
     }

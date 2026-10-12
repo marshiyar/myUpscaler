@@ -396,9 +396,9 @@ private struct VerticalColorEqualizerPanel: View {
                     VerticalParameterRow(
                         title: "Contrast",
                         binding: $settings.eqContrast,
-                        range: 0.5...2.0,
-                        step: 0.005,
-                        defaultValue: 1.03,
+                        range: settings.eqContrastRange,
+                        step: settings.eqContrastStep,
+                        defaultValue: settings.eqContrastDefault,
                         formatter: DragDropFormatters.twoFraction,
                         gradient: .contrast
                     )
@@ -406,9 +406,9 @@ private struct VerticalColorEqualizerPanel: View {
                     VerticalParameterRow(
                         title: "Brightness",
                         binding: $settings.eqBrightness,
-                        range: -0.1...0.1,
-                        step: 0.005,
-                        defaultValue: 0.005,
+                        range: settings.eqBrightnessRange,
+                        step: settings.eqBrightnessStep,
+                        defaultValue: settings.eqBrightnessDefault,
                         formatter: DragDropFormatters.threeFraction,
                         gradient: .brightness
                     )
@@ -416,9 +416,9 @@ private struct VerticalColorEqualizerPanel: View {
                     VerticalParameterRow(
                         title: "Saturation",
                         binding: $settings.eqSaturation,
-                        range: 0...2,
-                        step: 0.005,
-                        defaultValue: 1.06,
+                        range: settings.eqSaturationRange,
+                        step: settings.eqSaturationStep,
+                        defaultValue: settings.eqSaturationDefault,
                         formatter: DragDropFormatters.twoFraction,
                         gradient: .saturation
                     )

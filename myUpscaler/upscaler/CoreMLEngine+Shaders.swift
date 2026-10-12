@@ -5,7 +5,7 @@ import CoreVideo
 
 // MARK: - CoreML Engine Shader Extension
 
-extension CoreMLEngine {
+nonisolated extension CoreMLEngine {
     
     /// Manages the custom Metal kernels for video restoration
     class ShaderRegistry {

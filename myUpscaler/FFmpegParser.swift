@@ -1,6 +1,6 @@
 import Foundation
 
-struct FFmpegProgressState {
+nonisolated struct FFmpegProgressState {
     var fps: String?
     var timeString: String?
     var progress: Double?
@@ -8,10 +8,10 @@ struct FFmpegProgressState {
     var newDuration: Double?
 }
 
-class FFmpegParser {
+nonisolated class FFmpegParser {
     // Combined regex that captures duration, time, and fps in one pass
     private static let combinedRegex = try? NSRegularExpression(
-        pattern: "(?:Duration:\\s*([0-9:.]+))|(?:time=([0-9:\\.]+))|(?:fps=([0-9\\.]+))"
+        pattern: "(?:Duration:\\s*([0-9:.]+))|(?:time=([0-9:\\.]+))|(?:fps=([0-9\\.]+))|(?:speed=([0-9\\.]+)x)"
     )
     
     static func parse(line: String, currentDuration: Double) -> FFmpegProgressState {
@@ -27,6 +27,7 @@ class FFmpegParser {
         var durationStr: String?
         var timeStr: String?
         var fpsStr: String?
+        var speedStr: String?
         
         for match in matches {
             // Group 1: Duration
@@ -52,8 +53,11 @@ class FFmpegParser {
                     fpsStr = nsString.substring(with: fpsRange)
                 }
             }
+            if match.numberOfRanges > 4, match.range(at: 4).location != NSNotFound {
+                speedStr = nsString.substring(with: match.range(at: 4))
+            }
         }
-        
+
         // Process duration
         if currentDuration == 0, let durationStr = durationStr,
            let duration = parseTimeString(durationStr) {
@@ -73,8 +77,8 @@ class FFmpegParser {
                     state.progress = min(max(calculatedProgress, 0.0), 1.0)
                     
                     let remainingTime = max(0.0, duration - currentTime)
-                    if let fpsVal = fpsStr.flatMap({ Double($0) }), fpsVal > 0, remainingTime > 0 {
-                        state.eta = formatTime(remainingTime)
+                    if let speed = speedStr.flatMap({ Double($0) }), speed.isFinite, speed > 0, remainingTime > 0 {
+                        state.eta = formatTime(remainingTime / speed)
                     } else if remainingTime <= 0 {
                         state.progress = 1.0
                         state.eta = "0:00"
@@ -90,23 +94,12 @@ class FFmpegParser {
         return state
     }
 
-    private static func extract(_ regex: NSRegularExpression?, from text: String) -> String? {
-        guard let regex = regex else { return nil }
-        let nsString = text as NSString
-        let results = regex.matches(in: text, options: [], range: NSRange(location: 0, length: nsString.length))
-        
-        if let match = results.first, match.numberOfRanges > 1 {
-            let range = match.range(at: 1)
-            if range.location != NSNotFound {
-                return nsString.substring(with: range)
-            }
-        }
-        return nil
-    }
-    
     private static func parseTimeString(_ timeStr: String) -> Double? {
         let components = timeStr.split(separator: ":")
         
+        if components.count == 1 {
+            return Double(timeStr).flatMap { $0.isFinite && $0 >= 0 ? $0 : nil }
+        }
         guard components.count >= 2 else { return nil }
         
         var totalSeconds: Double = 0.0
@@ -125,9 +118,10 @@ class FFmpegParser {
             }
         }
         
-        return totalSeconds > 0 ? totalSeconds : nil
+        return totalSeconds.isFinite && totalSeconds >= 0 ? totalSeconds : nil
     }
     static func formatTime(_ seconds: Double) -> String {
+        guard seconds.isFinite, seconds >= 0, seconds < Double(Int.max) else { return "--:--" }
         let totalSeconds = Int(seconds)
         let hours = totalSeconds / 3600
         let minutes = (totalSeconds % 3600) / 60

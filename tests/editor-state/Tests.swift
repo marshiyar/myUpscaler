@@ -32,6 +32,24 @@ import Combine
             return (color.redComponent, color.blueComponent)
         }
         let settings = UpscaleSettings()
+        precondition(Double(settings.eqContrast) == settings.eqContrastDefault)
+        precondition(Double(settings.eqBrightness) == settings.eqBrightnessDefault)
+        precondition(Double(settings.eqSaturation) == settings.eqSaturationDefault)
+        precondition(settings.eqContrastDefault == 1 && settings.eqBrightnessDefault == 0 && settings.eqSaturationDefault == 1)
+        let malformed = UpscaleSettings()
+        malformed.eqContrast = "invalid"; malformed.eqBrightness = "nan"; malformed.eqSaturation = "inf"
+        let malformedEditor = EditorState(settings: malformed)
+        malformedEditor.syncFromSettings(malformed)
+        precondition(malformedEditor.contrast == malformed.eqContrastDefault)
+        precondition(malformedEditor.brightness == malformed.eqBrightnessDefault)
+        precondition(malformedEditor.saturation == malformed.eqSaturationDefault)
+        malformed.eqContrast = "1.03"; malformed.eqBrightness = "0.005"; malformed.eqSaturation = "1.06"
+        malformedEditor.syncFromSettings(malformed)
+        precondition(malformedEditor.contrast == 1.03 && malformedEditor.brightness == 0.005 && malformedEditor.saturation == 1.06,
+                     "valid stored color values must remain compatible")
+        malformed.resetToDefaults()
+        precondition(Double(malformed.eqContrast) == 1 && Double(malformed.eqBrightness) == 0 && Double(malformed.eqSaturation) == 1)
+        print("PASS shared neutral EQ initial/reset/fallback values and valid legacy string values")
         settings.sharpenStrength = "4.0"
         settings.sharpenMethod = "unsharp"
         precondition(settings.sharpenStrength == "4.00", "method validation must use incoming unsharp range")

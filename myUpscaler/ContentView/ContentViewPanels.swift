@@ -988,18 +988,6 @@ struct LogPanel: View {
                         .onChange(of: runner.log) { _, _ in
                             withAnimation { reader.scrollTo("BOTTOM", anchor: .bottom) }
                             
-                            // Check for completion when log updates
-                            if !runner.isRunning {
-                                runner.checkForCompletedOutput()
-                            }
-                        }
-                        .onChange(of: runner.isRunning) { _, isRunning in
-                            // When processing stops, check for output file
-                            if !isRunning {
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                    runner.checkForCompletedOutput()
-                                }
-                            }
                         }
                     }
                     .frame(height: 170) 

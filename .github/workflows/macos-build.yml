@@ -1,9 +1,6 @@
 name: macOS build, test and bundle
 
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
     inputs:
       model_archive_url:

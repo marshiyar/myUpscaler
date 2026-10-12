@@ -85,7 +85,7 @@ int main(void) {
         executable = self.root / "process-faults"
         subprocess.run([os.environ.get("CC", "cc"), "-std=c11",
                         *(["-arch", "arm64"] if sys.platform == "darwin" else []),
-                        "-I", str(ROOT / "myUpscaler/upscaler"),
+                        "-I", str(ROOT / "myUpscaler/Native/Process"),
                         str(source), "-pthread", "-o", str(executable)], check=True)
         result = subprocess.run([str(executable)], capture_output=True, text=True, timeout=8)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

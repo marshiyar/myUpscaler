@@ -183,6 +183,12 @@ static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) 
     if (img) snprintf(out, sizeof(out), "%s/%s_[restored].png", outdir, base);
     else snprintf(out, sizeof(out), "%s/%s_[restored].mp4", outdir, base);
     
+    bool videotoolbox = !strcmp(S.encoder, "videotoolbox");
+    if (!img && videotoolbox && S.use10 && !strcmp(S.codec, "h264")) {
+        if (global_log_cb) global_log_cb("VideoToolbox H.264 supports 8-bit output. Select HEVC for 10-bit output.\n");
+        return UP60P_ERR_INVALID_OPTIONS;
+    }
+
     double contrast = 1, brightness = 0, saturation = 1;
     if (!S.no_eq && (!parse_eq_value(S.eq_contrast, -1000, 1000, &contrast) ||
                      !parse_eq_value(S.eq_brightness, -1, 1, &brightness) ||
@@ -336,6 +342,7 @@ static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) 
     const char *pix = S.use10 ? "yuv420p10le" : "yuv420p";
     if (S.use10 && (!strcmp(S.encoder,"nvenc") || !strcmp(S.encoder,"hevc_nvenc"))) pix="p010le";
     if (S.pci_safe_mode) pix = "yuv420p";
+    if (!img && videotoolbox && S.use10 && !S.pci_safe_mode) pix = "p010le";
     
     if (!img) {
         
@@ -359,6 +366,7 @@ static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) 
         vf.len--;
     }
     
+    char hardware_quality[32];
     char *args[128]; int a=0;
     args[a++] = (char*)ffmpeg; args[a++] = "-hide_banner"; args[a++] = "-loglevel"; args[a++] = "error"; args[a++] = "-stats"; args[a++] = "-y";
     if (strcmp(S.hwaccel,"none")) {
@@ -390,13 +398,29 @@ static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) 
             if (!strcmp(S.encoder, "nvenc")) cod = "hevc_nvenc"; else if (!strcmp(S.encoder, "qsv")) cod = "hevc_qsv"; else if (!strcmp(S.encoder, "vaapi")) cod = "hevc_vaapi"; else cod = "libx265";
         } else { if (!strcmp(S.encoder, "nvenc")) cod = "h264_nvenc"; else if (!strcmp(S.encoder, "qsv")) cod = "h264_qsv"; else if (!strcmp(S.encoder, "vaapi")) cod = "h264_vaapi"; }
         
+        if (videotoolbox) cod = !strcmp(S.codec, "hevc") ? "hevc_videotoolbox" : "h264_videotoolbox";
         args[a++] = "-c:v"; args[a++] = cod;
         if (strstr(cod, "hevc") || strstr(cod, "265")) { args[a++] = "-tag:v"; args[a++] = "hvc1"; }
         args[a++] = "-pix_fmt"; args[a++] = (char*)pix;
         if (*S.threads) { args[a++] = "-threads"; args[a++] = S.threads; }
         
         char x265_fixed[256];
-        if (!strstr(cod, "vaapi")) { args[a++] = "-preset"; args[a++] = S.preset; args[a++] = "-crf"; args[a++] = S.crf; }
+        if (videotoolbox) {
+            // Preserve the existing slider's direction without pretending that
+            // VideoToolbox's 1..100 quality is equivalent to software CRF.
+            double crf = atof(S.crf);
+            if (crf < 0) crf = 0;
+            if (crf > 51) crf = 51;
+            double quality = 100.0 - crf * 99.0 / 51.0;
+            snprintf(hardware_quality, sizeof(hardware_quality), "%.2f", quality);
+            args[a++] = "-q:v"; args[a++] = hardware_quality;
+            args[a++] = "-allow_sw"; args[a++] = "0";
+            if (global_log_cb) {
+                char message[192];
+                snprintf(message, sizeof(message), "VideoToolbox quality: %s/100 (distinct from software CRF); CPU preset ignored.\n", hardware_quality);
+                global_log_cb(message);
+            }
+        } else if (!strstr(cod, "vaapi")) { args[a++] = "-preset"; args[a++] = S.preset; args[a++] = "-crf"; args[a++] = S.crf; }
         if (!strcmp(cod, "libx265") && *S.x265_params) {
             safe_copy(x265_fixed, S.x265_params, sizeof(x265_fixed));
             

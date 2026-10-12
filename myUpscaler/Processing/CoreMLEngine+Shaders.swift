@@ -6,11 +6,11 @@ import CoreVideo
 // MARK: - CoreML Engine Shader Extension
 
 nonisolated extension CoreMLEngine {
-    
+
     /// Manages the custom Metal kernels for video restoration
     class ShaderRegistry {
         static let shared = ShaderRegistry()
-        
+
         var casKernel: CIKernel?
         var debandKernel: CIKernel?
         var bilateralKernel: CIKernel?
@@ -32,16 +32,16 @@ nonisolated extension CoreMLEngine {
         var maskErodeKernel: CIKernel?
         var hannFeatherKernel: CIKernel?
         var temporalSmoothKernel: CIKernel?
-        
+
         private init() {
             loadKernels()
         }
-        
+
         private func loadKernels() {
             // 1. Try to load from default.metallib (compiled Metal)
             if let url = Bundle.main.url(forResource: "default", withExtension: "metallib"),
                let data = try? Data(contentsOf: url) {
-                
+
                 do {
                     self.casKernel = try CIKernel(functionName: "cas_sharpen", fromMetalLibraryData: data)
                     self.debandKernel = try CIKernel(functionName: "deband_dither", fromMetalLibraryData: data)
@@ -70,8 +70,8 @@ nonisolated extension CoreMLEngine {
                     print("CoreMLEngine: Failed to load kernels from metallib: \(error.localizedDescription)")
                 }
             }
-            
-      
+
+
             if let url = Bundle.main.url(forResource: "Shaders", withExtension: "ci.metal"),
                let code = try? String(contentsOf: url, encoding: .utf8) {
                 do {
@@ -106,7 +106,7 @@ nonisolated extension CoreMLEngine {
             }
         }
     }
-    
+
     // Shared CIContext with linear working color space for color-accurate ops
     private static let ciContext: CIContext = {
         let linear = CGColorSpace(name: CGColorSpace.linearSRGB) ?? CGColorSpaceCreateDeviceRGB()
@@ -117,13 +117,13 @@ nonisolated extension CoreMLEngine {
         ]
         return CIContext(options: options)
     }()
-    
+
     private static let srgbColorSpace: CGColorSpace = {
         CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
     }()
-    
+
     // MARK: - Public Filter API
-    
+
     /// Applies Drift Guard (Color Stabilization)
     /// - Parameters:
     ///   - input: AI upscaled image
@@ -135,19 +135,19 @@ nonisolated extension CoreMLEngine {
             print("Warning: DriftGuard Kernel not loaded")
             return input
         }
-        
+
         // ROI Callback: Pointwise, but needs both inputs
         // Core Image automatically handles sampling from both if extents match
-        
+
         guard let output = kernel.apply(extent: input.extent,
                                         roiCallback: { _, rect in rect },
                                         arguments: [input, baseline, CGFloat(threshold), CGFloat(strength)]) else {
             return input
         }
-        
+
         return output
     }
-    
+
     /// Applies Contrast Adaptive Sharpening (CAS)
     /// - Parameters:
     ///   - input: Source image
@@ -157,24 +157,24 @@ nonisolated extension CoreMLEngine {
             print("Warning: CAS Kernel not loaded")
             return input
         }
-        
+
         let sharpness = CGFloat(max(0.0, min(1.0, strength)))
         if sharpness == 0 { return input }
-        
+
         // ROI Callback: 3x3 window needs 1 pixel margin
         let roiCallback: CIKernelROICallback = { _, destRect in
             return destRect.insetBy(dx: -1, dy: -1)
         }
-        
+
         guard let output = kernel.apply(extent: input.extent,
                                         roiCallback: roiCallback,
                                         arguments: [input, sharpness]) else {
             return input
         }
-        
+
         return output
     }
-    
+
     /// Applies Gradient-Aware Debanding
     /// - Parameters:
     ///   - input: Source image
@@ -185,81 +185,81 @@ nonisolated extension CoreMLEngine {
             print("Warning: Deband Kernel not loaded")
             return input
         }
-        
+
         let thresh = CGFloat(max(0.001, min(0.1, threshold)))
         let amt = CGFloat(amount)
         if amt == 0 { return input }
-        
+
         // ROI Callback: Uses 2-pixel radius neighborhood
         let roiCallback: CIKernelROICallback = { _, destRect in
             return destRect.insetBy(dx: -2, dy: -2)
         }
-        
+
         guard let output = kernel.apply(extent: input.extent,
                                         roiCallback: roiCallback,
                                         arguments: [input, thresh, amt]) else {
             return input
         }
-        
+
         return output
     }
-    
+
     func applyDenoise(_ input: CIImage, sigmaSpatial: Double, sigmaRange: Double) -> CIImage {
         guard let kernel = ShaderRegistry.shared.bilateralKernel else {
             print("Warning: Bilateral Kernel not loaded")
             return input
         }
-        
+
         let sSpatial = CGFloat(sigmaSpatial)
         let sRange = CGFloat(sigmaRange)
         if sSpatial == 0 { return input }
-        
+
         let radius = CGFloat(2.0)
         let roiCallback: CIKernelROICallback = { _, destRect in
             return destRect.insetBy(dx: -radius, dy: -radius)
         }
-        
+
         guard let output = kernel.apply(extent: input.extent,
                                         roiCallback: roiCallback,
                                         arguments: [input, sSpatial, sRange]) else {
             return input
         }
-        
+
         return output
     }
-    
+
     // MARK: - Color Management
-    
+
     func applyLinearizeSRGB(_ input: CIImage, exposure: Double) -> CIImage {
         guard let kernel = ShaderRegistry.shared.linearizeKernel else { return input }
         let roi: CIKernelROICallback = { _, rect in rect }
         let exp = CGFloat(exposure)
         return kernel.apply(extent: input.extent, roiCallback: roi, arguments: [input, exp]) ?? input
     }
-    
+
     func applyEncodeSRGB(_ input: CIImage, exposure: Double) -> CIImage {
         guard let kernel = ShaderRegistry.shared.encodeSrgbKernel else { return input }
         let roi: CIKernelROICallback = { _, rect in rect }
         let exp = CGFloat(exposure)
         return kernel.apply(extent: input.extent, roiCallback: roi, arguments: [input, exp]) ?? input
     }
-    
+
     func applyToneMap(_ input: CIImage, exposure: Double) -> CIImage {
         guard let kernel = ShaderRegistry.shared.toneMapKernel else { return input }
         let roi: CIKernelROICallback = { _, rect in rect }
         let exp = CGFloat(exposure)
         return kernel.apply(extent: input.extent, roiCallback: roi, arguments: [input, exp]) ?? input
     }
-    
+
     func applyGammaBlend(base: CIImage, overlay: CIImage, mix: Double) -> CIImage {
         guard let kernel = ShaderRegistry.shared.gammaBlendKernel else { return overlay }
         let roi: CIKernelROICallback = { _, rect in rect }
         let mixVal = CGFloat(max(0.0, min(1.0, mix)))
         return kernel.apply(extent: overlay.extent, roiCallback: roi, arguments: [overlay, base, mixVal]) ?? overlay
     }
-    
+
     // MARK: - Sharpen / Detail
-    
+
     func applyUnsharpMask(_ input: CIImage, radius: Double, amount: Double, threshold: Double) -> CIImage {
         guard let kernel = ShaderRegistry.shared.unsharpKernel else { return input }
         let roi: CIKernelROICallback = { _, rect in rect.insetBy(dx: -2, dy: -2) }
@@ -270,7 +270,7 @@ nonisolated extension CoreMLEngine {
                                         CGFloat(amount),
                                         CGFloat(threshold)]) ?? input
     }
-    
+
     func applyLaplacianSharpen(_ input: CIImage, strength: Double) -> CIImage {
         guard let kernel = ShaderRegistry.shared.laplacianKernel else { return input }
         let roi: CIKernelROICallback = { _, rect in rect.insetBy(dx: -1, dy: -1) }
@@ -278,15 +278,15 @@ nonisolated extension CoreMLEngine {
                             roiCallback: roi,
                             arguments: [input, CGFloat(strength)]) ?? input
     }
-    
+
     // MARK: - Extra Denoise / Deband
-    
+
     func applyMedianDenoise(_ input: CIImage) -> CIImage {
         guard let kernel = ShaderRegistry.shared.medianKernel else { return input }
         let roi: CIKernelROICallback = { _, rect in rect.insetBy(dx: -1, dy: -1) }
         return kernel.apply(extent: input.extent, roiCallback: roi, arguments: [input]) ?? input
     }
-    
+
     func applyBlueNoiseDeband(_ input: CIImage, threshold: Double, amount: Double) -> CIImage {
         guard let kernel = ShaderRegistry.shared.blueNoiseDebandKernel else { return input }
         let roi: CIKernelROICallback = { _, rect in rect.insetBy(dx: -1, dy: -1) }
@@ -294,9 +294,9 @@ nonisolated extension CoreMLEngine {
                             roiCallback: roi,
                             arguments: [input, CGFloat(threshold), CGFloat(amount)]) ?? input
     }
-    
+
     // MARK: - Artifact Suppression
-    
+
     func applyDehalo(_ input: CIImage, strength: Double) -> CIImage {
         guard let kernel = ShaderRegistry.shared.dehaloKernel else { return input }
         let roi: CIKernelROICallback = { _, rect in rect.insetBy(dx: -1, dy: -1) }
@@ -304,7 +304,7 @@ nonisolated extension CoreMLEngine {
                             roiCallback: roi,
                             arguments: [input, CGFloat(strength)]) ?? input
     }
-    
+
     func applyMoireSuppress(_ input: CIImage, strength: Double) -> CIImage {
         guard let kernel = ShaderRegistry.shared.moireKernel else { return input }
         let roi: CIKernelROICallback = { _, rect in rect.insetBy(dx: -1, dy: -1) }
@@ -312,21 +312,21 @@ nonisolated extension CoreMLEngine {
                             roiCallback: roi,
                             arguments: [input, CGFloat(strength)]) ?? input
     }
-    
+
     // MARK: - Alpha / Mask
-    
+
     func applyPremultiplyAlpha(_ input: CIImage) -> CIImage {
         guard let kernel = ShaderRegistry.shared.premultiplyKernel else { return input }
         let roi: CIKernelROICallback = { _, rect in rect }
         return kernel.apply(extent: input.extent, roiCallback: roi, arguments: [input]) ?? input
     }
-    
+
     func applyUnpremultiplyAlpha(_ input: CIImage) -> CIImage {
         guard let kernel = ShaderRegistry.shared.unpremultiplyKernel else { return input }
         let roi: CIKernelROICallback = { _, rect in rect }
         return kernel.apply(extent: input.extent, roiCallback: roi, arguments: [input]) ?? input
     }
-    
+
     func featherMask(_ mask: CIImage, radius: Double) -> CIImage {
         guard let kernel = ShaderRegistry.shared.maskFeatherKernel else { return mask }
         let roi: CIKernelROICallback = { _, rect in rect.insetBy(dx: -3, dy: -3) }
@@ -334,7 +334,7 @@ nonisolated extension CoreMLEngine {
                             roiCallback: roi,
                             arguments: [mask, CGFloat(radius)]) ?? mask
     }
-    
+
     func dilateMask(_ mask: CIImage, radius: Double) -> CIImage {
         guard let kernel = ShaderRegistry.shared.maskDilateKernel else { return mask }
         let roi: CIKernelROICallback = { _, rect in rect.insetBy(dx: -3, dy: -3) }
@@ -342,7 +342,7 @@ nonisolated extension CoreMLEngine {
                             roiCallback: roi,
                             arguments: [mask, CGFloat(radius)]) ?? mask
     }
-    
+
     func erodeMask(_ mask: CIImage, radius: Double) -> CIImage {
         guard let kernel = ShaderRegistry.shared.maskErodeKernel else { return mask }
         let roi: CIKernelROICallback = { _, rect in rect.insetBy(dx: -3, dy: -3) }
@@ -350,7 +350,7 @@ nonisolated extension CoreMLEngine {
                             roiCallback: roi,
                             arguments: [mask, CGFloat(radius)]) ?? mask
     }
-    
+
     func processMask(_ mask: CIImage, settings: UpscaleSettings) -> CIImage {
         var m = mask
         if settings.maskDilateRadiusValue > 0 {
@@ -364,9 +364,9 @@ nonisolated extension CoreMLEngine {
         }
         return m
     }
-    
+
     // MARK: - Tile Feathering
-    
+
     func applyHannFeather(_ tile: CIImage, margin: Double) -> CIImage {
         guard let kernel = ShaderRegistry.shared.hannFeatherKernel else { return tile }
         let roi: CIKernelROICallback = { _, rect in rect }
@@ -375,9 +375,9 @@ nonisolated extension CoreMLEngine {
                             roiCallback: roi,
                             arguments: [tile, CGFloat(size.width), CGFloat(size.height), CGFloat(margin)]) ?? tile
     }
-    
+
     // MARK: - Temporal
-    
+
     func applyTemporalSmooth(current: CIImage, previous: CIImage, strength: Double) -> CIImage {
         guard let kernel = ShaderRegistry.shared.temporalSmoothKernel else { return current }
         let roi: CIKernelROICallback = { _, rect in rect }
@@ -385,20 +385,20 @@ nonisolated extension CoreMLEngine {
                             roiCallback: roi,
                             arguments: [current, previous, CGFloat(strength)]) ?? current
     }
-    
+
     // MARK: - Pipeline Integration Helper
-    
+
     /// Helper to apply all active filters in the correct order
     /// Pipeline: Color → Denoise → Deband → Sharpen → Artifact cleanup → Encode
     func applyPostProcessing(to input: CIImage, original: CIImage? = nil, settings: UpscaleSettings) -> CIImage {
         var processed = input
         let source = original ?? input
-        
+
         // Alpha safety first
         if settings.alphaSafeProcessing {
             processed = applyUnpremultiplyAlpha(processed)
         }
-        
+
         // Color space shaping
         if settings.enableColorLinearize {
             processed = applyLinearizeSRGB(processed, exposure: settings.colorExposureValue)
@@ -406,12 +406,12 @@ nonisolated extension CoreMLEngine {
         if settings.enableToneMap {
             processed = applyToneMap(processed, exposure: settings.toneMapExposureValue)
         }
-        
+
         // Optional median prefilter (light speckle)
         if settings.useMedianPrefilter {
             processed = applyMedianDenoise(processed)
         }
-        
+
         // Denoise (lightweight bilateral)
         if !settings.noDenoise && settings.denoiseStrength != "0" {
             let strength = double(from: settings.denoiseStrength, default: 0.0)
@@ -419,18 +419,18 @@ nonisolated extension CoreMLEngine {
             let sigmaSpatial = 2.0
             processed = applyDenoise(processed, sigmaSpatial: sigmaSpatial, sigmaRange: sigmaRange)
         }
-        
+
         // Deband (dither + optional blue-noise)
         if !settings.noDeband && settings.debandStrength != "0" {
             let thresh = 0.02
             let amount = double(from: settings.debandStrength, default: 0.0)
             processed = applyDeband(processed, threshold: thresh, amount: amount)
-            
+
             if settings.useBlueNoiseDeband {
                 processed = applyBlueNoiseDeband(processed, threshold: thresh * 0.6, amount: amount * 0.5)
             }
         }
-        
+
         // Sharpen (CAS or USM/laplacian)
         if !settings.noSharpen && settings.sharpenStrength != "0" {
             if settings.sharpenMethod == "unsharp" {
@@ -442,12 +442,12 @@ nonisolated extension CoreMLEngine {
                 let strength = double(from: settings.sharpenStrength, default: 0.0)
                 processed = applyCustomSharpen(processed, strength: strength)
             }
-            
+
             if settings.useLaplacianSharpen {
                 processed = applyLaplacianSharpen(processed, strength: settings.laplacianStrengthValue)
             }
         }
-        
+
         // Artifact suppression
         if settings.useDehalo {
             processed = applyDehalo(processed, strength: settings.dehaloStrengthValue)
@@ -455,7 +455,7 @@ nonisolated extension CoreMLEngine {
         if settings.useMoireSuppress {
             processed = applyMoireSuppress(processed, strength: settings.moireStrengthValue)
         }
-        
+
         // Encode back to sRGB / apply gamma-correct blend
         if settings.encodeToSRGB {
             processed = applyEncodeSRGB(processed, exposure: settings.encodeExposureValue)
@@ -463,57 +463,57 @@ nonisolated extension CoreMLEngine {
         if settings.gammaBlendWeightValue > 0 {
             processed = applyGammaBlend(base: source, overlay: processed, mix: settings.gammaBlendWeightValue)
         }
-        
+
         if settings.alphaSafeProcessing {
             processed = applyPremultiplyAlpha(processed)
         }
-        
+
         return processed
     }
-    
+
     // MARK: - Buffer Bridging (CVPixelBuffer)
-    
+
     /// Pre-filter before feeding CoreML (color normalization + light denoise)
     func applyPreProcessing(to input: CIImage, settings: UpscaleSettings) -> CIImage {
         var processed = input
-        
+
         if settings.alphaSafeProcessing {
             processed = applyUnpremultiplyAlpha(processed)
         }
-        
+
         if settings.enableColorLinearize {
             processed = applyLinearizeSRGB(processed, exposure: settings.colorExposureValue)
         }
         if settings.enableToneMap {
             processed = applyToneMap(processed, exposure: settings.toneMapExposureValue)
         }
-        
+
         if settings.useMedianPrefilter {
             processed = applyMedianDenoise(processed)
         }
-        
+
         if !settings.noDenoise && settings.denoiseStrength != "0" {
             let strength = double(from: settings.denoiseStrength, default: 0.0)
             let sigmaRange = strength * 0.02
             let sigmaSpatial = 2.0
             processed = applyDenoise(processed, sigmaSpatial: sigmaSpatial, sigmaRange: sigmaRange)
         }
-        
+
         if settings.encodeToSRGB {
             processed = applyEncodeSRGB(processed, exposure: settings.encodeExposureValue)
         }
-        
+
         if settings.useCosineFeather && settings.tileFeatherMarginValue > 0 {
             processed = applyHannFeather(processed, margin: Double(settings.tileFeatherMarginValue))
         }
-        
+
         if settings.alphaSafeProcessing {
             processed = applyPremultiplyAlpha(processed)
         }
-        
+
         return processed
     }
-    
+
     /// Run pre-processing on a tile buffer prior to CoreML inference.
     func preprocessTileBuffer(_ buffer: CVPixelBuffer, settings: UpscaleSettings) {
         guard settings.enableColorLinearize
@@ -526,7 +526,7 @@ nonisolated extension CoreMLEngine {
         let processed = applyPreProcessing(to: ci, settings: settings)
         CoreMLEngine.ciContext.render(processed, to: buffer, bounds: processed.extent, colorSpace: CoreMLEngine.srgbColorSpace)
     }
-    
+
     /// Run post-processing on a full frame buffer and optionally apply temporal smoothing.
     func postprocessFrameBuffer(_ buffer: CVPixelBuffer,
                                 previous: CVPixelBuffer?,
@@ -534,17 +534,17 @@ nonisolated extension CoreMLEngine {
         var ci = CIImage(cvPixelBuffer: buffer)
         let original = ci
         ci = applyPostProcessing(to: ci, original: original, settings: settings)
-        
+
         if settings.useTemporalSmoothing, let previous = previous {
             let prevCI = CIImage(cvPixelBuffer: previous)
             ci = applyTemporalSmooth(current: ci, previous: prevCI, strength: settings.temporalStrengthValue)
         }
-        
+
         CoreMLEngine.ciContext.render(ci, to: buffer, bounds: ci.extent, colorSpace: CoreMLEngine.srgbColorSpace)
     }
-    
+
     // MARK: - Helpers
-    
+
     private func double(from value: String, default fallback: Double) -> Double {
         Double(value) ?? fallback
     }

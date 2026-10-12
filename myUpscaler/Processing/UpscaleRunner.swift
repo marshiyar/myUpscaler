@@ -4,12 +4,12 @@ import SwiftUI
 import AVFoundation
 
 class UpscaleRunner: ObservableObject {
-    
+
     enum OutputMode { case same, custom }
     enum ProcessingPhase { case idle, preparing, processing, finalizing }
     @Published var phase: ProcessingPhase = .idle
     @Published var progressKnown = false
-    
+
      static let isAppleSilicon: Bool = {
 #if arch(arm64)
         return true
@@ -17,7 +17,7 @@ class UpscaleRunner: ObservableObject {
         return false
 #endif
     }()
-    
+
     // MARK: - Dependencies
      let fileSystem: FileSystemProtocol
      let engine: EngineProtocol
@@ -26,43 +26,43 @@ class UpscaleRunner: ObservableObject {
     @Published var inputPath = ""
     @Published var outputMode: OutputMode = .custom
     @Published var customOutputFolder = ""
-    
+
      var activeOutputFolder: String? = nil
-    
+
      var expectedOutputPath: String? = nil
      var activeEngine: EngineProtocol?
-    
+
     var securityScopedOutputURL: URL? = nil
-    
+
     // MARK: - Settings Source of Truth
     @Published var settings = UpscaleSettings()
-    
+
     // MARK: - Execution State
     @Published var isRunning = false
     @Published var log = ""
     @Published var completedOutputPath: String? = nil
-    
+
     // MARK: - Progress Stats
     @Published var progress: Double = 0.0
     @Published var fpsString = "0"
     @Published var timeString = "0:00"
     @Published var etaString = "--:--"
-    
+
     var videoDuration: Double = 0.0
-    
+
      var currentTask: Task<Void, Never>?
     private var currentRunID = UUID()
     @Published private(set) var isCancelling = false
-    
+
      var logBuffer: String = ""
      var lastLogFlushTime: TimeInterval = 0
      let logFlushInterval: TimeInterval = 1.0
      var lastLogBufferTime: TimeInterval = 0
      let logBufferInterval: TimeInterval = 0.1
      var lastErrorLogLine: String?
-    
+
     // MARK: - Initialization
-    
+
     init(fileSystem: FileSystemProtocol = FileManager.default,
          engine: EngineProtocol = Up60PEngine.shared,
          assetLoader: AssetLoaderProtocol = AVAssetLoader()) {
@@ -73,9 +73,9 @@ class UpscaleRunner: ObservableObject {
             self.customOutputFolder = downloads.path
         }
     }
-    
+
     // MARK: - Computed Properties
-    
+
     var predictedOutputName: String {
         let inputURL = URL(fileURLWithPath: inputPath)
         let base = inputURL.deletingPathExtension().lastPathComponent
@@ -85,13 +85,13 @@ class UpscaleRunner: ObservableObject {
         }
         return base + "_[restored].mp4"
     }
-    
+
     var outputVideoPath: String {
         let folder = outputFolder()
         let fileName = predictedOutputName
         return (folder as NSString).appendingPathComponent(fileName)
     }
-    
+
     func outputFolder() -> String {
         if let active = activeOutputFolder { return active }
         switch outputMode {
@@ -101,19 +101,19 @@ class UpscaleRunner: ObservableObject {
             return customOutputFolder
         }
     }
-    
+
      func cloneSettings(_ settings: UpscaleSettings) -> UpscaleSettings {
         let snapshot = UpscaleSettingsSnapshot(settings: settings)
         let cloned = UpscaleSettings()
         snapshot.apply(to: cloned)
         return cloned
     }
-    
+
     // MARK: - Execution Logic
     nonisolated class SafeDuration {
          var _duration: Double = 0.0
          let lock = NSLock()
-        
+
         var duration: Double {
             get {
                 lock.lock()
@@ -126,12 +126,12 @@ class UpscaleRunner: ObservableObject {
                 _duration = newValue
             }
         }
-        
+
         init(duration: Double) {
             self._duration = duration
         }
     }
-    
+
     func run() {
         guard !isRunning else { return }
         if let reason = settings.upscalingUnavailableReason {
@@ -144,7 +144,7 @@ class UpscaleRunner: ObservableObject {
         }
         let runID = UUID()
         currentRunID = runID
-        
+
         log = ""
         progress = 0.0
         videoDuration = 0.0
@@ -158,16 +158,16 @@ class UpscaleRunner: ObservableObject {
         phase = .preparing
         progressKnown = false
         lastErrorLogLine = nil
-        
+
         logBuffer = ""
         lastLogFlushTime = Date().timeIntervalSince1970
         lastLogBufferTime = Date().timeIntervalSince1970
-        
+
         if !UpscaleRunner.isAppleSilicon && settings.hwAccel == "videotoolbox" {
             settings.hwAccel = "none"
             log.append("Note: VideoToolbox decode not available on this Mac. Falling back to CPU decode.\n\n")
         }
-        
+
         let selectedEngine: EngineProtocol
         if settings.scaler == "coreml" {
             selectedEngine = CoreMLEngine.shared
@@ -198,50 +198,50 @@ class UpscaleRunner: ObservableObject {
             }
             log.append("This prevents over-processing while.\n\n")
         }
-        
+
         log.append("Input: \(inputPath)\n")
         log.append("Output: \(outputFolder())\n\n")
         log.append("Expected output file: \(outputVideoPath)\n\n")
-        
+
         // Capture safe state for the background callback
         let safeState = SafeDuration(duration: self.videoDuration)
         let updateGate = ProgressUpdateGate()
-        
+
         // Set up log handler for the ACTIVE engine
         selectedEngine.setLogHandler { [weak self] message in
             guard let self = self else { return }
-            
+
             guard updateGate.shouldEmit(message) else { return }
             // 1. Parse on background thread immediately using safe state
             let currentDur = safeState.duration
             let parseState = FFmpegParser.parse(line: message, currentDuration: currentDur)
-            
+
             // Update safe state if we found a new duration
             if let newDur = parseState.newDuration {
                 safeState.duration = newDur
             }
-            
+
             Task { @MainActor in
                 guard self.currentRunID == runID, !self.isCancelling else { return }
                 let now = Date().timeIntervalSince1970
                 let lower = message.lowercased()
                 let isError = lower.contains("error") || lower.contains("fail")
-                
+
                 // Always track errors immediately
                 if isError {
                     self.lastErrorLogLine = message
                 }
-                
+
                 let isProgressMessage = lower.contains("time=") || lower.contains("fps=")
                 let shouldBuffer = !isProgressMessage || isError || (now - self.lastLogBufferTime >= self.logBufferInterval)
-                
+
                 if shouldBuffer {
                     self.logBuffer.append(message)
                     if !isError {
                         self.lastLogBufferTime = now
                     }
                 }
-                
+
                 // Apply parsed state - update UI stats
                 if let newDur = parseState.newDuration {
                     self.videoDuration = newDur
@@ -259,29 +259,29 @@ class UpscaleRunner: ObservableObject {
                         if prog > self.progress { self.progress = prog }
                     }
                 }
-                
+
                 // Flush buffer periodically
                 if now - self.lastLogFlushTime >= self.logFlushInterval {
                     self.flushLogBuffer()
                     self.lastLogFlushTime = now
                 }
-                
+
                 let lowerMessage = message.lowercased()
                 let hasElapsed = lowerMessage.contains("elapsed=")
                 let isDoneMessage = message.trimmingCharacters(in: .whitespacesAndNewlines) == "Done."
-                
+
                 if hasElapsed || isDoneMessage || lowerMessage.contains("stage=finalizing") {
                     self.flushLogBuffer()
-                    
+
                     self.phase = .finalizing
                     self.progressKnown = false
 
                 }
             }
         }
-        
+
         loadVideoDuration()
-        
+
         let capturedInputPath = inputPath
         let capturedSettings = cloneSettings(settings)
         let capturedOutputDirectory = outputFolder()
@@ -308,7 +308,7 @@ class UpscaleRunner: ObservableObject {
             activeOutputFolder = nil
             return
         }
-        
+
         // Verify input file exists before starting
         if !fileSystem.fileExists(atPath: capturedInputPath) {
             log.append("\n--- ERROR: Input file does not exist ---\n")
@@ -319,15 +319,15 @@ class UpscaleRunner: ObservableObject {
             accessStopper?()
             return
         }
-        
+
         currentTask = Task.detached(priority: .userInitiated) { [weak self] in
             guard let self = self else { return }
             defer { accessStopper?() }
-            
+
             do {
                 await Task.yield()
                 try Task.checkCancellation()
-                
+
                 let tunedSettings = capturedSettings
                 try await selectedEngine.process(
                     inputPath: capturedInputPath,
@@ -335,7 +335,7 @@ class UpscaleRunner: ObservableObject {
                     outputDirectory: capturedOutputDirectory
                 )
                 try Task.checkCancellation()
-                
+
                 try await MainActor.run {
                     guard self.currentRunID == runID else { return }
                     guard let path = self.expectedOutputPath,
@@ -367,7 +367,7 @@ class UpscaleRunner: ObservableObject {
             }
         }
     }
-    
+
     func cancel() {
         guard isRunning else { return }
         guard !isCancelling else { return }
@@ -379,15 +379,15 @@ class UpscaleRunner: ObservableObject {
         log.append("\n--- User Canceled Process (stopping engine) ---\n")
         // Keep the run occupied until process() exits and releases its resources.
     }
-    
+
     // MARK: - Video Duration Loading
-    
+
     func loadVideoDuration() {
         guard !inputPath.isEmpty else {
             videoDuration = 0.0
             return
         }
-        
+
         let path = inputPath
         let runID = currentRunID
         Task {
@@ -407,10 +407,10 @@ class UpscaleRunner: ObservableObject {
             }
         }
     }
-    
+
     // MARK: - Engine-owned completion
 
-    func markAsComplete(outputPath: String?) {
+    func markAsComplete(outputPath: String) {
         guard isRunning else { return }
         progress = 1.0
         progressKnown = true
@@ -420,24 +420,20 @@ class UpscaleRunner: ObservableObject {
         }
         activeOutputFolder = nil
         etaString = "0:00"
-        
-        if let path = outputPath {
-            completedOutputPath = path
-            log.append("\n--- Process Finished Successfully ---\n")
-        } else {
-            log.append("\n--- Process Finished (waiting for output file) ---\n")
-        }
-        
+
+        completedOutputPath = outputPath
+        log.append("\n--- Process Finished Successfully ---\n")
+
         flushLogBuffer()
-        
+
         isRunning = false
         currentTask = nil
         isCancelling = false
     }
-    
+
     func flushLogBuffer() {
         guard !logBuffer.isEmpty else { return }
-        
+
         log.append(logBuffer)
         logBuffer = ""
         if log.count > 10000 {

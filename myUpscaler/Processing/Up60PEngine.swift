@@ -18,14 +18,14 @@ struct Up60PBridge {
     typealias SetDryRunFunc = (_ enable: Int32) -> Void
     typealias ShutdownFunc = () -> Void
     typealias CancelFunc = () -> Void
-    
+
     let initFunc: InitFunc
     let defaultOptionsFunc: DefaultOptionsFunc
     let processPathFunc: ProcessFunc
     let setDryRunFunc: SetDryRunFunc
     let shutdownFunc: ShutdownFunc
     let cancelFunc: CancelFunc
-    
+
     static let live = Up60PBridge(
         initFunc: up60p_init,
         defaultOptionsFunc: up60p_default_options,
@@ -45,7 +45,7 @@ final class Up60PEngine {
     private static var bridge: Up60PBridge { bridgeOverride ?? .live }
     nonisolated(unsafe) private static var currentLogHandler: ((String) -> Void)?
     nonisolated private static let logHandlerQueue = DispatchQueue(label: "com.myupscaler.loghandler")
-    
+
     static var shared: Up60PEngine {
         if let existing = _shared {
             return existing
@@ -54,25 +54,25 @@ final class Up60PEngine {
         _shared = instance
         return instance
     }
-    
+
     static func setLogHandler(_ handler: @escaping (String) -> Void) {
         logHandlerQueue.sync {
             currentLogHandler = handler
         }
     }
-    
+
     private init() {
         // Don't initialize here - do it lazily on first use
     }
-    
+
     private func ensureInitialized() throws {
         guard !isInitialized else { return }
-        
+
         // Set up the log callback that will forward to the current handler
         let callback: @convention(c) (UnsafePointer<CChar>?) -> Void = { message in
             guard let message = message else { return }
             let string = String(cString: message)
-            
+
             // Filter out Metal/AIR shader dumps and binary garbage
             // Only filter if it looks like a large dump or IR code
             if string.count > 500 && (string.contains("air.") || string.contains("metal")) {
@@ -82,17 +82,17 @@ final class Up60PEngine {
             if string.contains("air.compile") || string.contains("air.read") || string.contains("air.write") {
                 return
             }
-            
+
             // Clean up control characters if any (simple scan)
             let cleaned = string.filter { $0.isASCII || $0.isWhitespace || $0.isPunctuation }
-            
+
             Up60PEngine.logHandlerQueue.sync {
                 // The runner parses/throttles on the producer before enqueueing UI updates.
                 // Other consumers must perform their own UI actor hop.
                 Up60PEngine.currentLogHandler?(cleaned)
             }
         }
-        
+
         // Log initialization start
         Up60PEngine.logHandlerQueue.sync {
             if let handler = Up60PEngine.currentLogHandler {
@@ -105,7 +105,7 @@ final class Up60PEngine {
         // The C engine owns bundle resolution and validates the same path at
         // initialization and before processing. Do not set or honor overrides.
         let result = Self.bridge.initFunc(nil, callback)
-        
+
         if result != UP60P_OK {
             // Log error before throwing
             Up60PEngine.logHandlerQueue.sync {
@@ -117,7 +117,7 @@ final class Up60PEngine {
             }
             throw mapError(result) ?? .unknownStatus(Int32(result.rawValue))
         }
-        
+
         // Log successful initialization
         Up60PEngine.logHandlerQueue.sync {
             if let handler = Up60PEngine.currentLogHandler {
@@ -126,10 +126,10 @@ final class Up60PEngine {
                 }
             }
         }
-        
+
         isInitialized = true
     }
-    
+
     private func log(_ message: String) {
         Up60PEngine.logHandlerQueue.sync {
             if let handler = Up60PEngine.currentLogHandler {
@@ -139,7 +139,7 @@ final class Up60PEngine {
             }
         }
     }
-    
+
     private func mapError(_ code: up60p_error) -> Up60PEngineError? {
         switch code {
         case UP60P_ERR_INVALID_OPTIONS:   return .invalidOptions
@@ -153,7 +153,7 @@ final class Up60PEngine {
             return .unknownStatus(Int32(code.rawValue))
         }
     }
-    
+
     // Helper to write a Swift String into a fixed-size C char[] field
     private func setString<T>(_ field: inout T, _ capacity: Int, _ value: String) {
         withUnsafeMutableBytes(of: &field) { bytes in
@@ -167,9 +167,9 @@ final class Up60PEngine {
             }
         }
     }
-    
+
     // MARK: -
-    
+
     private func makeOptions(from settings: UpscaleSettings,
                              outputDir: String) throws -> up60p_options
     {
@@ -177,24 +177,24 @@ final class Up60PEngine {
             throw Up60PEngineError.unsupportedScaler
         }
         try ensureInitialized()
-        
+
         var opts = up60p_options()
         Up60PEngine.bridge.defaultOptionsFunc(&opts)
-        
+
         // MARK: Core
         setString(&opts.codec, MemoryLayout.size(ofValue: opts.codec), settings.useHEVC ? "hevc" : "h264")
         setString(&opts.crf, MemoryLayout.size(ofValue: opts.crf), String(Int(settings.crf)))
         setString(&opts.preset, MemoryLayout.size(ofValue: opts.preset), settings.preset)
         setString(&opts.fps, MemoryLayout.size(ofValue: opts.fps), settings.fps)
         setString(&opts.scale_factor, MemoryLayout.size(ofValue: opts.scale_factor), String(format: "%.2f", settings.scaleFactor))
-        
+
         // MARK: Scaler / AI
         setString(&opts.scaler, MemoryLayout.size(ofValue: opts.scaler), settings.scaler)
         setString(&opts.ai_backend, MemoryLayout.size(ofValue: opts.ai_backend), settings.aiBackend)
         setString(&opts.ai_model, MemoryLayout.size(ofValue: opts.ai_model), settings.aiModelPath)
         setString(&opts.ai_model_type, MemoryLayout.size(ofValue: opts.ai_model_type), settings.aiModelType)
         setString(&opts.dnn_backend, MemoryLayout.size(ofValue: opts.dnn_backend), settings.dnnBackend)
-        
+
         // MARK: Filters – first set
         setString(&opts.denoiser, MemoryLayout.size(ofValue: opts.denoiser), settings.denoiser)
         setString(&opts.denoise_strength, MemoryLayout.size(ofValue: opts.denoise_strength), settings.denoiseStrength)
@@ -202,21 +202,21 @@ final class Up60PEngine {
         setString(&opts.deblock_thresh, MemoryLayout.size(ofValue: opts.deblock_thresh), settings.deblockThresh)
         opts.dering_active = settings.deringActive ? 1 : 0
         setString(&opts.dering_strength, MemoryLayout.size(ofValue: opts.dering_strength), settings.deringStrength)
-        
+
         setString(&opts.sharpen_method, MemoryLayout.size(ofValue: opts.sharpen_method), settings.sharpenMethod)
         setString(&opts.sharpen_strength, MemoryLayout.size(ofValue: opts.sharpen_strength), settings.sharpenStrength)
         setString(&opts.usm_radius, MemoryLayout.size(ofValue: opts.usm_radius), settings.usmRadius)
         setString(&opts.usm_amount, MemoryLayout.size(ofValue: opts.usm_amount), settings.usmAmount)
         setString(&opts.usm_threshold, MemoryLayout.size(ofValue: opts.usm_threshold), settings.usmThreshold)
-        
+
         setString(&opts.deband_method, MemoryLayout.size(ofValue: opts.deband_method), settings.debandMethod)
         setString(&opts.deband_strength, MemoryLayout.size(ofValue: opts.deband_strength), settings.debandStrength)
         setString(&opts.f3kdb_range, MemoryLayout.size(ofValue: opts.f3kdb_range), settings.f3kdbRange)
         setString(&opts.f3kdb_y, MemoryLayout.size(ofValue: opts.f3kdb_y), settings.f3kdbY)
         setString(&opts.f3kdb_cbcr, MemoryLayout.size(ofValue: opts.f3kdb_cbcr), settings.f3kdbCbCr)
-        
+
         setString(&opts.grain_strength, MemoryLayout.size(ofValue: opts.grain_strength), settings.grainStrength)
-        
+
         // MARK: Second set (using EFFECTIVE values for intelligent attenuation when stacking)
         setString(&opts.denoiser_2, MemoryLayout.size(ofValue: opts.denoiser_2), settings.denoiser2)
         // Use EFFECTIVE (attenuated) denoise strength for second set
@@ -225,42 +225,42 @@ final class Up60PEngine {
         setString(&opts.deblock_thresh_2, MemoryLayout.size(ofValue: opts.deblock_thresh_2), settings.deblockThresh2)
         opts.dering_active_2 = settings.deringActive2 ? 1 : 0
         setString(&opts.dering_strength_2, MemoryLayout.size(ofValue: opts.dering_strength_2), settings.deringStrength2)
-        
+
         setString(&opts.sharpen_method_2, MemoryLayout.size(ofValue: opts.sharpen_method_2), settings.sharpenMethod2)
         // Use EFFECTIVE (attenuated) values for second set to prevent over-processing when stacking
         setString(&opts.sharpen_strength_2, MemoryLayout.size(ofValue: opts.sharpen_strength_2), settings.effectiveSharpenStrength2)
         setString(&opts.usm_radius_2, MemoryLayout.size(ofValue: opts.usm_radius_2), settings.effectiveUsmRadius2)
         setString(&opts.usm_amount_2, MemoryLayout.size(ofValue: opts.usm_amount_2), settings.effectiveUsmAmount2)
         setString(&opts.usm_threshold_2, MemoryLayout.size(ofValue: opts.usm_threshold_2), settings.usmThreshold2)
-        
+
         setString(&opts.deband_method_2, MemoryLayout.size(ofValue: opts.deband_method_2), settings.debandMethod2)
         // Use EFFECTIVE (attenuated) deband values for second set
         setString(&opts.deband_strength_2, MemoryLayout.size(ofValue: opts.deband_strength_2), settings.effectiveDebandStrength2)
         setString(&opts.f3kdb_range_2, MemoryLayout.size(ofValue: opts.f3kdb_range_2), settings.f3kdbRange2)
         setString(&opts.f3kdb_y_2, MemoryLayout.size(ofValue: opts.f3kdb_y_2), settings.effectiveF3kdbY2)
         setString(&opts.f3kdb_cbcr_2, MemoryLayout.size(ofValue: opts.f3kdb_cbcr_2), settings.effectiveF3kdbCbCr2)
-        
+
         setString(&opts.grain_strength_2, MemoryLayout.size(ofValue: opts.grain_strength_2), settings.grainStrength2)
-        
+
         opts.use_denoise_2 = settings.useDenoise2 ? 1 : 0
         opts.use_deblock_2 = settings.useDeblock2 ? 1 : 0
         opts.use_dering_2  = settings.useDering2  ? 1 : 0
         opts.use_sharpen_2 = settings.useSharpen2 ? 1 : 0
         opts.use_deband_2  = settings.useDeband2  ? 1 : 0
         opts.use_grain_2   = settings.useGrain2   ? 1 : 0
-        
+
         // MARK: Other
         setString(&opts.mi_mode, MemoryLayout.size(ofValue: opts.mi_mode), settings.interpolation)
         setString(&opts.eq_contrast, MemoryLayout.size(ofValue: opts.eq_contrast), settings.eqContrast)
         setString(&opts.eq_brightness, MemoryLayout.size(ofValue: opts.eq_brightness), settings.eqBrightness)
         setString(&opts.eq_saturation, MemoryLayout.size(ofValue: opts.eq_saturation), settings.eqSaturation)
         setString(&opts.x265_params, MemoryLayout.size(ofValue: opts.x265_params), settings.x265Params)
-        
+
         setString(&opts.outdir, MemoryLayout.size(ofValue: opts.outdir), outputDir)
         setString(&opts.audio_bitrate, MemoryLayout.size(ofValue: opts.audio_bitrate), settings.audioBitrate)
         setString(&opts.threads, MemoryLayout.size(ofValue: opts.threads), settings.threads)
         setString(&opts.movflags, MemoryLayout.size(ofValue: opts.movflags), settings.movflags)
-        
+
         opts.use10        = settings.use10Bit ? 1 : 0
         opts.preview      = settings.preview  ? 1 : 0
         opts.no_deblock   = settings.noDeblock ? 1 : 0
@@ -272,16 +272,16 @@ final class Up60PEngine {
         opts.no_eq        = settings.noEq ? 1 : 0
         opts.no_grain     = settings.noGrain ? 1 : 0
         opts.pci_safe_mode = settings.pciSafe ? 1 : 0
-        
+
         setString(&opts.hwaccel, MemoryLayout.size(ofValue: opts.hwaccel), settings.hwAccel)
         setString(&opts.encoder, MemoryLayout.size(ofValue: opts.encoder), settings.encoder)
-        
+
         return opts
     }
-    
+
     private var currentProcessTask: Task<Void, Never>?
     private var currentProcessID: UUID?
-    
+
     func process(inputPath: String,
                  settings: UpscaleSettings,
                  outputDirectory: String) async throws {
@@ -289,11 +289,11 @@ final class Up60PEngine {
         cancel()
         if let previousTask { await previousTask.value }
         try Task.checkCancellation()
-        
+
         let codecDecision = CodecSupport.resolve(requestHEVC: settings.useHEVC)
         if let message = codecDecision.message { log(message) }
         settings.useHEVC = codecDecision.useHEVC
-        
+
         struct StackingSnapshot {
             let has: Bool
             let sharpen: Bool
@@ -303,7 +303,7 @@ final class Up60PEngine {
             let denoisePct: Int
             let debandPct: Int
         }
-        
+
         let stackingSnapshot = await MainActor.run { () -> StackingSnapshot in
             let has = settings.hasFilterStacking
             let sharpen = settings.isSharpenStacked
@@ -315,7 +315,7 @@ final class Up60PEngine {
             return StackingSnapshot(has: has, sharpen: sharpen, denoise: denoise, deband: deband,
                                     sharpenPct: sharpenPct, denoisePct: denoisePct, debandPct: debandPct)
         }
-        
+
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             let processID = UUID()
             currentProcessID = processID
@@ -324,15 +324,15 @@ final class Up60PEngine {
                     continuation.resume(throwing: Up60PEngineError.internalError)
                     return
                 }
-                
+
                 do {
                     await Task.yield()
-                    
+
                     let opts = try await MainActor.run {
                         try self.makeOptions(from: settings, outputDir: outputDirectory)
                     }
                     var mutableOpts = opts
-                    
+
                     // Logging (safe)
                     let handler = Up60PEngine.logHandlerQueue.sync { Up60PEngine.currentLogHandler }
                     if handler != nil {
@@ -340,11 +340,11 @@ final class Up60PEngine {
                             Up60PEngine.currentLogHandler?("Starting Video Processing...\n")
                         }
                     }
-                    
+
                     if stackingSnapshot.has {
                         await MainActor.run {
                             Up60PEngine.currentLogHandler?("\n⚡ Filter Stacking Detected - Applying Smart Attenuation:\n")
-                            
+
                             if stackingSnapshot.sharpen {
                                 Up60PEngine.currentLogHandler?("  • Sharpen 2nd set: reduced by \(stackingSnapshot.sharpenPct)% to prevent over-sharpening\n")
                             }
@@ -354,14 +354,14 @@ final class Up60PEngine {
                             if stackingSnapshot.deband {
                                 Up60PEngine.currentLogHandler?("  • Deband 2nd set: reduced by \(stackingSnapshot.debandPct)% to prevent banding artifacts\n")
                             }
-                            
+
                             Up60PEngine.currentLogHandler?("\n")
                         }
                     }
-                    
+
                     try Task.checkCancellation()
                     let result = await Up60PEngine.bridge.processPathFunc(inputPath, &mutableOpts)
-                    
+
                     await MainActor.run {
                         if result == UP60P_ERR_CANCELLED || Task.isCancelled {
                             Up60PEngine.currentLogHandler?("Processing cancelled.\n")
@@ -371,7 +371,7 @@ final class Up60PEngine {
                             Up60PEngine.currentLogHandler?("Processing returned error code: \(result.rawValue)\n")
                         }
                     }
-                    
+
                     if Task.isCancelled || result == UP60P_ERR_CANCELLED {
                         continuation.resume(throwing: CancellationError())
                     } else if result == UP60P_OK {
@@ -382,12 +382,12 @@ final class Up60PEngine {
                         }
                         continuation.resume(throwing: error)
                     }
-                    
+
                 } catch {
                     continuation.resume(throwing: Task.isCancelled ? CancellationError() : error)
                 }
             }
-            
+
             currentProcessTask = task
             Task.detached { [weak self] in
                 await task.value
@@ -399,7 +399,7 @@ final class Up60PEngine {
             }
         }
     }
-    
+
     func cancel() {
         guard let task = currentProcessTask else { return }
         Up60PEngine.bridge.cancelFunc()

@@ -282,7 +282,7 @@ nonisolated class CoreMLEngine: EngineProtocol {
                             let outH = Int(Double(h) * Double(userScaleFactor))
 
                             var finalTileBuffer = nativeBuffer
-                            if geometry.requiresResampling {
+                            if outW != w * Int(modelScaleFactor) || outH != h * Int(modelScaleFactor) {
                                 finalTileBuffer = try resizePixelBuffer(nativeBuffer, width: outW, height: outH,
                                     sourceWidth: w * Int(modelScaleFactor), sourceHeight: h * Int(modelScaleFactor))
                             }

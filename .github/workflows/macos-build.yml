@@ -117,7 +117,7 @@ jobs:
       - name: Test upscaling mode availability
         run: |
           set -euo pipefail
-          xcrun swiftc myUpscaler/UpscalingModeSupport.swift tests/upscaling-mode-support/main.swift \
+          xcrun swiftc myUpscaler/Models/UpscalingModeSupport.swift tests/upscaling-mode-support/main.swift \
             -o "$RUNNER_TEMP/upscaling-mode-tests"
           "$RUNNER_TEMP/upscaling-mode-tests"
 

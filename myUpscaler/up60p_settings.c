@@ -264,7 +264,7 @@ void set_defaults(void) {
     S.use_deband_2 = 0;
     S.use_grain_2 = 0;
     strcpy(S.mi_mode, "mci");
-    strcpy(S.eq_contrast, "1.03"); strcpy(S.eq_brightness, "0.005"); strcpy(S.eq_saturation, "1.06");
+    strcpy(S.eq_contrast, "1"); strcpy(S.eq_brightness, "0"); strcpy(S.eq_saturation, "1");
     strcpy(S.x265_params, "aq-mode=3,psy-rd=2.0,deblock=-2,-2");
     strcpy(S.audio_bitrate, "192k"); strcpy(S.movflags, "+faststart");
     strcpy(S.hwaccel, "none"); strcpy(S.encoder, "auto");

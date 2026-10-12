@@ -79,6 +79,20 @@ int main(int argc, char **argv) {
     }
     return result == UP60P_PROCESS_CANCELLED ? UP60P_ERR_CANCELLED : 99;
     }
+    if (argc > 6 && strcmp(argv[1], "eq") == 0) {
+        up60p_options opts;
+        up60p_default_options(&opts);
+        snprintf(opts.eq_contrast, sizeof(opts.eq_contrast), "%s", argv[2]);
+        snprintf(opts.eq_brightness, sizeof(opts.eq_brightness), "%s", argv[3]);
+        snprintf(opts.eq_saturation, sizeof(opts.eq_saturation), "%s", argv[4]);
+        opts.no_eq = strcmp(argv[5], "off") == 0;
+        opts.no_decimate = opts.no_interpolate = true;
+        opts.no_denoise = opts.no_deblock = opts.no_sharpen = true;
+        opts.no_deband = opts.no_grain = true;
+        snprintf(opts.fps, sizeof(opts.fps), "source");
+        snprintf(opts.scale_factor, sizeof(opts.scale_factor), "1");
+        return up60p_process_path(argv[6], &opts);
+    }
     if (argc > 4 && strcmp(argv[1], "fps") == 0) {
         up60p_options opts;
         up60p_default_options(&opts);
@@ -315,6 +329,53 @@ int main(void) {
         self.assertEqual(len(source_pts), len(output_pts))
         for before, after in zip(source_pts, output_pts):
             self.assertAlmostEqual(before, after, places=5)
+
+    def test_eq_enabled_disabled_and_neutral_commands(self):
+        self.bundled.write_text("#!/bin/sh\nprintf '%s\\n' \"$@\"\n")
+        self.bundled.chmod(0o755)
+        image = self.root / "input.png"
+        image.touch()
+        for values, enabled in ((("1.2", "0.1", "0.8"), "on"),
+                                (("1.2", "0.1", "0.8"), "off"),
+                                (("1", "0", "1"), "on")):
+            result = self.run_engine("eq", *values, enabled, str(image))
+            self.assertEqual(result.returncode, 0, result.stdout)
+            if enabled == "on" and values[0] != "1":
+                self.assertIn("eq=contrast=1.2:brightness=0.1:saturation=0.8", result.stdout)
+            else:
+                self.assertNotIn("eq=contrast=", result.stdout)
+
+    def test_invalid_eq_numbers_fail_before_execution(self):
+        self.install_bundle()
+        image = self.root / "input.png"
+        image.touch()
+        for value in ("nan", "inf", "1,scale=9", "2junk", "1001", ""):
+            result = self.run_engine("eq", value, "0", "1", "on", str(image))
+            self.assertEqual(result.returncode, 1, result.stdout)
+            self.assertNotIn("BUNDLED_EXECUTED", result.stdout)
+
+    @unittest.skipUnless(shutil.which("ffmpeg"), "requires local FFmpeg")
+    def test_real_eq_changes_pixels_and_disable_matches_neutral(self):
+        ffmpeg = shutil.which("ffmpeg")
+        shutil.copy2(ffmpeg, self.bundled)
+        image = self.root / "input.png"
+        subprocess.run([ffmpeg, "-v", "error", "-f", "lavfi", "-i",
+                        "color=c=0x806040:size=32x32", "-frames:v", "1", "-y", str(image)], check=True, timeout=8)
+        pixels = []
+        for brightness, saturation, enabled in (("0", "1", "on"), ("0.1", "1", "on"),
+                                                ("0.1", "1", "off"), ("-0.1", "1", "on"),
+                                                ("0", "0", "on")):
+            result = self.run_engine("eq", "1", brightness, saturation, enabled, str(image))
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            pixels.append(subprocess.check_output([ffmpeg, "-v", "error", "-i",
+                          str(self.root / "input_[restored].png"), "-pix_fmt", "rgb24",
+                          "-f", "rawvideo", "-"]))
+        self.assertEqual(pixels[0], pixels[2])
+        self.assertNotEqual(pixels[0], pixels[1])
+        self.assertGreater(sum(pixels[1]), sum(pixels[0]))
+        self.assertLess(sum(pixels[3]), sum(pixels[0]))
+        self.assertNotEqual(pixels[0], pixels[4])
+        self.assertLessEqual(max(pixels[4][:3]) - min(pixels[4][:3]), 4)
 
     def busy_bundle(self, ignore_term=False, descendant_file=None, once=False):
         pidfile = self.root / "ffmpeg.pid"

@@ -93,6 +93,14 @@ int main(int argc, char **argv) {
         snprintf(opts.scale_factor, sizeof(opts.scale_factor), "1");
         return up60p_process_path(argv[6], &opts);
     }
+    if (argc > 5 && strcmp(argv[1], "encoder") == 0) {
+        up60p_options opts;
+        up60p_default_options(&opts);
+        snprintf(opts.encoder, sizeof(opts.encoder), "%s", argv[2]);
+        snprintf(opts.codec, sizeof(opts.codec), "%s", argv[3]);
+        opts.use10 = strcmp(argv[4], "10") == 0;
+        return up60p_process_path(argv[5], &opts);
+    }
     if (argc > 4 && strcmp(argv[1], "fps") == 0) {
         up60p_options opts;
         up60p_default_options(&opts);
@@ -376,6 +384,31 @@ int main(void) {
         self.assertLess(sum(pixels[3]), sum(pixels[0]))
         self.assertNotEqual(pixels[0], pixels[4])
         self.assertLessEqual(max(pixels[4][:3]) - min(pixels[4][:3]), 4)
+
+    def test_videotoolbox_encoders_receive_supported_quality_flags(self):
+        self.bundled.write_text("#!/bin/sh\nprintf '%s\\n' \"$@\"\n")
+        self.bundled.chmod(0o755)
+        video = self.root / "input.mp4"
+        video.touch()
+        for codec, depth in (("h264", "8"), ("hevc", "8"), ("hevc", "10")):
+            result = self.run_engine("encoder", "videotoolbox", codec, depth, str(video))
+            self.assertEqual(result.returncode, 0, result.stdout)
+            self.assertIn(f"-c:v\n{codec}_videotoolbox", result.stdout)
+            self.assertIn("-q:v\n61.18", result.stdout)
+            self.assertIn("-allow_sw\n0", result.stdout)
+            self.assertNotIn("-crf\n", result.stdout)
+            self.assertNotIn("-preset\n", result.stdout)
+            if depth == "10":
+                self.assertIn("-pix_fmt\np010le", result.stdout)
+
+    def test_videotoolbox_h264_10bit_fails_before_execution(self):
+        self.install_bundle()
+        video = self.root / "input.mp4"
+        video.touch()
+        result = self.run_engine("encoder", "videotoolbox", "h264", "10", str(video))
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("Select HEVC", result.stdout)
+        self.assertNotIn("BUNDLED_EXECUTED", result.stdout)
 
     def busy_bundle(self, ignore_term=False, descendant_file=None, once=False):
         pidfile = self.root / "ffmpeg.pid"

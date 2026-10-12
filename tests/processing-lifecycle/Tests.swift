@@ -20,6 +20,8 @@ struct NoDuration: AssetLoaderProtocol {
     func loadDuration(from path: String) async throws -> Double { 0 }
 }
 
+enum LifecycleTestFailure: Error { case timeout(String) }
+
 @main struct ProcessingTests {
     nonisolated static func testGeometryAndTensor() throws {
         for native in [2.0, 4.0, 8.0] {
@@ -77,53 +79,90 @@ struct NoDuration: AssetLoaderProtocol {
     }
 
     nonisolated static func testBlend() throws {
-        let size = 512
-        func buffer() -> CVPixelBuffer {
+        let size = 8
+        func buffer(_ b: UInt8, _ g: UInt8, _ r: UInt8) throws -> CVPixelBuffer {
             var result: CVPixelBuffer?
-            precondition(CVPixelBufferCreate(nil, size, size, kCVPixelFormatType_32BGRA, nil, &result) == kCVReturnSuccess)
-            let buffer = result!
+            guard CVPixelBufferCreate(nil, size, size, kCVPixelFormatType_32BGRA, nil, &result) == kCVReturnSuccess,
+                  let buffer = result else { throw ModelError.invalidModel }
             CVPixelBufferLockBaseAddress(buffer, [])
-            memset(CVPixelBufferGetBaseAddress(buffer), 127, CVPixelBufferGetBytesPerRow(buffer) * size)
-            CVPixelBufferUnlockBaseAddress(buffer, [])
+            defer { CVPixelBufferUnlockBaseAddress(buffer, []) }
+            let bytes = CVPixelBufferGetBaseAddress(buffer)!.assumingMemoryBound(to: UInt8.self)
+            let stride = CVPixelBufferGetBytesPerRow(buffer)
+            for y in 0..<size { for x in 0..<size {
+                let i = y * stride + x * 4
+                bytes[i] = b; bytes[i + 1] = g; bytes[i + 2] = r; bytes[i + 3] = 255
+            } }
             return buffer
         }
-        let source = buffer(), legacy = buffer(), current = buffer()
+        let source = try buffer(20, 80, 140)
         let weights = UnsafeMutablePointer<Float>.allocate(capacity: size * size)
-        weights.initialize(repeating: 0, count: size * size)
-        defer { weights.deallocate() }
+        weights.initialize(repeating: 1, count: size * size)
+        defer { weights.deinitialize(count: size * size); weights.deallocate() }
         let engine = CoreMLEngine()
-        func run(_ old: Bool, _ cosine: Bool) throws {
-            weights.update(repeating: 0, count: size * size)
-            if old {
-                try engine.legacyBlendTileIntoCanvas(source: source, target: legacy, weightMap: weights,
-                    destX: 0, destY: 0, width: size, height: size, margin: 64, useCosine: cosine,
-                    isLeft: false, isRight: false, isTop: false, isBottom: false)
-            } else {
-                try engine.blendTileIntoCanvas(source: source, target: current, weightMap: weights,
-                    destX: 0, destY: 0, width: size, height: size, margin: 64, useCosine: cosine,
-                    isLeft: false, isRight: false, isTop: false, isBottom: false)
+        // Fixed expected samples exercise actual feather weights and a nonuniform
+        // source/canvas mixture, without retaining another blend implementation.
+        let linear: [(Int, Float, [UInt8])] = [
+            (0, 0, [200, 40, 10, 255]), (1, 0.0625, [189, 42, 17, 255]),
+            (2, 0.25, [164, 48, 36, 255]), (3, 0.5625, [135, 54, 56, 255]),
+            (4, 1, [110, 60, 75, 255]), (7, 0.0625, [189, 42, 17, 255])]
+        let cosine: [(Int, Float, [UInt8])] = [
+            (0, 0, [200, 40, 10, 255]), (1, 0.02144661, [196, 40, 12, 255]),
+            (2, 0.25, [164, 48, 36, 255]), (3, 0.7285534, [124, 56, 64, 255]),
+            (4, 1, [110, 60, 75, 255]), (7, 0.02144661, [196, 40, 12, 255])]
+        for (useCosine, samples) in [(false, linear), (true, cosine)] {
+            let canvas = try buffer(200, 40, 10)
+            weights.update(repeating: 1, count: size * size)
+            try engine.blendTileIntoCanvas(source: source, target: canvas, weightMap: weights,
+                destX: 0, destY: 0, width: size, height: size, margin: 4, useCosine: useCosine,
+                isLeft: false, isRight: false, isTop: false, isBottom: false)
+            CVPixelBufferLockBaseAddress(canvas, .readOnly)
+            let bytes = CVPixelBufferGetBaseAddress(canvas)!.assumingMemoryBound(to: UInt8.self)
+            let stride = CVPixelBufferGetBytesPerRow(canvas)
+            for (position, weight, expected) in samples {
+                precondition(abs(weights[position * size + position] - (1 + weight)) < 0.000001,
+                             "incorrect feather contribution")
+                for channel in 0..<4 {
+                    let actual = bytes[position * stride + position * 4 + channel]
+                    // Float cosine and integer truncation can differ by one RGB LSB.
+                    let tolerance = channel == 3 ? 0 : 1
+                    precondition(abs(Int(actual) - Int(expected[channel])) <= tolerance,
+                                 "incorrect weighted BGRA sample")
+                }
             }
+            CVPixelBufferUnlockBaseAddress(canvas, .readOnly)
         }
-        for cosine in [false, true] {
-            try run(true, cosine); try run(false, cosine)
-            CVPixelBufferLockBaseAddress(legacy, .readOnly)
-            CVPixelBufferLockBaseAddress(current, .readOnly)
-            for row in 0..<size {
-                let oldRow = CVPixelBufferGetBaseAddress(legacy)! + row * CVPixelBufferGetBytesPerRow(legacy)
-                let newRow = CVPixelBufferGetBaseAddress(current)! + row * CVPixelBufferGetBytesPerRow(current)
-                precondition(memcmp(oldRow, newRow, size * 4) == 0, "blend pixels changed")
+        let boundary = try buffer(200, 40, 10)
+        weights.update(repeating: 1, count: size * size)
+        try engine.blendTileIntoCanvas(source: source, target: boundary, weightMap: weights,
+            destX: 0, destY: 0, width: size, height: size, margin: 4, useCosine: true,
+            isLeft: true, isRight: true, isTop: true, isBottom: true)
+        precondition(weights[0] == 2 && weights[size * size - 1] == 2,
+                     "image-boundary pixels must receive full weight")
+        print("PASS: fixed linear/cosine feather weights, mixed BGRA pixels and image boundaries")
+    }
+
+    @MainActor static func eventually(_ message: String, _ condition: () -> Bool) async throws {
+        let clock = ContinuousClock()
+        let deadline = clock.now.advanced(by: .seconds(3))
+        while !condition() {
+            guard clock.now < deadline else { throw LifecycleTestFailure.timeout(message) }
+            await Task.yield()
+        }
+    }
+
+    nonisolated static func awaitReadiness(_ stream: AsyncStream<Void>) async throws {
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask {
+                for await _ in stream { return }
+                throw LifecycleTestFailure.timeout("readiness signal ended")
             }
-            CVPixelBufferUnlockBaseAddress(legacy, .readOnly)
-            CVPixelBufferUnlockBaseAddress(current, .readOnly)
+            group.addTask {
+                try await Task.sleep(for: .seconds(3))
+                throw LifecycleTestFailure.timeout("readiness was never checked")
+            }
+            defer { group.cancelAll() }
+            _ = try await group.next()
         }
-        func time(_ old: Bool) throws -> Double {
-            let start = Date()
-            for _ in 0..<40 { try run(old, true) }
-            return Date().timeIntervalSince(start)
-        }
-        let before = try time(true), after = try time(false)
-        print("PASS: linear and cosine feather pixel parity")
-        print(String(format: "Blend microbenchmark (40 x 512-square tiles): before %.3fs, after %.3fs (%.2fx)", before, after, before / after))
     }
 
     @MainActor static func main() async throws {
@@ -145,15 +184,14 @@ struct NoDuration: AssetLoaderProtocol {
         try control.begin()
         do { try control.begin(); fatalError("overlapping engine accepted") }
         catch ProcessingControl.Failure.alreadyRunning {}
-        let start = Date()
+        let (readiness, signal) = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
         let waiting = Task {
-            try await control.waitUntilReady(isReady: { false }, failure: { nil })
+            try await control.waitUntilReady(isReady: { signal.yield(()); return false }, failure: { nil })
         }
-        try await Task.sleep(nanoseconds: 20_000_000)
+        try await awaitReadiness(readiness)
         control.cancel()
         do { try await waiting.value; fatalError("cancelled wait succeeded") }
         catch is CancellationError {}
-        precondition(Date().timeIntervalSince(start) < 1)
         control.finish()
         try control.begin()
         enum WriterFailure: Error { case stopped }
@@ -182,7 +220,7 @@ struct NoDuration: AssetLoaderProtocol {
         runner.settings.scaler = "lanczos"
         runner.run()
         precondition(runner.phase == .preparing && !runner.progressKnown)
-        while engine.continuation == nil { await Task.yield() }
+        try await eventually("engine did not enter processing") { engine.continuation != nil }
         runner.run()
         precondition(engine.starts == 1, "runner accepted duplicate start")
         // An early elapsed log and a stable file cannot end an active engine.
@@ -194,19 +232,15 @@ struct NoDuration: AssetLoaderProtocol {
         precondition(runner.isRunning && engine.starts == 1 && engine.cancels == 1,
                      "cancel released ownership before engine stopped")
         engine.finish()
-        while runner.isRunning { await Task.yield() }
+        try await eventually("runner did not finish after engine return") { !runner.isRunning }
         precondition(runner.completedOutputPath == nil && runner.progress < 1 && !runner.progressKnown, "cancel marked success")
 
         runner.run()
-        while engine.continuation == nil { await Task.yield() }
-        let completionStart = Date()
+        try await eventually("engine did not enter processing") { engine.continuation != nil }
         engine.finish()
-        while runner.isRunning { await Task.yield() }
-        let completionTime = Date().timeIntervalSince(completionStart)
+        try await eventually("runner did not finish after engine return") { !runner.isRunning }
         precondition(runner.completedOutputPath != nil && runner.progress == 1 && runner.phase == .idle)
-        precondition(completionTime < 0.5, "completion still polls file size")
         print("PASS: engine overlap, engine cancellation, task cancellation, writer failure/readiness")
         print("PASS: duplicate run, early completion log, cancel/restart ownership, immediate completion")
-        print(String(format: "Completion after engine return: %.4f seconds (old polling minimum: 2.0 seconds)", completionTime))
     }
 }

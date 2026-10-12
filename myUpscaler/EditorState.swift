@@ -25,9 +25,9 @@ final class EditorState: ObservableObject {
     @Published var videoFPS: Double = 30.0
 
     // MARK: - Filters (First Set)
-    @Published var contrast: Double = 1.03
-    @Published var brightness: Double = 0.005
-    @Published var saturation: Double = 1.06
+    @Published var contrast: Double = UpscaleSettings.eqContrastNeutral
+    @Published var brightness: Double = UpscaleSettings.eqBrightnessNeutral
+    @Published var saturation: Double = UpscaleSettings.eqSaturationNeutral
     @Published var denoiseStrength: Double = 2.5
     @Published var deringActive: Bool = false
     @Published var deringStrength: Double = 0.5
@@ -352,9 +352,12 @@ final class EditorState: ObservableObject {
     // MARK: -  Sync from UpscaleSettings
     func syncFromSettings(_ settings: UpscaleSettings) {
         // First set
-        if contrast != (Double(settings.eqContrast) ?? 1.03) { contrast = Double(settings.eqContrast) ?? 1.03 }
-        if brightness != (Double(settings.eqBrightness) ?? 0.005) { brightness = Double(settings.eqBrightness) ?? 0.005 }
-        if saturation != (Double(settings.eqSaturation) ?? 1.06) { saturation = Double(settings.eqSaturation) ?? 1.06 }
+        let contrastValue = Double(settings.eqContrast).flatMap { $0.isFinite ? $0 : nil } ?? settings.eqContrastDefault
+        if contrast != contrastValue { contrast = contrastValue }
+        let brightnessValue = Double(settings.eqBrightness).flatMap { $0.isFinite ? $0 : nil } ?? settings.eqBrightnessDefault
+        if brightness != brightnessValue { brightness = brightnessValue }
+        let saturationValue = Double(settings.eqSaturation).flatMap { $0.isFinite ? $0 : nil } ?? settings.eqSaturationDefault
+        if saturation != saturationValue { saturation = saturationValue }
         if denoiseStrength != (Double(settings.denoiseStrength) ?? 2.5) { denoiseStrength = Double(settings.denoiseStrength) ?? 2.5 }
         if deringActive != (settings.deringActive) { deringActive = settings.deringActive }
         if deringStrength != (Double(settings.deringStrength) ?? 0.5) { deringStrength = Double(settings.deringStrength) ?? 0.5 }

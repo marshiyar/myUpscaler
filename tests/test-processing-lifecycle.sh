@@ -7,5 +7,5 @@ xcrun swiftc "${PROCESSING_TEST_OPTIMIZATION:--O}" -parse-as-library -swift-vers
   -module-cache-path "$work/ModuleCache" \
   myUpscaler/{UpscaleRunner,UpscaleSettings,PresetStore,CoreMLModelRegistry,UpscalingModeSupport,CodecSupport,Protocols,FFmpegParser}.swift \
   myUpscaler/upscaler/{CoreMLEngine,CoreMLEngine+Shaders,ProcessingControl,UpscaleGeometry,VideoIO,ProgressUpdateGate}.swift \
-  tests/processing-lifecycle/{TestSupport,LegacyBlend,Tests}.swift -o "$work/tests"
+  tests/processing-lifecycle/{TestSupport,Tests}.swift -o "$work/tests"
 "$work/tests"

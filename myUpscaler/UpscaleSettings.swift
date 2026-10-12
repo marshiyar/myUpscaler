@@ -366,9 +366,13 @@ nonisolated class UpscaleSettings: ObservableObject {
     @Published var useGrain2: Bool = false
 
     // --- Color / Equalization ---
-    @Published var eqContrast: String = "1.0"
-    @Published var eqBrightness: String = "0.0"
-    @Published var eqSaturation: String = "1.0"
+    static let eqContrastNeutral = 1.0
+    static let eqBrightnessNeutral = 0.0
+    static let eqSaturationNeutral = 1.0
+
+    @Published var eqContrast: String = String(UpscaleSettings.eqContrastNeutral)
+    @Published var eqBrightness: String = String(UpscaleSettings.eqBrightnessNeutral)
+    @Published var eqSaturation: String = String(UpscaleSettings.eqSaturationNeutral)
 //    @Published var lutPath: String = "" // LUT DEACTIVATED
 
     // --- Metal Pre/Post Processing ---
@@ -785,15 +789,15 @@ nonisolated class UpscaleSettings: ObservableObject {
      * Saturation: 0.0-2.0
      */
     var eqContrastRange: ClosedRange<Double> { 0.5...2.0 }
-    var eqContrastDefault: Double { 1.0 }
+    var eqContrastDefault: Double { Self.eqContrastNeutral }
     var eqContrastStep: Double { 0.005 }
     
     var eqBrightnessRange: ClosedRange<Double> { -0.1...0.1 }
-    var eqBrightnessDefault: Double { 0.0 }
+    var eqBrightnessDefault: Double { Self.eqBrightnessNeutral }
     var eqBrightnessStep: Double { 0.005 }
     
     var eqSaturationRange: ClosedRange<Double> { 0.0...2.0 }
-    var eqSaturationDefault: Double { 1.0 }
+    var eqSaturationDefault: Double { Self.eqSaturationNeutral }
     var eqSaturationStep: Double { 0.005 }
     
     // MARK: - Metal Pipeline Derived Values
@@ -1088,9 +1092,9 @@ nonisolated class UpscaleSettings: ObservableObject {
         useGrain2 = false
         
         // Color / Equalization
-        eqContrast = "1.00"
-        eqBrightness = "0.000"
-        eqSaturation = "1.00"
+        eqContrast = String(format: "%.2f", eqContrastDefault)
+        eqBrightness = String(format: "%.3f", eqBrightnessDefault)
+        eqSaturation = String(format: "%.2f", eqSaturationDefault)
 //        lutPath = "" // LUT DEACTIVATED
         
         // Metal Pre/Post

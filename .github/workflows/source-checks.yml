@@ -20,6 +20,11 @@ jobs:
         run: |
           git diff --check
           git ls-files '*.sh' -z | xargs -0 -n 1 bash -n
+      - name: Prepare bundled FFmpeg for tests
+        shell: bash
+        run: |
+          bash scripts/prepare-bundled-ffmpeg.sh
+          echo "$GITHUB_WORKSPACE/myUpscaler/ThirdParty/ffmpeg" >> "$GITHUB_PATH"
       - name: Run native source regressions
         run: python3 -m unittest discover -s tests -p 'test*.py'
       - name: Run available Swift source regressions

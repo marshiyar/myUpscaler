@@ -41,6 +41,9 @@ nonisolated struct BatchPlan: Sendable {
                 guard values.isRegularFile == true else { continue }
                 let ext = url.pathExtension.lowercased()
                 guard imageExtensions.contains(ext) || videoExtensions.contains(ext) else { continue }
+                if coreML && imageExtensions.contains(ext) {
+                    throw Failure("Core ML folder export supports videos only; image found: \(url.lastPathComponent).")
+                }
 
                 let relativeParent = (relative as NSString).deletingLastPathComponent
 

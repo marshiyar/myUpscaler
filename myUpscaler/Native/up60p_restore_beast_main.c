@@ -1,3 +1,4 @@
+#define _DARWIN_C_SOURCE 1
 #include "up60p_settings.h"
 #include "up60p_utils.h"
 #include "up60p.h"
@@ -48,6 +49,8 @@ const char *up60p_bundled_ffmpeg_path(void) {
 
     return FFMPEG_PATH;
 }
+
+#include "up60p_neo_pipeline.h"
 
 static up60p_error process_file(const char *in, const char *ffmpeg, bool batch);
 static up60p_error process_directory(const char *dir, const char *ffmpeg);
@@ -164,12 +167,15 @@ static bool is_zero_amount(const char *text) {
     return end != text && !*end && isfinite(value) && value == 0;
 }
 
-static void build_deband_filter(SB *vf, const char *method, const char *strength,
+static bool build_deband_filter(SB *vf, const char *method, const char *strength,
                                 const char *f3_range, const char *f3_y, const char *f3_cbcr) {
-        if (strcmp(method, "f3kdb") && is_zero_amount(strength)) return;
+        if (strcmp(method, "f3kdb") && strcmp(method, "neo_f3kdb") && is_zero_amount(strength)) return true;
         if (!strcmp(method, "gradfun")) sb_fmt(vf, "gradfun=%s,", strength);
+        else if (!strcmp(method, "neo_f3kdb")) {
+            return neo_marker(vf, f3_range, f3_y, f3_cbcr);
+        }
         else if (!strcmp(method, "f3kdb")) {
-            if (is_zero_amount(f3_range) && is_zero_amount(f3_y) && is_zero_amount(f3_cbcr)) return;
+            if (is_zero_amount(f3_range) && is_zero_amount(f3_y) && is_zero_amount(f3_cbcr)) return true;
 
             double y = atof(f3_y);
             double cb = atof(f3_cbcr);
@@ -188,6 +194,7 @@ static void build_deband_filter(SB *vf, const char *method, const char *strength
             sb_fmt(vf, "deband=1thr=%.5f:2thr=%.5f:3thr=%.5f:range=%d:blur=0,", thr_y, thr_c, thr_c, r);
         }
         else sb_fmt(vf, "deband=1thr=%s:b=1,", strength);
+        return true;
 }
 
 static bool parse_eq_value(const char *text, double minimum, double maximum, double *value) {
@@ -200,7 +207,7 @@ static bool parse_eq_value(const char *text, double minimum, double maximum, dou
 }
 
 static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) {
-    (void)batch; char outdir[PATH_MAX], base[PATH_MAX], out[PATH_MAX];
+    char outdir[PATH_MAX], base[PATH_MAX], out[PATH_MAX];
     bool img = is_image(in);
 
     if (up60p_is_cancelled()) return UP60P_ERR_CANCELLED;
@@ -280,8 +287,10 @@ static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) 
         else sb_fmt(&vf, "cas=strength=%s,", S.sharpen_strength);
     }
 
-    if (!S.no_deband) build_deband_filter(&vf, S.deband_method, S.deband_strength,
-                                         S.f3kdb_range, S.f3kdb_y, S.f3kdb_cbcr);
+    if (!S.no_deband && !build_deband_filter(&vf, S.deband_method, S.deband_strength,
+                                            S.f3kdb_range, S.f3kdb_y, S.f3kdb_cbcr)) {
+        free(vf.buf); return UP60P_ERR_INVALID_OPTIONS;
+    }
         if (S.use_dering_2) {
             build_dering_filter(&vf, S.dering_strength_2);
         }
@@ -299,8 +308,10 @@ static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) 
         else if (parse_strength(S.sharpen_strength_2) > 0) sb_fmt(&vf, "cas=strength=%s,", S.sharpen_strength_2);
     }
 
-    if (S.use_deband_2) build_deband_filter(&vf, S.deband_method_2, S.deband_strength_2,
-                                          S.f3kdb_range_2, S.f3kdb_y_2, S.f3kdb_cbcr_2);
+    if (S.use_deband_2 && !build_deband_filter(&vf, S.deband_method_2, S.deband_strength_2,
+                                             S.f3kdb_range_2, S.f3kdb_y_2, S.f3kdb_cbcr_2)) {
+        free(vf.buf); return UP60P_ERR_INVALID_OPTIONS;
+    }
     // Neutral EQ is a true bypass and avoids an extra colorspace conversion.
     if (!S.no_eq && (contrast != 1 || brightness != 0 || saturation != 1)) {
         sb_fmt(&vf, "eq=contrast=%.9g:brightness=%.9g:saturation=%.9g,", contrast, brightness, saturation);
@@ -446,13 +457,19 @@ static up60p_error process_file(const char *in, const char *ffmpeg, bool batch) 
         }
         if (global_log_cb) global_log_cb(cmd_buf);
     } else {
-        int result = execute_ffmpeg_command(args);
-        if (result == UP60P_PROCESS_CANCELLED || up60p_is_cancelled()) {
+        int result = up60p_execute_neo_pipeline(ffmpeg, args, vf.buf, in, out, img, S.preview);
+        if (result == UP60P_PROCESS_COMMITTED) {
+            // Directory batches may still cancel before the next file. Only a
+            // single-file invocation has reached its terminal commit boundary.
+            status = batch ? UP60P_OK : UP60P_OK_COMMITTED;
+            if (global_log_cb) global_log_cb("Done.\n");
+        } else if (result == UP60P_PROCESS_CANCELLED || up60p_is_cancelled()) {
             status = UP60P_ERR_CANCELLED;
             if (global_log_cb) global_log_cb("Processing cancelled.\n");
         } else if (result != 0) {
             char message[128];
-            snprintf(message, sizeof(message), "FFmpeg failed with exit code %d\n", result);
+            snprintf(message, sizeof(message), "%s failed with exit code %d\n",
+                     strstr(vf.buf, UP60P_NEO_MARKER) ? "Genuine Neo F3kdb pipeline" : "FFmpeg", result);
             if (global_log_cb) global_log_cb(message);
             status = UP60P_ERR_IO;
         } else if (global_log_cb) {

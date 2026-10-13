@@ -12,9 +12,17 @@ protocol FileSystemProtocol {
 
 /// Protocol defining the interface for the upscaling engine
 protocol EngineProtocol {
+    /// Success already published an irreversible output for the last invocation.
+    /// Consult only after process() returns successfully; batches still have
+    /// their separate destination commit before an item is published.
+    var hasCommittedOutput: Bool { get }
     func process(inputPath: String, settings: UpscaleSettings, outputDirectory: String) async throws
     func cancel()
     func setLogHandler(_ handler: @escaping @Sendable (String) -> Void)
+}
+
+extension EngineProtocol {
+    var hasCommittedOutput: Bool { false }
 }
 
 /// Protocol defining video asset loading

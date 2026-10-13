@@ -34,6 +34,19 @@ actor ModelManager {
     }
 
     func prepareModel(spec: CoreMLModelSpec) async throws -> ModelTensorLayout {
+        if spec.backend == .coreAI {
+            #if canImport(CoreAI)
+            if #available(macOS 27.0, *) {
+                guard let url = CoreMLModelRegistry.bundledURL(for: spec, bundle: bundle) else { throw ModelError.modelNotFound }
+                cachedModel = nil
+                return try await CoreAIModelWorker.shared.prepare(spec: spec, url: url)
+            }
+            #endif
+            throw ModelError.invalidModel
+        }
+        #if canImport(CoreAI)
+        if #available(macOS 27.0, *) { try await CoreAIModelWorker.shared.clear() }
+        #endif
         let model = try await loadModel(spec: spec)
         let description = model.modelDescription
         guard description.inputDescriptionsByName.count == 1,
@@ -52,7 +65,21 @@ actor ModelManager {
     // The model never leaves this actor. Fresh tensors transfer ownership once;
     // synchronous prediction executes on this worker actor, never the UI actor.
     func prediction(input: sending MLMultiArray, specID: CoreMLModelID,
-                    inputName: String, outputName: String, width: Int, height: Int) throws -> sending CVPixelBuffer {
+                    inputName: String, outputName: String, width: Int, height: Int) async throws -> sending CVPixelBuffer {
+        if CoreMLModelRegistry.model(for: specID).backend == .coreAI {
+            #if canImport(CoreAI)
+            if #available(macOS 27.0, *) {
+                return try await CoreAIModelWorker.shared.prediction(input: input, id: specID, width: width, height: height)
+            }
+            #endif
+            throw ModelError.invalidModel
+        }
+        return try coreMLPrediction(input: input, specID: specID, inputName: inputName,
+                                    outputName: outputName, width: width, height: height)
+    }
+
+    private func coreMLPrediction(input: sending MLMultiArray, specID: CoreMLModelID,
+                                  inputName: String, outputName: String, width: Int, height: Int) throws -> sending CVPixelBuffer {
         guard let model = cached(for: specID) else { throw ModelError.invalidModel }
         let provider = try MLDictionaryFeatureProvider(dictionary: [inputName: input])
         let result = try model.prediction(from: provider, options: predictionOptions)

@@ -96,31 +96,3 @@ struct ParameterRow: View {
 
     }
 }
-
-
-// MARK: - Matte Card Group Helper
-struct MatteCardGroup<Content: View>: View {
-    let content: Content
-    let spacing: CGFloat
-
-    init(spacing: CGFloat = 10, @ViewBuilder content: () -> Content) {
-        self.spacing = spacing
-        self.content = content()
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: spacing) {
-            content
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Color.appSecondaryBackground)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-        )
-    }
-}

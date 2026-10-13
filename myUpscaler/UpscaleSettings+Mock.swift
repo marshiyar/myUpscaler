@@ -29,8 +29,6 @@ extension UpscaleSettings {
         mock.output.movflags          = "+faststart"
 
         mock.upscaling.scaler            = mock.scalers.first ?? "bicubic"
-        // Legacy AI metadata is retained for preset compatibility, not offered
-        // as a selectable processing mode.
         mock.upscaling.aiModelPath       = ""
 
         mock.primary.denoiser          = mock.denoisers.first ?? "none"
@@ -50,7 +48,6 @@ extension UpscaleSettings {
         mock.primary.f3kdbCbCr.text         = "64"
         mock.primary.debandStrength.text    = "0.015"
         mock.primary.grainStrength.text     = "1.0"
-//        mock.lutPath           = "" // LUT DEACTIVATED
 
         mock.secondary.useDenoise       = false
         mock.secondary.denoiser         = mock.denoisers.first ?? "none"

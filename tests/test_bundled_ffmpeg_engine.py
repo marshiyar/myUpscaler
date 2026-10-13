@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
         snprintf(opts.sharpen_strength_2, sizeof(opts.sharpen_strength_2), "0.42");
         snprintf(opts.deband_method, sizeof(opts.deband_method), "gradfun");
         snprintf(opts.deband_strength, sizeof(opts.deband_strength), "1.5");
-        snprintf(opts.deband_method_2, sizeof(opts.deband_method_2), "f3kdb");
+        snprintf(opts.deband_method_2, sizeof(opts.deband_method_2), "neo_f3kdb");
         snprintf(opts.f3kdb_y_2, sizeof(opts.f3kdb_y_2), "80");
         snprintf(opts.f3kdb_cbcr_2, sizeof(opts.f3kdb_cbcr_2), "40");
         snprintf(opts.f3kdb_range_2, sizeof(opts.f3kdb_range_2), "17");
@@ -105,6 +105,7 @@ int main(int argc, char **argv) {
         snprintf(opts.grain_strength_2, sizeof(opts.grain_strength_2), "7");
         snprintf(opts.fps, sizeof(opts.fps), "source");
         snprintf(opts.scale_factor, sizeof(opts.scale_factor), "1");
+        up60p_set_dry_run(1); // Inspect genuine stage placement without a substitute FFmpeg filter.
         return up60p_process_path(argv[2], &opts);
     }
     if (argc > 7 && strcmp(argv[1], "additional") == 0) {
@@ -518,7 +519,7 @@ int main(void) {
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         tokens = ["hqdn3d=2.00:1.50:3.00:2.25", "scale=", "unsharp=7:7:1.4",
                   "gradfun=1.5", "nlmeans=s=3.00", "cas=strength=0.42",
-                  "deband=1thr=0.04000:2thr=0.02000:3thr=0.02000:range=17:blur=0", "noise=alls=7"]
+                  "up60p_neo=17:80:40:40", "noise=alls=7"]
         positions = [result.stdout.index(token) for token in tokens]
         self.assertEqual(positions, sorted(positions), result.stdout)
         for token in tokens:
@@ -530,7 +531,7 @@ int main(void) {
         self.bundled.chmod(0o755)
         image = self.root / "input.png"
         image.touch()
-        for method in ("deband", "gradfun", "f3kdb"):
+        for method in ("deband", "gradfun", "f3kdb", "neo_f3kdb"):
             zero = self.run_engine("additional", "off", "", method, "0.0", "0.0", str(image))
             self.assertEqual(zero.returncode, 0, zero.stdout + zero.stderr)
             for token in ("deblock=", "deband=", "gradfun=", "noise="):
@@ -558,15 +559,45 @@ int main(void) {
         for token in ("hqdn3d=", "deblock=filter=", "cas=strength=", "deband=1thr=", "noise=alls="):
             self.assertNotIn(token, result.stdout)
 
+    def test_genuine_f3kdb_missing_helper_has_no_substitute_or_execution(self):
+        self.install_bundle()
+        image = self.root / "input.png"
+        image.touch()
+        result = self.run_engine("additional", "off", "", "neo_f3kdb", "15", "0", str(image))
+        self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
+        self.assertIn("genuine Neo F3kdb helper is missing", result.stdout)
+        self.assertNotIn("BUNDLED_EXECUTED", result.stdout)
+        self.assertNotIn("deband=", result.stdout)
+
+    def test_legacy_f3kdb_keeps_existing_ffmpeg_mapping(self):
+        self.bundled.write_text('#!/bin/sh\necho "$@" >&2\nexit 0\n')
+        self.bundled.chmod(0o755)
+        image = self.root / "input.png"
+        image.touch()
+        result = self.run_engine("additional", "off", "", "f3kdb", "15", "0", str(image))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("deband=1thr=0.00750:2thr=0.00750:3thr=0.00750:range=15:blur=0", result.stdout)
+        self.assertNotIn("up60p_neo=", result.stdout)
+
+    def test_genuine_f3kdb_rejects_invalid_integer_settings_before_execution(self):
+        self.install_bundle()
+        image = self.root / "input.png"
+        image.touch()
+        for value in ("-1", "256", "0.5", "nan", "inf", "auto"):
+            result = self.run_engine("additional", "off", "", "neo_f3kdb", value, "0", str(image))
+            self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+            self.assertIn("thresholds 0..511", result.stdout)
+            self.assertNotIn("BUNDLED_EXECUTED", result.stdout)
+
     @unittest.skipUnless(shutil.which("ffmpeg"), "requires local FFmpeg")
-    def test_real_finishing_sharpen_strength_changes_pixels(self):
+    def test_real_finishing_sharpen_and_reduction_change_pixels(self):
         ffmpeg = shutil.which("ffmpeg")
         shutil.copy2(ffmpeg, self.bundled)
         image = self.root / "input.png"
         subprocess.run([ffmpeg, "-v", "error", "-f", "lavfi", "-i",
                         "testsrc2=size=64x64", "-frames:v", "1", "-y", str(image)], check=True, timeout=8)
         pixels = []
-        for mode, strength in (("off", "0"), ("sharpen", "0"), ("sharpen", "0.6"), ("sharpen", "0.4")):
+        for mode, strength in (("off", "0"), ("sharpen", "0"), ("sharpen", "0.6"), ("sharpen", "0.36")):
             result = self.run_engine("finishing", mode, str(image), strength)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             raw = subprocess.check_output([ffmpeg, "-v", "error", "-i",
@@ -575,7 +606,7 @@ int main(void) {
             pixels.append(raw)
         self.assertEqual(pixels[0], pixels[1], "zero CAS must match bypass")
         self.assertNotEqual(pixels[0], pixels[2], "independent finishing sharpen must affect pixels")
-        self.assertNotEqual(pixels[2], pixels[3], "different entered strengths must affect pixels")
+        self.assertNotEqual(pixels[2], pixels[3], "fixed strength reduction must affect pixels")
 
     def busy_bundle(self, ignore_term=False, descendant_file=None, once=False):
         pidfile = self.root / "ffmpeg.pid"

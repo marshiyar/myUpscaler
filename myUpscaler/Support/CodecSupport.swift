@@ -51,8 +51,6 @@ nonisolated struct CodecSupport {
     }
 
     private static var isHEVCHardwareEncodeAvailable: Bool {
-        #if canImport(VideoToolbox)
-        if #available(macOS 10.13, *) {
             var encoderList: CFArray?
             let status = VTCopyVideoEncoderList(nil, &encoderList)
             guard status == noErr, let array = encoderList as? [[String: Any]] else {
@@ -62,8 +60,5 @@ nonisolated struct CodecSupport {
             return array.contains { entry in
                 (entry[kVTVideoEncoderList_CodecType as String] as? CMVideoCodecType) == kCMVideoCodecType_HEVC
             }
-        }
-        #endif
-        return false
     }
 }

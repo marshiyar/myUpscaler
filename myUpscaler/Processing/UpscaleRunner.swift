@@ -166,7 +166,8 @@ class UpscaleRunner: ObservableObject {
         let selectedEngine: EngineProtocol
         if settings.upscaling.scaler == "coreml" {
             selectedEngine = CoreMLEngine.shared
-            log.append("--- Starting CoreML Engine ---\n")
+            let backend = CoreMLModelRegistry.model(for: settings.upscaling.coremlModelId).backend
+            log.append("--- Starting \(backend == .coreAI ? "Core AI" : "Core ML") Engine ---\n")
         } else {
             selectedEngine = self.engine
             log.append("--- Starting C Engine ---\n")
@@ -226,6 +227,11 @@ class UpscaleRunner: ObservableObject {
                 }
 
                 // Apply parsed state - update UI stats
+                if self.batchTotal == 0 && self.phase != .finalizing && lower.hasPrefix("stage=processing") {
+                    self.phase = .processing
+                    self.progressKnown = false
+                    self.etaString = "--:--"
+                }
                 if let newDur = parseState.newDuration {
                     self.videoDuration = newDur
                 }
@@ -302,6 +308,7 @@ class UpscaleRunner: ObservableObject {
             return
         }
 
+        let capturedExpectedOutputPath = expectedOutputPath
         currentTask = Task(priority: .userInitiated) { [weak self] in
             guard let self = self else { return }
             defer { accessStopper?() }
@@ -326,14 +333,18 @@ class UpscaleRunner: ObservableObject {
                     settings: tunedSettings,
                     outputDirectory: capturedOutputDirectory
                 )
-                try Task.checkCancellation()
+                if !selectedEngine.hasCommittedOutput { try Task.checkCancellation() }
 
                 try await MainActor.run {
                     guard self.currentRunID == runID else { return }
-                    guard let path = self.expectedOutputPath,
+                    let committed = selectedEngine.hasCommittedOutput
+                    guard let path = committed ? capturedExpectedOutputPath : self.expectedOutputPath,
                           let attributes = try? self.fileSystem.attributesOfItem(atPath: path),
                           let size = attributes[.size] as? NSNumber, size.int64Value > 0 else {
                         throw Up60PEngineError.io
+                    }
+                    if committed && self.isCancelling {
+                        self.log.append("Output committed before cancellation took effect.\n")
                     }
                     self.markAsComplete(outputPath: path)
                 }

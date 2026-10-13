@@ -258,6 +258,7 @@ final class Up60PEngine {
 
     private var currentProcessTask: Task<Void, Never>?
     private var currentProcessID: UUID?
+    private(set) var hasCommittedOutput = false
 
     func process(inputPath: String,
                  settings: UpscaleSettings,
@@ -265,8 +266,14 @@ final class Up60PEngine {
         let previousTask = currentProcessTask
         cancel()
         if let previousTask { await previousTask.value }
+        hasCommittedOutput = false
         try Task.checkCancellation()
 
+        if [settings.primary, settings.secondary].contains(where: { $0.useDeband && $0.debandMethod == "neo_f3kdb" }),
+           !UpscaleSettings.neoF3kdbAvailable {
+            log("ERROR: Neo F3kdb requires the private macOS 27 helper build.\n")
+            throw Up60PEngineError.invalidOptions
+        }
         let codecDecision = CodecSupport.resolve(requestHEVC: settings.codec.useHEVC)
         if let message = codecDecision.message { log(message) }
         settings.codec.useHEVC = codecDecision.useHEVC
@@ -314,9 +321,13 @@ final class Up60PEngine {
 
                     try Task.checkCancellation()
                     let result = processPath(inputPath, &mutableOpts)
+                    let committed = result == UP60P_OK_COMMITTED
 
                     await MainActor.run {
-                        if result == UP60P_ERR_CANCELLED || Task.isCancelled {
+                        self.hasCommittedOutput = committed
+                        if committed {
+                            Up60PEngine.currentLogHandler?("Processing completed; output committed.\n")
+                        } else if result == UP60P_ERR_CANCELLED || Task.isCancelled {
                             Up60PEngine.currentLogHandler?("Processing cancelled.\n")
                         } else if result == UP60P_OK {
                             Up60PEngine.currentLogHandler?("Processing completed.\n")
@@ -325,7 +336,9 @@ final class Up60PEngine {
                         }
                     }
 
-                    if Task.isCancelled || result == UP60P_ERR_CANCELLED {
+                    if committed {
+                        continuation.resume()
+                    } else if Task.isCancelled || result == UP60P_ERR_CANCELLED {
                         continuation.resume(throwing: CancellationError())
                     } else if result == UP60P_OK {
                         continuation.resume()

@@ -41,7 +41,7 @@ nonisolated enum SettingsNormalization {
                 next.usmRadius = defaults.usmRadius; next.usmAmount = defaults.usmAmount; next.usmThreshold = defaults.usmThreshold
             } else if [next.usmRadius, next.usmAmount, next.usmThreshold] != [previous.usmRadius, previous.usmAmount, previous.usmThreshold] && allZero([next.usmRadius, next.usmAmount, next.usmThreshold]) { next.useSharpen = false }
         }
-        if next.debandMethod == "f3kdb" {
+        if next.debandMethod == "f3kdb" || next.debandMethod == "neo_f3kdb" {
             if next.useDeband && !previous.useDeband && allZero([next.f3kdbRange, next.f3kdbY, next.f3kdbCbCr]) {
                 next.f3kdbRange = defaults.f3kdbRange; next.f3kdbY = defaults.f3kdbY; next.f3kdbCbCr = defaults.f3kdbCbCr
             } else if [next.f3kdbRange, next.f3kdbY, next.f3kdbCbCr] != [previous.f3kdbRange, previous.f3kdbY, previous.f3kdbCbCr] && allZero([next.f3kdbRange, next.f3kdbY, next.f3kdbCbCr]) { next.useDeband = false }

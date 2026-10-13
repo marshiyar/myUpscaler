@@ -41,26 +41,48 @@ extension UpscaleSettings {
         let secondSharpen = supportsSecondStage && secondary.useSharpen
         let secondUnsharp = secondSharpen && secondary.sharpenMethod == "unsharp"
         let secondDering = supportsSecondStage && secondary.useDering
+
         return PreviewFilterParameters(
-            noDenoise: !primaryDenoise, noSharpen: !primarySharpen, noEq: color.noEq,
+
+            noDenoise: !primaryDenoise,
+
+            noSharpen: !primarySharpen, noEq: color.noEq,
+
             contrast: color.noEq ? 1 : finite(color.eqContrast.text, fallback: 1),
+
             brightness: color.noEq ? 0 : finite(color.eqBrightness.text, fallback: 0),
+
             saturation: color.noEq ? 1 : finite(color.eqSaturation.text, fallback: 1),
+
             denoiseStrength: primaryDenoise ? finite(primary.denoiseStrength.text, fallback: 0) : 0,
+
             deringActive: primary.useDering, deringStrength: primary.useDering ? finite(primary.deringStrength.text, fallback: 0) : 0,
+
             sharpenMethod: primarySharpen ? primary.sharpenMethod : "cas",
+
             sharpenStrength: primarySharpen && !primaryUnsharp ? finite(primary.sharpenStrength.text, fallback: 0) : 0,
+
             usmRadius: primaryUnsharp ? Self.unsharpMatrixSize(primary.usmRadius.text) : 0,
+
             usmAmount: primaryUnsharp ? finite(primary.usmAmount.text, fallback: 0) : 0, usmThreshold: 0,
+
             useDenoise2: supportsSecondStage && secondary.useDenoise,
+
             denoiseStrength2: supportsSecondStage && secondary.useDenoise ? finite(secondary.denoiseStrength.text, fallback: 0) : 0,
+
             useDering2: secondDering, deringActive2: secondDering,
+
             deringStrength2: secondDering ? finite(secondary.deringStrength.text, fallback: 0) : 0,
+
             useSharpen2: secondSharpen, sharpenMethod2: secondSharpen ? secondary.sharpenMethod : "cas",
+
             sharpenStrength2: secondSharpen && !secondUnsharp ? finite(secondary.sharpenStrength.text, fallback: 0) : 0,
+
             usmRadius2: secondUnsharp ? Self.unsharpMatrixSize(secondary.usmRadius.text) : 0,
+
             usmAmount2: secondUnsharp ? finite(secondary.usmAmount.text, fallback: 0) : 0, usmThreshold2: 0)
     }
+
     private func finite(_ text: String, fallback: Double) -> Double {
         NumericDraft(text: text).finiteValue ?? fallback
     }

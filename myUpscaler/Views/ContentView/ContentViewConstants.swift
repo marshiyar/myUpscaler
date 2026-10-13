@@ -38,11 +38,7 @@ struct UI {
 // MARK: - Card background colour (platform safe)
 
 var cardBackground: Color {
-    #if os(macOS)
     Color(NSColor.windowBackgroundColor)
-    #else
-    Color(UIColor.secondarySystemBackground)
-    #endif
 }
 
 

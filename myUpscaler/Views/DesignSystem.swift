@@ -187,10 +187,6 @@ struct ModernGroupBoxStyle: GroupBoxStyle {
             configuration.content
         }
         .padding(inInspector ? 0 : DesignSystem.Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
-                .fill(inInspector ? Color.clear : Color.appTertiaryBackground)
-        }
     }
 }
 

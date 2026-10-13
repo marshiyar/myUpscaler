@@ -2,10 +2,12 @@
 #include "up60p_common.h"
 #include "up60p_process.h"
 #include <stdatomic.h>
+#include <pthread.h>
 
 up60p_log_callback global_log_cb = NULL;
 
 static atomic_bool cancel_requested = false;
+static pthread_mutex_t commit_lock = PTHREAD_MUTEX_INITIALIZER;
 
  void mkdir_p(const char *path) {
     char tmp[PATH_MAX]; snprintf(tmp, sizeof(tmp), "%s", path);
@@ -92,11 +94,25 @@ bool is_image(const char *path) {
 
 bool up60p_is_cancelled(void) { return atomic_load(&cancel_requested); }
 
-void up60p_reset_cancel(void) { atomic_store(&cancel_requested, false); }
+void up60p_reset_cancel(void) {
+    pthread_mutex_lock(&commit_lock);
+    atomic_store(&cancel_requested, false);
+    pthread_mutex_unlock(&commit_lock);
+}
 
 
 void up60p_request_cancel(void) {
+    pthread_mutex_lock(&commit_lock);
     atomic_store(&cancel_requested, true);
+    pthread_mutex_unlock(&commit_lock);
+    // Process teardown may invoke callbacks; never call it under commit_lock.
     up60p_cancel_active_process();
 }
 
+int up60p_commit_output(const char *temporary, const char *output) {
+    pthread_mutex_lock(&commit_lock);
+    int result = atomic_load(&cancel_requested) ? UP60P_PROCESS_CANCELLED :
+                 (rename(temporary, output) == 0 ? UP60P_PROCESS_COMMITTED : -1);
+    pthread_mutex_unlock(&commit_lock);
+    return result;
+}

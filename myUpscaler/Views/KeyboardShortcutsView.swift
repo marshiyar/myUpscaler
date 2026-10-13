@@ -10,12 +10,6 @@ struct KeyboardShortcutsView: View {
 
     var body: some View {
         Form {
-            Section {
-                Text("Edit a command, press its new combination, then Save. Escape cancels recording. Conflicting keys open a resolver.")
-                    .foregroundStyle(.secondary)
-                if let errorMessage { Text(errorMessage).foregroundStyle(.red) }
-                ForEach(manager.loadWarnings, id: \.self) { Text($0).foregroundStyle(.orange) }
-            }
             Section("Commands") {
                 ForEach(manager.availableActions) { command in
                     HStack {
@@ -35,20 +29,14 @@ struct KeyboardShortcutsView: View {
                 }
             }
             Section {
-                Button("Reset shortcuts to defaults", systemImage: "arrow.counterclockwise") {
+                Button("Reset to defaults", systemImage: "arrow.counterclockwise") {
                     edit = nil
                     update { try manager.resetToDefaults() }
                 }
             }
         }
         .formStyle(.grouped)
-        .background {
-            if edit != nil && conflict == nil {
-                ShortcutRecorder(onCapture: record,
-                                 onCancel: { edit = nil; errorMessage = nil })
-                    .frame(width: 0, height: 0)
-            }
-        }
+
         .sheet(item: $conflict) { requested in
             ShortcutConflictResolver(conflict: requested, errorMessage: errorMessage) { resolution in
                 update { try manager.resolve(requested, using: resolution) }

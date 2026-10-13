@@ -17,8 +17,8 @@ nonisolated extension Up60PEngineError: LocalizedError {
 nonisolated extension ModelError: LocalizedError {
     var errorDescription: String? {
         switch self {
-        case .modelNotFound: return "The selected Core ML model is not included in this app."
-        case .invalidModel: return "The Core ML model returned an incompatible tensor or invalid pixels."
+        case .modelNotFound: return "ML model is not included in this app."
+        case .invalidModel: return "ML model returned incompatible tensor."
         case .compilationFailed(let error), .fileSystemError(let error): return error.localizedDescription
         }
     }
@@ -27,9 +27,9 @@ nonisolated extension ModelError: LocalizedError {
 nonisolated extension VideoIOError: LocalizedError {
     var errorDescription: String? {
         switch self {
-        case .invalidConfiguration: return "The video reader or encoder does not support this configuration."
-        case .failed: return "Video reading or encoding stopped before completion."
-        case .frameAlreadyFrozen: return "The video frame is already finalized and cannot be changed."
+        case .invalidConfiguration: return "Imported video type is not supported."
+        case .failed: return "Rendering stopped before completion."
+        case .frameAlreadyFrozen: return "Frame has been finalized."
         }
     }
 }

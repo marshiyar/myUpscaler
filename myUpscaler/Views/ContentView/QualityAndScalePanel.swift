@@ -49,16 +49,7 @@ struct QualityScalePanel: View {
                     Divider()
                         .padding(.vertical, 2)
 
-                    if settings.hardware.encoder == "videotoolbox" && settings.upscaling.scaler != "coreml" {
-                        let quality = max(1, min(100, Int((100 - (localCRF ?? settings.codec.crf) * 99 / 51).rounded())))
-                        Text("VideoToolbox quality: \(quality)/100. Hardware quality differs from CPU CRF.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    } else if settings.upscaling.scaler == "coreml" {
-                        Text("Controls the Core ML writer's target bitrate; this is not software CRF encoding.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+
                     // Scale Factor and FPS
                     HStack(spacing: 12) {
                         VStack(alignment: .leading, spacing: 2) {
@@ -85,8 +76,6 @@ struct QualityScalePanel: View {
 
                     Divider()
                         .padding(.vertical, 2)
-
-                    // Interpolation Mode
                     HStack {
                         Text("Interpolation")
                             .font(.caption)
@@ -104,11 +93,6 @@ struct QualityScalePanel: View {
                         .controlSize(.small)
                         .frame(minWidth: 140)
                         .disabled(settings.upscaling.scaler == "coreml")
-                    }
-                    if settings.upscaling.scaler == "coreml" {
-                        Text("Core ML preserves source frame timing; interpolation and target FPS apply to FFmpeg only.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
                     }
                 }
                 .padding(8)

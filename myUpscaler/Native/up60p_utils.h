@@ -28,6 +28,9 @@ bool is_image(const char *path);
 bool up60p_is_cancelled(void);
 void up60p_reset_cancel(void);
 void up60p_request_cancel(void);
+/* Serializes final rename with cancellation. Returns PROCESS_COMMITTED,
+ * PROCESS_CANCELLED, or -1. A committed result wins over later cancellation. */
+int up60p_commit_output(const char *temporary, const char *output);
 
 
 extern up60p_log_callback global_log_cb;

@@ -90,12 +90,14 @@ struct RestorationSecondSetPanel: View {
                             Text("Off").tag("off")
                             Text("Deband").tag("deband")
                             Text("Gradfun").tag("gradfun")
+                            Text("Neo F3kdb (CPU)").tag("neo_f3kdb")
+                                .disabled(!UpscaleSettings.neoF3kdbAvailable)
                         }
                         .pickerStyle(.menu)
                         .controlSize(.small)
 
                         if settings.secondary.useDeband {
-                            if settings.secondary.debandMethod == "f3kdb" {
+                            if ["f3kdb", "neo_f3kdb"].contains(settings.secondary.debandMethod) {
                                 RestorationF3KDBControls(stage: $settings.secondary, compact: true)
                                     .padding(.leading, 8)
                             } else {

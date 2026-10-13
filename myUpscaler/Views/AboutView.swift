@@ -36,7 +36,7 @@ struct AboutView: View {
             ModernDivider()
                 .padding(.vertical, DesignSystem.Spacing.xs)
 
-            Text("Preview, restore, and upscale video with FFmpeg and optional Core ML models.")
+            Text("To be filled by Arshiya himself")
                 .font(DesignSystem.Typography.body)
                 .foregroundColor(.primary)
 

@@ -23,7 +23,7 @@ actor CoreMLProcessingJob {
     private func logEffectiveKnobs(settings: SettingsConfiguration, useHEVC: Bool) {
         let feather = settings.tileFeatherMarginValue > 0
         let featherNote = feather ? "\(settings.tileFeatherMarginValue)px" : "off"
-        log("CoreML honors: model=\(settings.upscaling.coremlModelId.rawValue), scale=\(settings.video.scaleFactor)x, codec=\(useHEVC ? "hevc" : "h264"), crf=\(Int(settings.codec.crf)), tile feather=\(featherNote).\n")
+        log("AI export honors: model=\(settings.upscaling.coremlModelId.rawValue), scale=\(settings.video.scaleFactor)x, codec=\(useHEVC ? "hevc" : "h264"), crf=\(Int(settings.codec.crf)), tile feather=\(featherNote).\n")
     }
 
     func process(inputPath: String, configuration: SettingsConfiguration,
@@ -32,7 +32,11 @@ actor CoreMLProcessingJob {
         defer { control.finish() }
         try control.checkCancellation()
         guard CodecSupport.isValidCRF(settings.codec.crf) else { throw Up60PEngineError.invalidOptions }
-        log("CoreML Engine: Starting processing...\n")
+        if settings.primary.useDeband && settings.primary.debandMethod == "neo_f3kdb" {
+            log("ERROR: Neo F3kdb requires native CPU export; it is unavailable in the AI model pipeline.\n")
+            throw Up60PEngineError.invalidOptions
+        }
+        log("AI Engine: Starting processing...\n")
         let codecDecision = CodecSupport.resolve(requestHEVC: settings.codec.useHEVC)
 
         // FIX: Force Linearize OFF for Real-ESRGAN to prevent dark/washed-out results
@@ -55,9 +59,9 @@ actor CoreMLProcessingJob {
         log("Loading AI Model (\(modelSpec.displayName))...\n")
         let layout = try await ModelManager.shared.prepareModel(spec: modelSpec)
         try control.checkCancellation()
-        guard layout.float32Input, layout.float32Output,
+        guard (modelSpec.backend == .coreAI || (layout.float32Input && layout.float32Output)),
               modelSpec.supportsTensorShapes(input: layout.inputShape, output: layout.outputShape) else {
-            log("CoreML model has an unsupported tensor layout; expected Float32 NCHW RGB at the model's native scale.\n")
+            log("AI model has an unsupported tensor layout; expected floating NCHW RGB at the model's native scale.\n")
             throw ModelError.invalidModel
         }
         let inputName = layout.inputName

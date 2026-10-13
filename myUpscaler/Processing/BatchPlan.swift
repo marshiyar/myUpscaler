@@ -41,14 +41,14 @@ nonisolated struct BatchPlan: Sendable {
                 guard values.isRegularFile == true else { continue }
                 let ext = url.pathExtension.lowercased()
                 guard imageExtensions.contains(ext) || videoExtensions.contains(ext) else { continue }
-                if coreML && imageExtensions.contains(ext) {
-                    throw Failure("Core ML folder export supports videos only; image found: \(url.lastPathComponent).")
-                }
-                guard items.count < 10_000 else { throw Failure("Folder export is limited to 10,000 files per job.") }
+
                 let relativeParent = (relative as NSString).deletingLastPathComponent
-                let name = url.deletingPathExtension().lastPathComponent + "_[restored]." +
-                    (imageExtensions.contains(ext) ? "png" : "mp4")
+
+                let name = url.deletingPathExtension().lastPathComponent
+                + "_[restored]." + (imageExtensions.contains(ext) ? "png" : "mp4")
+
                 let output = root.appendingPathComponent(relativeParent, isDirectory: true).appendingPathComponent(name).standardizedFileURL
+
                 // Conservatively reject aliases even on case-sensitive volumes.
                 guard destinations.insert(output.path.precomposedStringWithCanonicalMapping.lowercased()).inserted else {
                     throw Failure("Two inputs map to the same output: \(output.path).")

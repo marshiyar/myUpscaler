@@ -14,6 +14,18 @@ import Combine
 
     @MainActor static func verifyAdditionalControls() throws {
         let settings = UpscaleSettings()
+        for method in ["f3kdb", "neo_f3kdb"] {
+            settings.additionalDebandMethod = method
+            precondition(settings.primary.debandMethod == method && settings.primary.useDeband)
+            settings.secondary.debandChoice = method
+            let saved = try JSONEncoder().encode(UpscaleSettingsSnapshot(settings: settings))
+            let restored = UpscaleSettings()
+            try JSONDecoder().decode(UpscaleSettingsSnapshot.self, from: saved).apply(to: restored)
+            precondition(restored.primary.debandMethod == method && restored.secondary.debandMethod == method)
+            restored.secondary.debandChoice = "off"
+            precondition(!restored.secondary.useDeband && restored.secondary.debandMethod == method)
+        }
+        settings.replaceConfiguration(SettingsConfiguration())
         settings.primary.useDeband = false
         settings.primary.useGrain = false
         precondition(settings.additionalDebandMethod == "off")
@@ -114,6 +126,15 @@ import Combine
         choiceDecoded.apply(to: choiceTarget)
         precondition(choiceTarget.upscalingChoice == .model(.realESRGANx8))
         precondition(UpscalingChoice.model(.realESRGANx4).displayName == "Real-ESRGAN x4")
+        for id in [CoreMLModelID.realESRGANx2FP16, .realESRGANx4FP16] {
+            let local = UpscaleSettings()
+            local.upscalingChoice = .model(id)
+            let target = UpscaleSettings()
+            try JSONDecoder().decode(UpscaleSettingsSnapshot.self, from: JSONEncoder().encode(UpscaleSettingsSnapshot(settings: local))).apply(to: target)
+            precondition(target.upscalingChoice == .model(id))
+            precondition(UpscalingChoice.model(id).displayName.contains("(FP16)"))
+        }
+        precondition(UpscaleSettings().upscaling.coremlModelId == .realESRGANx4)
         precondition(settings.availableUpscalingChoices == [.lanczos] + settings.coremlModels.map { .model($0.id) })
         if !settings.availableUpscalingChoices.contains(.model(.realESRGANx8)) { precondition(settings.upscalingUnavailableReason != nil) }
         settings.upscalingChoice = .lanczos

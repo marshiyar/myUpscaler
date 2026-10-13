@@ -30,6 +30,6 @@ xcrun swiftc -O -whole-module-optimization -parse-as-library -swift-version 5 -d
  myUpscaler/Processing/{UpscaleRunner,UpscaleRunner+Batch,BatchPlan,Up60PEngine,SourceVideoTiming}.swift \
  myUpscaler/State/{UpscaleSettings,PresetStore}.swift myUpscaler/State/Settings*.swift \
  myUpscaler/Models/{CoreMLModelRegistry,UpscalingModeSupport}.swift myUpscaler/Support/{CodecSupport,Protocols,FFmpegParser,ProcessingErrors}.swift \
- myUpscaler/Processing/{CoreMLEngine,CoreMLEngine+Shaders,CoreMLModelManager,CoreMLProcessingJob,CoreMLBufferAccess,ProcessingControl,UpscaleGeometry,VideoIO,VideoAudioMuxer,ProgressUpdateGate}.swift \
+ myUpscaler/Processing/{CoreMLEngine,CoreMLEngine+Shaders,CoreMLModelManager,CoreAIModelWorker,CoreMLProcessingJob,CoreMLBufferAccess,ProcessingControl,UpscaleGeometry,VideoIO,VideoAudioMuxer,ProgressUpdateGate}.swift \
  tests/batch/RealEngineTests.swift "$work"/objects/*.o -o "$contents/MacOS/BatchTests"
 "$contents/MacOS/BatchTests" "${@:2}"

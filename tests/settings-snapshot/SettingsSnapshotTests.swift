@@ -10,11 +10,15 @@ nonisolated final class SettingsSnapshotTests: XCTestCase {
         let expected: [(CoreMLModelID, String, String, Double)] = [
             (.realESRGANx2, "RealESRGAN_x2", "Real-ESRGAN x2", 2),
             (.realESRGANx4, "RealESRGAN_x4", "Real-ESRGAN x4", 4),
-            (.realESRGANx8, "RealESRGAN_x8", "Real-ESRGAN x8", 8)
+            (.realESRGANx8, "RealESRGAN_x8", "Real-ESRGAN x8", 8),
+            (.realESRGANx2FP16, "RealESRGAN_x2_FP16", "Real-ESRGAN x2 (FP16)", 2),
+            (.realESRGANx4FP16, "RealESRGAN_x4_FP16", "Real-ESRGAN x4 (FP16)", 4),
+            (.realESRGANx8Author, "RealESRGAN_x8_Author", "Real-ESRGAN x8 (experimental)", 8)
         ]
         let models = CoreMLModelRegistry.models
         XCTAssertEqual(models.map(\.id), CoreMLModelID.allCases)
-        XCTAssertEqual(models.count, expected.count)
+        XCTAssertEqual(models.count, expected.count + 17)
+        XCTAssertEqual(models.filter { $0.backend == .coreAI }.count, 17)
         XCTAssertEqual(Set(models.map(\.id)).count, models.count)
         for (id, resource, displayName, scale) in expected {
             let model = CoreMLModelRegistry.model(for: id)
@@ -28,15 +32,31 @@ nonisolated final class SettingsSnapshotTests: XCTestCase {
     }
 
     func testModelIDsKeepTheirSavedJSONRepresentation() throws {
-        let savedIDs = ["RealESRGAN_x2", "RealESRGAN_x4", "RealESRGAN_x8"]
+        let savedIDs = ["RealESRGAN_x2", "RealESRGAN_x4", "RealESRGAN_x8", "RealESRGAN_x2_FP16", "RealESRGAN_x4_FP16", "RealESRGAN_x8_Author"]
         for (id, savedID) in zip(CoreMLModelID.allCases, savedIDs) {
             let data = try JSONEncoder().encode(id)
             XCTAssertEqual(String(decoding: data, as: UTF8.self), "\"\(savedID)\"")
             XCTAssertEqual(try JSONDecoder().decode(CoreMLModelID.self, from: data), id)
         }
+        for id in CoreMLModelID.allCases.dropFirst(savedIDs.count) {
+            let data = try JSONEncoder().encode(id)
+            XCTAssertEqual(String(decoding: data, as: UTF8.self), "\"\(id.rawValue)\"")
+            XCTAssertEqual(try JSONDecoder().decode(CoreMLModelID.self, from: data), id)
+        }
         XCTAssertNil(CoreMLModelID(rawValue: "unregistered-model"))
         XCTAssertThrowsError(try JSONDecoder().decode(CoreMLModelID.self,
                                                       from: Data("\"unregistered-model\"".utf8)))
+    }
+
+    func testCoreAIResourcesUseTheNativeLoaderIdentity() throws {
+        let id = CoreMLModelID.coreAIlocX2FP16
+        let spec = CoreMLModelRegistry.model(for: id)
+        let (directory, bundle) = try modelResourceFixture([id.rawValue + ".aimodel", id.rawValue + ".mlmodelc"])
+        defer { try? FileManager.default.removeItem(at: directory) }
+        XCTAssertEqual(spec.backend, .coreAI)
+        XCTAssertEqual(spec.nativeScale, 2)
+        XCTAssertEqual(CoreMLModelRegistry.bundledURL(for: spec, bundle: bundle)?.pathExtension, "aimodel")
+        XCTAssertEqual(CoreMLModelRegistry.bundledModels(in: bundle).contains(spec), spec.isRuntimeAvailable)
     }
 
     func testEmptyBundleDoesNotAdvertiseModelsOrInventADefaultResource() throws {

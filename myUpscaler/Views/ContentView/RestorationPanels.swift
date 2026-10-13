@@ -137,6 +137,8 @@ struct RestorationPanel: View {
                                 Text("Off").tag("off")
                                 Text("Deband").tag("deband")
                                 Text("Gradfun").tag("gradfun")
+                                Text("Neo F3kdb (CPU)").tag("neo_f3kdb")
+                                    .disabled(!UpscaleSettings.neoF3kdbAvailable)
                         }
                         .labelsHidden()
                         .pickerStyle(.menu)
@@ -147,8 +149,9 @@ struct RestorationPanel: View {
                         }
                     }
 
-                    if settings.primary.debandMethod == "f3kdb" && settings.upscaling.scaler != "coreml" {
+                    if ["f3kdb", "neo_f3kdb"].contains(settings.primary.debandMethod) && settings.upscaling.scaler != "coreml" {
                         RestorationF3KDBControls(stage: $settings.additionalF3KDBStage, compact: false)
+                            .help("Neo F3kdb: integer range 0–255, thresholds 0–511. Native CPU export only; preview omits this stage. Legacy presets keep the earlier FFmpeg mapping.")
                             .padding(.leading, 8)
                             .disabled(settings.upscaling.scaler == "coreml")
                     } else {

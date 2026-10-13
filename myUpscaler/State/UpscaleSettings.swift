@@ -113,16 +113,17 @@ import Combine
     }
     let denoisers = ["bm3d", "nlmeans", "hqdn3d", "atadenoise"]
     let sharpenMethods = ["cas", "unsharp"]
-    let debandMethods = ["deband", "gradfun", "f3kdb"]
-    #if arch(x86_64)
-    // On Intel Macs, Quick Sync (qsv) and VideoToolbox are available; CUDA/VAAPI are not macOS‑friendly.
-    let hwAccels = ["none", "qsv", "videotoolbox"]
-    let encoders = ["auto", "cpu", "qsv", "videotoolbox"]
-    #else
-    // On Apple Silicon Macs, only software and VideoToolbox HW paths are valid.
+    let debandMethods = ["deband", "gradfun", "f3kdb", "neo_f3kdb"]
+    static var neoF3kdbAvailable: Bool {
+        guard #available(macOS 27, *), let executable = Bundle.main.executableURL else { return false }
+        let directory = executable.deletingLastPathComponent()
+        return ["up60p-neo-media", "up60p-neo-supervisor"].allSatisfy {
+            FileManager.default.isExecutableFile(atPath: directory.appendingPathComponent($0).path)
+        }
+    }
+
     let hwAccels = ["none", "videotoolbox"]
     let encoders = ["auto", "cpu", "videotoolbox"]
-    #endif
     let deblockModes = ["weak", "strong"]
 
     /// One mutation publishes a complete reset; defaults have one source of truth.

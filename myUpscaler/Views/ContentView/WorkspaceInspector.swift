@@ -81,7 +81,7 @@ struct WorkspaceInspector: View {
             .disabled(runner.isRunning)
             .environment(\.workspaceInspector, true)
         }
-        .background(Color.appBackground)
+//        .background(Color.appBackground)
     }
 
     private var primaryFilters: some View {

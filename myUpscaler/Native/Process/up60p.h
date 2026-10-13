@@ -17,7 +17,10 @@ typedef enum {
     UP60P_ERR_IO,
     UP60P_ERR_INTERNAL,
     UP60P_ERR_CANCELLED,
-    UP60P_ERR_UNSUPPORTED_SCALER
+    UP60P_ERR_UNSUPPORTED_SCALER,
+    /* Single-file output was atomically committed. A later cancellation must
+     * not turn this irreversible success into a cancellation result. */
+    UP60P_OK_COMMITTED
 } up60p_error;
 
 typedef struct {

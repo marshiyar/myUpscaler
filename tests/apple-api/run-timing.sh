@@ -3,7 +3,9 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 TEST_DIR="$(mktemp -d)"
 trap 'rm -rf "$TEST_DIR"' EXIT
-FFMPEG="${FFMPEG:-/opt/homebrew/bin/ffmpeg}"
+if [[ -z "${FFMPEG:-}" ]]; then
+  FFMPEG="$(command -v ffmpeg)" || { echo 'FFmpeg is required; add it to PATH or set FFMPEG.' >&2; exit 1; }
+fi
 "$FFMPEG" -hide_banner -loglevel error -f lavfi -i 'testsrc2=size=64x48:rate=24000/1001' -f lavfi -i 'sine=frequency=440:sample_rate=48000:duration=3' -frames:v 48 -c:v libx264 -bf 3 -pix_fmt yuv420p -c:a aac "$TEST_DIR/fractional.mp4"
 "$FFMPEG" -hide_banner -loglevel error -f lavfi -i 'testsrc2=size=64x48:rate=30:duration=2' -c:v libx264 -bf 3 -pix_fmt yuv420p "$TEST_DIR/integer.mp4"
 "$FFMPEG" -hide_banner -loglevel error -f lavfi -i 'testsrc2=size=64x48:rate=24:duration=2' -vf "select='not(eq(mod(n,5),0))'" -fps_mode vfr -c:v libx264 "$TEST_DIR/variable.mp4"

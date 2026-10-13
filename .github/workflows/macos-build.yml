@@ -112,12 +112,14 @@ jobs:
           echo '::notice::External prebuilt model ZIP/directory, cache replacement and checksum requirement passed.'
 
       - name: Test bundled engine lifecycle and architecture
-        run: python3 -m unittest discover -s tests -p 'test_bundled_ffmpeg*.py'
+        run: |
+          python3 -m unittest discover -s tests -p 'test_bundled_ffmpeg*.py'
+          python3 -m unittest discover -s tests -p 'test_fps_endpoints.py'
 
       - name: Test upscaling mode availability
         run: |
           set -euo pipefail
-          xcrun swiftc myUpscaler/UpscalingModeSupport.swift tests/upscaling-mode-support/main.swift \
+          xcrun swiftc myUpscaler/Models/UpscalingModeSupport.swift tests/upscaling-mode-support/main.swift \
             -o "$RUNNER_TEMP/upscaling-mode-tests"
           "$RUNNER_TEMP/upscaling-mode-tests"
 

@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
 ''')
         cls.resolver = Path(cls.build.name) / "resolver"
         subprocess.run([os.environ.get("CC", "cc"), "-std=c11", "-D_XOPEN_SOURCE=700",
-                        "-Wall", "-Wextra", "-Werror", "-I", str(ROOT / "myUpscaler/upscaler"),
+                        "-Wall", "-Wextra", "-Werror", "-I", str(ROOT / "myUpscaler/Native/Process"),
                         str(source), "-o", str(cls.resolver)], check=True)
 
     @classmethod

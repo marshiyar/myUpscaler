@@ -1,44 +1,41 @@
-myUpscaler
-==========
-macOS SwiftUI video upscaler. The app drives a custom C/FFmpeg pipeline with a Swift bridge. The app bundles CoreML Real-ESRGAN x4 and x8 models.
+# myUpscaler
 
-<img src="https://github.com/user-attachments/assets/0c40540b-d83c-4f9b-bad5-07c0baa4b978" width="600">
+A native macOS app for restoring and upscaling video with FFmpeg/Lanczos or Core ML Real-ESRGAN. Includes frame previews, saved presets, and batch export.
 
-Features
---------
-- Apple Silicon–first; GPU/Neural Engine acceleration.
-- End-to-end pipelines, interpolation, dual denoise/deblock/dering/sharpen/deband/grain stacks, color EQ.
-  
-Device Requirements
-------------
-Users:
-- macOS 15.2+
-- Apple Silicon required; Intel Macs are unsupported
-  
-Contributing
----------------
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, testing, and contribution guidelines.
+<img src="https://github.com/user-attachments/assets/0c40540b-d83c-4f9b-bad5-07c0baa4b978" alt="myUpscaler workspace" width="600">
 
-License
--------
-Licensed under the Apache License, Version 2.0.
-See LICENSE for details.
+**Requires:** Apple Silicon and macOS 15.2 or later. Building from source uses Xcode 27 with its Metal compiler component installed.
 
-Models were converted to CoreML by the author of this project.
-Original license applies to the underlying weights.
-See the Real-ESRGAN repository for full license terms.
-The upstream BSD 3-Clause license is included in the app resources as
-`RealESRGAN-LICENSE.txt`.
+## Use
 
-The separately distributed FFmpeg executable is GPL-3.0-or-later. The GPL text
-and a distribution notice are included as app resources.
-FFmpeg is a trademark of Fabrice Bellard, originator of the FFmpeg project.
+1. **Import** a video or folder, or drop a video into the workspace.
+2. Open **Adjustments** and choose **Lanczos** or an included **Real-ESRGAN** model in the Scaler picker. Set the output scale.
+3. Use **Restore** and **Processor** to adjust filters, then **Output** to choose encoding, presets, and an output folder.
+4. Start the export. Use **Cancel** to stop processing.
 
-Attributions ❤️
-------------
-Thank you to 
-#### [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN)
-This project includes CoreML-converted versions of Real-ESRGAN models.
-#### [FFmpeg](https://ffmpeg.org)
-FFmpeg is licensed under the LGPL or GPL depending on the build configuration.
-FFmpeg is bundled with the app; system installations and PATH overrides are not used.
+Lanczos supports video and still images; Core ML supports video. Available controls depend on the selected engine. The frame preview approximates restoration and may differ from the export.
+
+Shortcuts: **⌘O** imports, **⌘R** exports, and **⌘.** cancels. Customize bindings in **Settings → Shortcuts**.
+
+## Build and run
+
+```sh
+git clone https://github.com/marshiyar/myUpscaler.git
+cd myUpscaler
+bash scripts/check-environment.sh
+bash scripts/prepare-bundled-ffmpeg.sh
+bash scripts/prepare-bundled-models.sh
+open myUpscaler.xcodeproj
+```
+
+The preparation scripts download and verify the required assets. In Xcode, select the **myUpscaler** scheme and run it on **My Mac**. The app includes its own FFmpeg.
+
+For development checks and additional setup options, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License and credits
+
+Application code: [Apache-2.0](LICENSE).
+
+Core ML model assets are provided by Marshiyar. [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN) weights retain their upstream [BSD 3-Clause license](myUpscaler/ThirdParty/RealESRGAN-LICENSE.txt).
+
+The separately distributed [FFmpeg](https://ffmpeg.org/) executable is GPL-3.0-or-later; see its [license](myUpscaler/ThirdParty/FFmpeg-COPYING.txt) and [distribution notice](myUpscaler/ThirdParty/FFmpeg-NOTICE.txt). FFmpeg is a trademark of Fabrice Bellard.

@@ -3,38 +3,46 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 110;
 	objects = {
 
 /* Begin PBXBuildFile section */
-		C0270000000000000000000D = {isa = PBXBuildFile; fileRef = C02700000000000000000008; };
-		C0270000000000000000000E = {isa = PBXBuildFile; fileRef = C02700000000000000000009; };
-		C0270000000000000000000F = {isa = PBXBuildFile; fileRef = C0270000000000000000000A; };
-		C02700000000000000000010 = {isa = PBXBuildFile; fileRef = C0270000000000000000000B; };
-		C02700000000000000000011 = {isa = PBXBuildFile; fileRef = C0270000000000000000000C; };
+		C0270000000000000000000D /* myUpscaler/Models/CoreMLModelRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = C02700000000000000000008 /* myUpscaler/Models/CoreMLModelRegistry.swift */; };
+		C0270000000000000000000E /* myUpscaler/Models/UpscalingModeSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C02700000000000000000009 /* myUpscaler/Models/UpscalingModeSupport.swift */; };
+		C0270000000000000000000F /* myUpscaler/State/UpscaleSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0270000000000000000000A /* myUpscaler/State/UpscaleSettings.swift */; };
+		C02700000000000000000010 /* myUpscaler/State/PresetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0270000000000000000000B /* myUpscaler/State/PresetStore.swift */; };
+		C02700000000000000000011 /* tests/settings-snapshot/SettingsSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0270000000000000000000C /* tests/settings-snapshot/SettingsSnapshotTests.swift */; };
+		D27000000000000000000011 /* myUpscaler/State/SettingsNormalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = D27000000000000000000001 /* myUpscaler/State/SettingsNormalization.swift */; };
+		D27000000000000000000012 /* myUpscaler/State/SettingsParameterRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = D27000000000000000000002 /* myUpscaler/State/SettingsParameterRules.swift */; };
+		E27100000000000000000011 /* myUpscaler/State/SettingsConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = E27100000000000000000001 /* myUpscaler/State/SettingsConfiguration.swift */; };
+		E27100000000000000000012 /* myUpscaler/State/SettingsPreviewParameters.swift in Sources */ = {isa = PBXBuildFile; fileRef = E27100000000000000000002 /* myUpscaler/State/SettingsPreviewParameters.swift */; };
+		E27100000000000000000013 /* myUpscaler/State/SettingsRenderSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = E27100000000000000000003 /* myUpscaler/State/SettingsRenderSnapshot.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		5EE164CF2EF4D83C0060947E /* Copy Files */ = {
 			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
 			dstPath = ThirdParty/FFmpeg;
-			dstSubfolderSpec = 6;
+			dstSubfolder = Executables;
 			files = (
 			);
 			name = "Copy Files";
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		5ECE7BB52EF2A63C00603DA9 /* myUpscaler.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = myUpscaler.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		C02700000000000000000008 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/CoreMLModelRegistry.swift; sourceTree = SOURCE_ROOT; };
-		C02700000000000000000009 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/UpscalingModeSupport.swift; sourceTree = SOURCE_ROOT; };
-		C0270000000000000000000A = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/UpscaleSettings.swift; sourceTree = SOURCE_ROOT; };
-		C0270000000000000000000B = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/PresetStore.swift; sourceTree = SOURCE_ROOT; };
-		C0270000000000000000000C = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = tests/settings-snapshot/SettingsSnapshotTests.swift; sourceTree = SOURCE_ROOT; };
-		C02700000000000000000006 = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = myUpscalerUnitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		C02700000000000000000006 /* myUpscalerUnitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = myUpscalerUnitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		C02700000000000000000008 /* myUpscaler/Models/CoreMLModelRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/Models/CoreMLModelRegistry.swift; sourceTree = SOURCE_ROOT; };
+		C02700000000000000000009 /* myUpscaler/Models/UpscalingModeSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/Models/UpscalingModeSupport.swift; sourceTree = SOURCE_ROOT; };
+		C0270000000000000000000A /* myUpscaler/State/UpscaleSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/State/UpscaleSettings.swift; sourceTree = SOURCE_ROOT; };
+		C0270000000000000000000B /* myUpscaler/State/PresetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/State/PresetStore.swift; sourceTree = SOURCE_ROOT; };
+		C0270000000000000000000C /* tests/settings-snapshot/SettingsSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "tests/settings-snapshot/SettingsSnapshotTests.swift"; sourceTree = SOURCE_ROOT; };
+		D27000000000000000000001 /* myUpscaler/State/SettingsNormalization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/State/SettingsNormalization.swift; sourceTree = SOURCE_ROOT; };
+		D27000000000000000000002 /* myUpscaler/State/SettingsParameterRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/State/SettingsParameterRules.swift; sourceTree = SOURCE_ROOT; };
+		E27100000000000000000001 /* myUpscaler/State/SettingsConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/State/SettingsConfiguration.swift; sourceTree = SOURCE_ROOT; };
+		E27100000000000000000002 /* myUpscaler/State/SettingsPreviewParameters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/State/SettingsPreviewParameters.swift; sourceTree = SOURCE_ROOT; };
+		E27100000000000000000003 /* myUpscaler/State/SettingsRenderSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/State/SettingsRenderSnapshot.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -73,7 +81,11 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		C02700000000000000000005 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		C02700000000000000000005 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -87,7 +99,23 @@
 			);
 			sourceTree = "<group>";
 		};
-		C02700000000000000000007 = {isa = PBXGroup; children = (C02700000000000000000008, C02700000000000000000009, C0270000000000000000000A, C0270000000000000000000B, C0270000000000000000000C, ); name = "Unit Test Sources"; sourceTree = "<group>"; };
+		C02700000000000000000007 /* Unit Test Sources */ = {
+			isa = PBXGroup;
+			children = (
+				C02700000000000000000008 /* myUpscaler/Models/CoreMLModelRegistry.swift */,
+				C02700000000000000000009 /* myUpscaler/Models/UpscalingModeSupport.swift */,
+				C0270000000000000000000A /* myUpscaler/State/UpscaleSettings.swift */,
+				C0270000000000000000000B /* myUpscaler/State/PresetStore.swift */,
+				C0270000000000000000000C /* tests/settings-snapshot/SettingsSnapshotTests.swift */,
+				D27000000000000000000002 /* myUpscaler/State/SettingsParameterRules.swift */,
+				D27000000000000000000001 /* myUpscaler/State/SettingsNormalization.swift */,
+				E27100000000000000000002 /* myUpscaler/State/SettingsPreviewParameters.swift */,
+				E27100000000000000000001 /* myUpscaler/State/SettingsConfiguration.swift */,
+				E27100000000000000000003 /* myUpscaler/State/SettingsRenderSnapshot.swift */,
+			);
+			name = "Unit Test Sources";
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -103,27 +131,26 @@
 			);
 			buildRules = (
 			);
-			dependencies = (
-			);
 			fileSystemSynchronizedGroups = (
 				5E23E5082ED9AB0B008298B2 /* myUpscaler */,
 			);
 			name = myUpscaler;
-			packageProductDependencies = (
-			);
 			productName = myUpscaler;
 			productReference = 5ECE7BB52EF2A63C00603DA9 /* myUpscaler.app */;
 			productType = "com.apple.product-type.application";
 		};
 		C02700000000000000000000 /* myUpscalerUnitTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = C02700000000000000000001;
-			buildPhases = (C02700000000000000000004, C02700000000000000000005, );
-			buildRules = ();
-			dependencies = ();
+			buildConfigurationList = C02700000000000000000001 /* Build configuration list for PBXNativeTarget "myUpscalerUnitTests" */;
+			buildPhases = (
+				C02700000000000000000004 /* Sources */,
+				C02700000000000000000005 /* Frameworks */,
+			);
+			buildRules = (
+			);
 			name = myUpscalerUnitTests;
 			productName = myUpscalerUnitTests;
-			productReference = C02700000000000000000006;
+			productReference = C02700000000000000000006 /* myUpscalerUnitTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
@@ -151,7 +178,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 			);
-			preferredProjectObjectVersion = 77;
+			preferredProjectObjectVersion = 110;
 			productRefGroup = 5E23E4FD2ED9AB0B008298B2;
 			projectDirPath = "";
 			projectRoot = "";
@@ -165,59 +192,60 @@
 /* Begin PBXResourcesBuildPhase section */
 		5E23E5042ED9AB0B008298B2 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		5EE165482EF4EEB20060947E /* Run Script */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			name = "Run Script";
+			shellPath = /bin/sh;
+			shellScript = (
+				"set -eu",
+				"/bin/bash \"${PROJECT_DIR}/scripts/build-bundled-helpers.sh\"",
+				"",
+			);
+		};
 		C03300000000000000000001 /* Embed CoreML models */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = ();
-			inputPaths = ();
-			outputPaths = ();
 			name = "Embed CoreML models";
-			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/bash;
-			shellScript = "/bin/bash \"${PROJECT_DIR}/scripts/embed-bundled-models.sh\"\n";
-		};
-		5EE165482EF4EEB20060947E /* Run Script */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
+			shellScript = (
+				"/bin/bash \"${PROJECT_DIR}/scripts/embed-bundled-models.sh\"",
+				"",
 			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "Run Script";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "set -eu\n/bin/bash \"${PROJECT_DIR}/scripts/build-bundled-helpers.sh\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		5E23E5022ED9AB0B008298B2 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
-		C02700000000000000000004 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (C0270000000000000000000D, C0270000000000000000000E, C0270000000000000000000F, C02700000000000000000010, C02700000000000000000011, ); runOnlyForDeploymentPostprocessing = 0; };
+		C02700000000000000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+				C0270000000000000000000D /* myUpscaler/Models/CoreMLModelRegistry.swift in Sources */,
+				C0270000000000000000000E /* myUpscaler/Models/UpscalingModeSupport.swift in Sources */,
+				C0270000000000000000000F /* myUpscaler/State/UpscaleSettings.swift in Sources */,
+				C02700000000000000000010 /* myUpscaler/State/PresetStore.swift in Sources */,
+				C02700000000000000000011 /* tests/settings-snapshot/SettingsSnapshotTests.swift in Sources */,
+				D27000000000000000000012 /* myUpscaler/State/SettingsParameterRules.swift in Sources */,
+				D27000000000000000000011 /* myUpscaler/State/SettingsNormalization.swift in Sources */,
+				E27100000000000000000012 /* myUpscaler/State/SettingsPreviewParameters.swift in Sources */,
+				E27100000000000000000011 /* myUpscaler/State/SettingsConfiguration.swift in Sources */,
+				E27100000000000000000013 /* myUpscaler/State/SettingsRenderSnapshot.swift in Sources */,
+			);
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		5E23E5252ED9AB0C008298B2 /* Debug */ = {
+		5E23E5252ED9AB0C008298B2 /* Debug configuration for PBXProject "myUpscaler" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
@@ -231,6 +259,9 @@
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_ENABLE_SECURITY_COMPILER_WARNINGS = YES;
+				CLANG_STATIC_ANALYZER_MODE = deep;
+				CLANG_WARN_ASSIGN_ENUM = YES;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_COMMA = YES;
@@ -255,7 +286,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				COREML_CODEGEN_SWIFT_GLOBAL_MODULE = YES;
-				CURRENT_PROJECT_VERSION = 0.0.3;
+				CURRENT_PROJECT_VERSION = 1.0.0;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = M48T7DC657;
 				EMBED_ASSET_PACKS_IN_PRODUCT_BUNDLE = YES;
@@ -278,15 +309,18 @@
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_OPTIMIZATION_LEVEL = "";
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					"UP60P_LIBRARY_MODE=1",
 					"$(inherited)",
 				);
 				GCC_STRICT_ALIASING = YES;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_SHADOW = YES;
+				GCC_WARN_SIGN_COMPARE = YES;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
@@ -310,11 +344,13 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
-				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_SUPPRESS_WARNINGS = NO;
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
 			};
 			name = Debug;
 		};
-		5E23E5262ED9AB0C008298B2 /* Release */ = {
+		5E23E5262ED9AB0C008298B2 /* Release configuration for PBXProject "myUpscaler" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
@@ -328,6 +364,9 @@
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_ENABLE_SECURITY_COMPILER_WARNINGS = YES;
+				CLANG_STATIC_ANALYZER_MODE = deep;
+				CLANG_WARN_ASSIGN_ENUM = YES;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_COMMA = YES;
@@ -352,7 +391,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				COREML_CODEGEN_SWIFT_GLOBAL_MODULE = YES;
-				CURRENT_PROJECT_VERSION = 0.0.3;
+				CURRENT_PROJECT_VERSION = 1.0.0;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = M48T7DC657;
 				EMBED_ASSET_PACKS_IN_PRODUCT_BUNDLE = YES;
@@ -374,13 +413,17 @@
 				GCC_CHAR_IS_UNSIGNED_CHAR = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = "";
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"UP60P_LIBRARY_MODE=1",
 					"$(inherited)",
 				);
 				GCC_STRICT_ALIASING = YES;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_SHADOW = YES;
+				GCC_WARN_SIGN_COMPARE = YES;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
@@ -402,18 +445,20 @@
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_ENABLE_EXPLICIT_MODULES = NO;
-				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_SUPPRESS_WARNINGS = NO;
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
 			};
 			name = Release;
 		};
-		5E23E5282ED9AB0C008298B2 /* Debug */ = {
+		5E23E5282ED9AB0C008298B2 /* Debug configuration for PBXNativeTarget "myUpscaler" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				APPLY_RULES_IN_COPY_HEADERS = YES;
+				ARCHS = arm64;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				AUTOMATION_APPLE_EVENTS = NO;
 				CODE_SIGN_ENTITLEMENTS = "";
@@ -425,7 +470,6 @@
 				COPY_PHASE_STRIP = YES;
 				COREML_CODEGEN_SWIFT_GLOBAL_MODULE = YES;
 				CREATE_INFOPLIST_SECTION_IN_BINARY = NO;
-				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = M48T7DC657;
@@ -457,20 +501,20 @@
 				GCC_STRICT_ALIASING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				GENERATE_PRELINK_OBJECT_FILE = NO;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/myUpscaler/upscaler";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/myUpscaler/Native/Process";
 				INFOPLIST_FILE = myUpscaler/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MyUpscaler;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.video";
 				INFOPLIST_KEY_MetalCaptureEnabled = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "MyUpscaler needs access to your photos library when you want to import or export there. ";
 				LD_RUNPATH_SEARCH_PATHS = "";
 				LIBRARY_SEARCH_PATHS = "";
 				LINK_WITH_STANDARD_LIBRARIES = YES;
-				ARCHS = arm64;
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
-				MARKETING_VERSION = 0.0.2;
-				"MARKETING_VERSION[sdk=macosx*]" = 0.0.2;
+				MARKETING_VERSION = "";
+				"MARKETING_VERSION[sdk=macosx*]" = 1.0.0;
 				MTL_COMPILER_FLAGS = "-fcikernel";
 				MTL_ENABLE_INDEX_STORE = YES;
 				MTL_ENABLE_MODULES = STDLIB;
@@ -501,11 +545,11 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_ENABLE_EMIT_CONST_VALUES = NO;
 				SWIFT_INCLUDE_PATHS = "";
-				SWIFT_OBJC_BRIDGING_HEADER = myUpscaler/upscaler/Up60PBridging.h;
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_OBJC_BRIDGING_HEADER = myUpscaler/Native/Process/Up60PBridging.h;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_PRECOMPILE_BRIDGING_HEADER = YES;
 				SWIFT_SKIP_AUTOLINKING_LIBRARIES = "";
-				SWIFT_STRICT_CONCURRENCY = targeted;
+				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_SYSTEM_INCLUDE_PATHS = "";
 				SWIFT_UPCOMING_FEATURE_GLOBAL_CONCURRENCY = NO;
 				SWIFT_UPCOMING_FEATURE_INFER_SENDABLE_FROM_CAPTURES = NO;
@@ -516,15 +560,15 @@
 			};
 			name = Debug;
 		};
-		5E23E5292ED9AB0C008298B2 /* Release */ = {
+		5E23E5292ED9AB0C008298B2 /* Release configuration for PBXNativeTarget "myUpscaler" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				APPLY_RULES_IN_COPY_HEADERS = YES;
+				ARCHS = arm64;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				"ASSETCATALOG_COMPILER_APPICON_NAME[sdk=macosx*]" = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				AUTOMATION_APPLE_EVENTS = NO;
 				CODE_SIGN_ENTITLEMENTS = "";
@@ -536,7 +580,6 @@
 				COPY_PHASE_STRIP = YES;
 				COREML_CODEGEN_SWIFT_GLOBAL_MODULE = YES;
 				CREATE_INFOPLIST_SECTION_IN_BINARY = NO;
-				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = M48T7DC657;
@@ -568,19 +611,19 @@
 				GCC_STRICT_ALIASING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				GENERATE_PRELINK_OBJECT_FILE = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/myUpscaler/upscaler";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/myUpscaler/Native/Process";
 				INFOPLIST_FILE = myUpscaler/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MyUpscaler;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.video";
 				INFOPLIST_KEY_MetalCaptureEnabled = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "MyUpscaler needs access to your photos library when you want to import or export there. ";
 				LD_RUNPATH_SEARCH_PATHS = "";
 				LIBRARY_SEARCH_PATHS = "";
 				LINK_WITH_STANDARD_LIBRARIES = YES;
-				ARCHS = arm64;
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
-				MARKETING_VERSION = 0.0.2;
+				MARKETING_VERSION = "";
 				MTL_COMPILER_FLAGS = "-fcikernel";
 				MTL_ENABLE_INDEX_STORE = YES;
 				MTL_ENABLE_MODULES = STDLIB;
@@ -614,11 +657,11 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_ENABLE_EMIT_CONST_VALUES = NO;
 				SWIFT_INCLUDE_PATHS = "";
-				SWIFT_OBJC_BRIDGING_HEADER = myUpscaler/upscaler/Up60PBridging.h;
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_OBJC_BRIDGING_HEADER = myUpscaler/Native/Process/Up60PBridging.h;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_PRECOMPILE_BRIDGING_HEADER = YES;
 				SWIFT_SKIP_AUTOLINKING_LIBRARIES = "";
-				SWIFT_STRICT_CONCURRENCY = targeted;
+				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_SYSTEM_INCLUDE_PATHS = "";
 				SWIFT_UPCOMING_FEATURE_GLOBAL_CONCURRENCY = NO;
 				SWIFT_UPCOMING_FEATURE_INFER_SENDABLE_FROM_CAPTURES = NO;
@@ -629,65 +672,89 @@
 			};
 			name = Release;
 		};
-		C02700000000000000000002 = {isa = XCBuildConfiguration; buildSettings = {
-                ARCHS = arm64;
-                CODE_SIGN_STYLE = Automatic;
-                EMBED_ASSET_PACKS_IN_PRODUCT_BUNDLE = NO;
-                ENABLE_APP_SANDBOX = NO;
-                ENABLE_DEBUG_DYLIB = NO;
-                ENABLE_HARDENED_RUNTIME = NO;
-                ENABLE_ON_DEMAND_RESOURCES = NO;
-                GENERATE_INFOPLIST_FILE = YES;
-                MACH_O_TYPE = mh_bundle;
-                LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@loader_path/Frameworks", "@executable_path/Frameworks", );
-                MACOSX_DEPLOYMENT_TARGET = 15.2;
-                PRODUCT_BUNDLE_IDENTIFIER = Ashrox.myUpscalerUnitTests;
-                PRODUCT_NAME = "$(TARGET_NAME)";
-                SDKROOT = macosx;
-                SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-                SWIFT_VERSION = 5.0;
-            }; name = Debug; };
-		C02700000000000000000003 = {isa = XCBuildConfiguration; buildSettings = {
-                ARCHS = arm64;
-                CODE_SIGN_STYLE = Automatic;
-                EMBED_ASSET_PACKS_IN_PRODUCT_BUNDLE = NO;
-                ENABLE_APP_SANDBOX = NO;
-                ENABLE_DEBUG_DYLIB = NO;
-                ENABLE_HARDENED_RUNTIME = NO;
-                ENABLE_ON_DEMAND_RESOURCES = NO;
-                GENERATE_INFOPLIST_FILE = YES;
-                MACH_O_TYPE = mh_bundle;
-                LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@loader_path/Frameworks", "@executable_path/Frameworks", );
-                MACOSX_DEPLOYMENT_TARGET = 15.2;
-                PRODUCT_BUNDLE_IDENTIFIER = Ashrox.myUpscalerUnitTests;
-                PRODUCT_NAME = "$(TARGET_NAME)";
-                SDKROOT = macosx;
-                SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-                SWIFT_VERSION = 5.0;
-            }; name = Release; };
+		C02700000000000000000002 /* Debug configuration for PBXNativeTarget "myUpscalerUnitTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				CODE_SIGN_STYLE = Automatic;
+				EMBED_ASSET_PACKS_IN_PRODUCT_BUNDLE = NO;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_DEBUG_DYLIB = NO;
+				ENABLE_HARDENED_RUNTIME = NO;
+				ENABLE_ON_DEMAND_RESOURCES = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@loader_path/Frameworks",
+					"@executable_path/Frameworks",
+				);
+				MACH_O_TYPE = mh_bundle;
+				MACOSX_DEPLOYMENT_TARGET = 15.2;
+				PRODUCT_BUNDLE_IDENTIFIER = Ashrox.myUpscalerUnitTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		C02700000000000000000003 /* Release configuration for PBXNativeTarget "myUpscalerUnitTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				CODE_SIGN_STYLE = Automatic;
+				EMBED_ASSET_PACKS_IN_PRODUCT_BUNDLE = NO;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_DEBUG_DYLIB = NO;
+				ENABLE_HARDENED_RUNTIME = NO;
+				ENABLE_ON_DEMAND_RESOURCES = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@loader_path/Frameworks",
+					"@executable_path/Frameworks",
+				);
+				MACH_O_TYPE = mh_bundle;
+				MACOSX_DEPLOYMENT_TARGET = 15.2;
+				PRODUCT_BUNDLE_IDENTIFIER = Ashrox.myUpscalerUnitTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
 		5E23E5012ED9AB0B008298B2 /* Build configuration list for PBXProject "myUpscaler" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				5E23E5252ED9AB0C008298B2 /* Debug */,
-				5E23E5262ED9AB0C008298B2 /* Release */,
+				5E23E5252ED9AB0C008298B2 /* Debug configuration for PBXProject "myUpscaler" */,
+				5E23E5262ED9AB0C008298B2 /* Release configuration for PBXProject "myUpscaler" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 		5E23E5272ED9AB0C008298B2 /* Build configuration list for PBXNativeTarget "myUpscaler" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				5E23E5282ED9AB0C008298B2 /* Debug */,
-				5E23E5292ED9AB0C008298B2 /* Release */,
+				5E23E5282ED9AB0C008298B2 /* Debug configuration for PBXNativeTarget "myUpscaler" */,
+				5E23E5292ED9AB0C008298B2 /* Release configuration for PBXNativeTarget "myUpscaler" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		C02700000000000000000001 = {isa = XCConfigurationList; buildConfigurations = (C02700000000000000000002, C02700000000000000000003, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		C02700000000000000000001 /* Build configuration list for PBXNativeTarget "myUpscalerUnitTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C02700000000000000000002 /* Debug configuration for PBXNativeTarget "myUpscalerUnitTests" */,
+				C02700000000000000000003 /* Release configuration for PBXNativeTarget "myUpscalerUnitTests" */,
+			);
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 	};
 	rootObject = 5E23E4FE2ED9AB0B008298B2 /* Project object */;
+	validationLevel = 1;
 }

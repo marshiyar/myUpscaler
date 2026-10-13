@@ -7,15 +7,7 @@ extension EditorState {
     // MARK: - Load Thumbnail
     func loadThumbnail(_ path: String) {
         let url = URL(fileURLWithPath: path)
-        let ext = url.pathExtension.lowercased()
-
-        if ["png", "jpg", "jpeg", "tif", "tiff", "bmp", "webp"].contains(ext) {
-            if let image = NSImage(contentsOf: url) {
-                self.installOriginal(image)
-                self.videoAsset = nil
-                return
-            }
-        }
+        guard VideoInput.isVideo(url) else { return }
 
         let asset = AVURLAsset(url: url)
         videoAsset = asset
@@ -46,18 +38,7 @@ extension EditorState {
     // MARK: -  Load Timeline
     func loadTimeline(_ path: String) {
         let url = URL(fileURLWithPath: path)
-        let ext = url.pathExtension.lowercased()
-
-        if ["png", "jpg", "jpeg", "tif", "tiff", "bmp", "webp"].contains(ext) {
-            if let image = NSImage(contentsOf: url) {
-                self.videoFPS = 0
-                self.totalFrames = 1
-                self.timelineFrames = [image]
-                self.timelineFrameTimes = [0.0]
-                self.timelinePresentationTimes = []
-                return
-            }
-        }
+        guard VideoInput.isVideo(url) else { return }
 
         let asset = AVURLAsset(url: url)
         videoAsset = asset

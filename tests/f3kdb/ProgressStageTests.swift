@@ -33,7 +33,7 @@ struct ZeroStageDuration: AssetLoaderProtocol {
         let root = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }
-        let input = root.appendingPathComponent("input.png")
+        let input = root.appendingPathComponent("input.mp4")
         try Data([1]).write(to: input)
         let engine = HeldStageEngine()
         let runner = UpscaleRunner(engine: engine, assetLoader: ZeroStageDuration())

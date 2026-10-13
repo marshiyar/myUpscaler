@@ -6,11 +6,12 @@ trap 'rm -rf "$work"' EXIT
 cp -R myUpscaler "$work/myUpscaler"
 cp -R tests "$work/source-tests"
 cd "$work"
+find myUpscaler -type f -name '*.swift' \
+  ! -path '*/App/*' ! -name 'Up60PEngine.swift' -print0 > "$work/sources.list"
 sources=()
 while IFS= read -r -d '' source; do
   sources+=("$source")
-done < <(find myUpscaler -type f -name '*.swift' \
-  ! -path '*/App/*' ! -name 'Up60PEngine.swift' -print0)
+done < "$work/sources.list"
 if (( ${#sources[@]} == 0 )); then
   echo 'No Swift sources found.' >&2
   exit 1

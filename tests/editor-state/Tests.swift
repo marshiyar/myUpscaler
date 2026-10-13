@@ -77,11 +77,23 @@ import Combine
         let editor = EditorState(settings: settings)
         let red = try save(image(220, 10), "red.png")
         let blue = try save(image(10, 220), "blue.png")
-        editor.loadThumbnail(red)
+        let disguised = try save(image(220, 10), "image.mp4")
+        for path in [red, blue, disguised] {
+            let url = URL(fileURLWithPath: path)
+            precondition(!VideoInput.acceptsSelection(url), "import must reject images, including renamed files")
+            editor.filePath = path
+            precondition(editor.videoAsset == nil && editor.originalThumbnail == nil && editor.timelineFrames.isEmpty)
+        }
+        precondition(VideoInput.acceptsSelection(folder), "batch folders remain selectable")
+        for name in ["video.MP4", "video.mov", "video.mkv", "video.m4v"] {
+            precondition(VideoInput.hasVideoExtension(folder.appendingPathComponent(name)))
+        }
+        // Preview tests inject decoded video frames; image-file import is unsupported.
+        editor.installOriginal(image(220, 10))
         try await Task.sleep(nanoseconds: 400_000_000)
         let first = channels(editor.thumbnailImage)
         precondition(first.0 > first.1, "first preview should be red")
-        editor.loadThumbnail(blue)
+        editor.installOriginal(image(10, 220))
         editor.applyFilters()
         try await Task.sleep(nanoseconds: 400_000_000)
         let second = channels(editor.thumbnailImage)

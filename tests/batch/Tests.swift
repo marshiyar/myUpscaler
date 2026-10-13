@@ -15,8 +15,7 @@ import Darwin
         if held { await withCheckedContinuation { continuation = $0 } }
         if inputs.count == failureAt { throw BatchPlan.Failure("fixture failure") }
         let input = URL(fileURLWithPath: inputPath)
-        let ext = BatchPlan.imageExtensions.contains(input.pathExtension.lowercased()) ? "png" : "mp4"
-        let output = URL(fileURLWithPath: outputDirectory).appendingPathComponent(input.deletingPathExtension().lastPathComponent + "_[restored]." + ext)
+        let output = URL(fileURLWithPath: outputDirectory).appendingPathComponent(input.deletingPathExtension().lastPathComponent + "_[restored].mp4")
         try Data([42]).write(to: output)
         if let race = destinationRace { try Data([99]).write(to: race) }
     }
@@ -47,18 +46,30 @@ struct BatchNoDuration: AssetLoaderProtocol {
         }
         try file("b.MOV"); try file("nested/a.mp4"); try file("picture.PNG"); try file("misleading.mp4/readme.txt")
         try fm.createSymbolicLink(at: source.appendingPathComponent("linked.mov"), withDestinationURL: source.appendingPathComponent("b.MOV"))
+        for coreML in [false, true] {
+            try reject { _ = try BatchPlan.make(input: source, outputFolder: output, coreML: coreML) }
+        }
+        try fm.removeItem(at: source.appendingPathComponent("picture.PNG"))
+        let disguised = source.appendingPathComponent("image.mp4")
+        let png = Data(base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aF1kAAAAASUVORK5CYII=")!
+        try png.write(to: disguised)
+        for coreML in [false, true] {
+            try reject { _ = try BatchPlan.make(input: source, outputFolder: output, coreML: coreML) }
+        }
+        try fm.removeItem(at: disguised)
+        precondition(!fm.fileExists(atPath: output.path), "rejected plans must not create outputs")
+        try file("picture.MKV")
         let plan = try BatchPlan.make(input: source, outputFolder: output, coreML: false)
-        precondition(plan.items.count == 3 && plan.items.map { $0.input.lastPathComponent } == ["b.MOV", "a.mp4", "picture.PNG"])
+        precondition(plan.items.count == 3 && plan.items.map { $0.input.lastPathComponent } == ["b.MOV", "a.mp4", "picture.MKV"])
         precondition(plan.items[1].output.path.hasSuffix("source_[restored]/nested/a_[restored].mp4"))
-        try reject { _ = try BatchPlan.make(input: source, outputFolder: output, coreML: true) }
         try file("other/a.MOV")
         let duplicates = try BatchPlan.make(input: source, outputFolder: output, coreML: false)
         precondition(duplicates.items.count == 4 && Set(duplicates.items.map { $0.output.path }).count == 4)
         try fm.removeItem(at: source.appendingPathComponent("other"))
-        try fm.removeItem(at: source.appendingPathComponent("picture.PNG"))
+        try fm.removeItem(at: source.appendingPathComponent("picture.MKV"))
         let aiPlan = try BatchPlan.make(input: source, outputFolder: output, coreML: true)
         precondition(aiPlan.items.count == 2)
-        try file("picture.PNG")
+        try file("picture.MKV")
         try file("b.mp4")
         try reject { _ = try BatchPlan.make(input: source, outputFolder: output, coreML: false) }
         try fm.removeItem(at: source.appendingPathComponent("b.mp4"))
@@ -94,6 +105,16 @@ struct BatchNoDuration: AssetLoaderProtocol {
             value.settings.upscaling.scaler = "lanczos"
             return value
         }
+        // Single-file inputs must be rejected before any engine call.
+        try png.write(to: root.appendingPathComponent("image.mp4"))
+        for name in ["photo.PNG", "photo.jpg", "photo.heic", "image.mp4", "sound.mp3", "notes.txt"] {
+            let rejectedEngine = BatchEngine()
+            let job = UpscaleRunner(engine: rejectedEngine, assetLoader: BatchNoDuration())
+            job.settings.upscaling.scaler = "lanczos"
+            job.inputPath = root.appendingPathComponent(name).path
+            job.run()
+            precondition(!job.isRunning && rejectedEngine.inputs.isEmpty && job.log.contains("Images are not supported"))
+        }
         let engine = BatchEngine(), job = runner(engine)
         job.run(); job.run()
         try await wait(job)
@@ -127,7 +148,7 @@ struct BatchNoDuration: AssetLoaderProtocol {
         precondition(cancelled.batchCompleted == 0 && cancelled.completedOutputPath == nil)
         let leftovers = (try? fm.subpathsOfDirectory(atPath: output.path)) ?? []
         precondition(!leftovers.contains { $0.contains(".myUpscaler-batch-") || $0.hasSuffix(".mp4") })
-        print("PASS folder plan: sorted uppercase/nested media, images, collisions, existing/racing outputs, symlinks, empty/excluded folders")
+        print("PASS folder plan: sorted uppercase/nested videos, image rejection for both engines, collisions, existing/racing outputs, symlinks, empty/excluded folders")
         print("PASS folder runner: per-file validation, duplicate-run ownership, stop-on-failure, partial results, cancellation and temporary cleanup")
     }
 }

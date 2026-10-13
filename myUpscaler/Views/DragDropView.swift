@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 
 struct DragDropView: View {
     @StateObject private var state: EditorState
+    @State private var invalidInput = false
     @Binding var externalInputPath: String
     let settings: UpscaleSettings?
     let chooseInput: (() -> Void)?
@@ -88,16 +89,23 @@ struct DragDropView: View {
                    let url = URL(dataRepresentation: data, relativeTo: nil) {
                     DispatchQueue.main.async {
                         guard self.canImport() else { return }
+                        guard VideoInput.acceptsSelection(url) else { self.invalidInput = true; return }
                         self.externalInputPath = url.path
                     }
                 } else if let url = item as? URL {
                     DispatchQueue.main.async {
                         guard self.canImport() else { return }
+                        guard VideoInput.acceptsSelection(url) else { self.invalidInput = true; return }
                         self.externalInputPath = url.path
                     }
                 }
             }
             return true
+        }
+        .alert("Video input required", isPresented: $invalidInput) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(VideoInput.message)
         }
         .onChange(of: externalInputPath) { _, newPath in
 

@@ -9,8 +9,6 @@ nonisolated struct BatchPlan: Sendable {
     }
     let outputRoot: URL
     let items: [Item]
-    static let imageExtensions: Set<String> = ["png", "jpg", "jpeg", "tif", "tiff", "bmp", "webp"]
-    static let videoExtensions: Set<String> = ["mp4", "mkv", "mov"]
 
     static func make(input: URL, outputFolder: URL, coreML: Bool) throws -> BatchPlan {
         let fm = FileManager.default
@@ -39,16 +37,15 @@ nonisolated struct BatchPlan: Sendable {
                 if values.isSymbolicLink == true || url.path == root.path || nestedOutput { continue }
                 if values.isDirectory == true { folders.append((url, relative)); continue }
                 guard values.isRegularFile == true else { continue }
-                let ext = url.pathExtension.lowercased()
-                guard imageExtensions.contains(ext) || videoExtensions.contains(ext) else { continue }
-                if coreML && imageExtensions.contains(ext) {
-                    throw Failure("Core ML folder export supports videos only; image found: \(url.lastPathComponent).")
+                guard VideoInput.hasImageExtension(url) || VideoInput.hasVideoExtension(url) else { continue }
+                if !VideoInput.isVideo(url) {
+                    throw Failure("Folder export supports videos only; invalid input: \(url.lastPathComponent).")
                 }
 
                 let relativeParent = (relative as NSString).deletingLastPathComponent
 
                 let name = url.deletingPathExtension().lastPathComponent
-                + "_[restored]." + (imageExtensions.contains(ext) ? "png" : "mp4")
+                + "_[restored].mp4"
 
                 let output = root.appendingPathComponent(relativeParent, isDirectory: true).appendingPathComponent(name).standardizedFileURL
 
@@ -60,7 +57,7 @@ nonisolated struct BatchPlan: Sendable {
                 items.append(Item(input: url, output: output))
             }
         }
-        guard !items.isEmpty else { throw Failure("No supported media files found in the folder.") }
+        guard !items.isEmpty else { throw Failure("No supported video files found in the folder.") }
         return BatchPlan(outputRoot: root, items: items.sorted { $0.input.path < $1.input.path })
     }
 

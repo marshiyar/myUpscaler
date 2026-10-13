@@ -15,5 +15,5 @@ fi
 flags=(-parse-as-library -swift-version 5 -default-isolation MainActor -strict-concurrency=complete -warnings-as-errors -module-cache-path "$work/cache")
 xcrun swiftc -O "${flags[@]}" myUpscaler/State/EditorState+TimelineLoader.swift tests/timeline/TimelineTests.swift -o "$work/timeline"
 for fixture in "$@"; do "$work/timeline" "$fixture"; done
-xcrun swiftc "${flags[@]}" myUpscaler/State/EditorState*.swift myUpscaler/State/UpscaleSettings.swift myUpscaler/State/Settings*.swift myUpscaler/Models/{CoreMLModelRegistry,UpscalingModeSupport}.swift myUpscaler/Support/CodecSupport.swift tests/timeline/EditorTimelineTests.swift -o "$work/editor"
+xcrun swiftc "${flags[@]}" myUpscaler/State/EditorState*.swift myUpscaler/State/UpscaleSettings.swift myUpscaler/State/Settings*.swift myUpscaler/Models/{CoreMLModelRegistry,UpscalingModeSupport}.swift myUpscaler/Support/{CodecSupport,VideoInput}.swift tests/timeline/EditorTimelineTests.swift -o "$work/editor"
 "$work/editor" "$1" "$2"

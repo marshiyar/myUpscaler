@@ -9,6 +9,6 @@ xcrun swiftc -O -parse-as-library -swift-version 5 -default-isolation MainActor 
   myUpscaler/Processing/{UpscaleRunner,UpscaleRunner+Batch,BatchPlan,ProgressUpdateGate}.swift \
   myUpscaler/State/{UpscaleSettings,PresetStore}.swift myUpscaler/State/Settings*.swift \
   myUpscaler/Models/{CoreMLModelRegistry,UpscalingModeSupport}.swift \
-  myUpscaler/Support/{CodecSupport,Protocols,FFmpegParser}.swift \
+  myUpscaler/Support/{VideoInput,CodecSupport,Protocols,FFmpegParser}.swift \
   tests/processing-lifecycle/TestSupport.swift tests/f3kdb/ProgressStageTests.swift -o "$work/tests"
 "$work/tests"

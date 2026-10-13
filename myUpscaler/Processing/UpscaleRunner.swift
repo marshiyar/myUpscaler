@@ -89,10 +89,6 @@ class UpscaleRunner: ObservableObject {
             return inputURL.lastPathComponent + "_[restored]"
         }
         let base = inputURL.deletingPathExtension().lastPathComponent
-        let ext = inputURL.pathExtension.lowercased()
-        if ["png", "jpg", "jpeg", "tif", "tiff", "bmp", "webp"].contains(ext) {
-            return base + "_[restored].png"
-        }
         return base + "_[restored].mp4"
     }
 
@@ -139,6 +135,11 @@ class UpscaleRunner: ObservableObject {
             log.append("ERROR: No input file selected.\n")
             return
         }
+        let isBatch = (try? fileSystem.attributesOfItem(atPath: inputPath)[.type] as? FileAttributeType) == .typeDirectory
+        guard isBatch || VideoInput.isVideo(URL(fileURLWithPath: inputPath)) else {
+            log.append("ERROR: \(VideoInput.message)\n")
+            return
+        }
         let runID = UUID()
         currentRunID = runID
 
@@ -173,7 +174,6 @@ class UpscaleRunner: ObservableObject {
             log.append("--- Starting C Engine ---\n")
         }
         self.activeEngine = selectedEngine
-        let isBatch = (try? fileSystem.attributesOfItem(atPath: inputPath)[.type] as? FileAttributeType) == .typeDirectory
         log.append("Input: \(inputPath)\n")
         log.append("Output: \(outputFolder())\n\n")
         if !isBatch { log.append("Expected output file: \(outputVideoPath)\n\n") }

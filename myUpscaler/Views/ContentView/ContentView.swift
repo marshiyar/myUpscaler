@@ -205,8 +205,14 @@ struct ContentView: View {
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = true
         panel.canChooseFiles = true
+        panel.allowedContentTypes = VideoInput.contentTypes
+        panel.allowsOtherFileTypes = false
 
         if panel.runModal() == .OK, let url = panel.url, !runner.isRunning {
+            guard VideoInput.acceptsSelection(url) else {
+                runner.log.append("ERROR: \(VideoInput.message)\n")
+                return
+            }
             runner.inputPath = url.path
         }
     }

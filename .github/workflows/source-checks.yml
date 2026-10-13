@@ -1,0 +1,49 @@
+name: Source regressions
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  source-tests:
+    runs-on: macos-26
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode 26
+        run: sudo xcode-select -s /Applications/Xcode_26.0.app/Contents/Developer
+      - name: Check shell syntax and whitespace
+        run: |
+          git diff --check
+          git ls-files '*.sh' -z | xargs -0 -n 1 bash -n
+      - name: Prepare bundled FFmpeg for tests
+        shell: bash
+        run: |
+          bash scripts/prepare-bundled-ffmpeg.sh
+          echo "$GITHUB_WORKSPACE/myUpscaler/ThirdParty/ffmpeg" >> "$GITHUB_PATH"
+      - name: Run native source regressions
+        run: python3 -m unittest discover -s tests -p 'test*.py'
+      - name: Run available Swift source regressions
+        run: |
+          for check in \
+            tests/test-shortcuts.sh \
+            tests/test-shortcuts-persistence.sh \
+            tests/test-upscale-settings.sh \
+            tests/test-restoration-controls.sh \
+            tests/test-finishing-strengths.sh \
+            tests/test-editor-state.sh \
+            tests/test-timeline.sh \
+            tests/test-workspace-actions.sh \
+            tests/test-processing-lifecycle.sh \
+            tests/test-batch.sh \
+            tests/logging/run.sh \
+            tests/apple-api/run.sh \
+            tests/apple-api/run-audio.sh \
+            tests/apple-api/run-timing.sh \
+            tests/apple-api/run-orientation.sh; do
+            if [[ -f "$check" ]]; then bash "$check"; fi
+          done

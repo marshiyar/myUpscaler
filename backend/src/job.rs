@@ -51,7 +51,8 @@ pub struct Job<'a> {
     pub dry_run: bool,
 }
 
-const IMAGE_EXTENSIONS: [&str; 8] = ["png", "jpg", "jpeg", "bmp", "webp", "gif", "tif", "tiff"];
+/// The app's image extensions (`UpscaleRunner`, `EditorState`); anything else is treated as video.
+const IMAGE_EXTENSIONS: [&str; 7] = ["png", "jpg", "jpeg", "bmp", "webp", "tif", "tiff"];
 const VIDEO_EXTENSIONS: [&str; 5] = ["mp4", "mov", "m4v", "mkv", "webm"];
 
 fn extension(path: &Path) -> String {
@@ -136,7 +137,15 @@ impl Job<'_> {
                 std::fs::create_dir_all(dir).map_err(|e| JobError::Io(format!("{}: {e}", dir.display())))?;
             }
         }
-        let result = if is_image(input) { self.image(input, &output) } else { self.video(input, &output) };
+        par::set_stopped(false);
+        let done = AtomicBool::new(false);
+        let result = std::thread::scope(|s| {
+            s.spawn(|| watch_cancel(self.cancel, &done));
+            let result = if is_image(input) { self.image(input, &output) } else { self.video(input, &output) };
+            done.store(true, Ordering::Relaxed);
+            result
+        });
+        par::set_stopped(false);
         if result.is_ok() {
             (self.log)("Done.\n");
         }
@@ -328,7 +337,24 @@ impl Job<'_> {
     }
 }
 
-/// Reads every source frame in order, at the display size, and sends it with its presentation time.
+/// Tells the filters to stop early once the job is cancelled, until `done`.
+fn watch_cancel(cancel: &AtomicBool, done: &AtomicBool) {
+    while !done.load(Ordering::Relaxed) {
+        if cancel.load(Ordering::Relaxed) {
+            par::set_stopped(true);
+            return;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+}
+
+/// Samples per average frame interval when reading a video: variable-rate sources have frames shorter than the
+/// average, and each must be sampled at least once to be read.
+const OVERSAMPLE: f64 = 4.0;
+
+/// Reads every source frame in order, at the display size, and sends it with its presentation time. The reader
+/// returns the frame shown at a time, so the stream is sampled more finely than its average rate and repeats are
+/// skipped; times past the end return the last frame.
 fn decode(
     video: &mut engine::Video,
     fps: f64,
@@ -338,22 +364,14 @@ fn decode(
 ) -> Result<(), JobError> {
     let (w, h) = (video.width as usize, video.height as usize);
     let mut rgba = vec![0u8; w * h * 4];
-    let count = (duration * fps).ceil().max(1.0) as u64;
+    let step = 1.0 / (fps * OVERSAMPLE);
+    let count = (duration / step).ceil().max(1.0) as u64;
     let mut last_shown = f64::NEG_INFINITY;
     for n in 0..count {
         if cancel.load(Ordering::Relaxed) {
             return Err(JobError::Cancelled);
         }
-        // Asking for the middle of the frame's slot returns that frame even with rounding in the timestamps.
-        let shown = match video.frame_at((n as f64 + 0.5) / fps, &mut rgba) {
-            Ok(t) => t,
-            // A frame past the last decodable one ends the stream; an error on the first frame is real.
-            Err(e) if n > 0 && n + 2 >= count => {
-                let _ = e;
-                break;
-            }
-            Err(e) => return Err(e.into()),
-        };
+        let shown = video.frame_at((n as f64 + 0.5) * step, &mut rgba)?;
         if shown <= last_shown + 1e-6 {
             continue;
         }

@@ -220,3 +220,31 @@ fn processes_folders_and_reports_unsupported_files() {
     let job = Job { options: &options, log: &log, cancel: &cancel, dry_run: false };
     assert!(job.run(&dir.join("broken.mp4")).is_err());
 }
+
+#[test]
+fn a_cancel_stops_the_filters_mid_frame() {
+    let _serial = SERIAL.lock().unwrap_or_else(|e| e.into_inner());
+    if !engine_ready() {
+        return;
+    }
+    let dir = scratch("cancel");
+    let input = dir.join("clip.mp4");
+    // Strong non-local means on 720p: one frame takes far longer than the allowance below.
+    make_clip(&input, 1280, 720, 4);
+    let mut options = Options::default();
+    set(&mut options.denoiser, "nlmeans");
+    set(&mut options.denoise_strength, "30");
+    let cancel = AtomicBool::new(false);
+    let log = |_: &str| {};
+    let job = Job { options: &options, log: &log, cancel: &cancel, dry_run: false };
+    let cancelled_at = std::thread::scope(|s| {
+        let run = s.spawn(|| job.run(&input));
+        std::thread::sleep(std::time::Duration::from_millis(300));
+        cancel.store(true, std::sync::atomic::Ordering::Relaxed);
+        let at = std::time::Instant::now();
+        assert!(matches!(run.join().unwrap(), Err(up60p::job::JobError::Cancelled)));
+        at.elapsed()
+    });
+    assert!(cancelled_at.as_secs_f64() < 2.0, "cancel took {cancelled_at:?}");
+    assert!(!dir.join("clip_[restored].mp4").exists());
+}

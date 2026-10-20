@@ -96,6 +96,9 @@ impl Chain {
 
     fn run_from(&mut self, first: usize, mut frames: Vec<Frame>) -> Vec<Frame> {
         for (stage, spent) in self.stages.iter_mut().zip(self.spent.iter_mut()).skip(first) {
+            if crate::par::stopped() {
+                return Vec::new();
+            }
             let start = std::time::Instant::now();
             let mut next = Vec::with_capacity(frames.len());
             for f in frames {

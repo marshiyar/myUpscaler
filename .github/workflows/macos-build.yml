@@ -1,6 +1,13 @@
 name: macOS build, test and bundle
 
 on:
+  pull_request:
+    paths-ignore:
+      - '**.md'
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
   workflow_dispatch:
     inputs:
       model_archive_url:
@@ -51,7 +58,7 @@ jobs:
         run: |
           set -euo pipefail
           bash scripts/prepare-media-engine.sh
-          rustup show active-toolchain
+          cargo --version && rustc --version
 
       - name: Prepare bundled CoreML models
         shell: bash

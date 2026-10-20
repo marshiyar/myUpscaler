@@ -1,0 +1,65 @@
+name: Rust backend
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rust-backend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install the pinned Rust toolchain
+        # rust-toolchain.toml pins the version; rustup installs it on first use.
+        run: cargo --version && rustc --version
+
+      - name: Prepare the MpVFX media engine (Linux package)
+        run: bash scripts/prepare-media-engine.sh
+
+      - name: Format
+        working-directory: backend
+        run: cargo fmt --check
+
+      - name: Lints
+        working-directory: backend
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Tests (unit, C API, CLI, engine, settings contract, end-to-end renders)
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          cargo test --release 2>&1 | tee "$RUNNER_TEMP/rust-tests.log"
+          # The engine-backed tests skip themselves when the library is missing; here it must be present.
+          if grep -q 'skipped:' "$RUNNER_TEMP/rust-tests.log"; then
+            echo '::error::Engine-backed tests were skipped; the MpVFX media engine was not found.'
+            exit 1
+          fi
+
+      - name: Builds without the engine
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          mv ../third_party/mpvfx-media ../third_party/mpvfx-media.off
+          CARGO_TARGET_DIR="$RUNNER_TEMP/no-engine" cargo test --release --lib
+          mv ../third_party/mpvfx-media.off ../third_party/mpvfx-media
+
+      - name: Upload test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-backend-tests
+          path: ${{ runner.temp }}/rust-tests.log
+          if-no-files-found: ignore

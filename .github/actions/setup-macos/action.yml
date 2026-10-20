@@ -1,5 +1,5 @@
 name: Set up macOS
-description: Selects the newest installed Xcode 26; optionally requires a hardware Metal GPU.
+description: Selects the newest installed Xcode 27; optionally requires a Metal GPU.
 inputs:
   require-gpu:
     description: Fail unless Metal reports a GPU (for the GPU jobs).
@@ -10,13 +10,17 @@ runs:
     - shell: bash
       run: |
         set -euo pipefail
-        xcode_app=$(find /Applications -maxdepth 1 -name 'Xcode_26*.app' | sort -V | tail -n 1)
-        if [[ -z "$xcode_app" ]]; then
-          echo '::error::This runner image does not have Xcode 26 installed.'
+        xcode_app=$(find /Applications -maxdepth 1 -name 'Xcode_27*.app' | sort -V | tail -n 1)
+        if [[ -n "$xcode_app" ]]; then
+          sudo xcode-select --switch "$xcode_app/Contents/Developer"
+        fi
+        # The xcode-27 image's default Xcode is 27; anything else means the wrong image.
+        version=$(xcodebuild -version | head -n 1)
+        echo "$version"
+        if [[ $version != 'Xcode 27'* ]]; then
+          echo "::error::Xcode 27 is required; this runner has $version."
           exit 1
         fi
-        sudo xcode-select --switch "$xcode_app/Contents/Developer"
-        xcodebuild -version
     - if: inputs.require-gpu == 'true'
       shell: bash
       run: |

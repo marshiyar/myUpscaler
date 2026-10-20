@@ -25,7 +25,7 @@ concurrency:
 jobs:
   finishing-chain:
     # The app's settings through the Rust engine's dry run: filter order, entered strengths, zero bypass.
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -47,7 +47,7 @@ jobs:
           - name: timeline
             scripts: tests/test-timeline.sh
     name: media (${{ matrix.name }})
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -61,7 +61,7 @@ jobs:
 
   metal-kernels:
     # The preview's Core Image Metal kernels, compiled and rendered on the runner's Metal device.
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4

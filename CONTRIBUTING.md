@@ -4,7 +4,7 @@ Issues and pull requests are welcome.
 
 Please ensure:
 
-- Code builds with Xcode 26+
+- Code builds with Xcode 27+
 - Existing tests pass
 - New behavior includes tests where applicable
 
@@ -68,7 +68,8 @@ the files it covers change, and nothing is checked twice:
 | **Regression tests** (`regression.yml`) | finishing chain through the Rust dry run; media tests in three groups; Metal kernels |
 | **macOS build and bundle** (`build.yml`) | Release app (verify engine, signature, models and inference, package); model-set preparation |
 
-All jobs use GitHub's free standard runners (the repository is public; larger
+All jobs use GitHub's free standard runners (macOS jobs on the `xcode-27`
+image: macOS 27, Apple Silicon) (the repository is public; larger
 runners are billed even for public repositories). The GPU jobs (CoreML inference
 and the Metal kernels) report the runner's Metal device and fail if there is
 none; GitHub's macOS runners are virtual machines, so their GPU is slower than a

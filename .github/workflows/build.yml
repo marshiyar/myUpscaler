@@ -33,7 +33,7 @@ env:
 jobs:
   release-app:
     # One Release build: the app that is verified (engine, signature, models, inference) is the one delivered.
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -171,7 +171,7 @@ jobs:
 
   model-sets:
     # The model preparation script against external model sets, caches and missing checksums.
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4

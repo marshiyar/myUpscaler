@@ -54,7 +54,7 @@ jobs:
               tests/test-processing-lifecycle.sh tests/test-batch.sh tests/logging/run.sh
               tests/commit-boundary/run-committed-output-tests.sh tests/commit-boundary/run-stage-tests.sh
     name: logic (${{ matrix.name }})
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -63,7 +63,7 @@ jobs:
       - run: bash scripts/run-parallel.sh ${{ matrix.scripts }}
 
   xctest:
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4

@@ -1,0 +1,274 @@
+// Input controls drawn from the theme tokens: switch, slider, dropdown and text field.
+
+import { Theme } from "theme.slint";
+
+export component Toggle inherits Rectangle {
+    in-out property <bool> checked;
+    in property <bool> enabled: true;
+    in property <string> label;
+    callback toggled();
+    accessible-role: switch;
+    accessible-label: root.label;
+    accessible-checkable: true;
+    accessible-checked: root.checked;
+    accessible-action-default => { touch.clicked(); }
+    width: 30px;
+    height: 18px;
+    border-radius: 9px;
+    background: root.checked ? Theme.accent : Theme.dark ? #3a3b40 : #d4d4d8;
+    opacity: root.enabled ? 1 : 0.4;
+    animate background { duration: Theme.fast; easing: ease-out; }
+    Rectangle {
+        width: 14px;
+        height: 14px;
+        y: 2px;
+        x: root.checked ? root.width - self.width - 2px : 2px;
+        border-radius: 7px;
+        background: white;
+        drop-shadow-blur: 2px;
+        drop-shadow-color: #0000004d;
+        animate x { duration: Theme.fast; easing: ease-out; }
+    }
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => {
+            root.checked = !root.checked;
+            root.toggled();
+        }
+    }
+}
+
+export component SliderControl inherits Rectangle {
+    in-out property <float> value;
+    in property <float> minimum: 0;
+    in property <float> maximum: 1;
+    in property <float> step: 0.01;
+    in property <bool> enabled: true;
+    in property <string> label;
+    callback released(float);
+    property <float> fraction: ((root.value - root.minimum) / max(0.000001, root.maximum - root.minimum)).clamp(0, 1);
+    property <length> knob: 14px;
+    height: 18px;
+    min-width: 80px;
+    opacity: root.enabled ? 1 : 0.4;
+    accessible-role: slider;
+    accessible-label: root.label;
+    accessible-value: root.value;
+    accessible-value-minimum: root.minimum;
+    accessible-value-maximum: root.maximum;
+    accessible-value-step: root.step;
+    accessible-action-increment => { root.nudge(1); }
+    accessible-action-decrement => { root.nudge(-1); }
+
+    function snap(v: float) -> float {
+        (root.minimum + ((v - root.minimum) / root.step).round() * root.step).clamp(root.minimum, root.maximum)
+    }
+    function set-from(x: length) {
+        root.value = root.snap(root.minimum + ((x - root.knob / 2) / max(1px, root.width - root.knob)).clamp(0, 1)
+            * (root.maximum - root.minimum));
+    }
+    function nudge(steps: int) {
+        root.value = root.snap(root.value + steps * root.step);
+        root.released(root.value);
+    }
+
+    Rectangle {
+        y: (root.height - 4px) / 2;
+        height: 4px;
+        border-radius: 2px;
+        background: Theme.dark ? #2e2f34 : #d9d9de;
+    }
+    Rectangle {
+        x: 0;
+        y: (root.height - 4px) / 2;
+        width: (root.width - root.knob) * root.fraction + root.knob / 2;
+        height: 4px;
+        border-radius: 2px;
+        background: Theme.accent;
+    }
+    Rectangle {
+        x: (root.width - root.knob) * root.fraction;
+        y: (root.height - root.knob) / 2;
+        width: root.knob;
+        height: root.knob;
+        border-radius: root.knob / 2;
+        background: white;
+        border-width: focus.has-focus ? 2px : 1px;
+        border-color: focus.has-focus ? Theme.accent : #0000002e;
+        drop-shadow-blur: 3px;
+        drop-shadow-color: #00000059;
+        drop-shadow-offset-y: 1px;
+    }
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        pointer-event(e) => {
+            if e.kind == PointerEventKind.down {
+                focus.focus();
+                root.set-from(self.mouse-x);
+            } else if e.kind == PointerEventKind.up {
+                root.released(root.value);
+            }
+        }
+        moved => {
+            if self.pressed {
+                root.set-from(self.mouse-x);
+            }
+        }
+    }
+    focus := FocusScope {
+        enabled: root.enabled;
+        key-pressed(e) => {
+            if e.text == Key.RightArrow || e.text == Key.UpArrow {
+                root.nudge(1);
+                return accept;
+            }
+            if e.text == Key.LeftArrow || e.text == Key.DownArrow {
+                root.nudge(-1);
+                return accept;
+            }
+            reject
+        }
+    }
+}
+
+export component Dropdown inherits Rectangle {
+    in property <[string]> model;
+    in-out property <int> current-index;
+    in property <bool> enabled: true;
+    in property <string> label;
+    callback selected(int);
+    accessible-role: combobox;
+    accessible-label: root.label;
+    accessible-value: root.model[root.current-index];
+    accessible-action-default => { popup.show(); }
+    height: Theme.control-height;
+    min-width: 128px;
+    border-radius: Theme.radius-small;
+    background: touch.has-hover && root.enabled ? Theme.controls-hover : Theme.controls;
+    border-width: 1px;
+    border-color: Theme.hairline;
+    opacity: root.enabled ? 1 : 0.4;
+    animate background { duration: Theme.fast; }
+    HorizontalLayout {
+        padding-left: Theme.sm;
+        padding-right: 6px;
+        spacing: Theme.xs;
+        Text {
+            text: root.model[root.current-index];
+            font-size: Theme.font-body;
+            color: Theme.text;
+            vertical-alignment: center;
+            overflow: elide;
+            horizontal-stretch: 1;
+        }
+        VerticalLayout {
+            alignment: center;
+            Image {
+                source: @image-url("icons/chevron-down.svg");
+                width: 12px;
+                height: 12px;
+                colorize: Theme.muted;
+            }
+        }
+    }
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => { popup.show(); }
+    }
+    popup := PopupWindow {
+        x: 0;
+        y: root.height + 4px;
+        width: root.width;
+        Rectangle {
+            background: Theme.controls;
+            border-radius: Theme.radius;
+            border-width: 1px;
+            border-color: Theme.border;
+            drop-shadow-blur: 16px;
+            drop-shadow-color: #00000066;
+            drop-shadow-offset-y: 6px;
+            VerticalLayout {
+                padding: 4px;
+                for item[i] in root.model: Rectangle {
+                    height: 26px;
+                    border-radius: 4px;
+                    background: option.has-hover ? Theme.accent : transparent;
+                    HorizontalLayout {
+                        padding-left: Theme.sm;
+                        padding-right: Theme.sm;
+                        Text {
+                            text: item;
+                            font-size: Theme.font-body;
+                            color: option.has-hover ? Theme.on-accent : Theme.text;
+                            vertical-alignment: center;
+                            horizontal-stretch: 1;
+                        }
+                        if i == root.current-index: VerticalLayout {
+                            alignment: center;
+                            Image {
+                                source: @image-url("icons/check.svg");
+                                width: 12px;
+                                height: 12px;
+                                colorize: option.has-hover ? Theme.on-accent : Theme.accent;
+                            }
+                        }
+                    }
+                    option := TouchArea {
+                        clicked => {
+                            root.current-index = i;
+                            root.selected(i);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+export component TextField inherits Rectangle {
+    in-out property <string> text;
+    in property <string> placeholder;
+    in property <bool> enabled: true;
+    in property <string> label;
+    callback edited();
+    accessible-role: text-input;
+    accessible-label: root.label;
+    accessible-value: root.text;
+    height: Theme.control-height;
+    min-width: 56px;
+    border-radius: Theme.radius-small;
+    background: Theme.controls;
+    border-width: 1px;
+    border-color: input.has-focus ? Theme.accent : Theme.hairline;
+    opacity: root.enabled ? 1 : 0.4;
+    animate border-color { duration: Theme.fast; }
+    if root.text == "": Text {
+        x: Theme.sm;
+        width: root.width - 2 * Theme.sm;
+        height: root.height;
+        text: root.placeholder;
+        font-family: Theme.mono;
+        font-size: Theme.font-small;
+        color: Theme.faint;
+        horizontal-alignment: right;
+        vertical-alignment: center;
+    }
+    input := TextInput {
+        x: Theme.sm;
+        width: root.width - 2 * Theme.sm;
+        height: root.height;
+        text <=> root.text;
+        enabled: root.enabled;
+        single-line: true;
+        font-family: Theme.mono;
+        font-size: Theme.font-small;
+        color: Theme.text;
+        selection-background-color: Theme.accent-soft;
+        horizontal-alignment: right;
+        vertical-alignment: center;
+        edited => { root.edited(); }
+    }
+}

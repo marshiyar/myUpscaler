@@ -1,9 +1,12 @@
 # myUpscaler desktop (macOS, Windows, Linux)
 
 The cross-platform version of myUpscaler: a [Slint](https://slint.dev) interface on the same Rust processing
-backend (`../backend`) the macOS app uses. It follows the macOS app's layout and design (toolbar, preview with the log
-under it, the Upscale / Restore / Processor / Output adjustments panel, progress and Run / Cancel at the bottom), with
-the Cupertino style on every platform so it looks the same everywhere, in light and dark.
+backend (`../backend`) the macOS app uses, with the same workflow and settings (the Upscale / Restore / Processor /
+Output adjustments panel). The preview is the workspace: a sunken canvas with a floating view toolbar (original or
+filtered frame, file details) and a floating command bar (timeline, setting chips, progress, Run / Cancel); the log is a
+drawer. Every control is drawn from one set of design tokens (`ui/theme.slint`), dark-first with a matching light theme,
+and the fonts are embedded (Inter for the interface, Geist Mono for numbers and labels), so it looks the same on
+macOS, Windows and Linux.
 
 ```sh
 bash ../scripts/prepare-media-engine.sh   # the media engine (macOS arm64, Linux x86_64)
@@ -12,14 +15,17 @@ cargo run --release                        # or: cargo run --release -- path/to/
 
 ## Layout
 
-- `ui/`: the interface. `theme.slint` holds the design tokens (DesignSystem.swift's spacing, type, radii and colours),
-  `components.slint` the building blocks, `inspector.slint` the four adjustment pages, `app.slint` the window.
+- `ui/`: the interface. `theme.slint` holds the design tokens (surfaces, text, accent, spacing, type, motion),
+  `controls.slint` the inputs (switch, slider, dropdown, text field), `components.slint` buttons, chips, tabs, rows
+  and sections, `inspector.slint` the four adjustment pages, `app.slint` the window. `fonts/` holds Inter and
+  Geist Mono with their OFL licences.
 - `src/settings.rs`: interface settings ↔ the backend's `Options`; the interface starts from the backend's factory
   settings, so the defaults are defined once.
 - `src/preview.rs`: the preview thread (one frame, decoded or through the export's spatial filters).
 - `src/progress.rs`: the backend's progress lines → progress, FPS, time and ETA.
 - `src/screenshot.rs`: headless rendering for review and CI:
-  `myupscaler --screenshot out.png [--size 1180x780] [--page 0-3] [--dark] [--processed] [--run] [input]`.
+  `myupscaler --screenshot out.png [--size 1180x780] [--page 0-3] [--dark | --light] [--processed]
+  [--run [--after SECONDS]] [input]`. `cargo run --example sample_clip -- clip.mp4` writes a test video for it.
 
 ## Status
 
@@ -31,4 +37,4 @@ no Windows package yet, so the Windows build runs the interface but cannot proce
 ## Licence
 
 Slint is used under its royalty-free desktop licence, which requires its `AboutSlint` panel in the app's About sheet
-(present).
+(present). Inter and Geist Mono are under the SIL Open Font License 1.1 (`ui/fonts/*-OFL.txt`).

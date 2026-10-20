@@ -3,12 +3,29 @@
 import { ScrollView } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { Settings, App, Actions } from "globals.slint";
-import { FormSection, Segmented, ChoiceRow, SwitchRow, FieldRow, ParameterRow, LabeledRow, AccentButton, Divider } from "components.slint";
+import { Tabs, ChoiceRow, SwitchRow, FieldRow, ParameterRow, Row, Button, ButtonKind, Divider, SectionLabel, Hint } from "components.slint";
+
+// A titled group of rows; groups are separated by hairlines rather than boxed.
+component Section inherits VerticalLayout {
+    in property <string> title;
+    in property <string> footer;
+    in property <bool> first;
+    spacing: 2px;
+    alignment: start;
+    if !root.first: VerticalLayout {
+        padding-top: Theme.sm;
+        Divider { }
+    }
+    SectionLabel { text: root.title; }
+    @children
+    if root.footer != "": Hint { text: root.footer; }
+}
 
 component UpscalePage inherits VerticalLayout {
-    spacing: Theme.md;
+    spacing: 0;
     alignment: start;
-    FormSection {
+    Section {
+        first: true;
         title: "Upscaling";
         footer: "Real-ESRGAN (AI) upscaling arrives in the cross-platform app with the GPU model runner.";
         ChoiceRow {
@@ -17,7 +34,7 @@ component UpscalePage inherits VerticalLayout {
             index: 0;
         }
     }
-    FormSection {
+    Section {
         title: "Quality & Scale";
         ParameterRow {
             title: "CRF";
@@ -29,12 +46,7 @@ component UpscalePage inherits VerticalLayout {
             digits: 0;
             changed => { Actions.settings-changed(); }
         }
-        Text {
-            text: "Lower is better: ≤ 20 high quality, ≥ 27 draft.";
-            font-size: Theme.font-small;
-            color: Theme.secondary-text;
-        }
-        Divider { }
+        Hint { text: "Lower is better: 20 or less is high quality, 27 or more is draft."; }
         FieldRow {
             label: "Scale";
             detail: "Output size multiplier";
@@ -44,12 +56,11 @@ component UpscalePage inherits VerticalLayout {
         }
         FieldRow {
             label: "FPS";
-            detail: "A number, a fraction (30000/1001) or source";
+            detail: "Number, fraction or source";
             value <=> Settings.fps;
             placeholder: "60";
             changed => { Actions.settings-changed(); }
         }
-        Divider { }
         ChoiceRow {
             label: "Interpolation";
             choices: ["Off", "MCI", "Blend"];
@@ -60,9 +71,10 @@ component UpscalePage inherits VerticalLayout {
 }
 
 component RestorePage inherits VerticalLayout {
-    spacing: Theme.md;
+    spacing: 0;
     alignment: start;
-    FormSection {
+    Section {
+        first: true;
         title: "Primary restoration";
         ChoiceRow {
             label: "Denoise";
@@ -114,7 +126,7 @@ component RestorePage inherits VerticalLayout {
             changed => { Actions.settings-changed(); }
         }
         if Settings.sharpen && Settings.sharpen-method == 1: VerticalLayout {
-            spacing: Theme.sm;
+            spacing: 2px;
             ParameterRow {
                 title: "Matrix";
                 value <=> Settings.usm-radius;
@@ -146,14 +158,15 @@ component RestorePage inherits VerticalLayout {
             }
         }
     }
-    FormSection {
+    Section {
+        title: "Color";
         SwitchRow {
             label: "Color equalizer";
             checked <=> Settings.eq;
             changed => { Actions.settings-changed(); }
         }
         if Settings.eq: VerticalLayout {
-            spacing: Theme.sm;
+            spacing: 2px;
             ParameterRow {
                 title: "Contrast";
                 value <=> Settings.contrast;
@@ -184,7 +197,7 @@ component RestorePage inherits VerticalLayout {
             }
         }
     }
-    FormSection {
+    Section {
         title: "Second pass";
         footer: "Runs after scaling, sharpening and debanding; each stage has its own switch.";
         SwitchRow {
@@ -267,17 +280,17 @@ component RestorePage inherits VerticalLayout {
 }
 
 component ProcessorPage inherits VerticalLayout {
-    spacing: Theme.md;
+    spacing: 0;
     alignment: start;
-    FormSection {
-        title: "Restoration filters (extra)";
+    Section {
+        first: true;
+        title: "Extra filters";
         ChoiceRow {
             label: "Deblock";
             choices: ["Off", "Weak", "Strong"];
             index <=> Settings.deblock;
             changed => { Actions.settings-changed(); }
         }
-        Divider { }
         ChoiceRow {
             label: "Deband";
             choices: ["Off", "Deband", "Gradfun", "F3kdb", "Neo F3kdb"];
@@ -291,7 +304,7 @@ component ProcessorPage inherits VerticalLayout {
             changed => { Actions.settings-changed(); }
         }
         if Settings.deband >= 3: HorizontalLayout {
-            spacing: Theme.sm;
+            spacing: Theme.md;
             FieldRow {
                 label: "Range";
                 field-width: 48px;
@@ -314,13 +327,9 @@ component ProcessorPage inherits VerticalLayout {
                 changed => { Actions.settings-changed(); }
             }
         }
-        if Settings.deband == 4: Text {
+        if Settings.deband == 4: Hint {
             text: "Neo F3kdb: integer range 0–255, thresholds 0–511 (16 = one 8-bit level).";
-            font-size: Theme.font-small;
-            color: Theme.secondary-text;
-            wrap: word-wrap;
         }
-        Divider { }
         FieldRow {
             label: "Grain";
             detail: "0 turns grain off";
@@ -329,7 +338,8 @@ component ProcessorPage inherits VerticalLayout {
             changed => { Actions.settings-changed(); }
         }
     }
-    FormSection {
+    Section {
+        title: "Frames & threads";
         SwitchRow {
             label: "Remove near-duplicate frames";
             detail: "Decimate before frame-rate conversion";
@@ -346,19 +356,21 @@ component ProcessorPage inherits VerticalLayout {
     }
     HorizontalLayout {
         alignment: start;
-        AccentButton {
+        padding-top: Theme.md;
+        Button {
             text: "Reset processing settings";
             icon: @image-url("icons/reset.svg");
-            primary: false;
+            kind: ButtonKind.secondary;
             clicked => { Actions.reset-settings(); }
         }
     }
 }
 
 component OutputPage inherits VerticalLayout {
-    spacing: Theme.md;
+    spacing: 0;
     alignment: start;
-    FormSection {
+    Section {
+        first: true;
         title: "Output";
         SwitchRow {
             label: "Custom output folder";
@@ -368,59 +380,66 @@ component OutputPage inherits VerticalLayout {
         }
         if Settings.custom-output: HorizontalLayout {
             alignment: start;
-            AccentButton {
+            Button {
                 text: "Choose folder…";
                 icon: @image-url("icons/folder.svg");
-                primary: false;
+                kind: ButtonKind.secondary;
                 clicked => { Actions.choose-output-folder(); }
             }
         }
-        LabeledRow {
+        Row {
             label: "File";
             detail: App.predicted-output == "" ? "Choose a video first" : App.predicted-output;
         }
     }
-    FormSection {
+    Section {
         title: "Encoding";
         footer: "Videos: H.264 in MP4 with lossless FLAC audio. Images: PNG with transparency kept.";
-        LabeledRow {
+        Row {
             label: "Video";
             Text {
-                text: "H.264, 8-bit";
-                font-size: Theme.font-body;
-                color: Theme.secondary-text;
-                vertical-alignment: center;
+                text: "H.264 · 8-bit";
+                font-family: Theme.mono;
+                font-size: Theme.font-small;
+                color: Theme.muted;
             }
         }
-        LabeledRow {
+        Row {
             label: "Audio";
             Text {
-                text: "FLAC (lossless)";
-                font-size: Theme.font-body;
-                color: Theme.secondary-text;
-                vertical-alignment: center;
+                text: "FLAC · lossless";
+                font-family: Theme.mono;
+                font-size: Theme.font-small;
+                color: Theme.muted;
             }
         }
     }
 }
 
 export component Inspector inherits Rectangle {
-    background: Theme.window-background;
+    background: Theme.panel;
+    Rectangle {
+        x: 0;
+        width: 1px;
+        background: Theme.hairline;
+    }
     VerticalLayout {
         HorizontalLayout {
             padding: Theme.md;
-            Segmented {
+            padding-bottom: Theme.xs;
+            Tabs {
                 items: ["Upscale", "Restore", "Processor", "Output"];
                 selected <=> App.page;
             }
         }
         ScrollView {
             vertical-stretch: 1;
-            enabled: !App.running;
+            opacity: App.running ? 0.5 : 1;
+            animate opacity { duration: Theme.base; }
             VerticalLayout {
-                padding-left: Theme.md;
-                padding-right: Theme.md;
-                padding-bottom: Theme.md;
+                padding-left: Theme.lg;
+                padding-right: Theme.lg;
+                padding-bottom: Theme.lg;
                 alignment: start;
                 if App.page == 0: UpscalePage { }
                 if App.page == 1: RestorePage { }
@@ -429,4 +448,6 @@ export component Inspector inherits Rectangle {
             }
         }
     }
+    // Settings are locked while a file is processed.
+    if App.running: TouchArea { }
 }

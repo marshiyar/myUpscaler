@@ -66,11 +66,11 @@ fn describe_input(path: &Path) -> (String, f64, bool) {
             Some(v) if image => (format!("{size}{}", v.codec), 0.0, true),
             Some(v) => (
                 format!(
-                    "{size}{} · {:.3} fps · {}{}",
+                    "{size}{} · {} fps · {}{}",
                     v.codec,
-                    v.frame_rate,
-                    job::timestamp(probe.duration),
-                    probe.audio.map_or(String::new(), |a| format!(" · {} audio", a.codec))
+                    (v.frame_rate * 1000.0).round() / 1000.0,
+                    progress::clock(probe.duration),
+                    probe.audio.map_or(String::new(), |a| format!(" · {}", a.codec))
                 ),
                 probe.duration,
                 false,
@@ -112,6 +112,8 @@ fn select_input(ui: &AppWindow, state: &mut State, path: PathBuf) {
     app.set_input_name(name.into());
     app.set_input_info(info.into());
     app.set_duration(duration as f32);
+    app.set_duration_text(progress::clock(duration).into());
+    app.set_position_text(progress::clock(0.0).into());
     app.set_is_image(image);
     app.set_position(0.0);
     app.set_error(SharedString::new());
@@ -317,8 +319,9 @@ fn wire(ui: &AppWindow) -> Arc<Mutex<State>> {
         }
     });
     let (weak, st) = (ui.as_weak(), state.clone());
-    actions.on_seek(move |_| {
+    actions.on_seek(move |seconds| {
         if let Some(ui) = weak.upgrade() {
+            ui.global::<App>().set_position_text(progress::clock(seconds as f64).into());
             request_preview(&ui, &st.lock().unwrap());
         }
     });

@@ -75,6 +75,8 @@ export global App {
     in-out property <bool> show-processed;
     in-out property <float> position;               // seconds into the source
     in property <float> duration;
+    in property <string> position-text: "0:00";
+    in property <string> duration-text: "0:00";
 
     in property <bool> running;
     in property <bool> cancelling;
@@ -93,7 +95,7 @@ export global App {
     in-out property <int> page;                     // 0 Upscale, 1 Restore, 2 Processor, 3 Output
     in-out property <bool> about-open;
     in-out property <bool> settings-open;
-    in-out property <bool> log-open: true;
+    in-out property <bool> log-open;
 }
 
 export global Actions {

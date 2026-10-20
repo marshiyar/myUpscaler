@@ -60,8 +60,8 @@ jobs:
       - run: bash scripts/run-parallel.sh ${{ matrix.scripts }}
 
   metal-kernels:
-    # The preview's Core Image Metal kernels, compiled and rendered on a hardware GPU.
-    runs-on: macos-26-xlarge
+    # The preview's Core Image Metal kernels, compiled and rendered on the runner's Metal device.
+    runs-on: macos-26
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4

@@ -2,7 +2,7 @@ name: Set up macOS
 description: Selects the newest installed Xcode 26; optionally requires a hardware Metal GPU.
 inputs:
   require-gpu:
-    description: Fail unless Metal reports a GPU (for the xlarge runners' GPU jobs).
+    description: Fail unless Metal reports a GPU (for the GPU jobs).
     default: 'false'
 runs:
   using: composite

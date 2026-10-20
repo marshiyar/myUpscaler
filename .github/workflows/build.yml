@@ -33,8 +33,7 @@ env:
 jobs:
   release-app:
     # One Release build: the app that is verified (engine, signature, models, inference) is the one delivered.
-    # The extra-large runner has a hardware GPU for the CoreML inference check.
-    runs-on: macos-26-xlarge
+    runs-on: macos-26
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4

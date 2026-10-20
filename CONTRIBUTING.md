@@ -65,14 +65,14 @@ the files it covers change, and nothing is checked twice:
 | --- | --- |
 | **Rust** (`rust.yml`, Linux) | format, lints, unit tests, engine tests, build without the engine |
 | **Swift tests** (`swift-tests.yml`) | source lint (Linux); logic tests in three groups; XCTest (`myUpscalerUnitTests`) |
-| **Regression tests** (`regression.yml`) | finishing chain through the Rust dry run; media tests in three groups; Metal kernels on a GPU runner |
-| **macOS build and bundle** (`build.yml`) | Release app on a GPU runner (verify engine, signature, models and inference, package); model-set preparation |
+| **Regression tests** (`regression.yml`) | finishing chain through the Rust dry run; media tests in three groups; Metal kernels |
+| **macOS build and bundle** (`build.yml`) | Release app (verify engine, signature, models and inference, package); model-set preparation |
 
-The GPU jobs (CoreML inference and the Metal kernels) run on GitHub's
-`macos-26-xlarge` runner (Apple M2 with an 8-core GPU), which is billed per
-minute with no included minutes; they fail if Metal reports no GPU. Everything
-else runs on the standard runners, as none of it uses the GPU (the Rust backend
-runs on the CPU).
+All jobs use GitHub's free standard runners (the repository is public; larger
+runners are billed even for public repositories). The GPU jobs (CoreML inference
+and the Metal kernels) report the runner's Metal device and fail if there is
+none; GitHub's macOS runners are virtual machines, so their GPU is slower than a
+real Mac's. The Rust backend runs on the CPU.
 
 Inside a group, `scripts/run-parallel.sh` runs the scripts at the same time.
 The media engine is a precompiled, pinned binary: it is downloaded and verified

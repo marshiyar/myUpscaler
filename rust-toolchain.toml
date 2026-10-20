@@ -1,0 +1,7 @@
+# The Rust release for the backend (backend/), locally, in Xcode's build phase and in CI, so a new stable release
+# (and the clippy lints it adds under -D warnings) cannot change a build without a commit.
+[toolchain]
+channel = "1.97.0"
+components = ["rustfmt", "clippy"]
+targets = ["aarch64-apple-darwin"]
+profile = "minimal"

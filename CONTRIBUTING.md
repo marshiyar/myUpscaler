@@ -4,7 +4,7 @@ Issues and pull requests are welcome.
 
 Please ensure:
 
-- Code builds with Xcode 26+
+- Code builds with Xcode 27+
 - Existing tests pass
 - New behavior includes tests where applicable
 
@@ -12,9 +12,21 @@ By contributing, you agree that your contributions will be licensed under the sa
 
 ## Building locally
 
-Before building on macOS,
-run `bash scripts/prepare-bundled-ffmpeg.sh`
-This downloads and SHA-256-verifies the same Shaka FFmpeg 8.1.2 macOS binaries pinned by [mpvfx](https://github.com/marshiyar/mpvfx).
+Building needs Rust (install from https://rustup.rs; Xcode builds the backend with `cargo` in its first build
+phase). Before building on macOS, run `bash scripts/prepare-media-engine.sh`. It downloads the pinned MpVFX media
+engine package from the mpvfx-media-binaries releases, verifies its SHA-256 and unpacks it into the ignored
+`third_party/mpvfx-media/` directory; Xcode links it and embeds it in `Contents/Frameworks`.
+
+The processing backend lives in `backend/` (see its README). It builds and tests on its own:
+
+```sh
+bash scripts/prepare-media-engine.sh   # also works on Linux x86_64, for the tests
+cd backend
+cargo test --release                   # unit tests, C API and header checks, end-to-end renders
+cargo clippy --all-targets -- -D warnings
+cargo run --release --example bench    # timings per filter on a synthetic 720p clip
+cargo run --release -- --set scale_factor=2 input.mp4   # the backend from the command line
+```
 
 Models are prepared outside this repository. Supply a directory of prebuilt
 `.mlmodelc` folders with
@@ -44,13 +56,87 @@ RGB x2 supplied explicitly can pass validation. Assets are stored in the ignored
 or incompatible assets. Native model scale and final output scale remain separate
 settings. CI tests the supplied set and predicts with the packaged models.
 
-## Actions app builds
+## Actions workflows
 
-The **macOS build, test and bundle** Actions workflow runs for pull requests,
-pushes to `main`, and manual runs. It builds a Release app and uploads a unique
-`myUpscaler-macos-arm64-<run>-<attempt>` artifact containing a DMG, an inner ZIP
-that preserves app permissions, checksums, and build information. Artifacts are
-retained for 90 days and are never overwritten or deleted by the workflow.
-GitHub expires them after that period. These builds are ad hoc signed and are
-not notarized. The workflow has read-only repository permissions and does not
-publish to GitHub Releases.
+CI is split into five workflows whose jobs run in parallel; each runs only when
+the files it covers change, and nothing is checked twice:
+
+| Workflow | Jobs |
+| --- | --- |
+| **Rust** (`rust.yml`, Linux) | format, lints, unit tests, engine tests, build without the engine |
+| **Swift tests** (`swift-tests.yml`) | source lint (Linux); one macOS job with every logic test and XCTest |
+| **Regression tests** (`regression.yml`) | one macOS job: finishing chain through the Rust dry run, media tests, Metal kernels |
+| **Desktop app** (`desktop.yml`) | cross-platform Slint app: Linux checks, tests and screenshots; Windows build; macOS build and run |
+| **macOS build and bundle** (`build.yml`) | Release app (verify engine, signature, models and inference, package); model-set preparation |
+
+All jobs use GitHub's free standard runners (macOS jobs on the `xcode-27`
+image: macOS 27, Apple Silicon) (the repository is public; larger
+runners are billed even for public repositories). The GPU jobs (CoreML inference
+and the Metal kernels) report the runner's Metal device and fail if there is
+none; GitHub's macOS runners are virtual machines, so their GPU is slower than a
+real Mac's. The Rust backend runs on the CPU.
+
+There are five macOS jobs, the free plan's limit of concurrent macOS jobs,
+so none waits for another. Inside a job, `scripts/run-parallel.sh` runs the
+scripts at the same time, one per CPU core.
+The media engine is a precompiled, pinned binary: it is downloaded and verified
+once, then restored from the cache. The compiled Rust backend (`libup60p.a` and
+its header) is stored the same way, keyed by the backend's sources, and is only
+recompiled when those change; `scripts/build-rust-backend.sh` (also Xcode's first
+build phase) skips Cargo entirely when nothing it depends on changed. CoreML
+models are cached too.
+
+The Release job uploads a unique `myUpscaler-macos-arm64-<run>-<attempt>`
+artifact containing a DMG, an inner ZIP that preserves app permissions,
+checksums, and build information. Artifacts are retained for 90 days and are
+never overwritten or deleted by the workflow. These builds are ad hoc signed and
+are not notarized. The workflows have read-only repository permissions and do
+not publish to GitHub Releases.
+
+## Fast checks without downloaded assets
+
+Run `bash scripts/check.sh` on an Apple Silicon Mac. It checks the 600-line
+maintained-source ceiling, runs the Rust backend's format, lint and test suite,
+the dry-run filter-chain and native media/FPS/preview/scale/progress regressions
+(their test videos are generated with AVFoundation, so no external tool is
+needed), and the independent `myUpscalerUnitTests` XCTest scheme. The test scheme
+does not build the app or require Core ML model files. The backend tests and the
+Swift tests that link the backend need the media engine from
+`scripts/prepare-media-engine.sh`; packaged-app verification
+(`tests/verify-packaged-engine.sh`) remains a separate requirement.
+
+`bash scripts/check-environment.sh` reports Xcode/SDK, the Metal compiler
+component and Rust. It does not install tools or download assets. Xcode may be present
+while its separately supplied Metal compiler component is missing.
+
+For focused checks:
+
+```sh
+bash tests/test-editor-state.sh
+bash tests/test-processing-lifecycle.sh
+bash tests/apple-api/run.sh
+xcodebuild -project myUpscaler.xcodeproj -scheme myUpscalerUnitTests \
+  -destination 'platform=macOS,arch=arm64' \
+  CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= test
+```
+
+The native video-I/O test exercises both the modern and compatibility paths on
+macOS 26+. This is not a macOS 15.2 runtime test or a model-throughput benchmark.
+The processing test includes a blend microbenchmark; avoid treating its result
+as end-to-end AI speed. Keep quality, frame counts, timestamps and audio checks
+alongside performance measurements.
+
+## Source changes
+
+Follow [architecture and ownership](docs/architecture.md). Keep observable UI
+state on its owning actor, background pixel work out of the UI executor, and
+superseded preview requests unable to publish. Split maintained source by
+responsibility around 500 lines, with a 600-line ceiling. Add new settings files
+to the independent XCTest source list as needed; the application target uses
+Xcode synchronized folders.
+
+Legacy preset fields, dynamically loaded Metal kernels and valid OS fallback
+paths must not be removed merely because a direct reference search is empty.
+Keep license notices and avoid committing prepared models, binaries or build
+outputs. Stage logic/performance and structural/UI changes separately when
+possible.

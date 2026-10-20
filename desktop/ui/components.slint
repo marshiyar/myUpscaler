@@ -1,0 +1,362 @@
+// Building blocks of the editor layout: panels with underlined tab headers, collapsible sections with an
+// on/off switch, dense property rows (label, control, blue value), buttons and the progress line. The input controls
+// are in controls.slint.
+
+import { Theme } from "theme.slint";
+import { Toggle, SliderControl, Dropdown, TextField } from "controls.slint";
+
+export { Toggle, SliderControl, Dropdown, TextField }
+
+export component Divider inherits Rectangle {
+    height: 1px;
+    background: Theme.separator;
+}
+
+export component Hint inherits VerticalLayout {
+    in property <string> text;
+    padding-top: 2px;
+    padding-bottom: 4px;
+    Text {
+        text: root.text;
+        font-size: Theme.font-label;
+        color: Theme.faint;
+        wrap: word-wrap;
+    }
+}
+
+// A flat panel tile on the black window.
+export component Panel inherits Rectangle {
+    background: Theme.panel;
+    border-radius: Theme.radius;
+    clip: true;
+}
+
+// Underlined tab headers with a menu glyph on the active one ("Program ≡", "Restore ≡  Processor").
+export component PanelTabs inherits HorizontalLayout {
+    in property <[string]> items;
+    in-out property <int> selected;
+    callback changed(int);
+    height: 32px;
+    padding-left: Theme.md;
+    padding-right: Theme.md;
+    spacing: Theme.lg;
+    alignment: start;
+    for item[i] in root.items: HorizontalLayout {
+        spacing: 5px;
+        accessible-role: tab;
+        accessible-label: item;
+        accessible-item-selected: i == root.selected;
+        VerticalLayout {
+            alignment: center;
+            spacing: 2px;
+            Text {
+                text: item;
+                font-size: Theme.font-body;
+                color: i == root.selected ? Theme.strong : tab-touch.has-hover ? Theme.text : Theme.dim;
+            }
+            Rectangle {
+                height: 1px;
+                background: i == root.selected ? Theme.strong : transparent;
+            }
+        }
+        if i == root.selected: VerticalLayout {
+            alignment: center;
+            Image {
+                source: @image-url("icons/menu.svg");
+                width: 12px;
+                height: 12px;
+                colorize: Theme.dim;
+            }
+        }
+        tab-touch := TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                root.selected = i;
+                root.changed(i);
+            }
+        }
+    }
+}
+
+export component IconButton inherits Rectangle {
+    in property <image> icon;
+    in property <string> label;
+    in property <bool> enabled: true;
+    in property <bool> active;
+    in property <length> icon-size: 15px;
+    callback clicked();
+    accessible-role: button;
+    accessible-label: root.label;
+    accessible-action-default => { root.clicked(); }
+    height: 26px;
+    min-width: 26px;
+    border-radius: Theme.radius;
+    background: !root.enabled ? transparent : touch.pressed ? Theme.pressed : touch.has-hover ? Theme.hover : transparent;
+    opacity: root.enabled ? 1 : 0.4;
+    HorizontalLayout {
+        padding-left: root.label == "" ? 5px : 8px;
+        padding-right: root.label == "" ? 5px : 8px;
+        spacing: 5px;
+        alignment: center;
+        VerticalLayout {
+            alignment: center;
+            Image {
+                source: root.icon;
+                width: root.icon-size;
+                height: root.icon-size;
+                colorize: root.active ? Theme.value : touch.has-hover ? Theme.strong : Theme.dim;
+            }
+        }
+        if root.label != "": Text {
+            text: root.label;
+            font-size: Theme.font-body;
+            color: Theme.text;
+            vertical-alignment: center;
+        }
+    }
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+export enum ButtonKind { primary, secondary }
+
+export component Button inherits Rectangle {
+    in property <string> text;
+    in property <image> icon;
+    in property <bool> has-icon;
+    in property <ButtonKind> kind: ButtonKind.primary;
+    in property <bool> enabled: true;
+    in property <length> tall: 28px;
+    callback clicked();
+    accessible-role: button;
+    accessible-label: root.text;
+    accessible-action-default => { root.clicked(); }
+    height: root.tall;
+    min-width: layout.preferred-width;
+    border-radius: root.tall / 2;
+    background: root.kind == ButtonKind.primary
+        ? (touch.has-hover && root.enabled ? Theme.accent-hover : Theme.accent)
+        : (touch.has-hover && root.enabled ? Theme.hover : transparent);
+    border-width: root.kind == ButtonKind.primary ? 0 : 1px;
+    border-color: Theme.dim;
+    opacity: root.enabled ? 1 : 0.4;
+    layout := HorizontalLayout {
+        padding-left: Theme.lg;
+        padding-right: Theme.lg;
+        spacing: 6px;
+        alignment: center;
+        if root.has-icon: VerticalLayout {
+            alignment: center;
+            Image {
+                source: root.icon;
+                width: 13px;
+                height: 13px;
+                colorize: root.kind == ButtonKind.primary ? Theme.on-accent : Theme.text;
+            }
+        }
+        Text {
+            text: root.text;
+            font-size: Theme.font-body;
+            font-weight: 600;
+            color: root.kind == ButtonKind.primary ? Theme.on-accent : Theme.text;
+            vertical-alignment: center;
+        }
+    }
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+// Collapsible section header with an optional on/off switch for the whole effect ("Basic Correction ●").
+export component SectionHeader inherits Rectangle {
+    in property <string> title;
+    in-out property <bool> expanded: true;
+    in property <bool> has-switch;
+    in-out property <bool> checked;
+    callback toggled();
+    height: 30px;
+    HorizontalLayout {
+        spacing: Theme.sm;
+        VerticalLayout {
+            alignment: center;
+            Image {
+                source: root.expanded ? @image-url("icons/caret-down.svg") : @image-url("icons/caret-right.svg");
+                width: 8px;
+                height: 8px;
+                colorize: Theme.dim;
+            }
+        }
+        Text {
+            text: root.title;
+            font-size: Theme.font-body;
+            font-weight: 600;
+            color: Theme.strong;
+            vertical-alignment: center;
+            horizontal-stretch: 1;
+        }
+    }
+    header-touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.expanded = !root.expanded; }
+    }
+    if root.has-switch: Toggle {
+        x: root.width - self.width;
+        y: (root.height - self.height) / 2;
+        checked <=> root.checked;
+        label: root.title;
+        toggled => { root.toggled(); }
+    }
+}
+
+// A property row: dim label on the left, the control on the right.
+export component Row inherits HorizontalLayout {
+    in property <string> label;
+    in property <string> detail;
+    spacing: Theme.md;
+    min-height: Theme.row-height;
+    padding-left: Theme.md;
+    VerticalLayout {
+        alignment: center;
+        horizontal-stretch: 1;
+        Text {
+            text: root.label;
+            font-size: Theme.font-small;
+            color: Theme.dim;
+            overflow: elide;
+        }
+        if root.detail != "": Text {
+            text: root.detail;
+            font-size: Theme.font-label;
+            color: Theme.faint;
+            overflow: elide;
+        }
+    }
+    VerticalLayout {
+        alignment: center;
+        @children
+    }
+}
+
+export component ChoiceRow inherits Row {
+    in property <[string]> choices;
+    in-out property <int> index;
+    in property <bool> enabled: true;
+    callback changed();
+    Dropdown {
+        width: 132px;
+        model: root.choices;
+        current-index <=> root.index;
+        enabled: root.enabled;
+        label: root.label;
+        selected => { root.changed(); }
+    }
+}
+
+export component SwitchRow inherits Row {
+    in-out property <bool> checked;
+    in property <bool> enabled: true;
+    callback changed();
+    Toggle {
+        checked <=> root.checked;
+        enabled: root.enabled;
+        label: root.label;
+        toggled => { root.changed(); }
+    }
+}
+
+export component FieldRow inherits Row {
+    in-out property <string> value;
+    in property <string> placeholder;
+    in property <length> field-width: 72px;
+    in property <bool> enabled: true;
+    callback changed();
+    TextField {
+        width: root.field-width;
+        text <=> root.value;
+        placeholder: root.placeholder;
+        enabled: root.enabled;
+        label: root.label;
+        edited => { root.changed(); }
+    }
+}
+
+// Label, slider and blue value on one line ("Temperature ——o—— -6.0"). Committed when the drag ends; double-click
+// the value to reset it.
+export component ParameterRow inherits HorizontalLayout {
+    in property <string> title;
+    in-out property <float> value;
+    in property <float> minimum: 0;
+    in property <float> maximum: 1;
+    in property <float> step: 0.01;
+    in property <float> default-value;
+    in property <int> digits: 2;
+    in property <bool> enabled: true;
+    callback changed();
+    spacing: Theme.md;
+    height: Theme.row-height;
+    padding-left: Theme.md;
+    Text {
+        text: root.title;
+        width: 84px;
+        font-size: Theme.font-small;
+        color: Theme.dim;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    VerticalLayout {
+        alignment: center;
+        horizontal-stretch: 1;
+        slider := SliderControl {
+            value: root.value;
+            minimum: root.minimum;
+            maximum: root.maximum;
+            step: root.step;
+            enabled: root.enabled;
+            label: root.title;
+            released(v) => {
+                root.value = v;
+                root.changed();
+            }
+        }
+    }
+    Rectangle {
+        width: 46px;
+        Text {
+            width: parent.width;
+            height: parent.height;
+            text: slider.value.to-fixed(root.digits);
+            font-size: Theme.font-small;
+            color: Theme.value;
+            horizontal-alignment: right;
+            vertical-alignment: center;
+        }
+        TouchArea {
+            enabled: root.enabled;
+            double-clicked => {
+                slider.value = root.default-value;
+                root.value = root.default-value;
+                root.changed();
+            }
+        }
+    }
+}
+
+export component ProgressLine inherits Rectangle {
+    in property <float> progress;
+    in property <bool> indeterminate;
+    height: 3px;
+    background: Theme.separator;
+    clip: true;
+    property <float> sweep: indeterminate ? Math.mod(animation-tick() / 1.2s, 1) : 0;
+    Rectangle {
+        x: root.indeterminate ? (root.width * 1.4 * root.sweep) - root.width * 0.4 : 0;
+        width: root.indeterminate ? root.width * 0.4 : root.width * root.progress.clamp(0, 1);
+        background: Theme.accent;
+        animate width { duration: Theme.base; easing: ease-out; }
+    }
+}

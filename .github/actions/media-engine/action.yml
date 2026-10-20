@@ -1,0 +1,11 @@
+name: MpVFX media engine
+description: Restores the pinned, precompiled media engine from the cache, or downloads and verifies it once.
+runs:
+  using: composite
+  steps:
+    - uses: actions/cache@v4
+      with:
+        path: third_party/mpvfx-media
+        key: mpvfx-media-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/prepare-media-engine.sh') }}
+    - shell: bash
+      run: bash scripts/prepare-media-engine.sh

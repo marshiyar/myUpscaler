@@ -1,0 +1,22 @@
+[package]
+name = "myupscaler"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "myUpscaler's cross-platform desktop app: a Slint interface on the Rust processing backend."
+publish = false
+
+[[bin]]
+name = "myupscaler"
+path = "src/main.rs"
+
+[dependencies]
+up60p = { path = "../backend" }
+slint = "1.18"
+rfd = { version = "0.15", default-features = false, features = ["xdg-portal", "tokio"] }
+
+[build-dependencies]
+slint-build = "1.18"
+
+[dev-dependencies]
+i-slint-backend-testing = "1.18"

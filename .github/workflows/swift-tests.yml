@@ -1,0 +1,54 @@
+name: Swift tests
+
+on:
+  pull_request:
+    paths: &swift-paths
+      - 'myUpscaler/**'
+      - 'myUpscaler.xcodeproj/**'
+      - 'tests/**'
+      - 'scripts/**'
+      - '.github/actions/setup-macos/**'
+      - '.github/workflows/swift-tests.yml'
+  push:
+    branches: [main]
+    paths: *swift-paths
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: swift-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - name: Shell syntax, whitespace and the source size ceiling
+        run: |
+          set -euo pipefail
+          git diff --check
+          git ls-files '*.sh' -z | xargs -0 -n 1 bash -n
+          python3 scripts/check-source-budget.py
+
+  swift:
+    # All logic tests and XCTest on one macOS runner, running side by side.
+    runs-on: xcode-27
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: ./.github/actions/setup-macos
+      - run: >-
+          bash scripts/run-parallel.sh
+          tests/xctest.sh
+          tests/test-upscale-settings.sh tests/test-restoration-controls.sh
+          tests/test-shortcuts.sh tests/test-shortcuts-persistence.sh
+          tests/test-editor-state.sh tests/test-workspace-actions.sh
+          tests/upscaling-mode-support/run.sh tests/progress-parser/run.sh
+          tests/test-processing-lifecycle.sh tests/test-batch.sh tests/logging/run.sh
+          tests/commit-boundary/run-committed-output-tests.sh tests/commit-boundary/run-stage-tests.sh

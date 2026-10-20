@@ -18,3 +18,5 @@ while IFS= read -r model; do
   fi
 done <<< "$model_resources"
 bash "$repo_dir/scripts/validate-bundled-models.sh" "$resources"
+
+bash "$repo_dir/scripts/embed-local-coreai-models.sh"

@@ -1,0 +1,31 @@
+[package]
+name = "up60p"
+version = "0.1.0"
+edition = "2021"
+description = "myUpscaler's processing backend: restoration filters, Lanczos scaling and frame interpolation in Rust, with decode and encode through the MpVFX media engine."
+license = "Apache-2.0"
+publish = false
+
+# No third-party crates. Decode, encode and mux go through the MpVFX media engine's C API
+# (libmpvfx_ffi, prepared by scripts/prepare-media-engine.sh); everything else is in this crate.
+[dependencies]
+
+[lib]
+crate-type = ["staticlib", "rlib"]
+
+[[bin]]
+name = "up60p"
+path = "src/bin/up60p.rs"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+debug = false
+
+# Filters are too slow to test meaningfully without optimisation.
+[profile.test]
+opt-level = 3
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "deny"

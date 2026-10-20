@@ -1,0 +1,278 @@
+// The main window, laid out as a media editor: a top bar with the Import / Edit /
+// Export workspaces and the document title, flat panels tiled on a black window, and a status bar. Edit pairs the
+// Program monitor (and the log) with the adjustments panel; Export pairs the destination and format with the Export
+// button. About and Settings open as sheets.
+
+import { AboutSlint, Palette } from "std-widgets.slint";
+import { Theme, ThemePreference } from "theme.slint";
+import { Settings, App, Actions } from "globals.slint";
+import { IconButton, Button, ButtonKind, ProgressLine, Divider, ChoiceRow, Hint } from "components.slint";
+import { EditWorkspace } from "edit.slint";
+import { ImportWorkspace, ExportWorkspace } from "workspaces.slint";
+
+export { Settings, App, Actions, Theme }
+
+component WorkspaceTab inherits Rectangle {
+    in property <string> text;
+    in property <int> index;
+    in property <bool> enabled: true;
+    width: label.preferred-width + 2 * Theme.md;
+    accessible-role: tab;
+    accessible-label: root.text;
+    accessible-item-selected: App.workspace == root.index;
+    label := Text {
+        text: root.text;
+        font-size: Theme.font-body;
+        color: !root.enabled ? Theme.faint : App.workspace == root.index ? Theme.strong : touch.has-hover ? Theme.text : Theme.dim;
+        vertical-alignment: center;
+    }
+    Rectangle {
+        x: Theme.md;
+        y: root.height / 2 + 10px;
+        width: label.preferred-width;
+        height: 2px;
+        background: App.workspace == root.index ? Theme.strong : transparent;
+    }
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => { App.workspace = root.index; }
+    }
+}
+
+component TopBar inherits Rectangle {
+    height: 44px;
+    background: Theme.header;
+    // The document title, centred on the window.
+    Text {
+        width: min(parent.width - 600px, 520px);
+        x: (parent.width - self.width) / 2;
+        text: App.input-name == "" ? "myUpscaler" : App.input-name + (App.running ? " — Processing" : "");
+        font-size: Theme.font-title;
+        color: Theme.strong;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    HorizontalLayout {
+        padding-left: Theme.md;
+        padding-right: Theme.md;
+        spacing: 2px;
+        VerticalLayout {
+            alignment: center;
+            IconButton {
+                icon: @image-url("icons/home.svg");
+                label: "";
+                accessible-label: "Import";
+                clicked => { App.workspace = 0; }
+            }
+        }
+        WorkspaceTab {
+            text: "Import";
+            index: 0;
+        }
+        WorkspaceTab {
+            text: "Edit";
+            index: 1;
+            enabled: App.input-path != "";
+        }
+        WorkspaceTab {
+            text: "Export";
+            index: 2;
+            enabled: App.input-path != "";
+        }
+        Rectangle { horizontal-stretch: 1; }
+        VerticalLayout {
+            alignment: center;
+            IconButton {
+                icon: @image-url("icons/sun.svg");
+                accessible-label: "Appearance";
+                clicked => {
+                    Theme.preference = Theme.dark ? ThemePreference.light : ThemePreference.dark;
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            IconButton {
+                icon: @image-url("icons/terminal.svg");
+                active: App.log-open;
+                accessible-label: "Log";
+                clicked => { App.log-open = !App.log-open; }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            IconButton {
+                icon: @image-url("icons/settings.svg");
+                accessible-label: "Settings";
+                clicked => { App.settings-open = true; }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            IconButton {
+                icon: @image-url("icons/info.svg");
+                accessible-label: "About";
+                clicked => { App.about-open = true; }
+            }
+        }
+    }
+}
+
+component StatusBar inherits Rectangle {
+    height: 24px;
+    background: Theme.header;
+    HorizontalLayout {
+        padding-left: Theme.md;
+        padding-right: Theme.md;
+        spacing: Theme.lg;
+        Text {
+            text: App.running
+                ? App.phase + " · " + (App.progress-known ? (App.progress * 100).round() + "%" : "starting") + " · " + App.fps-text + " fps · ETA " + App.eta-text
+                : App.error != "" ? App.error
+                : App.input-path == "" ? "Import a video, an image or a folder to begin."
+                : App.phase == "Ready" ? "Adjust in Edit, then render from Export." : App.phase;
+            font-size: Theme.font-small;
+            color: App.error != "" ? Theme.danger : Theme.dim;
+            vertical-alignment: center;
+            overflow: elide;
+            horizontal-stretch: 1;
+        }
+        if App.running: VerticalLayout {
+            alignment: center;
+            ProgressLine {
+                width: 160px;
+                progress: App.progress;
+                indeterminate: !App.progress-known;
+            }
+        }
+        Text {
+            text: "MpVFX " + App.engine-version;
+            font-size: Theme.font-small;
+            color: Theme.faint;
+            vertical-alignment: center;
+        }
+    }
+}
+
+// A modal sheet: dimmed backdrop, centred card.
+component Sheet inherits Rectangle {
+    in property <length> card-width: 420px;
+    callback close();
+    background: #00000099;
+    TouchArea { clicked => { root.close(); } }
+    Rectangle {
+        width: root.card-width;
+        height: content.preferred-height;
+        background: Theme.panel;
+        border-radius: Theme.radius-large;
+        border-width: 1px;
+        border-color: Theme.separator;
+        drop-shadow-blur: 30px;
+        drop-shadow-color: #000000a0;
+        drop-shadow-offset-y: 10px;
+        TouchArea { }
+        content := VerticalLayout {
+            padding: Theme.xl;
+            spacing: Theme.md;
+            @children
+        }
+    }
+}
+
+export component AppWindow inherits Window {
+    title: App.input-name == "" ? "myUpscaler" : App.input-name + " — myUpscaler";
+    icon: @image-url("icons/upscale.svg");
+    min-width: 900px;
+    min-height: 580px;
+    preferred-width: 1280px;
+    preferred-height: 800px;
+    background: Theme.app;
+    default-font-family: Theme.font;
+    default-font-size: Theme.font-body;
+
+    // The built-in widgets follow Slint's palette: keep it in step with the appearance setting.
+    property <ThemePreference> appearance: Theme.preference;
+    changed appearance => {
+        Palette.color-scheme = self.appearance == ThemePreference.dark ? ColorScheme.dark
+            : self.appearance == ThemePreference.light ? ColorScheme.light : ColorScheme.unknown;
+    }
+
+    VerticalLayout {
+        TopBar { }
+        VerticalLayout {
+            vertical-stretch: 1;
+            padding: Theme.gap;
+            if App.workspace == 0 || App.input-path == "": ImportWorkspace {
+                vertical-stretch: 1;
+            }
+            if App.workspace == 1 && App.input-path != "": EditWorkspace {
+                vertical-stretch: 1;
+            }
+            if App.workspace == 2 && App.input-path != "": ExportWorkspace {
+                vertical-stretch: 1;
+            }
+        }
+        StatusBar { }
+    }
+
+    if App.about-open: Sheet {
+        close => { App.about-open = false; }
+        Text {
+            text: "myUpscaler";
+            font-size: 20px;
+            font-weight: 600;
+            color: Theme.strong;
+            horizontal-alignment: center;
+        }
+        Text {
+            text: "Video restoration and upscaling for macOS, Windows and Linux. The processing engine is written in Rust; media engine: MpVFX " + App.engine-version + ".";
+            font-size: Theme.font-body;
+            color: Theme.dim;
+            horizontal-alignment: center;
+            wrap: word-wrap;
+        }
+        Divider { }
+        AboutSlint {
+            height: 150px;
+        }
+        HorizontalLayout {
+            alignment: center;
+            Button {
+                text: "Close";
+                kind: ButtonKind.secondary;
+                width: 120px;
+                clicked => { App.about-open = false; }
+            }
+        }
+    }
+
+    if App.settings-open: Sheet {
+        close => { App.settings-open = false; }
+        Text {
+            text: "Settings";
+            font-size: 20px;
+            font-weight: 600;
+            color: Theme.strong;
+        }
+        ChoiceRow {
+            label: "Appearance";
+            choices: ["System", "Light", "Dark"];
+            index: Theme.preference == ThemePreference.light ? 1 : Theme.preference == ThemePreference.dark ? 2 : 0;
+            changed => {
+                Theme.preference = self.index == 1 ? ThemePreference.light
+                    : self.index == 2 ? ThemePreference.dark : ThemePreference.system;
+            }
+        }
+        Hint { text: "Processing settings are in the Edit workspace; the output is set in Export."; }
+        HorizontalLayout {
+            alignment: end;
+            Button {
+                text: "Done";
+                width: 100px;
+                clicked => { App.settings-open = false; }
+            }
+        }
+    }
+}

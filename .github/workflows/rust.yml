@@ -1,0 +1,87 @@
+name: Rust
+
+on:
+  pull_request:
+    paths: &rust-paths
+      - 'backend/**'
+      - 'rust-toolchain.toml'
+      - 'scripts/prepare-media-engine.sh'
+      - '.github/actions/media-engine/**'
+      - '.github/workflows/rust.yml'
+  push:
+    branches: [main]
+    paths: *rust-paths
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rust-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: backend
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - run: cargo fmt --check
+
+  lints:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: ./.github/actions/media-engine
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: backend, shared-key: lints }
+      - run: cargo clippy --all-targets -- -D warnings
+
+  unit-tests:
+    # Filters, pipeline rules, settings contract, header and CLI: no media engine calls.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: ./.github/actions/media-engine
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: backend, shared-key: tests }
+      - run: cargo test --lib --test pipeline --test settings_contract --test cli
+
+  engine-tests:
+    # C API, engine wrapper and end-to-end renders through the real media engine.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: ./.github/actions/media-engine
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: backend, shared-key: tests }
+      - run: |
+          set -euo pipefail
+          cargo test --test c_api --test engine --test end_to_end 2>&1 | tee "$RUNNER_TEMP/engine-tests.log"
+          # The engine-backed tests skip themselves when the library is missing; here it must be present.
+          if grep -q 'skipped:' "$RUNNER_TEMP/engine-tests.log"; then
+            echo '::error::Engine-backed tests were skipped; the MpVFX media engine was not found.'
+            exit 1
+          fi
+
+  without-engine:
+    # The crate must still build and its filter tests pass when the engine library is absent.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: backend, shared-key: without-engine }
+      - run: cargo test --lib

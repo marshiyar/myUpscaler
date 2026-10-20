@@ -1,0 +1,9 @@
+#!/bin/bash
+# Removes assistant attribution from commit messages: Co-Authored-By lines naming Claude or Anthropic, the
+# Claude-Session trailer and "Generated with Claude Code" lines. Then trims trailing blank lines.
+set -euo pipefail
+msg=$1
+grep -viE '^(co-authored-by:.*(claude|anthropic)|claude-session:|.*generated with \[?claude code)' "$msg" > "$msg.tmp" || true
+# Drop trailing blank lines left behind by the removed trailers.
+sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' "$msg.tmp" > "$msg"
+rm -f "$msg.tmp"

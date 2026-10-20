@@ -69,7 +69,12 @@ the files it covers change, and nothing is checked twice:
 | **macOS build and bundle** (`build.yml`) | Release app (verify engine, signature, models and inference, package); model-set preparation |
 
 Inside a group, `scripts/run-parallel.sh` runs the scripts at the same time.
-The media engine, CoreML models and Rust builds are cached between runs.
+The media engine is a precompiled, pinned binary: it is downloaded and verified
+once, then restored from the cache. The compiled Rust backend (`libup60p.a` and
+its header) is stored the same way, keyed by the backend's sources, and is only
+recompiled when those change; `scripts/build-rust-backend.sh` (also Xcode's first
+build phase) skips Cargo entirely when nothing it depends on changed. CoreML
+models are cached too.
 
 The Release job uploads a unique `myUpscaler-macos-arm64-<run>-<attempt>`
 artifact containing a DMG, an inner ZIP that preserves app permissions,

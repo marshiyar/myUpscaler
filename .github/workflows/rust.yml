@@ -40,7 +40,8 @@ jobs:
       - uses: actions/checkout@v4
         with: { persist-credentials: false }
       - uses: ./.github/actions/media-engine
-        with: { rust-cache-key: lints }
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: backend, shared-key: lints }
       - run: cargo clippy --all-targets -- -D warnings
 
   unit-tests:
@@ -51,7 +52,8 @@ jobs:
       - uses: actions/checkout@v4
         with: { persist-credentials: false }
       - uses: ./.github/actions/media-engine
-        with: { rust-cache-key: tests }
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: backend, shared-key: tests }
       - run: cargo test --lib --test pipeline --test settings_contract --test cli
 
   engine-tests:
@@ -62,7 +64,8 @@ jobs:
       - uses: actions/checkout@v4
         with: { persist-credentials: false }
       - uses: ./.github/actions/media-engine
-        with: { rust-cache-key: tests }
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: backend, shared-key: tests }
       - run: |
           set -euo pipefail
           cargo test --test c_api --test engine --test end_to_end 2>&1 | tee "$RUNNER_TEMP/engine-tests.log"

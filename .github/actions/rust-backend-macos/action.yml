@@ -1,0 +1,18 @@
+name: Compiled Rust backend (macOS)
+description: >-
+  Restores the compiled libup60p.a and its header for the current backend sources; only when the sources changed is
+  it compiled (and then stored for later runs). Also provides the media engine.
+runs:
+  using: composite
+  steps:
+    - uses: ./.github/actions/media-engine
+    - uses: actions/cache@v4
+      with:
+        path: |
+          backend/target/aarch64-apple-darwin/release/libup60p.a
+          backend/target/aarch64-apple-darwin/release/.up60p-fingerprint
+          backend/target/include/up60p.h
+        key: up60p-macos-${{ hashFiles('backend/src/**', 'backend/build.rs', 'backend/Cargo.toml', 'backend/Cargo.lock', 'rust-toolchain.toml', 'scripts/prepare-media-engine.sh', 'scripts/build-rust-backend.sh') }}
+    - shell: bash
+      # A no-op when the restored library matches the sources; Xcode's build phase then skips Cargo too.
+      run: bash scripts/build-rust-backend.sh

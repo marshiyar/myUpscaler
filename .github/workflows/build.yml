@@ -40,8 +40,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-macos
-      - uses: ./.github/actions/media-engine
-        with: { rust-cache-key: macos-release }
+      - uses: ./.github/actions/rust-backend-macos
       - name: Restore prepared CoreML models
         uses: actions/cache@v4
         with:

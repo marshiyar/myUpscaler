@@ -213,7 +213,8 @@ dSYM/
 xcuserdata/
 *.xcuserstate
 
-myUpscaler/ThirdParty/ffmpeg/ffmpeg
+/third_party/mpvfx-media/
+!backend/Cargo.lock
 /third_party/CoreML/
 *.mlpackage/
 xcuserdata/

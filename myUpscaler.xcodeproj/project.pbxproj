@@ -14,19 +14,6 @@
 		C02700000000000000000011 = {isa = PBXBuildFile; fileRef = C0270000000000000000000C; };
 /* End PBXBuildFile section */
 
-/* Begin PBXCopyFilesBuildPhase section */
-		5EE164CF2EF4D83C0060947E /* Copy Files */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = ThirdParty/FFmpeg;
-			dstSubfolderSpec = 6;
-			files = (
-			);
-			name = "Copy Files";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
-
 /* Begin PBXFileReference section */
 		5ECE7BB52EF2A63C00603DA9 /* myUpscaler.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = myUpscaler.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C02700000000000000000008 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/CoreMLModelRegistry.swift; sourceTree = SOURCE_ROOT; };
@@ -37,36 +24,9 @@
 		C02700000000000000000006 = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = myUpscalerUnitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		5E23E7C82ED9B256008298B2 /* Exceptions for "myUpscaler" folder in "myUpscaler" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				ThirdParty/ffmpeg/ffmpeg,
-			);
-			target = 5E23E5052ED9AB0B008298B2 /* myUpscaler */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
-/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-		5EE165832EF4F6950060947E /* Exceptions for "myUpscaler" folder in "Copy Files" phase from "myUpscaler" target */ = {
-			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
-			attributesByRelativePath = {
-				ThirdParty/ffmpeg/ffmpeg = (CodeSignOnCopy, );
-			};
-			buildPhase = 5EE164CF2EF4D83C0060947E /* Copy Files */;
-			membershipExceptions = (
-				ThirdParty/ffmpeg/ffmpeg,
-			);
-		};
-/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		5E23E5082ED9AB0B008298B2 /* myUpscaler */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				5E23E7C82ED9B256008298B2 /* Exceptions for "myUpscaler" folder in "myUpscaler" target */,
-				5EE165832EF4F6950060947E /* Exceptions for "myUpscaler" folder in "Copy Files" phase from "myUpscaler" target */,
-			);
 			path = myUpscaler;
 			sourceTree = "<group>";
 		};
@@ -95,11 +55,11 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 5E23E5272ED9AB0C008298B2 /* Build configuration list for PBXNativeTarget "myUpscaler" */;
 			buildPhases = (
+				C04400000000000000000001 /* Build Rust backend */,
 				5E23E5022ED9AB0B008298B2 /* Sources */,
 				5E23E5042ED9AB0B008298B2 /* Resources */,
-				5EE164CF2EF4D83C0060947E /* Copy Files */,
 				C03300000000000000000001 /* Embed CoreML models */,
-				5EE165482EF4EEB20060947E /* Run Script */,
+				5EE165482EF4EEB20060947E /* Embed media engine */,
 			);
 			buildRules = (
 			);
@@ -185,8 +145,9 @@
 			shellPath = /bin/bash;
 			shellScript = "/bin/bash \"${PROJECT_DIR}/scripts/embed-bundled-models.sh\"\n";
 		};
-		5EE165482EF4EEB20060947E /* Run Script */ = {
+		5EE165482EF4EEB20060947E /* Embed media engine */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
@@ -194,14 +155,34 @@
 			);
 			inputPaths = (
 			);
-			name = "Run Script";
+			name = "Embed media engine";
 			outputFileListPaths = (
 			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -eu\n/bin/bash \"${PROJECT_DIR}/scripts/build-bundled-helpers.sh\"\n";
+			shellScript = "set -eu\n/bin/bash \"${PROJECT_DIR}/scripts/embed-media-engine.sh\"\n";
+		};
+		C04400000000000000000001 /* Build Rust backend */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Build Rust backend";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(PROJECT_DIR)/backend/target/aarch64-apple-darwin/release/libup60p.a",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -eu\n/bin/bash \"${PROJECT_DIR}/scripts/build-rust-backend.sh\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -281,7 +262,6 @@
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
-					"UP60P_LIBRARY_MODE=1",
 					"$(inherited)",
 				);
 				GCC_STRICT_ALIASING = YES;
@@ -374,10 +354,6 @@
 				GCC_CHAR_IS_UNSIGNED_CHAR = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					"UP60P_LIBRARY_MODE=1",
-					"$(inherited)",
-				);
 				GCC_STRICT_ALIASING = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
@@ -464,8 +440,12 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.video";
 				INFOPLIST_KEY_MetalCaptureEnabled = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				LD_RUNPATH_SEARCH_PATHS = "";
-				LIBRARY_SEARCH_PATHS = "";
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/backend/target/aarch64-apple-darwin/release",
+					"$(PROJECT_DIR)/third_party/mpvfx-media/lib",
+				);
 				LINK_WITH_STANDARD_LIBRARIES = YES;
 				ARCHS = arm64;
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
@@ -480,7 +460,11 @@
 				MTL_MATH_MODE = FAST;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = "-flto";
-				OTHER_LDFLAGS = "";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lup60p",
+					"-lmpvfx_ffi",
+				);
 				OTHER_SWIFT_FLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = Ashrox.myUpscaler;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -575,8 +559,12 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.video";
 				INFOPLIST_KEY_MetalCaptureEnabled = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				LD_RUNPATH_SEARCH_PATHS = "";
-				LIBRARY_SEARCH_PATHS = "";
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/backend/target/aarch64-apple-darwin/release",
+					"$(PROJECT_DIR)/third_party/mpvfx-media/lib",
+				);
 				LINK_WITH_STANDARD_LIBRARIES = YES;
 				ARCHS = arm64;
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
@@ -593,7 +581,11 @@
 					"-O3",
 					"-flto",
 				);
-				OTHER_LDFLAGS = "";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lup60p",
+					"-lmpvfx_ffi",
+				);
 				OTHER_SWIFT_FLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = Ashrox.myUpscaler;
 				PRODUCT_NAME = "$(TARGET_NAME)";

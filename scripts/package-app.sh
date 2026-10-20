@@ -16,13 +16,16 @@ trap cleanup EXIT
 
 verify_app() {
   local bundle=$1
-  for executable in "$bundle/Contents/MacOS/myUpscaler" \
-      "$bundle/Contents/MacOS/up60p-ffmpeg-supervisor" \
-      "$bundle/Contents/MacOS/ThirdParty/FFmpeg/ffmpeg"; do
-    test -x "$executable"
-    [[ $(xcrun lipo -archs "$executable") == arm64 ]]
-    codesign --verify --strict "$executable"
+  for binary in "$bundle/Contents/MacOS/myUpscaler" \
+      "$bundle/Contents/Frameworks/libmpvfx_ffi.dylib"; do
+    test -f "$binary"
+    [[ $(xcrun lipo -archs "$binary") == arm64 ]]
+    codesign --verify --strict "$binary"
   done
+  test -x "$bundle/Contents/MacOS/myUpscaler"
+  # The app carries no FFmpeg and no helper executables.
+  [[ -z $(find "$bundle" -iname '*ffmpeg*') ]]
+  [[ $(find "$bundle/Contents/MacOS" -type f | wc -l | tr -d ' ') == 1 ]]
   codesign --verify --deep --strict "$bundle"
   bash "$repo_dir/scripts/validate-bundled-models.sh" "$bundle"
   cmp "$repo_dir/myUpscaler/ThirdParty/RealESRGAN-LICENSE.txt" "$bundle/Contents/Resources/RealESRGAN-LICENSE.txt"
@@ -56,7 +59,8 @@ Run: ${BUILD_RUN_URL:-local build}
 Configuration: Release
 Signing: ad hoc; not Developer ID signed or notarized.
 
-This artifact includes the app, bundled FFmpeg, and validated CoreML models.
+This artifact includes the app with its Rust processing backend, the MpVFX media
+engine library, and validated CoreML models. It contains no FFmpeg.
 Use the DMG to copy myUpscaler.app into Applications, or extract the inner
 MyUpscaler-arm64.zip to preserve the app's executable permissions.
 macOS may require approval in System Settings > Privacy & Security > Open Anyway.

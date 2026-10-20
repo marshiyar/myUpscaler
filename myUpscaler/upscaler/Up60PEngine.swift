@@ -3,7 +3,8 @@ import Darwin
 
 enum Up60PEngineError: Error, Equatable {
     case invalidOptions
-    case ffmpegNotFound
+    case engineUnavailable
+    case unsupportedMedia
     case io
     case internalError
     case unknownStatus(Int32)
@@ -18,6 +19,7 @@ struct Up60PBridge {
     typealias SetDryRunFunc = (_ enable: Int32) -> Void
     typealias ShutdownFunc = () -> Void
     typealias CancelFunc = () -> Void
+    typealias OptionsSizeFunc = () -> Int
     
     let initFunc: InitFunc
     let defaultOptionsFunc: DefaultOptionsFunc
@@ -25,6 +27,7 @@ struct Up60PBridge {
     let setDryRunFunc: SetDryRunFunc
     let shutdownFunc: ShutdownFunc
     let cancelFunc: CancelFunc
+    let optionsSizeFunc: OptionsSizeFunc
     
     static let live = Up60PBridge(
         initFunc: up60p_init,
@@ -32,7 +35,8 @@ struct Up60PBridge {
         processPathFunc: up60p_process_path,
         setDryRunFunc: up60p_set_dry_run,
         shutdownFunc: up60p_shutdown,
-        cancelFunc: up60p_request_cancel
+        cancelFunc: up60p_request_cancel,
+        optionsSizeFunc: up60p_options_size
     )
 }
 
@@ -100,13 +104,16 @@ final class Up60PEngine {
         Up60PEngine.logHandlerQueue.sync {
             if let handler = Up60PEngine.currentLogHandler {
                 DispatchQueue.main.async {
-                    handler("Initializing C engine...\n")
+                    handler("Initializing Rust engine...\n")
                 }
             }
         }
 
-        // The C engine owns bundle resolution and validates the same path at
-        // initialization and before processing. Do not set or honor overrides.
+        // The Rust backend and the Swift bridge must agree on the options layout.
+        guard Self.bridge.optionsSizeFunc() == MemoryLayout<up60p_options>.size else {
+            log("ERROR: Rust engine options layout does not match this app build.\n")
+            throw Up60PEngineError.internalError
+        }
         let result = Self.bridge.initFunc(nil, callback)
         
         if result != UP60P_OK {
@@ -114,7 +121,7 @@ final class Up60PEngine {
             Up60PEngine.logHandlerQueue.sync {
                 if let handler = Up60PEngine.currentLogHandler {
                     DispatchQueue.main.async {
-                        handler("ERROR: C engine initialization failed (code: \(result.rawValue))\n")
+                        handler("ERROR: Rust engine initialization failed (code: \(result.rawValue))\n")
                     }
                 }
             }
@@ -125,7 +132,7 @@ final class Up60PEngine {
         Up60PEngine.logHandlerQueue.sync {
             if let handler = Up60PEngine.currentLogHandler {
                 DispatchQueue.main.async {
-                    handler("C engine initialized successfully.\n")
+                    handler("Rust engine initialized successfully.\n")
                 }
             }
         }
@@ -146,7 +153,8 @@ final class Up60PEngine {
     private func mapError(_ code: up60p_error) -> Up60PEngineError? {
         switch code {
         case UP60P_ERR_INVALID_OPTIONS:   return .invalidOptions
-        case UP60P_ERR_FFMPEG_NOT_FOUND:  return .ffmpegNotFound
+        case UP60P_ERR_ENGINE_UNAVAILABLE: return .engineUnavailable
+        case UP60P_ERR_UNSUPPORTED_MEDIA: return .unsupportedMedia
         case UP60P_ERR_IO:                return .io
         case UP60P_ERR_INTERNAL:          return .internalError
         case UP60P_ERR_CANCELLED:         return .internalError
@@ -292,10 +300,6 @@ final class Up60PEngine {
         cancel()
         if let previousTask { await previousTask.value }
         try Task.checkCancellation()
-        
-        let codecDecision = CodecSupport.resolve(requestHEVC: settings.useHEVC)
-        if let message = codecDecision.message { log(message) }
-        settings.useHEVC = codecDecision.useHEVC
         
         struct StackingSnapshot {
             let has: Bool

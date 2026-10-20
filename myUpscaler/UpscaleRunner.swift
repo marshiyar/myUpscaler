@@ -172,7 +172,7 @@ class UpscaleRunner: ObservableObject {
             log.append("--- Starting CoreML Engine ---\n")
         } else {
             selectedEngine = self.engine
-            log.append("--- Starting C Engine ---\n")
+            log.append("--- Starting Rust Engine ---\n")
         }
         self.activeEngine = selectedEngine
         if settings.hasFilterStacking {
@@ -210,7 +210,7 @@ class UpscaleRunner: ObservableObject {
             
             // 1. Parse on background thread immediately using safe state
             let currentDur = safeState.duration
-            let parseState = FFmpegParser.parse(line: message, currentDuration: currentDur)
+            let parseState = ProgressParser.parse(line: message, currentDuration: currentDur)
             
             // Update safe state if we found a new duration
             if let newDur = parseState.newDuration {
@@ -340,8 +340,10 @@ class UpscaleRunner: ObservableObject {
                     guard self.currentRunID == runID else { return }
                     var errorMessage = "\n--- ERROR: "
                     switch error {
-                    case .ffmpegNotFound:
-                        errorMessage += "Bundled FFmpeg is missing or invalid. Reinstall the app; external FFmpeg is not supported.\n"
+                    case .engineUnavailable:
+                        errorMessage += "The media engine is missing from this app. Reinstall the app.\n"
+                    case .unsupportedMedia:
+                        errorMessage += "This file's format is not supported by the Rust engine.\n"
                     case .invalidOptions:
                         errorMessage += "Invalid options provided.\n"
                     case .io:
@@ -351,7 +353,7 @@ class UpscaleRunner: ObservableObject {
                     case .notInitialized:
                         errorMessage += "Engine not initialized.\n"
                     case .unsupportedScaler:
-                        errorMessage += "The selected upscaling mode is not supported by the bundled FFmpeg engine. Choose Lanczos.\n"
+                        errorMessage += "The selected upscaling mode is not supported by the Rust engine. Choose Lanczos or CoreML.\n"
                     case .unknownStatus(let code):
                         errorMessage += "Unknown error (code: \(code)).\n"
                     }
@@ -420,7 +422,7 @@ class UpscaleRunner: ObservableObject {
                 let duration = try await assetLoader.loadDuration(from: inputPath)
                 await MainActor.run {
                     self.videoDuration = duration
-                    self.log.append("Video Duration: \(FFmpegParser.formatTime(self.videoDuration))\n")
+                    self.log.append("Video Duration: \(ProgressParser.formatTime(self.videoDuration))\n")
                 }
             } catch {
                 await MainActor.run {
@@ -530,7 +532,7 @@ func startCompletionCheck() {
         guard isRunning else { return }
         progress = 1.0
         if videoDuration > 0 {
-            timeString = FFmpegParser.formatTime(videoDuration)
+            timeString = ProgressParser.formatTime(videoDuration)
         }
         activeOutputFolder = nil
         etaString = "0:00"

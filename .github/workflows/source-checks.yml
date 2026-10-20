@@ -20,13 +20,15 @@ jobs:
         run: |
           git diff --check
           git ls-files '*.sh' -z | xargs -0 -n 1 bash -n
-      - name: Prepare bundled FFmpeg for tests
-        shell: bash
+      - name: Prepare the MpVFX media engine
+        run: bash scripts/prepare-media-engine.sh
+      - name: Check the Rust backend (format, lints, tests)
+        working-directory: backend
         run: |
-          bash scripts/prepare-bundled-ffmpeg.sh
-          echo "$GITHUB_WORKSPACE/myUpscaler/ThirdParty/ffmpeg" >> "$GITHUB_PATH"
-      - name: Run native source regressions
-        run: python3 -m unittest discover -s tests -p 'test*.py'
+          rustup show active-toolchain
+          cargo fmt --check
+          cargo clippy --all-targets -- -D warnings
+          cargo test --release
       - name: Run available Swift source regressions
         run: |
           for check in \

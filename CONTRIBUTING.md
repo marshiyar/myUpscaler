@@ -12,9 +12,21 @@ By contributing, you agree that your contributions will be licensed under the sa
 
 ## Building locally
 
-Before building on macOS,
-run `bash scripts/prepare-bundled-ffmpeg.sh`
-This downloads and SHA-256-verifies the same Shaka FFmpeg 8.1.2 macOS binaries pinned by [mpvfx](https://github.com/marshiyar/mpvfx).
+Building needs Rust (install from https://rustup.rs; Xcode builds the backend with `cargo` in its first build
+phase). Before building on macOS, run `bash scripts/prepare-media-engine.sh`. It downloads the pinned MpVFX media
+engine package from the mpvfx-media-binaries releases, verifies its SHA-256 and unpacks it into the ignored
+`third_party/mpvfx-media/` directory; Xcode links it and embeds it in `Contents/Frameworks`.
+
+The processing backend lives in `backend/` (see its README). It builds and tests on its own:
+
+```sh
+bash scripts/prepare-media-engine.sh   # also works on Linux x86_64, for the tests
+cd backend
+cargo test --release                   # unit tests, ABI check against up60p.h, end-to-end renders
+cargo clippy --all-targets -- -D warnings
+cargo run --release --example bench    # timings per filter on a synthetic 720p clip
+cargo run --release -- --set scale_factor=2 input.mp4   # the backend from the command line
+```
 
 Models are prepared outside this repository. Supply a directory of prebuilt
 `.mlmodelc` folders with

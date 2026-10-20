@@ -934,7 +934,7 @@ class UpscaleSettings: ObservableObject {
         guard isDebandStacked else { return 1.0 }
         return 0.6  // Debanding is gentler, light attenuation
     }
-    // MARK: - Effective Values (what actually gets sent to FFmpeg)
+    // MARK: - Effective Values (what actually gets sent to the Rust engine)
     // These apply attenuation when filters are stacked
     
     /// Effective CAS strength for second set (attenuated when stacked)

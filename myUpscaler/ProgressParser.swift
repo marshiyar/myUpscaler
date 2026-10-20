@@ -1,6 +1,6 @@
 import Foundation
 
-struct FFmpegProgressState {
+struct EngineProgressState {
     var fps: String?
     var timeString: String?
     var progress: Double?
@@ -8,14 +8,14 @@ struct FFmpegProgressState {
     var newDuration: Double?
 }
 
-class FFmpegParser {
+class ProgressParser {
     // Combined regex that captures duration, time, and fps in one pass
     private static let combinedRegex = try? NSRegularExpression(
         pattern: "(?:Duration:\\s*([0-9:.]+))|(?:time=([0-9:\\.]+))|(?:fps=([0-9\\.]+))"
     )
     
-    static func parse(line: String, currentDuration: Double) -> FFmpegProgressState {
-        var state = FFmpegProgressState()
+    static func parse(line: String, currentDuration: Double) -> EngineProgressState {
+        var state = EngineProgressState()
         
         guard let regex = combinedRegex else { return state }
         let nsString = line as NSString

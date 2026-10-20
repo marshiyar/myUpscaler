@@ -34,8 +34,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { persist-credentials: false }
-      - name: System libraries for the interface (fonts)
-        run: sudo apt-get update -q && sudo apt-get install -y -q libfontconfig1-dev
+      - name: System libraries for the interface (fonts) and the player (ALSA)
+        run: sudo apt-get update -q && sudo apt-get install -y -q libfontconfig1-dev libasound2-dev
       - uses: ./.github/actions/media-engine
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: desktop, shared-key: desktop-linux }

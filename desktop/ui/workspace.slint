@@ -5,7 +5,7 @@
 import { ScrollView } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { App, Actions } from "globals.slint";
-import { Button, ButtonKind, ButtonSize, ProgressBar, Spinner } from "controls.slint";
+import { Button, ButtonKind, ButtonSize, ProgressBar, Spinner, SliderControl, SegmentedPicker } from "controls.slint";
 import { Card, Divider, Disclosure } from "components.slint";
 
 // The empty workspace: one clear action.
@@ -96,8 +96,67 @@ component Thumbnail inherits Rectangle {
     }
 }
 
-// The imported video: name, the adjusted preview and the frame strip.
+// Play / pause, the time, the scrubber and the duration; Original | Result once an export finished.
+component Transport inherits HorizontalLayout {
+    out property <bool> scrubbing: scrub.dragging;
+    spacing: 10px;
+    height: 24px;
+    Rectangle {
+        width: 26px;
+        border-radius: 6px;
+        background: play.pressed ? Theme.pressed : play.has-hover ? Theme.hover : transparent;
+        accessible-role: button;
+        accessible-label: App.playing ? "Pause" : "Play";
+        accessible-action-default => { Actions.play-pause(); }
+        Image {
+            source: App.playing ? @image-url("icons/pause-fill.svg") : @image-url("icons/play-fill.svg");
+            width: 14px;
+            height: 14px;
+            colorize: Theme.text;
+        }
+        play := TouchArea {
+            clicked => { Actions.play-pause(); }
+        }
+    }
+    Text {
+        text: App.position-text;
+        font-size: Theme.subheadline;
+        color: Theme.text;
+        vertical-alignment: center;
+        horizontal-alignment: right;
+        min-width: 34px;
+    }
+    VerticalLayout {
+        alignment: center;
+        horizontal-stretch: 1;
+        scrub := SliderControl {
+            value <=> App.position;
+            maximum: max(0.01, App.duration);
+            step: 0.001;
+            label: "Playback position";
+            moved(v) => { Actions.seek(v); }
+            released => { Actions.seek-done(); }
+        }
+    }
+    Text {
+        text: App.duration-text;
+        font-size: Theme.subheadline;
+        color: Theme.secondary;
+        vertical-alignment: center;
+        min-width: 34px;
+    }
+    if App.has-result: SegmentedPicker {
+        width: 150px;
+        items: ["Original", "Result"];
+        selected <=> App.source;
+        changed(i) => { Actions.set-source(i); }
+    }
+}
+
+// The imported video: name, the preview with the player's controls, and the frame strip. Paused on the original,
+// the preview shows the adjustments; playing, scrubbing or showing the export, it shows the video's own frames.
 component MediaView inherits VerticalLayout {
+    property <bool> raw: App.has-player-frame && (App.playing || App.source == 1 || transport.scrubbing);
     padding: Theme.md;
     spacing: 12px;
     HorizontalLayout {
@@ -138,15 +197,15 @@ component MediaView inherits VerticalLayout {
         background: Theme.well;
         border-radius: 8px;
         clip: true;
-        if App.has-preview: Image {
+        if App.has-preview || root.raw: Image {
             width: parent.width;
             height: parent.height;
-            source: App.preview;
+            source: root.raw ? App.player-frame : App.preview;
             image-fit: contain;
             accessible-role: image;
             accessible-label: "Adjusted video preview";
         }
-        if !App.has-preview: VerticalLayout {
+        if !App.has-preview && !root.raw: VerticalLayout {
             alignment: center;
             spacing: 8px;
             HorizontalLayout {
@@ -173,7 +232,7 @@ component MediaView inherits VerticalLayout {
                 wrap: word-wrap;
             }
         }
-        if App.preview-busy && App.has-preview: Spinner {
+        if App.preview-busy && App.has-preview && !root.raw: Spinner {
             x: parent.width - self.width - 10px;
             y: 10px;
         }
@@ -181,6 +240,10 @@ component MediaView inherits VerticalLayout {
             enabled: App.has-preview && !App.running;
             double-clicked => { App.enlarged = true; }
         }
+    }
+    transport := Transport {
+        visible: App.can-play;
+        height: App.can-play ? 24px : 0;
     }
     if App.thumbnails.length > 0: Divider { }
     if App.thumbnails.length > 0: Flickable {

@@ -5,7 +5,13 @@
 
 use std::path::{Path, PathBuf};
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
+use slint::{ComponentHandle, ModelRc, SharedString, VecModel};
 use up60p::options::{Options, FIELDS};
+
+use crate::{append_log, settings, settings_changed, with, Actions, App, AppWindow, Settings, State};
 
 /// Fields that describe one run or one machine rather than a look.
 const EXCLUDED: [&str; 8] = [
@@ -92,6 +98,99 @@ pub fn unique_name(presets: &[Preset], name: &str) -> String {
         return name.to_owned();
     }
     (2..).map(|i| format!("{name} {i}")).find(|n| !taken(n)).expect("an unused name")
+}
+
+// The Saved Presets section's actions.
+
+/// Shows the saved presets' names.
+pub fn refresh(ui: &AppWindow, state: &State) {
+    let names: Vec<SharedString> = state.presets.iter().map(|p| p.name.as_str().into()).collect();
+    ui.global::<App>().set_presets(ModelRc::new(VecModel::from(names)));
+}
+
+fn store(ui: &AppWindow, state: &State) {
+    if let Some(file) = &state.preset_file {
+        if let Err(e) = save(file, &state.presets) {
+            append_log(ui, &format!("The presets could not be saved to {}: {e}\n", file.display()));
+        }
+    }
+    refresh(ui, state);
+}
+
+/// Shows a preset's settings, keeping the current output folder.
+fn apply(ui: &AppWindow, state: &State, preset: &Preset) {
+    let s = ui.global::<Settings>();
+    let mut options = preset.options.clone();
+    up60p::options::set(&mut options.outdir, &if s.get_custom_output() { s.get_output_folder() } else { "".into() });
+    settings::load(&s, &options);
+    settings_changed(ui, state);
+}
+
+/// Connects the Saved Presets actions.
+pub fn wire(ui: &AppWindow, state: &Rc<RefCell<State>>) {
+    let actions = ui.global::<Actions>();
+    let (w, st) = (ui.as_weak(), state.clone());
+    actions.on_save_preset(move |name| {
+        with(&w, &st, |ui, s| {
+            let name = name.trim();
+            if name.is_empty() {
+                return;
+            }
+            let name = unique_name(&s.presets, name);
+            s.presets.push(Preset { name, options: settings::options(&ui.global::<Settings>()) });
+            store(ui, s);
+        })
+    });
+    let (w, st) = (ui.as_weak(), state.clone());
+    actions.on_apply_preset(move |i| {
+        with(&w, &st, |ui, s| {
+            if let Some(preset) = s.presets.get(i as usize).cloned() {
+                apply(ui, s, &preset);
+            }
+        })
+    });
+    let (w, st) = (ui.as_weak(), state.clone());
+    actions.on_update_preset(move |i| {
+        with(&w, &st, |ui, s| {
+            if let Some(preset) = s.presets.get_mut(i as usize) {
+                preset.options = settings::options(&ui.global::<Settings>());
+                store(ui, s);
+            }
+        })
+    });
+    let (w, st) = (ui.as_weak(), state.clone());
+    actions.on_rename_preset(move |i, name| {
+        with(&w, &st, |ui, s| {
+            let name = name.trim();
+            let i = i as usize;
+            if name.is_empty() || i >= s.presets.len() || s.presets[i].name == name {
+                return;
+            }
+            let others: Vec<Preset> =
+                s.presets.iter().enumerate().filter(|(j, _)| *j != i).map(|(_, p)| p.clone()).collect();
+            s.presets[i].name = unique_name(&others, name);
+            store(ui, s);
+        })
+    });
+    let (w, st) = (ui.as_weak(), state.clone());
+    actions.on_duplicate_preset(move |i| {
+        with(&w, &st, |ui, s| {
+            if let Some(preset) = s.presets.get(i as usize).cloned() {
+                let name = unique_name(&s.presets, &format!("{} copy", preset.name));
+                s.presets.insert(i as usize + 1, Preset { name, ..preset });
+                store(ui, s);
+            }
+        })
+    });
+    let (w, st) = (ui.as_weak(), state.clone());
+    actions.on_delete_preset(move |i| {
+        with(&w, &st, |ui, s| {
+            if (i as usize) < s.presets.len() {
+                s.presets.remove(i as usize);
+                store(ui, s);
+            }
+        })
+    });
 }
 
 #[cfg(test)]

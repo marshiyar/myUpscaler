@@ -48,7 +48,9 @@ export component SliderControl inherits Rectangle {
     in property <float> step: 0.01;
     in property <bool> enabled: true;
     in property <string> label;
+    out property <bool> dragging: touch.pressed;
     callback released(float);
+    callback moved(float);
     property <float> fraction: ((root.value - root.minimum) / max(0.000001, root.maximum - root.minimum)).clamp(0, 1);
     property <length> knob: 18px;
     height: 20px;
@@ -69,6 +71,7 @@ export component SliderControl inherits Rectangle {
     function set-from(x: length) {
         root.value = root.snap(root.minimum + ((x - root.knob / 2) / max(1px, root.width - root.knob)).clamp(0, 1)
             * (root.maximum - root.minimum));
+        root.moved(root.value);
     }
     function nudge(steps: int) {
         root.value = root.snap(root.value + steps * root.step);

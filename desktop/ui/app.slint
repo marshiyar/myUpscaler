@@ -285,6 +285,10 @@ export component AppWindow inherits Window {
                 }
                 return reject;
             }
+            if e.text == " " && !e.modifiers.control && !root.modal && App.can-play && !App.running {
+                Actions.play-pause();
+                return accept;
+            }
             if !e.modifiers.control || root.modal {
                 return reject;
             }

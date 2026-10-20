@@ -98,6 +98,18 @@ export global App {
     in-out property <int> selected-frame;
     in-out property <bool> enlarged;
 
+    // The player: the imported video (source 0) or the finished export (source 1).
+    in property <bool> can-play;
+    in property <bool> playing;
+    in property <image> player-frame;
+    in property <bool> has-player-frame;
+    in-out property <float> position;               // seconds
+    in property <string> position-text: "0:00";
+    in property <float> duration;
+    in property <string> duration-text: "0:00";
+    in-out property <int> source;
+    in property <bool> has-result;
+
     in property <bool> running;
     in property <bool> cancelling;
     in property <bool> progress-known;
@@ -134,6 +146,10 @@ export global Actions {
     callback reset-settings();
     callback settings-changed();
     callback select-frame(int);
+    callback play-pause();
+    callback seek(float);
+    callback seek-done();
+    callback set-source(int);
     callback open-output();
     callback reveal-output();
     callback open-website();

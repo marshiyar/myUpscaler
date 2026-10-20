@@ -1,9 +1,12 @@
 //! myUpscaler for macOS, Windows and Linux: the Slint interface (`ui/`, laid out as the macOS app) on the Rust
-//! processing backend (`backend/`). Processing, the preview and the frame strip run on their own threads and report
-//! back through channels that a timer on the interface thread drains, so the window never waits on the engine.
+//! processing backend (`backend/`). Processing, the preview, the frame strip and the player run on their own threads
+//! and report back through channels that timers on the interface thread drain, so the window never waits on the
+//! engine.
 
 #![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
 
+mod playback;
+mod player;
 mod presets;
 mod preview;
 mod progress;
@@ -65,6 +68,8 @@ struct State {
     thumbnail_labels: Rc<VecModel<SharedString>>,
     presets: Vec<Preset>,
     preset_file: Option<PathBuf>,
+    player: Sender<player::Command>,
+    player_events: Receiver<player::Event>,
 }
 
 fn append_log(ui: &AppWindow, text: &str) {
@@ -121,8 +126,7 @@ fn request_preview(ui: &AppWindow, state: &State) {
         app.set_preview_note("Folder selected: every video and image in it is processed.".into());
         return;
     };
-    let index = app.get_selected_frame().max(0) as usize;
-    let seconds = state.thumbnail_times.get(index).copied().unwrap_or(0.0);
+    let seconds = app.get_position() as f64;
     let filters = Some(Box::new(settings::options(&ui.global::<Settings>())));
     app.set_preview_busy(true);
     let _ = state.preview.send(preview::Request { path: input, seconds, filters });
@@ -137,6 +141,18 @@ fn select_input(ui: &AppWindow, state: &mut State, path: PathBuf) {
     app.set_has_preview(false);
     app.set_preview_note(SharedString::new());
     app.set_selected_frame(0);
+    let duration = engine::Video::open(&path).ok().filter(|v| !v.is_still).map_or(0.0, |v| v.duration);
+    app.set_duration(duration as f32);
+    app.set_duration_text(progress::clock(duration).into());
+    app.set_position(0.0);
+    app.set_position_text(progress::clock(0.0).into());
+    app.set_playing(false);
+    app.set_source(0);
+    app.set_has_result(false);
+    app.set_can_play(duration > 0.0);
+    if duration > 0.0 {
+        let _ = state.player.send(player::Command::Load(path.clone()));
+    }
     state.completed = None;
     app.set_completed(false);
     app.set_completed_output(SharedString::new());
@@ -179,6 +195,13 @@ fn start(ui: &AppWindow, state: &mut State) {
     app.set_cancelling(false);
     app.set_completed(false);
     app.set_completed_output(SharedString::new());
+    // The export replaces the result file, which the player must not hold open (Windows cannot replace an open
+    // file), and playback is paused while the preview is frozen.
+    let _ = state.player.send(player::Command::Pause);
+    if app.get_source() == 1 {
+        playback::set_source(ui, state, 0);
+    }
+    app.set_has_result(false);
     app.set_progress_known(false);
     app.set_progress(0.0);
     app.set_fps_text("0".into());
@@ -283,6 +306,8 @@ fn drain(ui: &AppWindow, state: &mut State) {
                 app.set_eta_text("0:00".into());
                 let path = state.completed.as_ref().map_or_else(String::new, |p| p.display().to_string());
                 app.set_completed_output(path.into());
+                let video = state.completed.as_ref().is_some_and(|p| p.is_file() && !job::is_image(p));
+                app.set_has_result(video && app.get_can_play());
                 append_log(ui, "\n--- Process Finished Successfully ---\n");
             }
             (Err(e), _) => {
@@ -327,29 +352,6 @@ fn open_with_system(target: &str, reveal: bool) {
     let _ = command.spawn();
 }
 
-fn refresh_presets(ui: &AppWindow, state: &State) {
-    let names: Vec<SharedString> = state.presets.iter().map(|p| p.name.as_str().into()).collect();
-    ui.global::<App>().set_presets(ModelRc::new(VecModel::from(names)));
-}
-
-fn store_presets(ui: &AppWindow, state: &State) {
-    if let Some(file) = &state.preset_file {
-        if let Err(e) = presets::save(file, &state.presets) {
-            append_log(ui, &format!("The presets could not be saved to {}: {e}\n", file.display()));
-        }
-    }
-    refresh_presets(ui, state);
-}
-
-/// Shows a preset's settings, keeping the current output folder.
-fn apply_preset(ui: &AppWindow, state: &State, preset: &Preset) {
-    let s = ui.global::<Settings>();
-    let mut options = preset.options.clone();
-    up60p::options::set(&mut options.outdir, &if s.get_custom_output() { s.get_output_folder() } else { "".into() });
-    settings::load(&s, &options);
-    settings_changed(ui, state);
-}
-
 fn settings_changed(ui: &AppWindow, state: &State) {
     settings::update_ranges(&ui.global::<Settings>());
     if let Some(input) = &state.input {
@@ -385,6 +387,9 @@ fn wire(ui: &AppWindow) -> Rc<RefCell<State>> {
     let (worker_replies, replies) = channel();
     std::thread::spawn(move || preview::worker(worker_requests, worker_replies, || {}));
     let (thumbnail_tx, thumbnail_rx) = channel();
+    let (player, player_commands) = channel();
+    let (player_send, player_events) = channel();
+    std::thread::spawn(move || player::worker(player_commands, player_send));
     let preset_file = presets::file();
     let state = Rc::new(RefCell::new(State {
         input: None,
@@ -403,8 +408,10 @@ fn wire(ui: &AppWindow) -> Rc<RefCell<State>> {
         thumbnail_labels,
         presets: preset_file.as_deref().map(presets::load).unwrap_or_default(),
         preset_file,
+        player,
+        player_events,
     }));
-    refresh_presets(ui, &state.borrow());
+    presets::refresh(ui, &state.borrow());
 
     let actions = ui.global::<Actions>();
     let (w, st) = (ui.as_weak(), state.clone());
@@ -455,13 +462,6 @@ fn wire(ui: &AppWindow) -> Rc<RefCell<State>> {
     let (w, st) = (ui.as_weak(), state.clone());
     actions.on_settings_changed(move || with(&w, &st, |ui, s| settings_changed(ui, s)));
     let (w, st) = (ui.as_weak(), state.clone());
-    actions.on_select_frame(move |index| {
-        with(&w, &st, |ui, s| {
-            ui.global::<App>().set_selected_frame(index);
-            request_preview(ui, s);
-        })
-    });
-    let (w, st) = (ui.as_weak(), state.clone());
     actions.on_open_output(move || {
         with(&w, &st, |_, s| s.completed.iter().for_each(|p| open_with_system(&p.display().to_string(), false)))
     });
@@ -470,69 +470,8 @@ fn wire(ui: &AppWindow) -> Rc<RefCell<State>> {
         with(&w, &st, |_, s| s.completed.iter().for_each(|p| open_with_system(&p.display().to_string(), true)))
     });
     actions.on_open_website(|| open_with_system(WEBSITE, false));
-
-    let (w, st) = (ui.as_weak(), state.clone());
-    actions.on_save_preset(move |name| {
-        with(&w, &st, |ui, s| {
-            let name = name.trim();
-            if name.is_empty() {
-                return;
-            }
-            let name = presets::unique_name(&s.presets, name);
-            s.presets.push(Preset { name, options: settings::options(&ui.global::<Settings>()) });
-            store_presets(ui, s);
-        })
-    });
-    let (w, st) = (ui.as_weak(), state.clone());
-    actions.on_apply_preset(move |i| {
-        with(&w, &st, |ui, s| {
-            if let Some(preset) = s.presets.get(i as usize).cloned() {
-                apply_preset(ui, s, &preset);
-            }
-        })
-    });
-    let (w, st) = (ui.as_weak(), state.clone());
-    actions.on_update_preset(move |i| {
-        with(&w, &st, |ui, s| {
-            if let Some(preset) = s.presets.get_mut(i as usize) {
-                preset.options = settings::options(&ui.global::<Settings>());
-                store_presets(ui, s);
-            }
-        })
-    });
-    let (w, st) = (ui.as_weak(), state.clone());
-    actions.on_rename_preset(move |i, name| {
-        with(&w, &st, |ui, s| {
-            let name = name.trim();
-            let i = i as usize;
-            if name.is_empty() || i >= s.presets.len() || s.presets[i].name == name {
-                return;
-            }
-            let others: Vec<Preset> =
-                s.presets.iter().enumerate().filter(|(j, _)| *j != i).map(|(_, p)| p.clone()).collect();
-            s.presets[i].name = presets::unique_name(&others, name);
-            store_presets(ui, s);
-        })
-    });
-    let (w, st) = (ui.as_weak(), state.clone());
-    actions.on_duplicate_preset(move |i| {
-        with(&w, &st, |ui, s| {
-            if let Some(preset) = s.presets.get(i as usize).cloned() {
-                let name = presets::unique_name(&s.presets, &format!("{} copy", preset.name));
-                s.presets.insert(i as usize + 1, Preset { name, ..preset });
-                store_presets(ui, s);
-            }
-        })
-    });
-    let (w, st) = (ui.as_weak(), state.clone());
-    actions.on_delete_preset(move |i| {
-        with(&w, &st, |ui, s| {
-            if (i as usize) < s.presets.len() {
-                s.presets.remove(i as usize);
-                store_presets(ui, s);
-            }
-        })
-    });
+    playback::wire(ui, &state);
+    presets::wire(ui, &state);
 
     state
 }
@@ -548,7 +487,10 @@ fn main() -> Result<(), String> {
             if let Some(path) = input {
                 select_input(ui, &mut state.borrow_mut(), path);
             }
-            Box::new(move |ui| drain(ui, &mut state.borrow_mut()))
+            Box::new(move |ui| {
+                drain(ui, &mut state.borrow_mut());
+                playback::drain(ui, &mut state.borrow_mut());
+            })
         });
     }
 
@@ -557,6 +499,10 @@ fn main() -> Result<(), String> {
     let timer = Timer::default();
     let (w, st) = (ui.as_weak(), state.clone());
     timer.start(TimerMode::Repeated, Duration::from_millis(100), move || with(&w, &st, drain));
+    // Frames from the player, at display rate.
+    let player_timer = Timer::default();
+    let (w, st) = (ui.as_weak(), state.clone());
+    player_timer.start(TimerMode::Repeated, Duration::from_millis(8), move || with(&w, &st, playback::drain));
 
     if let Some(path) = args.next().map(PathBuf::from) {
         select_input(&ui, &mut state.borrow_mut(), path);

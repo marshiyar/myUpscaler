@@ -1,5 +1,6 @@
 //! Renders the window to a PNG without a display, with Slint's software renderer:
-//! `myupscaler --screenshot out.png [--size 1280x800] [--workspace 0-2] [--page 0-2] [--dark | --light] [--processed] [--run [--after SECONDS]] [input]`.
+//! `myupscaler --screenshot out.png [--size 1280x800] [--inspector] [--page 0-3] [--log] [--about | --settings]
+//! [--dark | --light] [--run [--after SECONDS]] [input]`.
 //! `--run` presses Run and waits for processing to finish before taking the picture.
 //! Used to review the interface in CI and on machines without a screen.
 
@@ -24,10 +25,12 @@ pub struct Shot {
     pub path: std::path::PathBuf,
     pub size: (u32, u32),
     pub page: i32,
-    pub workspace: Option<i32>,
+    pub inspector: bool,
+    pub log: bool,
+    pub about: bool,
+    pub settings: bool,
     pub dark: bool,
     pub light: bool,
-    pub processed: bool,
     pub run: bool,
     /// With `--run`: take the picture this long after starting instead of at the end.
     pub after: Option<f64>,
@@ -42,10 +45,12 @@ impl Shot {
             path,
             size: (1280, 800),
             page: 0,
-            workspace: None,
+            inspector: false,
+            log: false,
+            about: false,
+            settings: false,
             dark: false,
             light: false,
-            processed: false,
             run: false,
             after: None,
             input: None,
@@ -57,17 +62,21 @@ impl Shot {
                     let (w, h) = v.split_once('x').ok_or("--size needs WIDTHxHEIGHT")?;
                     shot.size = (w.parse().map_err(|_| "bad width")?, h.parse().map_err(|_| "bad height")?);
                 }
-                "--page" => shot.page = args.next().and_then(|p| p.parse().ok()).ok_or("--page needs 0-2")?,
-                "--workspace" => {
-                    shot.workspace = Some(args.next().and_then(|p| p.parse().ok()).ok_or("--workspace needs 0-2")?)
+                "--page" => {
+                    shot.page = args.next().and_then(|p| p.parse().ok()).ok_or("--page needs 0-3")?;
+                    shot.inspector = true;
                 }
+                "--inspector" => shot.inspector = true,
+                "--log" => shot.log = true,
+                "--about" => shot.about = true,
+                "--settings" => shot.settings = true,
                 "--dark" => shot.dark = true,
                 "--light" => shot.light = true,
-                "--processed" => shot.processed = true,
                 "--run" => shot.run = true,
                 "--after" => {
                     shot.after = Some(args.next().and_then(|s| s.parse().ok()).ok_or("--after needs seconds")?)
                 }
+                other if other.starts_with("--") => return Err(format!("unknown screenshot option {other}")),
                 other => shot.input = Some(other.into()),
             }
         }
@@ -84,16 +93,16 @@ pub fn take(shot: &Shot, setup: impl FnOnce(&AppWindow) -> Box<dyn FnMut(&AppWin
     ui.show().map_err(|e| e.to_string())?;
     let app = ui.global::<App>();
     app.set_page(shot.page);
-    app.set_show_processed(shot.processed);
+    app.set_inspector_visible(shot.inspector);
+    app.set_log_open(shot.log);
+    app.set_about_open(shot.about);
+    app.set_settings_open(shot.settings);
     if shot.dark {
         ui.global::<Theme>().set_preference(ThemePreference::Dark);
     } else if shot.light {
         ui.global::<Theme>().set_preference(ThemePreference::Light);
     }
     let mut tick = setup(&ui);
-    if let Some(workspace) = shot.workspace {
-        app.set_workspace(workspace);
-    }
     if shot.run {
         ui.global::<Actions>().invoke_run();
     }
@@ -103,7 +112,7 @@ pub fn take(shot: &Shot, setup: impl FnOnce(&AppWindow) -> Box<dyn FnMut(&AppWin
     loop {
         slint::platform::update_timers_and_animations();
         tick(&ui);
-        let waiting = app.get_preview_busy() || app.get_running();
+        let waiting = app.get_preview_busy() || app.get_thumbnails_loading() || app.get_running();
         let captured = shot.after.is_some_and(|s| started.elapsed().as_secs_f64() >= s);
         if !waiting || captured || Instant::now() > deadline {
             break;

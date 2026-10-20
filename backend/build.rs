@@ -22,16 +22,31 @@ fn main() {
         println!("cargo:rerun-if-changed={}", dir.display());
         if names.iter().any(|n| dir.join(n).is_file()) {
             let dir = dir.canonicalize().unwrap_or(dir);
+            if env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("windows") {
+                link_windows(&dir);
+                return;
+            }
             println!("cargo:rustc-link-search=native={}", dir.display());
             println!("cargo:rustc-link-lib=dylib=mpvfx_ffi");
-            if env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("windows") {
-                // Lets `cargo run` and `cargo test` find the library without installing it. The static library
-                // takes no link arguments, so the app's own run path is unaffected.
-                println!("cargo:rustc-link-arg=-Wl,-rpath,{}", dir.display());
-            }
+            // Lets `cargo run` and `cargo test` find the library without installing it. The static library takes no
+            // link arguments, so the app's own run path is unaffected.
+            println!("cargo:rustc-link-arg=-Wl,-rpath,{}", dir.display());
             return;
         }
     }
     println!("cargo:warning=MpVFX media engine not found; building without it (run scripts/prepare-media-engine.sh)");
     println!("cargo:rustc-cfg=no_engine");
+}
+
+/// Windows has no run path: a program finds `mpvfx_ffi.dll` beside itself or on `PATH`. Cargo puts link search
+/// directories inside the target folder on `PATH` for `cargo run` and `cargo test`, so the DLL and its import library
+/// (`mpvfx_ffi.dll.lib`, named as is) are copied into this build's output folder and linked from there. The desktop
+/// app's build script copies the DLL beside the executable.
+fn link_windows(dir: &std::path::Path) {
+    let out = PathBuf::from(env::var("OUT_DIR").expect("cargo sets OUT_DIR"));
+    for name in ["mpvfx_ffi.dll", "mpvfx_ffi.dll.lib"] {
+        std::fs::copy(dir.join(name), out.join(name)).unwrap_or_else(|e| panic!("copying {name}: {e}"));
+    }
+    println!("cargo:rustc-link-search=native={}", out.display());
+    println!("cargo:rustc-link-lib=dylib:+verbatim=mpvfx_ffi.dll.lib");
 }

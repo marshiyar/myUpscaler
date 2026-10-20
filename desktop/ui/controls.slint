@@ -1,10 +1,12 @@
-// Input controls drawn from the theme tokens: switch, slider, dropdown and text field.
+// Controls drawn like their macOS counterparts (the macOS app uses the native ones): switch, slider, pop-up button,
+// rounded text field, bordered and prominent buttons, linear progress, segmented picker and toolbar button.
 
 import { Theme } from "theme.slint";
 
 export component Toggle inherits Rectangle {
     in-out property <bool> checked;
     in property <bool> enabled: true;
+    in property <bool> mini;
     in property <string> label;
     callback toggled();
     accessible-role: switch;
@@ -12,26 +14,26 @@ export component Toggle inherits Rectangle {
     accessible-checkable: true;
     accessible-checked: root.checked;
     accessible-action-default => { touch.clicked(); }
-    width: 28px;
-    height: 16px;
-    border-radius: 8px;
-    background: root.checked ? Theme.accent : Theme.field;
-    border-width: root.checked ? 0 : 1px;
-    border-color: Theme.track;
-    opacity: root.enabled ? 1 : 0.4;
+    width: root.mini ? 26px : 32px;
+    height: root.mini ? 15px : 18px;
+    border-radius: self.height / 2;
+    background: root.checked ? Theme.accent : Theme.fill;
+    opacity: root.enabled ? 1 : 0.45;
     animate background { duration: Theme.fast; easing: ease-out; }
-    Rectangle {
-        width: 10px;
-        height: 10px;
-        y: 3px;
-        x: root.checked ? root.width - self.width - 3px : 3px;
-        border-radius: 5px;
-        background: root.checked ? Theme.on-accent : Theme.dim;
+    knob := Rectangle {
+        width: root.height - 2px;
+        height: self.width;
+        y: 1px;
+        x: root.checked ? root.width - self.width - 1px : 1px;
+        border-radius: self.width / 2;
+        background: Theme.knob;
+        drop-shadow-blur: 2px;
+        drop-shadow-color: #00000040;
+        drop-shadow-offset-y: 0.5px;
         animate x { duration: Theme.fast; easing: ease-out; }
     }
     touch := TouchArea {
         enabled: root.enabled;
-        mouse-cursor: pointer;
         clicked => {
             root.checked = !root.checked;
             root.toggled();
@@ -46,12 +48,14 @@ export component SliderControl inherits Rectangle {
     in property <float> step: 0.01;
     in property <bool> enabled: true;
     in property <string> label;
+    out property <bool> dragging: touch.pressed;
     callback released(float);
+    callback moved(float);
     property <float> fraction: ((root.value - root.minimum) / max(0.000001, root.maximum - root.minimum)).clamp(0, 1);
-    property <length> knob: 11px;
-    height: 16px;
+    property <length> knob: 18px;
+    height: 20px;
     min-width: 60px;
-    opacity: root.enabled ? 1 : 0.4;
+    opacity: root.enabled ? 1 : 0.45;
     accessible-role: slider;
     accessible-label: root.label;
     accessible-value: root.value;
@@ -67,6 +71,7 @@ export component SliderControl inherits Rectangle {
     function set-from(x: length) {
         root.value = root.snap(root.minimum + ((x - root.knob / 2) / max(1px, root.width - root.knob)).clamp(0, 1)
             * (root.maximum - root.minimum));
+        root.moved(root.value);
     }
     function nudge(steps: int) {
         root.value = root.snap(root.value + steps * root.step);
@@ -74,10 +79,18 @@ export component SliderControl inherits Rectangle {
     }
 
     Rectangle {
-        y: (root.height - 2px) / 2;
-        height: 2px;
-        border-radius: 1px;
-        background: Theme.track;
+        y: (root.height - 4px) / 2;
+        height: 4px;
+        border-radius: 2px;
+        background: Theme.fill;
+    }
+    Rectangle {
+        x: 0;
+        y: (root.height - 4px) / 2;
+        width: root.knob / 2 + (root.width - root.knob) * root.fraction;
+        height: 4px;
+        border-radius: 2px;
+        background: Theme.accent;
     }
     Rectangle {
         x: (root.width - root.knob) * root.fraction;
@@ -85,13 +98,15 @@ export component SliderControl inherits Rectangle {
         width: root.knob;
         height: root.knob;
         border-radius: root.knob / 2;
-        background: touch.has-hover || touch.pressed ? Theme.strong : Theme.knob;
-        border-width: focus.has-focus ? 2px : 1px;
-        border-color: focus.has-focus ? Theme.focus : #00000040;
+        background: touch.pressed ? #f2f2f2 : Theme.knob;
+        border-width: focus.has-focus ? 3px : 1px;
+        border-color: focus.has-focus ? Theme.focus : #00000033;
+        drop-shadow-blur: 3px;
+        drop-shadow-color: #00000040;
+        drop-shadow-offset-y: 1px;
     }
     touch := TouchArea {
         enabled: root.enabled;
-        mouse-cursor: pointer;
         pointer-event(e) => {
             if e.kind == PointerEventKind.down {
                 focus.focus();
@@ -122,30 +137,36 @@ export component SliderControl inherits Rectangle {
     }
 }
 
+// A pop-up button (Picker with .menu style): the current choice and an up/down chevron; the menu lists the choices
+// with a check mark on the current one.
 export component Dropdown inherits Rectangle {
     in property <[string]> model;
     in-out property <int> current-index;
     in property <bool> enabled: true;
     in property <string> label;
+    in property <length> menu-width: 0px;
     callback selected(int);
     accessible-role: combobox;
     accessible-label: root.label;
     accessible-value: root.model[root.current-index];
     accessible-action-default => { popup.show(); }
     height: Theme.control-height;
-    min-width: 96px;
-    border-radius: Theme.radius-small;
-    background: touch.has-hover && root.enabled ? Theme.hover : Theme.field;
+    min-width: 80px;
+    border-radius: Theme.control-radius;
+    background: touch.pressed ? Theme.pressed : Theme.control;
     border-width: 1px;
-    border-color: Theme.field-border;
-    opacity: root.enabled ? 1 : 0.4;
+    border-color: Theme.control-border;
+    drop-shadow-blur: Theme.dark ? 0 : 1px;
+    drop-shadow-color: #0000001a;
+    drop-shadow-offset-y: 0.5px;
+    opacity: root.enabled ? 1 : 0.45;
     HorizontalLayout {
-        padding-left: Theme.sm;
-        padding-right: Theme.sm;
-        spacing: Theme.xs;
+        padding-left: 8px;
+        padding-right: 4px;
+        spacing: 4px;
         Text {
             text: root.model[root.current-index];
-            font-size: Theme.font-small;
+            font-size: Theme.body;
             color: Theme.text;
             vertical-alignment: center;
             overflow: elide;
@@ -153,54 +174,59 @@ export component Dropdown inherits Rectangle {
         }
         VerticalLayout {
             alignment: center;
-            Image {
-                source: @image-url("icons/caret-down.svg");
-                width: 8px;
-                height: 8px;
-                colorize: Theme.text;
+            Rectangle {
+                width: 16px;
+                height: 16px;
+                border-radius: 4px;
+                background: Theme.accent;
+                Image {
+                    source: @image-url("icons/chevron-updown.svg");
+                    width: 10px;
+                    height: 10px;
+                    colorize: Theme.on-accent;
+                }
             }
         }
     }
     touch := TouchArea {
         enabled: root.enabled;
-        mouse-cursor: pointer;
         clicked => { popup.show(); }
     }
     popup := PopupWindow {
         x: 0;
         y: root.height + 2px;
-        width: max(root.width, 140px);
+        width: max(root.width, root.menu-width, 140px);
         Rectangle {
-            background: Theme.raised;
-            border-radius: Theme.radius-large;
-            border-width: 1px;
-            border-color: Theme.field-border;
-            drop-shadow-blur: 14px;
-            drop-shadow-color: #00000080;
-            drop-shadow-offset-y: 4px;
+            background: Theme.popover;
+            border-radius: 6px;
+            border-width: 0.5px;
+            border-color: Theme.control-border;
+            drop-shadow-blur: 16px;
+            drop-shadow-color: #00000059;
+            drop-shadow-offset-y: 6px;
             VerticalLayout {
-                padding: 4px;
+                padding: 5px;
                 for item[i] in root.model: Rectangle {
-                    height: 24px;
-                    border-radius: Theme.radius-small;
+                    height: 22px;
+                    border-radius: 4px;
                     background: option.has-hover ? Theme.accent : transparent;
                     HorizontalLayout {
-                        padding-left: Theme.sm;
-                        padding-right: Theme.sm;
-                        spacing: Theme.sm;
+                        padding-left: 6px;
+                        padding-right: 10px;
+                        spacing: 4px;
                         VerticalLayout {
                             alignment: center;
-                            width: 10px;
+                            width: 14px;
                             if i == root.current-index: Image {
                                 source: @image-url("icons/check.svg");
-                                width: 10px;
-                                height: 10px;
+                                width: 11px;
+                                height: 11px;
                                 colorize: option.has-hover ? Theme.on-accent : Theme.text;
                             }
                         }
                         Text {
                             text: item;
-                            font-size: Theme.font-small;
+                            font-size: Theme.body;
                             color: option.has-hover ? Theme.on-accent : Theme.text;
                             vertical-alignment: center;
                             horizontal-stretch: 1;
@@ -218,45 +244,210 @@ export component Dropdown inherits Rectangle {
     }
 }
 
+// A rounded-border text field.
 export component TextField inherits Rectangle {
     in-out property <string> text;
     in property <string> placeholder;
     in property <bool> enabled: true;
     in property <string> label;
-    in property <bool> numeric: true;
     callback edited();
+    callback accepted();
     accessible-role: text-input;
     accessible-label: root.label;
     accessible-value: root.text;
     height: Theme.control-height;
-    min-width: 48px;
-    border-radius: Theme.radius-small;
+    min-width: 34px;
+    border-radius: Theme.control-radius;
     background: Theme.field;
-    border-width: 1px;
+    border-width: input.has-focus ? 3px : 1px;
     border-color: input.has-focus ? Theme.focus : Theme.field-border;
-    opacity: root.enabled ? 1 : 0.4;
+    opacity: root.enabled ? 1 : 0.45;
     if root.text == "": Text {
-        x: Theme.sm;
-        width: root.width - 2 * Theme.sm;
+        x: 6px;
+        width: root.width - 12px;
         height: root.height;
         text: root.placeholder;
-        font-size: Theme.font-small;
-        color: Theme.faint;
-        horizontal-alignment: root.numeric ? right : left;
+        font-size: Theme.body;
+        color: Theme.tertiary;
         vertical-alignment: center;
+        overflow: elide;
     }
     input := TextInput {
-        x: Theme.sm;
-        width: root.width - 2 * Theme.sm;
+        x: 6px;
+        width: root.width - 12px;
         height: root.height;
         text <=> root.text;
         enabled: root.enabled;
         single-line: true;
-        font-size: Theme.font-small;
-        color: root.numeric ? Theme.value : Theme.text;
-        selection-background-color: Theme.accent.with-alpha(0.4);
-        horizontal-alignment: root.numeric ? right : left;
+        font-size: Theme.body;
+        color: Theme.text;
+        selection-background-color: Theme.focus;
         vertical-alignment: center;
         edited => { root.edited(); }
+        accepted => { root.accepted(); }
+    }
+}
+
+export enum ButtonKind { bordered, prominent, plain }
+export enum ButtonSize { mini, small, regular, large }
+
+export component Button inherits Rectangle {
+    in property <string> text;
+    in property <image> icon;
+    in property <bool> has-icon;
+    in property <ButtonKind> kind: ButtonKind.bordered;
+    in property <ButtonSize> size: ButtonSize.regular;
+    in property <bool> enabled: true;
+    in property <bool> destructive;
+    in property <bool> stretch;
+    callback clicked();
+    accessible-role: button;
+    accessible-label: root.text;
+    accessible-action-default => { root.clicked(); }
+    property <color> ink: root.kind == ButtonKind.prominent ? Theme.on-accent
+        : root.destructive ? Theme.red : root.kind == ButtonKind.plain ? Theme.accent : Theme.text;
+    property <length> font: root.size == ButtonSize.large ? 15px : root.size == ButtonSize.regular ? 13px : 11px;
+    height: root.size == ButtonSize.large ? 30px : root.size == ButtonSize.regular ? 24px
+        : root.size == ButtonSize.small ? 20px : 16px;
+    min-width: layout.preferred-width;
+    border-radius: root.size == ButtonSize.large ? 7px : Theme.control-radius;
+    background: root.kind == ButtonKind.prominent ? (touch.pressed ? Theme.accent-pressed : Theme.accent)
+        : root.kind == ButtonKind.plain ? (touch.pressed ? Theme.pressed : transparent)
+        : (touch.pressed ? Theme.pressed : Theme.control);
+    border-width: root.kind == ButtonKind.bordered ? 1px : 0;
+    border-color: Theme.control-border;
+    drop-shadow-blur: root.kind == ButtonKind.plain || Theme.dark ? 0 : 1px;
+    drop-shadow-color: #0000001a;
+    drop-shadow-offset-y: 0.5px;
+    opacity: root.enabled ? 1 : 0.45;
+    layout := HorizontalLayout {
+        padding-left: root.size == ButtonSize.large ? 16px : root.size == ButtonSize.mini ? 6px : 10px;
+        padding-right: self.padding-left;
+        spacing: 5px;
+        alignment: center;
+        if root.has-icon: VerticalLayout {
+            alignment: center;
+            Image {
+                source: root.icon;
+                width: root.font;
+                height: root.font;
+                colorize: root.ink;
+            }
+        }
+        if root.text != "": Text {
+            text: root.text;
+            font-size: root.font;
+            font-weight: root.kind == ButtonKind.prominent ? 500 : 400;
+            color: root.ink;
+            vertical-alignment: center;
+        }
+    }
+    touch := TouchArea {
+        enabled: root.enabled;
+        clicked => { root.clicked(); }
+    }
+}
+
+// A linear progress bar; indeterminate sweeps a short segment.
+export component ProgressBar inherits Rectangle {
+    in property <float> progress;
+    in property <bool> indeterminate;
+    height: 6px;
+    border-radius: 3px;
+    background: Theme.fill;
+    clip: true;
+    property <float> sweep: indeterminate ? Math.mod(animation-tick() / 1.4s, 1) : 0;
+    Rectangle {
+        x: root.indeterminate ? (root.width * 1.3 * root.sweep) - root.width * 0.3 : 0;
+        width: root.indeterminate ? root.width * 0.3 : root.width * root.progress.clamp(0, 1);
+        border-radius: 3px;
+        background: Theme.accent;
+        animate width { duration: Theme.base; easing: ease-out; }
+    }
+}
+
+// A circular activity indicator.
+export component Spinner inherits Rectangle {
+    in property <color> tint: Theme.secondary;
+    width: 20px;
+    height: 20px;
+    property <angle> turn: Math.mod(animation-tick() / 1s, 1) * 360deg;
+    for i in 8: Rectangle {
+        x: root.width / 2 - 1px + (root.width * 0.32) * Math.cos(i * 45deg - root.turn);
+        y: root.height / 2 - 1px + (root.height * 0.32) * Math.sin(i * 45deg - root.turn);
+        width: 2.5px;
+        height: 2.5px;
+        border-radius: 1.25px;
+        background: root.tint;
+        opacity: 0.25 + 0.75 * i / 8;
+    }
+}
+
+// A segmented picker (Picker with .segmented style).
+export component SegmentedPicker inherits Rectangle {
+    in property <[string]> items;
+    in-out property <int> selected;
+    callback changed(int);
+    height: 24px;
+    border-radius: 6px;
+    background: Theme.fill;
+    property <length> segment: (self.width - 4px) / max(1, root.items.length);
+    Rectangle {
+        x: 2px + root.segment * root.selected;
+        y: 2px;
+        width: root.segment;
+        height: root.height - 4px;
+        border-radius: 5px;
+        background: Theme.segment;
+        drop-shadow-blur: 2px;
+        drop-shadow-color: #00000026;
+        drop-shadow-offset-y: 0.5px;
+        animate x { duration: Theme.fast; easing: ease-out; }
+    }
+    for item[i] in root.items: Rectangle {
+        x: 2px + root.segment * i;
+        width: root.segment;
+        accessible-role: tab;
+        accessible-label: item;
+        accessible-item-selected: i == root.selected;
+        Text {
+            text: item;
+            font-size: Theme.body;
+            font-weight: i == root.selected ? 500 : 400;
+            color: Theme.text;
+        }
+        TouchArea {
+            clicked => {
+                root.selected = i;
+                root.changed(i);
+            }
+        }
+    }
+}
+
+// A toolbar button: an icon, highlighted on hover or when active.
+export component ToolbarButton inherits Rectangle {
+    in property <image> icon;
+    in property <string> label;
+    in property <bool> enabled: true;
+    in property <bool> active;
+    callback clicked();
+    accessible-role: button;
+    accessible-label: root.label;
+    accessible-action-default => { root.clicked(); }
+    width: 32px;
+    height: 28px;
+    border-radius: 6px;
+    background: touch.pressed ? Theme.pressed : touch.has-hover || root.active ? Theme.hover : transparent;
+    opacity: root.enabled ? 1 : 0.4;
+    Image {
+        source: root.icon;
+        width: 17px;
+        height: 17px;
+        colorize: root.active ? Theme.accent : Theme.secondary;
+    }
+    touch := TouchArea {
+        enabled: root.enabled;
+        clicked => { root.clicked(); }
     }
 }

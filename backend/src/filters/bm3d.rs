@@ -19,11 +19,15 @@ const MAX_GROUP: usize = 8;
 /// Hard threshold in noise standard deviations.
 const LAMBDA: f32 = 2.7;
 
+type Block = [[f32; N]; N];
+
 pub struct Bm3d {
     /// `None`: estimate the noise level from each frame.
     pub sigma: Option<f32>,
-    dct: [[f32; N]; N],
-    kaiser: [f32; AREA],
+    /// The DCT-II basis (`dct[k][n]`) and its transpose, the inverse.
+    dct: Block,
+    idct: Block,
+    kaiser: Block,
 }
 
 impl Bm3d {
@@ -51,35 +55,42 @@ impl Bm3d {
                 i0(beta * (1.0 - r * r).max(0.0).sqrt()) / i0(beta)
             })
             .collect();
-        let mut kaiser = [0.0f32; AREA];
-        for y in 0..N {
-            for x in 0..N {
-                kaiser[y * N + x] = (k1[y] * k1[x]) as f32;
+        let mut kaiser = [[0.0f32; N]; N];
+        for (y, row) in kaiser.iter_mut().enumerate() {
+            for (x, v) in row.iter_mut().enumerate() {
+                *v = (k1[y] * k1[x]) as f32;
             }
         }
-        Bm3d { sigma: sigma.map(|s| s.clamp(0.1, 50.0) as f32), dct, kaiser }
+        let mut idct = [[0.0f32; N]; N];
+        for (k, row) in dct.iter().enumerate() {
+            for (n, &v) in row.iter().enumerate() {
+                idct[n][k] = v;
+            }
+        }
+        Bm3d { sigma: sigma.map(|s| s.clamp(0.1, 50.0) as f32), dct, idct, kaiser }
     }
 
-    fn dct2(&self, block: &mut [f32; AREA], inverse: bool) {
-        let mut tmp = [0.0f32; AREA];
-        // Rows.
-        for y in 0..N {
-            for k in 0..N {
-                let mut acc = 0.0;
-                for n in 0..N {
-                    acc += if inverse { self.dct[n][k] * block[y * N + n] } else { self.dct[k][n] * block[y * N + n] };
+    /// The 2D DCT of a block (`inverse`: back to pixels), as `M·B·Mᵀ`. Every step works on whole rows of eight, so
+    /// it compiles to vector arithmetic.
+    fn dct2(&self, block: &mut Block, inverse: bool) {
+        let m = if inverse { &self.idct } else { &self.dct };
+        // tmp = B·Mᵀ: tmp[y][k] = Σn B[y][n]·M[k][n], i.e. each row is a sum of the rows of Mᵀ.
+        let mt = if inverse { &self.dct } else { &self.idct };
+        let mut tmp = [[0.0f32; N]; N];
+        for (t, b) in tmp.iter_mut().zip(block.iter()) {
+            for (&bn, mrow) in b.iter().zip(mt) {
+                for (tk, &v) in t.iter_mut().zip(mrow) {
+                    *tk += bn * v;
                 }
-                tmp[y * N + k] = acc;
             }
         }
-        // Columns.
-        for x in 0..N {
-            for k in 0..N {
-                let mut acc = 0.0;
-                for n in 0..N {
-                    acc += if inverse { self.dct[n][k] * tmp[n * N + x] } else { self.dct[k][n] * tmp[n * N + x] };
+        // B' = M·tmp: B'[k] = Σn M[k][n]·tmp[n].
+        for (out, mk) in block.iter_mut().zip(m) {
+            *out = [0.0; N];
+            for (&c, t) in mk.iter().zip(&tmp) {
+                for (o, &v) in out.iter_mut().zip(t) {
+                    *o += c * v;
                 }
-                block[k * N + x] = acc;
             }
         }
     }
@@ -113,74 +124,80 @@ impl Bm3d {
             let mut num = vec![0.0f32; rows * w];
             let mut den = vec![0.0f32; rows * w];
             let mut candidates: Vec<(f32, usize, usize)> = Vec::new();
-            let mut group = vec![[0.0f32; AREA]; MAX_GROUP];
+            let mut group = [[[0.0f32; N]; N]; MAX_GROUP];
+            let row_at = |x: usize, y: usize| -> &[f32; N] { src.data[y * w + x..][..N].try_into().unwrap() };
+            // A candidate is dropped as soon as its partial sum of squared differences passes this.
+            let ssd_limit = match_limit * AREA as f32;
             for &ry in refs {
                 if par::stopped() {
                     break;
                 }
                 for &rx in &xs {
                     candidates.clear();
+                    let reference: [&[f32; N]; N] = std::array::from_fn(|j| row_at(rx, ry + j));
                     let y_lo = (ry as isize - SEARCH).max(0);
                     let y_hi = (ry as isize + SEARCH).min((h - N) as isize);
                     let x_lo = (rx as isize - SEARCH).max(0);
                     let x_hi = (rx as isize + SEARCH).min((w - N) as isize);
-                    let mut cy = y_lo;
-                    while cy <= y_hi {
-                        let mut cx = x_lo;
-                        while cx <= x_hi {
-                            let (cx_u, cy_u) = (cx as usize, cy as usize);
-                            let mut ssd = 0.0f32;
-                            for j in 0..N {
-                                let a = &src.data[(ry + j) * w + rx..(ry + j) * w + rx + N];
-                                let b = &src.data[(cy_u + j) * w + cx_u..(cy_u + j) * w + cx_u + N];
-                                for i in 0..N {
-                                    let d = a[i] - b[i];
-                                    ssd += d * d;
+                    for cy in (y_lo..=y_hi).step_by(SEARCH_STRIDE as usize) {
+                        'candidate: for cx in (x_lo..=x_hi).step_by(SEARCH_STRIDE as usize) {
+                            let (cx, cy) = (cx as usize, cy as usize);
+                            if cx == rx && cy == ry {
+                                continue;
+                            }
+                            // Eight running sums (one per column) keep the loop in vector registers; they are added
+                            // up every two rows to drop a poor match early.
+                            let mut lanes = [0.0f32; N];
+                            for (j, a) in reference.iter().enumerate() {
+                                let b = row_at(cx, cy + j);
+                                for ((s, &x), &y) in lanes.iter_mut().zip(a.iter()).zip(b) {
+                                    *s += (x - y) * (x - y);
+                                }
+                                if j % 2 == 1 && lanes.iter().sum::<f32>() > ssd_limit {
+                                    continue 'candidate;
                                 }
                             }
-                            let msd = ssd / AREA as f32;
-                            if msd <= match_limit && !(cx_u == rx && cy_u == ry) {
-                                candidates.push((msd, cx_u, cy_u));
-                            }
-                            cx += SEARCH_STRIDE;
+                            candidates.push((lanes.iter().sum(), cx, cy));
                         }
-                        cy += SEARCH_STRIDE;
                     }
-                    candidates.sort_by(|a, b| a.0.total_cmp(&b.0));
-                    // The reference block always leads its group.
-                    candidates.insert(0, (0.0, rx, ry));
+                    // The reference block leads its group, followed by the closest matches.
                     let mut size = 1;
-                    while size * 2 <= candidates.len().min(MAX_GROUP) {
+                    while size * 2 <= (candidates.len() + 1).min(MAX_GROUP) {
                         size *= 2;
                     }
-                    for (g, &(_, bx, by)) in candidates.iter().take(size).enumerate() {
-                        for j in 0..N {
-                            group[g][j * N..(j + 1) * N]
-                                .copy_from_slice(&src.data[(by + j) * w + bx..(by + j) * w + bx + N]);
+                    if size > 1 && candidates.len() > size - 1 {
+                        candidates.select_nth_unstable_by(size - 2, |a, b| a.0.total_cmp(&b.0));
+                    }
+                    candidates[..size - 1].sort_by(|a, b| a.0.total_cmp(&b.0));
+                    let members = |g: usize| if g == 0 { (rx, ry) } else { (candidates[g - 1].1, candidates[g - 1].2) };
+                    for (g, block) in group[..size].iter_mut().enumerate() {
+                        let (bx, by) = members(g);
+                        for (j, row) in block.iter_mut().enumerate() {
+                            *row = *row_at(bx, by + j);
                         }
-                        self.dct2(&mut group[g], false);
+                        self.dct2(block, false);
                     }
                     walsh_hadamard(&mut group[..size]);
                     let mut kept = 0usize;
-                    for block in group[..size].iter_mut() {
-                        for c in block.iter_mut() {
-                            if c.abs() < threshold {
-                                *c = 0.0;
-                            } else {
-                                kept += 1;
-                            }
+                    for c in group[..size].iter_mut().flatten().flatten() {
+                        if c.abs() < threshold {
+                            *c = 0.0;
+                        } else {
+                            kept += 1;
                         }
                     }
                     walsh_hadamard(&mut group[..size]);
                     let weight = 1.0 / kept.max(1) as f32;
-                    for (g, &(_, bx, by)) in candidates.iter().take(size).enumerate() {
-                        self.dct2(&mut group[g], true);
-                        for j in 0..N {
-                            let row = by + j - top;
-                            for i in 0..N {
-                                let k = self.kaiser[j * N + i] * weight;
-                                num[row * w + bx + i] += k * group[g][j * N + i];
-                                den[row * w + bx + i] += k;
+                    for (g, block) in group[..size].iter_mut().enumerate() {
+                        let (bx, by) = members(g);
+                        self.dct2(block, true);
+                        for ((j, values), window) in block.iter().enumerate().zip(&self.kaiser) {
+                            let at = (by + j - top) * w + bx;
+                            let (n, d) = (&mut num[at..at + N], &mut den[at..at + N]);
+                            for (((n, d), &v), &k) in n.iter_mut().zip(d.iter_mut()).zip(values).zip(window) {
+                                let k = k * weight;
+                                *n += k * v;
+                                *d += k;
                             }
                         }
                     }
@@ -209,7 +226,7 @@ impl Bm3d {
 
 /// In-place orthonormal Walsh-Hadamard transform across the blocks of a group (length a power of two). It is its
 /// own inverse.
-fn walsh_hadamard(group: &mut [[f32; AREA]]) {
+fn walsh_hadamard(group: &mut [Block]) {
     let n = group.len();
     if n < 2 {
         return;
@@ -219,20 +236,17 @@ fn walsh_hadamard(group: &mut [[f32; AREA]]) {
         for start in (0..n).step_by(len * 2) {
             for k in start..start + len {
                 let (lo, hi) = group.split_at_mut(k + len);
-                let (a, b) = (&mut lo[k], &mut hi[0]);
-                for i in 0..AREA {
-                    let (x, y) = (a[i], b[i]);
-                    a[i] = x + y;
-                    b[i] = x - y;
+                for (a, b) in lo[k].iter_mut().flatten().zip(hi[0].iter_mut().flatten()) {
+                    let (x, y) = (*a, *b);
+                    *a = x + y;
+                    *b = x - y;
                 }
             }
         }
         len *= 2;
     }
     let scale = 1.0 / (n as f32).sqrt();
-    for block in group.iter_mut() {
-        block.iter_mut().for_each(|v| *v *= scale);
-    }
+    group.iter_mut().flatten().flatten().for_each(|v| *v *= scale);
 }
 
 /// Noise standard deviation from the median absolute diagonal detail of 2x2 cells (Donoho's MAD estimator).
@@ -275,30 +289,33 @@ mod tests {
     #[test]
     fn dct_round_trip() {
         let f = Bm3d::new(Some(1.0));
-        let mut b = [0.0f32; AREA];
-        for (i, v) in b.iter_mut().enumerate() {
+        let mut b = [[0.0f32; N]; N];
+        for (i, v) in b.iter_mut().flatten().enumerate() {
             *v = (i * 31 % 17) as f32;
         }
         let orig = b;
         f.dct2(&mut b, false);
+        // A constant-free block has its energy spread; the DC term is the scaled mean.
+        let mean = orig.iter().flatten().sum::<f32>() / AREA as f32;
+        assert!((b[0][0] - mean * N as f32).abs() < 1e-3);
         f.dct2(&mut b, true);
-        for (a, c) in b.iter().zip(&orig) {
+        for (a, c) in b.iter().flatten().zip(orig.iter().flatten()) {
             assert!((a - c).abs() < 1e-3);
         }
     }
 
     #[test]
     fn hadamard_is_involution() {
-        let mut g = vec![[0.0f32; AREA]; 4];
+        let mut g = vec![[[0.0f32; N]; N]; 4];
         for (k, b) in g.iter_mut().enumerate() {
-            b[0] = k as f32 + 1.0;
-            b[5] = (k * k) as f32;
+            b[0][0] = k as f32 + 1.0;
+            b[0][5] = (k * k) as f32;
         }
         let orig = g.clone();
         walsh_hadamard(&mut g);
         walsh_hadamard(&mut g);
         for (a, b) in g.iter().zip(&orig) {
-            assert!((a[0] - b[0]).abs() < 1e-4 && (a[5] - b[5]).abs() < 1e-4);
+            assert!((a[0][0] - b[0][0]).abs() < 1e-4 && (a[0][5] - b[0][5]).abs() < 1e-4);
         }
     }
 

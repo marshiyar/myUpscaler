@@ -13,6 +13,7 @@ path = "src/main.rs"
 [dependencies]
 up60p = { path = "../backend" }
 slint = "1.18"
+cpal = "0.15"
 rfd = { version = "0.15", default-features = false, features = ["xdg-portal", "tokio"] }
 
 [build-dependencies]

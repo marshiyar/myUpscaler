@@ -1,0 +1,418 @@
+// The main column of the window, as in the macOS app's ContentView: the input card (the import view, or the
+// imported video's preview with its frame strip), the processing details card, and the bottom bar with the
+// progress and the Export button.
+
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { App, Actions } from "globals.slint";
+import { Button, ButtonKind, ButtonSize, ProgressBar, Spinner, SliderControl, SegmentedPicker } from "controls.slint";
+import { Card, Divider, Disclosure } from "components.slint";
+
+// The empty workspace: one clear action.
+component ImportView inherits Rectangle {
+    background: Theme.accent.with-alpha(0.02);
+    VerticalLayout {
+        alignment: center;
+        spacing: 20px;
+        padding: Theme.xl;
+        HorizontalLayout {
+            alignment: center;
+            Image {
+                source: @image-url("icons/film-stack.svg");
+                width: 44px;
+                height: 44px;
+                colorize: Theme.accent;
+            }
+        }
+        Text {
+            text: "Import a video";
+            font-size: Theme.title2;
+            font-weight: 600;
+            color: Theme.text;
+            horizontal-alignment: center;
+        }
+        HorizontalLayout {
+            alignment: center;
+            Button {
+                text: "Browse";
+                icon: @image-url("icons/folder.svg");
+                has-icon: true;
+                kind: ButtonKind.prominent;
+                size: ButtonSize.large;
+                clicked => { Actions.import(); }
+            }
+        }
+        HorizontalLayout {
+            alignment: center;
+            Button {
+                text: "Choose a folder";
+                kind: ButtonKind.plain;
+                size: ButtonSize.small;
+                clicked => { Actions.import-folder(); }
+            }
+        }
+    }
+}
+
+component Thumbnail inherits Rectangle {
+    in property <image> image;
+    in property <int> index;
+    in property <string> time;
+    property <bool> selected: App.selected-frame == root.index;
+    width: 104px;
+    height: 64px;
+    accessible-role: button;
+    accessible-label: "Frame " + (root.index + 1) + ", " + root.time;
+    accessible-action-default => { Actions.select-frame(root.index); }
+    Image {
+        width: parent.width;
+        height: parent.height;
+        source: root.image;
+        image-fit: cover;
+    }
+    Rectangle {
+        border-radius: 3px;
+        border-width: root.selected ? 3px : 1px;
+        border-color: root.selected ? Theme.accent : #8080804d;
+        drop-shadow-blur: root.selected ? 6px : 0;
+        drop-shadow-color: Theme.accent.with-alpha(0.6);
+    }
+    Rectangle {
+        x: 4px;
+        y: 4px;
+        width: badge.preferred-width + 8px;
+        height: 12px;
+        border-radius: 2px;
+        background: root.selected ? Theme.accent.with-alpha(0.9) : Theme.text.with-alpha(0.7);
+        badge := Text {
+            text: root.index + 1;
+            font-size: 8px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+    }
+    TouchArea {
+        clicked => { Actions.select-frame(root.index); }
+    }
+}
+
+// Play / pause, the time, the scrubber and the duration; Original | Result once an export finished.
+component Transport inherits HorizontalLayout {
+    out property <bool> scrubbing: scrub.dragging;
+    spacing: 10px;
+    height: 24px;
+    Rectangle {
+        width: 26px;
+        border-radius: 6px;
+        background: play.pressed ? Theme.pressed : play.has-hover ? Theme.hover : transparent;
+        accessible-role: button;
+        accessible-label: App.playing ? "Pause" : "Play";
+        accessible-action-default => { Actions.play-pause(); }
+        Image {
+            source: App.playing ? @image-url("icons/pause-fill.svg") : @image-url("icons/play-fill.svg");
+            width: 14px;
+            height: 14px;
+            colorize: Theme.text;
+        }
+        play := TouchArea {
+            clicked => { Actions.play-pause(); }
+        }
+    }
+    Text {
+        text: App.position-text;
+        font-size: Theme.subheadline;
+        color: Theme.text;
+        vertical-alignment: center;
+        horizontal-alignment: right;
+        min-width: 34px;
+    }
+    VerticalLayout {
+        alignment: center;
+        horizontal-stretch: 1;
+        scrub := SliderControl {
+            value <=> App.position;
+            maximum: max(0.01, App.duration);
+            step: 0.001;
+            label: "Playback position";
+            moved(v) => { Actions.seek(v); }
+            released => { Actions.seek-done(); }
+        }
+    }
+    Text {
+        text: App.duration-text;
+        font-size: Theme.subheadline;
+        color: Theme.secondary;
+        vertical-alignment: center;
+        min-width: 34px;
+    }
+    if App.has-result: SegmentedPicker {
+        width: 150px;
+        items: ["Original", "Result"];
+        selected <=> App.source;
+        changed(i) => { Actions.set-source(i); }
+    }
+}
+
+// The imported video: name, the preview with the player's controls, and the frame strip. Paused on the original,
+// the preview shows the adjustments; playing, scrubbing or showing the export, it shows the video's own frames.
+component MediaView inherits VerticalLayout {
+    property <bool> raw: App.has-player-frame && (App.playing || App.source == 1 || transport.scrubbing);
+    padding: Theme.md;
+    spacing: 12px;
+    HorizontalLayout {
+        spacing: 8px;
+        VerticalLayout {
+            alignment: center;
+            Image {
+                source: App.is-image ? @image-url("icons/image.svg") : @image-url("icons/film.svg");
+                width: 13px;
+                height: 13px;
+                colorize: Theme.accent;
+            }
+        }
+        Text {
+            text: App.input-name;
+            font-size: Theme.subheadline;
+            font-weight: 600;
+            color: Theme.text;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+        Text {
+            text: "Approximate preview";
+            font-size: Theme.caption;
+            color: Theme.secondary;
+            vertical-alignment: center;
+        }
+        Rectangle { horizontal-stretch: 1; }
+        Button {
+            text: App.is-image ? "Change image" : "Change video";
+            enabled: !App.running;
+            clicked => { Actions.import(); }
+        }
+    }
+    Rectangle {
+        vertical-stretch: 1;
+        min-height: 160px;
+        background: Theme.well;
+        border-radius: 8px;
+        clip: true;
+        if App.has-preview || root.raw: Image {
+            width: parent.width;
+            height: parent.height;
+            source: root.raw ? App.player-frame : App.preview;
+            image-fit: contain;
+            accessible-role: image;
+            accessible-label: "Adjusted video preview";
+        }
+        if !App.has-preview && !root.raw: VerticalLayout {
+            alignment: center;
+            spacing: 8px;
+            HorizontalLayout {
+                alignment: center;
+                Image {
+                    source: @image-url("icons/film.svg");
+                    width: 22px;
+                    height: 22px;
+                    colorize: Theme.text;
+                }
+            }
+            Text {
+                text: "Video selected";
+                font-size: Theme.body;
+                font-weight: 600;
+                color: Theme.text;
+                horizontal-alignment: center;
+            }
+            Text {
+                text: App.preview-note != "" ? App.preview-note : "The preview will appear here when available.";
+                font-size: Theme.caption;
+                color: Theme.secondary;
+                horizontal-alignment: center;
+                wrap: word-wrap;
+            }
+        }
+        if App.preview-busy && App.has-preview && !root.raw: Spinner {
+            x: parent.width - self.width - 10px;
+            y: 10px;
+        }
+        TouchArea {
+            enabled: App.has-preview && !App.running;
+            double-clicked => { App.enlarged = true; }
+        }
+    }
+    transport := Transport {
+        visible: App.can-play;
+        height: App.can-play ? 24px : 0;
+    }
+    if App.thumbnails.length > 0: Divider { }
+    if App.thumbnails.length > 0: Flickable {
+        height: 76px;
+        content-width: strip.preferred-width;
+        strip := HorizontalLayout {
+            padding: 6px;
+            spacing: 10px;
+            for image[i] in App.thumbnails: Thumbnail {
+                image: image;
+                index: i;
+                time: App.thumbnail-times[i];
+            }
+        }
+    }
+}
+
+// The input card: the import view until something is imported.
+export component InputCard inherits Card {
+    clip: true;
+    if App.input-path == "": ImportView {
+        border-radius: Theme.card-radius;
+    }
+    if App.input-path != "": MediaView { }
+    if App.running: Rectangle {
+        border-radius: 10px;
+        background: #0000004d;
+        TouchArea { }
+        VerticalLayout {
+            alignment: center;
+            spacing: 8px;
+            HorizontalLayout {
+                alignment: center;
+                Spinner { tint: #ffffff; }
+            }
+            Text {
+                text: "Processing... Preview frozen";
+                font-size: Theme.caption;
+                color: #ffffff;
+                horizontal-alignment: center;
+            }
+        }
+    }
+}
+
+// The finished file's actions and the processing log.
+export component LogCard inherits Card {
+    VerticalLayout {
+        padding: 14px;
+        spacing: 10px;
+        if App.completed && !App.running && App.completed-output != "": HorizontalLayout {
+            spacing: 8px;
+            alignment: end;
+            Button {
+                text: "Open";
+                kind: ButtonKind.prominent;
+                clicked => { Actions.open-output(); }
+            }
+            Button {
+                text: App.mac ? "Show in Finder" : "Show in Folder";
+                clicked => { Actions.reveal-output(); }
+            }
+        }
+        Disclosure {
+            title: "Processing details";
+            icon: @image-url("icons/text-left.svg");
+            has-icon: true;
+            expanded <=> App.log-open;
+        }
+        if App.log-open: Rectangle {
+            height: 170px;
+            background: Theme.well;
+            border-radius: 8px;
+            log-view := Flickable {
+                content-height: max(self.height, log-text.preferred-height + 20px);
+                property <string> log: App.log;
+                changed log => {
+                    self.content-y = min(0px, self.height - self.content-height);
+                }
+                log-text := Text {
+                    x: 10px;
+                    y: 10px;
+                    width: log-view.width - 20px;
+                    text: App.log == "" ? "Export details will appear here." : App.log;
+                    font-family: Theme.mono;
+                    font-size: Theme.log;
+                    color: App.log == "" ? Theme.secondary : Theme.text;
+                    wrap: word-wrap;
+                }
+            }
+        }
+    }
+}
+
+// Status, progress and the Export / Cancel button, pinned to the bottom of the window.
+export component BottomBar inherits Rectangle {
+    background: Theme.bar;
+    height: layout.preferred-height;
+    Divider {
+        y: 0;
+        width: parent.width;
+    }
+    layout := HorizontalLayout {
+        padding: Theme.md;
+        spacing: 20px;
+        VerticalLayout {
+            spacing: 6px;
+            horizontal-stretch: 1;
+            alignment: center;
+            HorizontalLayout {
+                spacing: 6px;
+                if App.completed && !App.running: VerticalLayout {
+                    alignment: center;
+                    Image {
+                        source: @image-url("icons/check-circle.svg");
+                        width: 13px;
+                        height: 13px;
+                    }
+                }
+                Text {
+                    text: App.status;
+                    font-size: Theme.subheadline;
+                    font-weight: 500;
+                    color: Theme.text;
+                    vertical-alignment: center;
+                    overflow: elide;
+                    horizontal-stretch: 1;
+                }
+                if App.running && App.progress-known: Text {
+                    text: (App.progress * 100).round() + "%";
+                    font-size: Theme.caption;
+                    color: Theme.text;
+                    vertical-alignment: center;
+                }
+            }
+            if App.running: ProgressBar {
+                progress: App.progress;
+                indeterminate: !App.progress-known;
+                accessible-role: progress-indicator;
+                accessible-label: App.status;
+            }
+            if App.running: HorizontalLayout {
+                spacing: 14px;
+                alignment: start;
+                for line in ["Processing: " + App.fps-text + " fps", "Media time: " + App.time-text,
+                    "Remaining: " + App.eta-text]: Text {
+                    text: line;
+                    font-size: Theme.caption;
+                    color: Theme.secondary;
+                }
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            Button {
+                width: 150px;
+                kind: ButtonKind.prominent;
+                text: App.cancelling ? "Stopping…" : App.running ? "Cancel" : "Export video";
+                icon: App.running ? @image-url("icons/stop-fill.svg") : @image-url("icons/play-fill.svg");
+                has-icon: true;
+                enabled: !App.cancelling && (App.running || App.input-path != "");
+                clicked => {
+                    if App.running {
+                        Actions.cancel();
+                    } else {
+                        Actions.run();
+                    }
+                }
+            }
+        }
+    }
+}

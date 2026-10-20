@@ -1,22 +1,29 @@
 #!/bin/bash
-# Runs test scripts at the same time and prints each one's output as a group once all are done. Fails when any
-# script fails. Usage: scripts/run-parallel.sh tests/a.sh tests/b.sh ...
+# Runs test scripts at the same time, at most one per CPU core (or -j N), and prints each one's output as a group
+# once all are done. Fails when any script fails. Usage: scripts/run-parallel.sh [-j N] tests/a.sh tests/b.sh ...
 set -uo pipefail
 cd "$(dirname "$0")/.."
+max=$(sysctl -n hw.ncpu 2>/dev/null || nproc)
+if [[ ${1:-} == -j ]]; then
+  max=$2
+  shift 2
+fi
 logs=$(mktemp -d)
 trap 'rm -rf "$logs"' EXIT
-pids=()
+log() { echo "$logs/$(echo "$1" | tr '/ ' '__').log"; }
 for script in "$@"; do
-  bash "$script" > "$logs/$(echo "$script" | tr '/' '_').log" 2>&1 &
-  pids+=($!)
+  # macOS ships bash 3.2 (no `wait -n`), so poll the running background jobs.
+  while (( $(jobs -rp | wc -l) >= max )); do sleep 0.2; done
+  # Each script records its own exit status, so the order in which they finish does not matter.
+  (bash "$script" > "$(log "$script")" 2>&1; echo $? > "$(log "$script").status") &
 done
+wait
 failed=()
-for i in "${!pids[@]}"; do
-  if ! wait "${pids[$i]}"; then failed+=("$1"); fi
-  script=$1; shift
+for script in "$@"; do
   echo "::group::$script"
-  cat "$logs/$(echo "$script" | tr '/' '_').log"
+  cat "$(log "$script")"
   echo '::endgroup::'
+  [[ $(cat "$(log "$script").status") == 0 ]] || failed+=("$script")
 done
 if (( ${#failed[@]} )); then
   for script in "${failed[@]}"; do echo "::error::$script failed"; done

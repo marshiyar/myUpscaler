@@ -23,49 +23,24 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  finishing-chain:
-    # The app's settings through the Rust engine's dry run: filter order, entered strengths, zero bypass.
+  regression:
+    # The Rust filter chain through the app, Apple media APIs on generated clips and the Metal kernels, on one
+    # macOS runner, running side by side.
     runs-on: xcode-27
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-        with: { persist-credentials: false }
-      - uses: ./.github/actions/setup-macos
-      - uses: ./.github/actions/rust-backend-macos
-      - run: bash tests/test-finishing-strengths.sh
-
-  media:
-    # Apple media APIs on generated clips; each group's scripts run at the same time on one runner.
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: video-io
-            scripts: tests/apple-api/run.sh tests/apple-api/run-orientation.sh
-          - name: audio-timing
-            scripts: tests/apple-api/run-audio.sh tests/apple-api/run-timing.sh
-          - name: timeline
-            scripts: tests/test-timeline.sh
-    name: media (${{ matrix.name }})
-    runs-on: xcode-27
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-        with: { persist-credentials: false }
-      - uses: ./.github/actions/setup-macos
-      - name: Build the test-media generator once
-        run: |
-          bash tests/fixtures/build.sh "$RUNNER_TEMP/make-test-media"
-          echo "MAKE_TEST_MEDIA=$RUNNER_TEMP/make-test-media" >> "$GITHUB_ENV"
-      - run: bash scripts/run-parallel.sh ${{ matrix.scripts }}
-
-  metal-kernels:
-    # The preview's Core Image Metal kernels, compiled and rendered on the runner's Metal device.
-    runs-on: xcode-27
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with: { persist-credentials: false }
       - uses: ./.github/actions/setup-macos
         with: { require-gpu: 'true' }
-      - run: python3 tests/metal-kernels/run.py --developer-dir "$(xcode-select -p)"
+      - uses: ./.github/actions/rust-backend-macos
+      - name: Build the test-media generator once
+        run: |
+          bash tests/fixtures/build.sh "$RUNNER_TEMP/make-test-media"
+          echo "MAKE_TEST_MEDIA=$RUNNER_TEMP/make-test-media" >> "$GITHUB_ENV"
+      - run: >-
+          bash scripts/run-parallel.sh
+          tests/test-finishing-strengths.sh tests/metal-kernels/run.sh
+          tests/apple-api/run.sh tests/apple-api/run-orientation.sh
+          tests/apple-api/run-audio.sh tests/apple-api/run-timing.sh
+          tests/test-timeline.sh

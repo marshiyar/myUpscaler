@@ -64,8 +64,8 @@ the files it covers change, and nothing is checked twice:
 | Workflow | Jobs |
 | --- | --- |
 | **Rust** (`rust.yml`, Linux) | format, lints, unit tests, engine tests, build without the engine |
-| **Swift tests** (`swift-tests.yml`) | source lint (Linux); logic tests in three groups; XCTest (`myUpscalerUnitTests`) |
-| **Regression tests** (`regression.yml`) | finishing chain through the Rust dry run; media tests in three groups; Metal kernels |
+| **Swift tests** (`swift-tests.yml`) | source lint (Linux); one macOS job with every logic test and XCTest |
+| **Regression tests** (`regression.yml`) | one macOS job: finishing chain through the Rust dry run, media tests, Metal kernels |
 | **macOS build and bundle** (`build.yml`) | Release app (verify engine, signature, models and inference, package); model-set preparation |
 
 All jobs use GitHub's free standard runners (macOS jobs on the `xcode-27`
@@ -75,7 +75,9 @@ and the Metal kernels) report the runner's Metal device and fail if there is
 none; GitHub's macOS runners are virtual machines, so their GPU is slower than a
 real Mac's. The Rust backend runs on the CPU.
 
-Inside a group, `scripts/run-parallel.sh` runs the scripts at the same time.
+There are four macOS jobs, within the free plan's five concurrent macOS jobs,
+so none waits for another. Inside a job, `scripts/run-parallel.sh` runs the
+scripts at the same time, one per CPU core.
 The media engine is a precompiled, pinned binary: it is downloaded and verified
 once, then restored from the cache. The compiled Rust backend (`libup60p.a` and
 its header) is stored the same way, keyed by the backend's sources, and is only

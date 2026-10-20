@@ -1,5 +1,9 @@
 name: Set up macOS
-description: Selects the newest installed Xcode 26.
+description: Selects the newest installed Xcode 26; optionally requires a hardware Metal GPU.
+inputs:
+  require-gpu:
+    description: Fail unless Metal reports a GPU (for the xlarge runners' GPU jobs).
+    default: 'false'
 runs:
   using: composite
   steps:
@@ -13,3 +17,15 @@ runs:
         fi
         sudo xcode-select --switch "$xcode_app/Contents/Developer"
         xcodebuild -version
+    - if: inputs.require-gpu == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        cat > "$RUNNER_TEMP/gpu.swift" <<'SWIFT'
+        import Metal
+        guard let device = MTLCreateSystemDefaultDevice() else { print("no Metal device"); exit(1) }
+        print("Metal GPU: \(device.name), unified memory \(device.hasUnifiedMemory), " +
+              "max working set \(device.recommendedMaxWorkingSetSize / 1_048_576) MB")
+        SWIFT
+        xcrun swiftc "$RUNNER_TEMP/gpu.swift" -o "$RUNNER_TEMP/gpu"
+        echo "::notice::$("$RUNNER_TEMP/gpu")"

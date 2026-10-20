@@ -58,3 +58,14 @@ jobs:
           bash tests/fixtures/build.sh "$RUNNER_TEMP/make-test-media"
           echo "MAKE_TEST_MEDIA=$RUNNER_TEMP/make-test-media" >> "$GITHUB_ENV"
       - run: bash scripts/run-parallel.sh ${{ matrix.scripts }}
+
+  metal-kernels:
+    # The preview's Core Image Metal kernels, compiled and rendered on a hardware GPU.
+    runs-on: macos-26-xlarge
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: ./.github/actions/setup-macos
+        with: { require-gpu: 'true' }
+      - run: python3 tests/metal-kernels/run.py --developer-dir "$(xcode-select -p)"

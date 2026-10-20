@@ -33,13 +33,15 @@ env:
 jobs:
   release-app:
     # One Release build: the app that is verified (engine, signature, models, inference) is the one delivered.
-    runs-on: macos-26
+    # The extra-large runner has a hardware GPU for the CoreML inference check.
+    runs-on: macos-26-xlarge
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-macos
+        with: { require-gpu: 'true' }
       - uses: ./.github/actions/rust-backend-macos
       - name: Restore prepared CoreML models
         uses: actions/cache@v4

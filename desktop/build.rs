@@ -29,11 +29,8 @@ fn main() {
             let dir = dir.canonicalize().unwrap_or(dir);
             println!("cargo:rustc-link-arg=-Wl,-rpath,{}", dir.display());
             // A packaged app keeps the library beside the program (the release archives).
-            let beside = if env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("macos") {
-                "@executable_path"
-            } else {
-                "$ORIGIN"
-            };
+            let beside =
+                if env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("macos") { "@executable_path" } else { "$ORIGIN" };
             println!("cargo:rustc-link-arg=-Wl,-rpath,{beside}");
             break;
         }

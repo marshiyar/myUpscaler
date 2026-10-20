@@ -1,9 +1,20 @@
 //! Row-parallel helpers on scoped threads. The thread count is process-wide and set per job from the `threads`
 //! option (0 = one per core).
 
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 static THREADS: AtomicUsize = AtomicUsize::new(0);
+static STOP: AtomicBool = AtomicBool::new(false);
+
+/// Set while a cancelled job winds down: the helpers skip rows they have not started and long filters stop early,
+/// so a cancel takes effect within a frame. The incomplete output is discarded by the job.
+pub fn set_stopped(stop: bool) {
+    STOP.store(stop, Ordering::Relaxed);
+}
+
+pub fn stopped() -> bool {
+    STOP.load(Ordering::Relaxed)
+}
 
 pub fn set_threads(n: usize) {
     THREADS.store(n, Ordering::Relaxed);
@@ -23,6 +34,9 @@ where
 {
     for_each_row_chunk(data, width, |y0, chunk| {
         for (i, row) in chunk.chunks_mut(width).enumerate() {
+            if stopped() {
+                return;
+            }
             f(y0 + i, row);
         }
     });

@@ -112,9 +112,14 @@ pub unsafe extern "C" fn up60p_process_path(input_path: *const c_char, opts: *co
     // SAFETY: checked non-NULL; the caller guarantees validity for the duration of the call.
     let (input, options) = unsafe { (CStr::from_ptr(input_path).to_string_lossy().into_owned(), (*opts).clone()) };
     guarded(|| {
-        let Ok(_busy) = BUSY.try_lock() else {
-            log("Another file is already being processed.\n");
-            return status::INTERNAL;
+        // A panic in an earlier run poisons the lock; that run is over, so the lock is still free.
+        let _busy = match BUSY.try_lock() {
+            Ok(guard) => guard,
+            Err(std::sync::TryLockError::Poisoned(e)) => e.into_inner(),
+            Err(std::sync::TryLockError::WouldBlock) => {
+                log("Another file is already being processed.\n");
+                return status::INTERNAL;
+            }
         };
         if text(&options.scaler) != "lanczos" {
             log("The selected upscaling mode is not handled by the Rust engine. Choose Lanczos or CoreML.\n");

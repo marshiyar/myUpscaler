@@ -42,6 +42,9 @@ impl NlMeans {
             let mut diff = vec![0.0f32; ext * w];
             let mut hsum = vec![0.0f32; ext * w];
             for dy in -rr..=rr {
+                if par::stopped() {
+                    return;
+                }
                 for dx in -rr..=rr {
                     // Squared differences for the band plus its patch margin.
                     for e in 0..ext {

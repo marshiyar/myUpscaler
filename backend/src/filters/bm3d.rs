@@ -115,6 +115,9 @@ impl Bm3d {
             let mut candidates: Vec<(f32, usize, usize)> = Vec::new();
             let mut group = vec![[0.0f32; AREA]; MAX_GROUP];
             for &ry in refs {
+                if par::stopped() {
+                    break;
+                }
                 for &rx in &xs {
                     candidates.clear();
                     let y_lo = (ry as isize - SEARCH).max(0);

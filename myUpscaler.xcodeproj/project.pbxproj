@@ -19,17 +19,6 @@
 		E27100000000000000000013 /* myUpscaler/State/SettingsRenderSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = E27100000000000000000003 /* myUpscaler/State/SettingsRenderSnapshot.swift */; };
 /* End PBXBuildFile section */
 
-/* Begin PBXCopyFilesBuildPhase section */
-		5EE164CF2EF4D83C0060947E /* Copy Files */ = {
-			isa = PBXCopyFilesBuildPhase;
-			dstPath = ThirdParty/FFmpeg;
-			dstSubfolder = Executables;
-			files = (
-			);
-			name = "Copy Files";
-		};
-/* End PBXCopyFilesBuildPhase section */
-
 /* Begin PBXFileReference section */
 		5ECE7BB52EF2A63C00603DA9 /* myUpscaler.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = myUpscaler.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C02700000000000000000006 /* myUpscalerUnitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = myUpscalerUnitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -45,36 +34,9 @@
 		E27100000000000000000003 /* myUpscaler/State/SettingsRenderSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = myUpscaler/State/SettingsRenderSnapshot.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		5E23E7C82ED9B256008298B2 /* Exceptions for "myUpscaler" folder in "myUpscaler" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				ThirdParty/ffmpeg/ffmpeg,
-			);
-			target = 5E23E5052ED9AB0B008298B2 /* myUpscaler */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
-/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-		5EE165832EF4F6950060947E /* Exceptions for "myUpscaler" folder in "Copy Files" phase from "myUpscaler" target */ = {
-			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
-			attributesByRelativePath = {
-				ThirdParty/ffmpeg/ffmpeg = (CodeSignOnCopy, );
-			};
-			buildPhase = 5EE164CF2EF4D83C0060947E /* Copy Files */;
-			membershipExceptions = (
-				ThirdParty/ffmpeg/ffmpeg,
-			);
-		};
-/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		5E23E5082ED9AB0B008298B2 /* myUpscaler */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				5E23E7C82ED9B256008298B2 /* Exceptions for "myUpscaler" folder in "myUpscaler" target */,
-				5EE165832EF4F6950060947E /* Exceptions for "myUpscaler" folder in "Copy Files" phase from "myUpscaler" target */,
-			);
 			path = myUpscaler;
 			sourceTree = "<group>";
 		};
@@ -123,11 +85,11 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 5E23E5272ED9AB0C008298B2 /* Build configuration list for PBXNativeTarget "myUpscaler" */;
 			buildPhases = (
+				C04400000000000000000001 /* Build Rust backend */,
 				5E23E5022ED9AB0B008298B2 /* Sources */,
 				5E23E5042ED9AB0B008298B2 /* Resources */,
-				5EE164CF2EF4D83C0060947E /* Copy Files */,
 				C03300000000000000000001 /* Embed CoreML models */,
-				5EE165482EF4EEB20060947E /* Run Script */,
+				5EE165482EF4EEB20060947E /* Embed media engine */,
 			);
 			buildRules = (
 			);
@@ -198,14 +160,29 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		5EE165482EF4EEB20060947E /* Run Script */ = {
+		5EE165482EF4EEB20060947E /* Embed media engine */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
-			name = "Run Script";
+			name = "Embed media engine";
 			shellPath = /bin/sh;
 			shellScript = (
 				"set -eu",
-				"/bin/bash \"${PROJECT_DIR}/scripts/build-bundled-helpers.sh\"",
+				"/bin/bash \"${PROJECT_DIR}/scripts/embed-media-engine.sh\"",
+				"",
+			);
+		};
+		C04400000000000000000001 /* Build Rust backend */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			name = "Build Rust backend";
+			outputPaths = (
+				"$(PROJECT_DIR)/backend/target/aarch64-apple-darwin/release/libup60p.a",
+				"$(PROJECT_DIR)/backend/target/include/up60p.h",
+			);
+			shellPath = /bin/sh;
+			shellScript = (
+				"set -eu",
+				"/bin/bash \"${PROJECT_DIR}/scripts/build-rust-backend.sh\"",
 				"",
 			);
 		};
@@ -312,7 +289,6 @@
 				GCC_OPTIMIZATION_LEVEL = "";
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
-					"UP60P_LIBRARY_MODE=1",
 					"$(inherited)",
 				);
 				GCC_STRICT_ALIASING = YES;
@@ -414,10 +390,6 @@
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = "";
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					"UP60P_LIBRARY_MODE=1",
-					"$(inherited)",
-				);
 				GCC_STRICT_ALIASING = YES;
 				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -501,7 +473,7 @@
 				GCC_STRICT_ALIASING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				GENERATE_PRELINK_OBJECT_FILE = NO;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/myUpscaler/Native/Process";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/backend/target/include";
 				INFOPLIST_FILE = myUpscaler/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MyUpscaler;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
@@ -509,8 +481,12 @@
 				INFOPLIST_KEY_MetalCaptureEnabled = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "MyUpscaler needs access to your photos library when you want to import or export there. ";
-				LD_RUNPATH_SEARCH_PATHS = "";
-				LIBRARY_SEARCH_PATHS = "";
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/backend/target/aarch64-apple-darwin/release",
+					"$(PROJECT_DIR)/third_party/mpvfx-media/lib",
+				);
 				LINK_WITH_STANDARD_LIBRARIES = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
 				MARKETING_VERSION = "";
@@ -524,7 +500,11 @@
 				MTL_MATH_MODE = FAST;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = "-flto";
-				OTHER_LDFLAGS = "";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lup60p",
+					"-lmpvfx_ffi",
+				);
 				OTHER_SWIFT_FLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = Ashrox.myUpscaler;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -545,7 +525,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_ENABLE_EMIT_CONST_VALUES = NO;
 				SWIFT_INCLUDE_PATHS = "";
-				SWIFT_OBJC_BRIDGING_HEADER = myUpscaler/Native/Process/Up60PBridging.h;
+				SWIFT_OBJC_BRIDGING_HEADER = backend/target/include/up60p.h;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_PRECOMPILE_BRIDGING_HEADER = YES;
 				SWIFT_SKIP_AUTOLINKING_LIBRARIES = "";
@@ -611,7 +591,7 @@
 				GCC_STRICT_ALIASING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				GENERATE_PRELINK_OBJECT_FILE = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/myUpscaler/Native/Process";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/backend/target/include";
 				INFOPLIST_FILE = myUpscaler/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MyUpscaler;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
@@ -619,8 +599,12 @@
 				INFOPLIST_KEY_MetalCaptureEnabled = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "MyUpscaler needs access to your photos library when you want to import or export there. ";
-				LD_RUNPATH_SEARCH_PATHS = "";
-				LIBRARY_SEARCH_PATHS = "";
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/backend/target/aarch64-apple-darwin/release",
+					"$(PROJECT_DIR)/third_party/mpvfx-media/lib",
+				);
 				LINK_WITH_STANDARD_LIBRARIES = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
 				MARKETING_VERSION = "";
@@ -636,7 +620,11 @@
 					"-O3",
 					"-flto",
 				);
-				OTHER_LDFLAGS = "";
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lup60p",
+					"-lmpvfx_ffi",
+				);
 				OTHER_SWIFT_FLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = Ashrox.myUpscaler;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -657,7 +645,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_ENABLE_EMIT_CONST_VALUES = NO;
 				SWIFT_INCLUDE_PATHS = "";
-				SWIFT_OBJC_BRIDGING_HEADER = myUpscaler/Native/Process/Up60PBridging.h;
+				SWIFT_OBJC_BRIDGING_HEADER = backend/target/include/up60p.h;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_PRECOMPILE_BRIDGING_HEADER = YES;
 				SWIFT_SKIP_AUTOLINKING_LIBRARIES = "";

@@ -171,7 +171,7 @@ class UpscaleRunner: ObservableObject {
             log.append("--- Starting \(backend == .coreAI ? "Core AI" : "Core ML") Engine ---\n")
         } else {
             selectedEngine = self.engine
-            log.append("--- Starting C Engine ---\n")
+            log.append("--- Starting Rust Engine ---\n")
         }
         self.activeEngine = selectedEngine
         log.append("Input: \(inputPath)\n")
@@ -189,7 +189,7 @@ class UpscaleRunner: ObservableObject {
             guard updateGate.shouldEmit(message) else { return }
             // 1. Parse on background thread immediately using safe state
             let currentDur = safeState.duration
-            let parseState = FFmpegParser.parse(line: message, currentDuration: currentDur)
+            let parseState = ProgressParser.parse(line: message, currentDuration: currentDur)
 
             // Update safe state if we found a new duration
             if let newDur = parseState.newDuration {
@@ -401,7 +401,7 @@ class UpscaleRunner: ObservableObject {
                     let validated = duration.isFinite && duration > 0 ? duration : 0
                     self.videoDuration = validated
                     progressDuration?.duration = validated
-                    self.log.append("Video Duration: \(FFmpegParser.formatTime(self.videoDuration))\n")
+                    self.log.append("Video Duration: \(ProgressParser.formatTime(self.videoDuration))\n")
                 }
             } catch {
                 await MainActor.run {
@@ -421,7 +421,7 @@ class UpscaleRunner: ObservableObject {
         progressKnown = true
         phase = .idle
         if videoDuration > 0 {
-            timeString = FFmpegParser.formatTime(videoDuration)
+            timeString = ProgressParser.formatTime(videoDuration)
         }
         activeOutputFolder = nil
         etaString = "0:00"

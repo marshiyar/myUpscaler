@@ -151,7 +151,7 @@ struct RestorationPanel: View {
 
                     if ["f3kdb", "neo_f3kdb"].contains(settings.primary.debandMethod) && settings.upscaling.scaler != "coreml" {
                         RestorationF3KDBControls(stage: $settings.additionalF3KDBStage, compact: false)
-                            .help("Neo F3kdb: integer range 0–255, thresholds 0–511. Native CPU export only; preview omits this stage. Legacy presets keep the earlier FFmpeg mapping.")
+                            .help("Neo F3kdb: integer range 0–255, thresholds 0–511 (16 = one 8-bit level). Lanczos export only; preview omits this stage. F3kdb keeps the earlier threshold mapping.")
                             .padding(.leading, 8)
                             .disabled(settings.upscaling.scaler == "coreml")
                     } else {

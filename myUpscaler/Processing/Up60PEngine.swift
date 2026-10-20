@@ -5,7 +5,8 @@ import Synchronization
 
 enum Up60PEngineError: Error, Equatable {
     case invalidOptions
-    case ffmpegNotFound
+    case engineUnavailable
+    case unsupportedMedia
     case io
     case internalError
     case unknownStatus(Int32)
@@ -20,6 +21,7 @@ struct Up60PBridge {
     typealias SetDryRunFunc = (_ enable: Int32) -> Void
     typealias ShutdownFunc = () -> Void
     typealias CancelFunc = () -> Void
+    typealias OptionsSizeFunc = () -> Int
 
     let initFunc: InitFunc
     let defaultOptionsFunc: DefaultOptionsFunc
@@ -27,6 +29,7 @@ struct Up60PBridge {
     let setDryRunFunc: SetDryRunFunc
     let shutdownFunc: ShutdownFunc
     let cancelFunc: CancelFunc
+    let optionsSizeFunc: OptionsSizeFunc
 
     static let live = Up60PBridge(
         initFunc: up60p_init,
@@ -34,7 +37,8 @@ struct Up60PBridge {
         processPathFunc: { input, options in up60p_process_path(input, options) },
         setDryRunFunc: up60p_set_dry_run,
         shutdownFunc: up60p_shutdown,
-        cancelFunc: up60p_request_cancel
+        cancelFunc: up60p_request_cancel,
+        optionsSizeFunc: up60p_options_size
     )
 }
 
@@ -93,18 +97,21 @@ final class Up60PEngine {
         }
 
         // Snapshot callbacks before dispatch; never invoke user code under a lock.
-        log("Initializing C engine...\n")
+        log("Initializing Rust engine...\n")
 
-        // The C engine owns bundle resolution and validates the same path at
-        // initialization and before processing. Do not set or honor overrides.
+        // The Rust backend and the Swift bridge must agree on the options layout.
+        guard Self.bridge.optionsSizeFunc() == MemoryLayout<up60p_options>.size else {
+            log("ERROR: Rust engine options layout does not match this app build.\n")
+            throw Up60PEngineError.internalError
+        }
         let result = Self.bridge.initFunc(nil, callback)
 
         if result != UP60P_OK {
-            log("ERROR: C engine initialization failed (code: \(result.rawValue))\n")
+            log("ERROR: Rust engine initialization failed (code: \(result.rawValue))\n")
             throw mapError(result) ?? .unknownStatus(Int32(result.rawValue))
         }
 
-        log("C engine initialized successfully.\n")
+        log("Rust engine initialized successfully.\n")
 
         isInitialized = true
     }
@@ -117,7 +124,8 @@ final class Up60PEngine {
     private func mapError(_ code: up60p_error) -> Up60PEngineError? {
         switch code {
         case UP60P_ERR_INVALID_OPTIONS:   return .invalidOptions
-        case UP60P_ERR_FFMPEG_NOT_FOUND:  return .ffmpegNotFound
+        case UP60P_ERR_ENGINE_UNAVAILABLE: return .engineUnavailable
+        case UP60P_ERR_UNSUPPORTED_MEDIA: return .unsupportedMedia
         case UP60P_ERR_IO:                return .io
         case UP60P_ERR_INTERNAL:          return .internalError
         case UP60P_ERR_CANCELLED:         return .internalError
@@ -269,20 +277,14 @@ final class Up60PEngine {
         hasCommittedOutput = false
         try Task.checkCancellation()
 
-        if [settings.primary, settings.secondary].contains(where: { $0.useDeband && $0.debandMethod == "neo_f3kdb" }),
-           !UpscaleSettings.neoF3kdbAvailable {
-            log("ERROR: Neo F3kdb requires the private macOS 27 helper build.\n")
-            throw Up60PEngineError.invalidOptions
-        }
-        let codecDecision = CodecSupport.resolve(requestHEVC: settings.codec.useHEVC)
-        if let message = codecDecision.message { log(message) }
-        settings.codec.useHEVC = codecDecision.useHEVC
 
         // Freeze UI-owned settings before the detached native worker starts.
         let options = try makeOptions(from: settings, outputDir: outputDirectory)
         let inspectSourceTiming = !settings.modes.noInterpolate && settings.video.interpolation != "dup" &&
             settings.video.fps.text != "source" && settings.video.fps.text != "lock"
         let processPath = Self.bridge.processPathFunc
+        // Dry run logs the plan for each file without writing output.
+        Self.bridge.setDryRunFunc(settings.modes.dryRun ? 1 : 0)
 
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             let processID = UUID()

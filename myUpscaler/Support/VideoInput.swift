@@ -22,7 +22,7 @@ nonisolated enum VideoInput {
     static func isVideo(_ url: URL) -> Bool {
         guard url.isFileURL, hasVideoExtension(url),
               (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) != true else { return false }
-        // An image renamed to .mp4 must not enter FFmpeg's still-image path.
+        // An image renamed to .mp4 must not enter the still-image path.
         if let source = CGImageSourceCreateWithURL(url as CFURL, nil), CGImageSourceGetType(source) != nil {
             return false
         }

@@ -3,10 +3,11 @@
 from pathlib import Path
 import sys
 
-root = Path(__file__).resolve().parents[1] / "myUpscaler"
-extensions = {".swift", ".c", ".h", ".m", ".metal"}
-files = [p for p in root.rglob("*") if p.is_file() and p.suffix in extensions
-         and "ThirdParty" not in p.parts]
+repo = Path(__file__).resolve().parents[1]
+root = repo / "myUpscaler"
+extensions = {".swift", ".rs", ".metal"}
+files = [p for base in (root, repo / "backend" / "src") for p in base.rglob("*")
+         if p.is_file() and p.suffix in extensions and "ThirdParty" not in p.parts]
 violations = [(p, len(p.read_text().splitlines())) for p in files
               if len(p.read_text().splitlines()) > 600]
 for path, count in violations:

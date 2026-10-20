@@ -14,9 +14,10 @@ if ! xcrun metal -v > "$work/metal.log" 2>&1; then
   echo 'Install/select the Metal compiler component in Xcode before building. This check does not download it.' >&2
   exit 1
 fi
-for directory in myUpscaler/ThirdParty/ffmpeg third_party/CoreML; do
+for directory in third_party/mpvfx-media/lib third_party/CoreML; do
   if [[ ! -d "$directory" ]]; then
     echo "Not prepared: $directory (see CONTRIBUTING.md)"
   fi
 done
-echo 'Xcode and Metal compiler are available. Prepare FFmpeg/models before the full app build.'
+command -v cargo > /dev/null || echo 'Not installed: Rust (rustup; the toolchain is pinned in rust-toolchain.toml)'
+echo 'Xcode and Metal compiler are available. Prepare the media engine (scripts/prepare-media-engine.sh) and models before the full app build.'

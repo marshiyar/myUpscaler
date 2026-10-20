@@ -26,7 +26,7 @@ nonisolated struct UpscaleGeometry {
             guard scaled.isFinite, scaled >= 2, scaled < Double(Int.max / 4) else {
                 throw Up60PEngineError.invalidOptions
             }
-            // H.264/HEVC dimensions match the FFmpeg path's even-pixel rounding.
+            // H.264/HEVC dimensions match the Rust engine's even-pixel rounding.
             return Int(scaled / 2) * 2
         }
         outputWidth = try dimension(inputWidth, requestedScale)

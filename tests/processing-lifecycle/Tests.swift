@@ -226,13 +226,13 @@ struct KnownDuration: AssetLoaderProtocol {
 
     @MainActor static func main() async throws {
         try await testInvalidCodecSettings()
-        let measured = FFmpegParser.parse(line: "time=00:00:05.000 fps=10 speed=0.5x", currentDuration: 10)
+        let measured = ProgressParser.parse(line: "time=00:00:05.000 fps=10 speed=0.5x", currentDuration: 10)
         precondition(measured.progress == 0.5 && measured.eta == "0:10")
-        let padded = FFmpegParser.parse(line: "frame= 383 fps= 42 time=00:00:06.35 speed= 0.7x elapsed=0:00:09.07", currentDuration: 12)
+        let padded = ProgressParser.parse(line: "frame= 383 fps= 42 time=00:00:06.35 speed= 0.7x elapsed=0:00:09.07", currentDuration: 12)
         precondition(padded.fps == "42" && padded.eta != "--:--" && padded.progress! < 1)
-        let unknownETA = FFmpegParser.parse(line: "time=00:00:05 fps=10", currentDuration: 10)
+        let unknownETA = ProgressParser.parse(line: "time=00:00:05 fps=10", currentDuration: 10)
         precondition(unknownETA.eta == "--:--")
-        precondition(FFmpegParser.parse(line: "time=5", currentDuration: 0).progress == nil)
+        precondition(ProgressParser.parse(line: "time=5", currentDuration: 0).progress == nil)
         let gate = ProgressUpdateGate()
         precondition(gate.shouldEmit("time=1 fps=20", now: 0))
         precondition(!gate.shouldEmit("time=2 fps=20", now: 0.1))

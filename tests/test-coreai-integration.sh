@@ -12,7 +12,7 @@ PLIST
 xcrun swiftc -O -whole-module-optimization -parse-as-library -swift-version 5 -default-isolation MainActor -target arm64-apple-macos15.2 -strict-concurrency=complete -warnings-as-errors \
  -module-cache-path "$work/cache" \
  myUpscaler/Processing/{UpscaleRunner,UpscaleRunner+Batch,BatchPlan}.swift myUpscaler/State/{UpscaleSettings,PresetStore}.swift myUpscaler/State/Settings*.swift \
- myUpscaler/Models/{CoreMLModelRegistry,UpscalingModeSupport}.swift myUpscaler/Support/{VideoInput,CodecSupport,Protocols,FFmpegParser,ProcessingErrors}.swift \
+ myUpscaler/Models/{CoreMLModelRegistry,UpscalingModeSupport}.swift myUpscaler/Support/{VideoInput,CodecSupport,Protocols,ProgressParser,ProcessingErrors}.swift \
  myUpscaler/Processing/{CoreMLEngine,CoreMLEngine+Shaders,CoreMLModelManager,CoreAIModelWorker,CoreMLProcessingJob,CoreMLBufferAccess,ProcessingControl,UpscaleGeometry,VideoIO,VideoAudioMuxer,ProgressUpdateGate}.swift \
  tests/processing-lifecycle/TestSupport.swift tests/coreai-integration/Smoke.swift -o "$contents/MacOS/CoreAIIntegrationSmoke"
 echo "READY $contents/MacOS/CoreAIIntegrationSmoke"

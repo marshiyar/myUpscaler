@@ -121,7 +121,7 @@ struct RestorationF3KDBControls: View {
     }
 }
 
-/// Named FFmpeg thresholds retain partial numeric drafts and legacy extra options.
+/// Named deblock thresholds retain partial numeric drafts and legacy extra options.
 struct DeblockThresholdControls: View {
     @Binding var text: String
 
@@ -146,7 +146,7 @@ struct DeblockThresholdControls: View {
                     }
                 }
             }
-            .help("Detection thresholds from 0 to 1. Empty fields use FFmpeg defaults.")
+            .help("Detection thresholds from 0 to 1. Empty fields use the defaults.")
             if !DeblockThresholds.isValid(text) {
                 Text("Invalid saved or draft thresholds; use values from 0 to 1 or Defaults.")
                     .font(.caption).foregroundStyle(.red)

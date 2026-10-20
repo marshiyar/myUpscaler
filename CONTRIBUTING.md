@@ -12,9 +12,21 @@ By contributing, you agree that your contributions will be licensed under the sa
 
 ## Building locally
 
-Before building on macOS,
-run `bash scripts/prepare-bundled-ffmpeg.sh`
-This downloads and SHA-256-verifies the same Shaka FFmpeg 8.1.2 macOS binaries pinned by [mpvfx](https://github.com/marshiyar/mpvfx).
+Building needs Rust (install from https://rustup.rs; Xcode builds the backend with `cargo` in its first build
+phase). Before building on macOS, run `bash scripts/prepare-media-engine.sh`. It downloads the pinned MpVFX media
+engine package from the mpvfx-media-binaries releases, verifies its SHA-256 and unpacks it into the ignored
+`third_party/mpvfx-media/` directory; Xcode links it and embeds it in `Contents/Frameworks`.
+
+The processing backend lives in `backend/` (see its README). It builds and tests on its own:
+
+```sh
+bash scripts/prepare-media-engine.sh   # also works on Linux x86_64, for the tests
+cd backend
+cargo test --release                   # unit tests, C API and header checks, end-to-end renders
+cargo clippy --all-targets -- -D warnings
+cargo run --release --example bench    # timings per filter on a synthetic 720p clip
+cargo run --release -- --set scale_factor=2 input.mp4   # the backend from the command line
+```
 
 Models are prepared outside this repository. Supply a directory of prebuilt
 `.mlmodelc` folders with
@@ -58,15 +70,17 @@ publish to GitHub Releases.
 ## Fast checks without downloaded assets
 
 Run `bash scripts/check.sh` on an Apple Silicon Mac. It checks the 600-line
-maintained-source ceiling, supervised FFmpeg lifecycle and filter commands,
-synthetic native media/FPS/preview/scale/progress regressions, and the independent
-`myUpscalerUnitTests` XCTest scheme. The test scheme does not build the app or
-require Core ML model files. Real-media FFmpeg tests use a local FFmpeg if
-available and report a skip if it is absent; packaged-app verification remains a
-separate requirement.
+maintained-source ceiling, runs the Rust backend's format, lint and test suite,
+the dry-run filter-chain and native media/FPS/preview/scale/progress regressions
+(their test videos are generated with AVFoundation, so no external tool is
+needed), and the independent `myUpscalerUnitTests` XCTest scheme. The test scheme
+does not build the app or require Core ML model files. The backend tests and the
+Swift tests that link the backend need the media engine from
+`scripts/prepare-media-engine.sh`; packaged-app verification
+(`tests/verify-packaged-engine.sh`) remains a separate requirement.
 
-`bash scripts/check-environment.sh` reports Xcode/SDK and the Metal compiler
-component. It does not install tools or download assets. Xcode may be present
+`bash scripts/check-environment.sh` reports Xcode/SDK, the Metal compiler
+component and Rust. It does not install tools or download assets. Xcode may be present
 while its separately supplied Metal compiler component is missing.
 
 For focused checks:

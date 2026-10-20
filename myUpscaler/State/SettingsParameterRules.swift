@@ -3,7 +3,7 @@ import Foundation
 /// Parameter ranges, validation and native pipeline conversions share the same
 /// rules for UI controls, presets and render snapshots.
 extension UpscaleSettings {
-    /// FFmpeg unsharp requires an odd matrix size from 3 through 23.
+    /// Unsharp takes an odd matrix size from 3 through 23.
     nonisolated static func unsharpMatrixSize(_ text: String) -> Double {
         guard let value = Double(text), value.isFinite else { return 3 }
         let bounded = max(3, min(23, value))

@@ -65,6 +65,6 @@ and runtime reports. `--compile-only` prepares these artifacts without claiming
 runtime verification. The executable paths are recorded in `compile-results.json`.
 
 This focused test covers custom shader ABI, registry loading and synthetic
-GPU output. Full packaged FFmpeg/CoreML processing, model inference, real video
+GPU output. Full packaged Rust-engine/CoreML processing, model inference, real video
 encoding and execution on macOS 15.2 still require their separate integration
-tests. The FFmpeg engine sources are unaffected by the shader split.
+tests. The Rust engine is unaffected by the shader split.

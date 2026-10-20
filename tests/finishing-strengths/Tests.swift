@@ -8,7 +8,7 @@ nonisolated private final class LogCapture: Sendable {
     func command() -> String {
         lines.withLock { values in
             let commands = values.filter { $0.hasPrefix("CMD: ") }
-            precondition(commands.count == 1, "Expected one native dry-run command: \(values)")
+            precondition(commands.count == 1, "Expected one dry-run command: \(values)")
             precondition(!values.joined().contains("strength reduction"))
             return commands[0]
         }
@@ -21,7 +21,7 @@ nonisolated private final class LogCapture: Sendable {
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder); up60p_shutdown() }
         let input = folder.appendingPathComponent("fixture.png")
-        // Dry-run builds the actual FFmpeg arguments without decoding or spawning FFmpeg.
+        // Dry-run logs the Rust engine's filter chain without decoding the file.
         try Data().write(to: input)
         up60p_set_dry_run(1)
         let logs = LogCapture()
@@ -47,7 +47,7 @@ nonisolated private final class LogCapture: Sendable {
                     var config = SettingsConfiguration()
                     config.upscaling.scaler = "lanczos"
                     config.codec.useHEVC = false
-                    config.modes.noInterpolate = true; config.modes.noDecimate = true
+                    config.modes.noInterpolate = true; config.modes.noDecimate = true; config.modes.dryRun = true
                     config.color.noEq = true
                     config.primary.useDering = false; config.primary.useDeblock = false; config.primary.useGrain = false
                     config.secondary.useDering = false; config.secondary.useDeblock = false; config.secondary.useGrain = false
@@ -70,18 +70,18 @@ nonisolated private final class LogCapture: Sendable {
                     let decoded = try JSONDecoder().decode(UpscaleSettingsSnapshot.self, from: JSONEncoder().encode(saved))
                     let restored = UpscaleSettings(); decoded.apply(to: restored)
                     precondition(UpscaleSettingsSnapshot(settings: restored) == saved, "Preset must not rescale entered values")
-                    let firstSharpen = firstMethod == "cas" ? "cas=strength=0.31" : "unsharp=7:7:1.4"
-                    let secondSharpen = secondMethod == "cas" ? "cas=strength=0.42" : "unsharp=9:9:1.7"
-                    let secondDeband = deband == "gradfun" ? "gradfun=1.5" : deband == "f3kdb" ? "deband=1thr=0.04000:2thr=0.02000:3thr=0.02000:range=17:blur=0" : "deband=1thr=0.025:b=1"
+                    let firstSharpen = firstMethod == "cas" ? "cas(0.31)" : "unsharp(7x7, amount=1.40"
+                    let secondSharpen = secondMethod == "cas" ? "cas(0.42)" : "unsharp(9x9, amount=1.70"
+                    let secondDeband = deband == "gradfun" ? "gradfun(1.50" : deband == "f3kdb" ? "deband(y=10.20, c=5.10, range=17, strict)" : "deband(y=6.3"
                     let actual = try await command(restored)
-                    assertOrder(actual, ["bm3d=sigma=2.30", "scale=", firstSharpen, "bm3d=sigma=4.20", secondSharpen, secondDeband])
+                    assertOrder(actual, ["bm3d(sigma=2.30)", "lanczos(", firstSharpen, "bm3d(sigma=4.20)", secondSharpen, secondDeband])
                     let preview = restored.makePreviewFilterParameters()
                     precondition(preview.denoiseStrength2 == 4.2)
                     precondition(secondMethod == "cas" ? preview.sharpenStrength2 == 0.42 : preview.usmAmount2 == 1.7 && preview.usmRadius2 == 9)
                     restored.primary.useDenoise = false; restored.primary.useSharpen = false; restored.primary.useDeband = false
                     let independent = try await command(restored)
-                    assertOrder(independent, ["scale=", "bm3d=sigma=4.20", secondSharpen, secondDeband])
-                    precondition(!independent.contains("bm3d=sigma=2.30"))
+                    assertOrder(independent, ["lanczos(", "bm3d(sigma=4.20)", secondSharpen, secondDeband])
+                    precondition(!independent.contains("bm3d(sigma=2.30)"))
                     precondition(restored.makePreviewFilterParameters().denoiseStrength2 == preview.denoiseStrength2)
                     cases += 2
                 }
@@ -89,7 +89,7 @@ nonisolated private final class LogCapture: Sendable {
         }
         let settings = UpscaleSettings()
         settings.upscaling.scaler = "lanczos"; settings.codec.useHEVC = false
-        settings.modes.noInterpolate = true; settings.modes.noDecimate = true
+        settings.modes.noInterpolate = true; settings.modes.noDecimate = true; settings.modes.dryRun = true
         settings.primary.useDenoise = false; settings.primary.useSharpen = false; settings.primary.useDeband = false
         settings.primary.useDering = false; settings.primary.useDeblock = false; settings.primary.useGrain = false; settings.color.noEq = true
         settings.secondary.useDenoise = true; settings.secondary.denoiseStrength.text = "0"
@@ -97,7 +97,7 @@ nonisolated private final class LogCapture: Sendable {
         settings.secondary.useDeband = true; settings.secondary.debandStrength.text = "0"
         settings.secondary.deringAmount = "0"
         let zero = try await command(settings)
-        for filter in ["bm3d=", "hqdn3d=", "cas=", "unsharp=", "deband=", "gradfun="] {
+        for filter in ["bm3d(", "dering(", "cas(", "unsharp(", "deband(", "gradfun("] {
             precondition(!zero.contains(filter), "Zero must bypass \(filter): \(zero)")
         }
         let snapshot = UpscaleSettingsSnapshot(settings: settings)

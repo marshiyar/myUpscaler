@@ -53,7 +53,7 @@ import Combine
         settings.primary.sharpenStrength.text = "0.5"
         settings.secondary.sharpenMethod = "unsharp"
         settings.secondary.usmRadius.text = "7"
-        precondition(Int(String(Int(UpscaleSettings.unsharpMatrixSize(settings.secondary.usmRadius.text))))! % 2 == 1, "FFmpeg unsharp requires an odd matrix size")
+        precondition(Int(String(Int(UpscaleSettings.unsharpMatrixSize(settings.secondary.usmRadius.text))))! % 2 == 1, "Unsharp requires an odd matrix size")
         for value in ["nan", "inf", "1e300"] {
             settings.secondary.usmRadius.text = value
             precondition(["3", "23"].contains(String(Int(UpscaleSettings.unsharpMatrixSize(settings.secondary.usmRadius.text)))), "invalid radius must not trap")

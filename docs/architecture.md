@@ -12,11 +12,11 @@ The app keeps one authoritative settings object for the UI. A job captures a sep
 
 `Views` contains focused panels. SwiftUI state stays with its owning component. Native sliders replace overlapping custom gestures. Encoding choices are conditional on the actual selected engine and codec, and the persistent footer reads runner-owned progress.
 
-`Native` retains the C engine and supervised FFmpeg process boundary. `Native/Process` includes the Objective-C bridge and process/path helpers. The Xcode app target uses synchronized folder membership; the independent XCTest target explicitly lists its required source files. Scripts and tests must be updated alongside file moves.
+`backend/` is the Rust processing engine (see `backend/README.md`). Swift calls it through `Processing/Up60PEngine` and the generated `backend/target/include/up60p.h`; it decodes and encodes through the MpVFX media engine library, with no FFmpeg and no helper processes. `Native/Process/Shaders` holds the preview's Metal shaders. The Xcode app target uses synchronized folder membership; the independent XCTest target explicitly lists its required source files. Scripts and tests must be updated alongside file moves.
 
 ## File budget
 
-Maintained application `.swift`, `.c`, `.h`, `.m` and `.metal` files target roughly 500 lines and must stay within 600 lines. `scripts/check-source-budget.py` enforces the ceiling. Focused files can be shorter. Vendor material, licenses, compiled models and generated/build outputs are not split or rewritten to satisfy this rule. The current maintained source has no ceiling exemptions.
+Maintained application `.swift`, `.rs` and `.metal` files target roughly 500 lines and must stay within 600 lines. `scripts/check-source-budget.py` enforces the ceiling. Focused files can be shorter. Vendor material, licenses, compiled models and generated/build outputs are not split or rewritten to satisfy this rule. The current maintained source has no ceiling exemptions.
 
 Split by an identifiable responsibility and explicit ownership boundary, not arbitrary line numbers. Keep request generations and cancellation handles with their coordinator. Keep dynamically loaded shader entry points, valid OS fallbacks, preset migration fields and upstream notices even when a simple static reference search finds no direct call.
 
@@ -40,7 +40,7 @@ The app target keeps its existing MainActor default isolation and Swift language
 | ModelManager actor | Model preparation, cached model and prediction. Fresh input/output ownership transfers at the actor boundary; mutable MLModel does not escape. |
 | VideoIO nonisolated(nonsending) async methods | Stay on the owning caller's executor. Mutable frame access is synchronous; completed frames are read-only before writer/previous-frame use. |
 | VideoAudioMuxer @concurrent | AVFoundation audio muxing away from UI ownership, with cancellation and immutable URL/log inputs. |
-| Native engine detached task | Source timing and blocking supervised FFmpeg processing. Short MainActor hops report diagnostics and lifecycle state; callbacks and reads do not hold ownership locks. |
+| Rust engine detached task | Source timing and the blocking `up60p_process_path` call. Short MainActor hops report diagnostics and lifecycle state; callbacks and reads do not hold ownership locks. |
 | Preview renderer queue | Render immutable filter parameters. Request generation/cache publication stays with the editor; stale results are discarded. |
 | Nonisolated value/helper types | Configuration, normalization, codec checks, geometry, tensor metadata, progress gate, checked buffer access and immutable shader registry. They do not read mutable UI state. |
 

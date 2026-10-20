@@ -1,0 +1,8 @@
+MpVFX media engine
+Copyright (c) 2026 Arshiya Rahgozar <57055687+marshiyar@users.noreply.github.com>
+
+This package holds the compiled MpVFX media engine library and its C header. It is proprietary: all
+rights reserved, and no licence to use, copy, modify or distribute it is granted except in writing by the
+copyright holder. Being able to download it grants no licence.
+
+The library includes third-party code under its own licence; NOTICE lists it and gives its licence text.

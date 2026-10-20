@@ -1,7 +1,7 @@
 import Foundation
 
-/// Modes implemented and supported by the pinned FFmpeg bundle. Legacy DNN,
-/// zscale, and hardware-scaler presets remain decodable, but are not runnable.
+/// Modes the app can run: Lanczos in the Rust engine, CoreML models in Swift.
+/// Legacy DNN, zscale, and hardware-scaler presets remain decodable, but are not runnable.
 nonisolated enum UpscalingModeSupport {
     static func scalers(bundledModelIDs: [String]) -> [String] {
         bundledModelIDs.isEmpty ? ["lanczos"] : ["lanczos", "coreml"]

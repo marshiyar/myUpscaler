@@ -15,7 +15,7 @@ nonisolated final class ProgressUpdateGate: Sendable {
 
         // Native pipe reads may combine progress with arbitrary diagnostics. Only
         // sample chunks whose every record starts with a recognized stats field.
-        // `elapsed=` is part of modern FFmpeg stats, not a terminal marker.
+        // `elapsed=` can appear in progress lines; it is not a terminal marker.
         
         let records = lower.split(whereSeparator: { $0.isNewline })
         guard !records.isEmpty, records.allSatisfy({ record in

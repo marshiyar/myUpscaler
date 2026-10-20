@@ -137,7 +137,7 @@ struct RestorationSecondSetPanel: View {
                     }
                     .padding(8)
                 } label: {
-                    Label("Finishing filters (FFmpeg)", systemImage: "wand.and.stars.inverse")
+                    Label("Finishing filters (Lanczos)", systemImage: "wand.and.stars.inverse")
                         .font(.subheadline)
                 }
             }
@@ -145,6 +145,6 @@ struct RestorationSecondSetPanel: View {
             .cardStyle()
         }
         .disabled(settings.upscaling.scaler == "coreml")
-        .help("The second restoration pass is available only for FFmpeg")
+        .help("The second restoration pass is available only for Lanczos (Rust engine) exports")
     }
 }

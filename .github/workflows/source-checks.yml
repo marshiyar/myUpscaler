@@ -20,13 +20,18 @@ jobs:
         run: |
           git diff --check
           git ls-files '*.sh' -z | xargs -0 -n 1 bash -n
-      - name: Prepare bundled FFmpeg for tests
-        shell: bash
+      - name: Test upscaling mode availability
         run: |
-          bash scripts/prepare-bundled-ffmpeg.sh
-          echo "$GITHUB_WORKSPACE/myUpscaler/ThirdParty/ffmpeg" >> "$GITHUB_PATH"
-      - name: Run native source regressions
-        run: python3 -m unittest discover -s tests -p 'test*.py'
+          set -euo pipefail
+          xcrun swiftc myUpscaler/Models/UpscalingModeSupport.swift tests/upscaling-mode-support/main.swift \
+            -o "$RUNNER_TEMP/upscaling-mode-tests"
+          "$RUNNER_TEMP/upscaling-mode-tests"
+      - name: Test progress parsing of the backend's log
+        run: |
+          set -euo pipefail
+          xcrun swiftc myUpscaler/Support/ProgressParser.swift tests/progress-parser/main.swift \
+            -o "$RUNNER_TEMP/progress-parser-tests"
+          "$RUNNER_TEMP/progress-parser-tests"
       - name: Run available Swift source regressions
         run: |
           for check in \
@@ -40,6 +45,8 @@ jobs:
             tests/test-workspace-actions.sh \
             tests/test-processing-lifecycle.sh \
             tests/test-batch.sh \
+            tests/commit-boundary/run-committed-output-tests.sh \
+            tests/commit-boundary/run-stage-tests.sh \
             tests/logging/run.sh \
             tests/apple-api/run.sh \
             tests/apple-api/run-audio.sh \

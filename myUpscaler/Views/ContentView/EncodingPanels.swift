@@ -140,7 +140,7 @@ struct HardwareEncodingPanel: View {
                             .controlSize(.mini)
 
                             .disabled(settings.upscaling.scaler == "coreml" || !settings.codec.useHEVC || settings.modes.pciSafe)
-                            .help("10-bit output requires HEVC and the FFmpeg processing path")
+                            .help("10-bit output requires HEVC and the Core ML path; Lanczos exports are 8-bit H.264")
                             // MOV Faststart Toggle
                             Toggle(isOn: Binding(
                                 get: { settings.output.movflags.contains("+faststart") },
@@ -174,7 +174,7 @@ struct HardwareEncodingPanel: View {
                             .toggleStyle(.switch)
                             .controlSize(.mini)
                             .disabled(settings.upscaling.scaler == "coreml")
-                            .help("Applies to FFmpeg; overrides 10-bit output while preserving your saved bit-depth preference.")
+                            .help("Overrides 10-bit output while preserving your saved bit-depth preference.")
 
                         Divider()
                             .padding(.vertical, 2)

@@ -114,13 +114,8 @@ import Combine
     let denoisers = ["bm3d", "nlmeans", "hqdn3d", "atadenoise"]
     let sharpenMethods = ["cas", "unsharp"]
     let debandMethods = ["deband", "gradfun", "f3kdb", "neo_f3kdb"]
-    static var neoF3kdbAvailable: Bool {
-        guard #available(macOS 27, *), let executable = Bundle.main.executableURL else { return false }
-        let directory = executable.deletingLastPathComponent()
-        return ["up60p-neo-media", "up60p-neo-supervisor"].allSatisfy {
-            FileManager.default.isExecutableFile(atPath: directory.appendingPathComponent($0).path)
-        }
-    }
+    /// Neo F3kdb debanding is part of the Rust backend, so it is available wherever the backend is.
+    static var neoF3kdbAvailable: Bool { true }
 
     let hwAccels = ["none", "videotoolbox"]
     let encoders = ["auto", "cpu", "videotoolbox"]

@@ -4,9 +4,10 @@ cd "$(dirname "$0")/.."
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 if (( $# == 0 )); then
-  ffmpeg_path=$(command -v ffmpeg) || { echo 'Timeline checks need local ffmpeg or two existing fixture paths.' >&2; exit 1; }
-  "$ffmpeg_path" -v error -f lavfi -i testsrc2=size=640x360:rate=30 -t 2 -c:v libx264 -threads 1 -g 60 -bf 2 -pix_fmt yuv420p "$work/first.mp4"
-  "$ffmpeg_path" -v error -f lavfi -i testsrc2=size=320x180:rate=30 -t 2 -c:v libx264 -threads 1 -g 60 -bf 2 -pix_fmt yuv420p "$work/replacement.mp4"
+  # Two seconds at 30 fps with B-frames, written with AVFoundation.
+  bash tests/fixtures/build.sh "$work/make-test-media"
+  "$work/make-test-media" clip "$work/first.mp4" 640 360 30 1 60
+  "$work/make-test-media" clip "$work/replacement.mp4" 320 180 30 1 60
   set -- "$work/first.mp4" "$work/replacement.mp4"
 elif (( $# < 2 )); then
   echo 'Usage: tests/test-timeline.sh [first-video replacement-video more-videos...]' >&2

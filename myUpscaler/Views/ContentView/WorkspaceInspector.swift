@@ -53,7 +53,7 @@ struct WorkspaceInspector: View {
                     Section {
                         Toggle("Remove near-duplicate frames", isOn: enabled($settings.modes.noDecimate))
                             .disabled(settings.upscaling.scaler == "coreml")
-                            .help("FFmpeg Decimate removes near-duplicate frames before output frame-rate conversion.")
+                            .help("Decimate removes near-duplicate frames before output frame-rate conversion.")
                     }
                     Section {
                         Button {

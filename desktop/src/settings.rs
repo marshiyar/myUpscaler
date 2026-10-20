@@ -208,8 +208,8 @@ mod tests {
         // The factory EQ is neutral, so the chain matches what the backend builds from its own defaults.
         let source = up60p::pipeline::Source::Image;
         assert_eq!(
-            up60p::pipeline::build(&o, source).unwrap().chain.describe(),
-            up60p::pipeline::build(&defaults, source).unwrap().chain.describe()
+            up60p::pipeline::build(&o, source).unwrap().describe(),
+            up60p::pipeline::build(&defaults, source).unwrap().describe()
         );
     }
 

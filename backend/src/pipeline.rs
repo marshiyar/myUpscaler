@@ -1,7 +1,11 @@
 //! Turns the app's options into a filter chain, in the order the app applies them:
 //!
-//! decimate → deblock → denoise → dering → retime/interpolate → Lanczos scale → sharpen → deband → second-set
-//! dering, deblock, denoise, sharpen and deband → EQ → grain.
+//! decimate → deblock → denoise → dering → interpolate → Lanczos scale → sharpen → deband → second-set dering,
+//! deblock, denoise, sharpen and deband → EQ → grain → repeat.
+//!
+//! A video's frame rate is changed by one of the two: interpolate (blend or motion-compensated pictures, a stage of
+//! the chain) or repeat (showing frames again, done by the job on the finished pictures, so the filters run once per
+//! source frame and a repeat costs nothing).
 //!
 //! Strength mappings (how a slider value becomes filter parameters) are the app's established ones. A strength of
 //! exactly zero leaves its stage out, as does a neutral EQ. Invalid EQ values, frame rates, Neo F3kdb parameters and
@@ -17,6 +21,7 @@ use crate::filters::grain::Grain;
 use crate::filters::hqdn3d::Hqdn3d;
 use crate::filters::interpolate::{Mode, Retimer};
 use crate::filters::nlmeans::NlMeans;
+use crate::filters::repeat::Repeater;
 use crate::filters::scale::{scaled_size, Lanczos};
 use crate::filters::sharpen::{Cas, Unsharp};
 use crate::filters::{number, Chain, Filter};
@@ -31,6 +36,8 @@ pub enum Source {
 
 pub struct Plan {
     pub chain: Chain,
+    /// Frame repetition to the output rate, after the chain (videos without interpolation).
+    pub repeat: Option<Repeater>,
     /// Output frame rate as a fraction (videos only).
     pub fps: Option<(u32, u32)>,
     pub scale: f64,
@@ -287,12 +294,13 @@ pub fn build(o: &Options, source: Source) -> Result<Plan, String> {
         chain.push_some(dering_stage(&text(&o.dering_strength)));
     }
     let mut fps = None;
+    let mut repeat = None;
     if let Source::Video { fps: src_fps } = source {
         let fps_option = text(&o.fps);
         let timing = Timing::from_options(o);
         let src_rate = timing.as_ref().map_or(src_fps, |t| t.rate);
         if fps_option == "source" || fps_option == "lock" {
-            chain.push_stage(Box::new(Retimer::new(Mode::Dup, src_rate, src_rate)));
+            repeat = Some(Repeater::new(src_rate, src_rate));
             let exact =
                 timing.as_ref().and_then(|_| target_rate(&format!("{}/{}", o.source_rate_num, o.source_rate_den)));
             fps = Some(exact.unwrap_or_else(|| rational(src_rate)));
@@ -316,11 +324,19 @@ pub fn build(o: &Options, source: Source) -> Result<Plan, String> {
                 None => {}
             }
             let mode = if interpolate { Mode::parse(&mi_mode) } else { Mode::Dup };
-            let mut retimer = Retimer::new(mode, target, src_rate);
-            if let Some(n) = retimer_frames {
-                retimer = retimer.with_frame_limit(n);
+            if mode == Mode::Dup {
+                let repeater = Repeater::new(target, src_rate);
+                repeat = Some(match retimer_frames {
+                    Some(n) => repeater.with_frame_limit(n),
+                    None => repeater,
+                });
+            } else {
+                let mut retimer = Retimer::new(mode, target, src_rate);
+                if let Some(n) = retimer_frames {
+                    retimer = retimer.with_frame_limit(n);
+                }
+                chain.push_stage(Box::new(retimer));
             }
-            chain.push_stage(Box::new(retimer));
             fps = Some((num, den));
         }
     }
@@ -392,7 +408,18 @@ pub fn build(o: &Options, source: Source) -> Result<Plan, String> {
             notes.push("Live preview is not available in the Rust engine; processing without it.".into());
         }
     }
-    Ok(Plan { chain, fps, scale, notes })
+    Ok(Plan { chain, repeat, fps, scale, notes })
+}
+
+impl Plan {
+    /// The chain and the repetition, for the log: `bm3d(...) -> lanczos(x2.00) -> retime(dup, 60.000 fps)`.
+    pub fn describe(&self) -> String {
+        match (&self.repeat, self.chain.is_empty()) {
+            (Some(r), true) => r.describe(),
+            (Some(r), false) => format!("{} -> {}", self.chain.describe(), r.describe()),
+            (None, _) => self.chain.describe(),
+        }
+    }
 }
 
 /// Output size for an input size: Lanczos rounding to even sides.

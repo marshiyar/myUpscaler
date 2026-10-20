@@ -22,14 +22,23 @@ fn assert_order(d: &str, order: &[&str]) {
 #[test]
 fn default_video_chain_matches_the_app_order() {
     let plan = video(&Options::default(), 24.0);
-    let d = plan.chain.describe();
+    let d = plan.describe();
     assert_order(
         &d,
-        &["decimate", "deblock", "bm3d", "retime(dup, 60.000", "lanczos(x2.00)", "cas", "deband", "grain"],
+        &["decimate", "deblock", "bm3d", "lanczos(x2.00)", "cas", "deband", "grain", "retime(dup, 60.000"],
     );
     // The factory EQ is neutral, so it is left out.
     assert!(!d.contains("eq("), "{d}");
     assert_eq!(plan.fps, Some((60, 1)));
+}
+
+#[test]
+fn interpolation_runs_before_scaling_and_repeats_after_the_filters() {
+    let mut o = Options::default();
+    o.no_interpolate = 0;
+    assert_order(&video(&o, 24.0).describe(), &["bm3d", "retime(mci, 60.000", "lanczos", "cas", "grain"]);
+    set(&mut o.fps, "source");
+    assert_order(&video(&o, 24.0).describe(), &["bm3d", "lanczos", "deband", "grain", "retime(dup, 24.000"]);
 }
 
 #[test]
@@ -42,17 +51,17 @@ fn denoise_comes_before_dering_and_the_second_set_runs_on_its_own_switches() {
     o.use_deblock_2 = 1;
     o.use_denoise_2 = 1;
     set(&mut o.denoiser_2, "nlmeans");
-    let d = build(&o, Source::Image).unwrap().chain.describe();
+    let d = build(&o, Source::Image).unwrap().describe();
     assert_order(&d, &["dering", "lanczos", "cas", "deband", "dering", "deblock", "nlmeans"]);
     let mut o = Options::default();
     o.dering_active = 1;
-    let d = build(&o, Source::Image).unwrap().chain.describe();
+    let d = build(&o, Source::Image).unwrap().describe();
     assert_order(&d, &["deblock", "bm3d", "dering"]);
 }
 
 #[test]
 fn images_skip_temporal_stages() {
-    let d = build(&Options::default(), Source::Image).unwrap().chain.describe();
+    let d = build(&Options::default(), Source::Image).unwrap().describe();
     assert!(!d.contains("decimate") && !d.contains("retime"), "{d}");
 }
 
@@ -75,7 +84,7 @@ fn zero_strengths_bypass_their_stage() {
     ] {
         set(f, "0");
     }
-    let d = build(&o, Source::Image).unwrap().chain.describe();
+    let d = build(&o, Source::Image).unwrap().describe();
     for name in ["bm3d", "cas", "deband", "dering"] {
         assert!(!d.contains(name), "{name} in {d}");
     }
@@ -85,21 +94,21 @@ fn zero_strengths_bypass_their_stage() {
     for f in [&mut o.f3kdb_range_2[..], &mut o.f3kdb_y_2[..], &mut o.f3kdb_cbcr_2[..]] {
         set(f, "0");
     }
-    let d = build(&o, Source::Image).unwrap().chain.describe();
+    let d = build(&o, Source::Image).unwrap().describe();
     assert!(!d.contains("unsharp") && !d.contains("deband"), "{d}");
     // Grain runs when either the first set's switch or the second set's says so.
     o.use_grain_2 = 1;
     set(&mut o.grain_strength_2, "2");
-    assert!(build(&o, Source::Image).unwrap().chain.describe().contains("grain(2.00)"));
+    assert!(build(&o, Source::Image).unwrap().describe().contains("grain(2.00)"));
     set(&mut o.grain_strength_2, "0");
-    assert!(!build(&o, Source::Image).unwrap().chain.describe().contains("grain"));
+    assert!(!build(&o, Source::Image).unwrap().describe().contains("grain"));
 }
 
 #[test]
 fn eq_is_validated_and_neutral_values_bypass_it() {
     let mut o = Options::default();
     set(&mut o.eq_contrast, "1.03");
-    assert!(build(&o, Source::Image).unwrap().chain.describe().contains("eq(contrast=1.030"));
+    assert!(build(&o, Source::Image).unwrap().describe().contains("eq(contrast=1.030"));
     for (field, bad) in [(0, "1001"), (1, "-1.5"), (2, "3.1"), (0, "abc"), (1, "inf")] {
         let mut o = Options::default();
         let f = [&mut o.eq_contrast[..], &mut o.eq_brightness[..], &mut o.eq_saturation[..]];
@@ -140,7 +149,7 @@ fn neo_f3kdb_takes_integer_parameters() {
     set(&mut o.f3kdb_range, "20");
     set(&mut o.f3kdb_y, "64");
     set(&mut o.f3kdb_cbcr, "32");
-    let d = build(&o, Source::Image).unwrap().chain.describe();
+    let d = build(&o, Source::Image).unwrap().describe();
     assert!(d.contains("deband(y=4.00, c=2.00, range=20, strict)"), "{d}");
     for (range, y) in [("256", "64"), ("20", "512"), ("2.5", "64"), ("20", "-1"), ("x", "64")] {
         set(&mut o.f3kdb_range, range);
@@ -151,7 +160,7 @@ fn neo_f3kdb_takes_integer_parameters() {
         set(&mut o.f3kdb_range, range);
         set(&mut o.f3kdb_y, y);
         set(&mut o.f3kdb_cbcr, c);
-        assert!(!build(&o, Source::Image).unwrap().chain.describe().contains("deband"));
+        assert!(!build(&o, Source::Image).unwrap().describe().contains("deband"));
     }
 }
 
@@ -179,13 +188,13 @@ fn source_rate_and_toggles() {
     o.no_eq = 1;
     let plan = video(&o, 30000.0 / 1001.0);
     assert_eq!(plan.fps, Some((30000, 1001)));
-    let d = plan.chain.describe();
+    let d = plan.describe();
     assert!(!d.contains("bm3d") && !d.contains("grain") && !d.contains("eq("), "{d}");
     // Without interpolation the target rate is still honoured, by repeating and dropping frames.
     set(&mut o.fps, "120");
     let plan = video(&o, 25.0);
     assert_eq!(plan.fps, Some((120, 1)));
-    assert!(plan.chain.describe().contains("retime(dup, 120.000"));
+    assert!(plan.describe().contains("retime(dup, 120.000"));
 }
 
 #[test]
@@ -198,23 +207,23 @@ fn verified_timing_gives_exact_frame_counts_and_interpolates_only_upwards() {
     o.source_rate_den = 1001;
     o.source_frame_count = 240;
     set(&mut o.fps, "60");
-    assert!(video(&o, 24.0).chain.describe().contains("retime(mci, 60.000 fps, 601 frames)"));
+    assert!(video(&o, 24.0).describe().contains("retime(mci, 60.000 fps, 601 frames)"));
     set(&mut o.fps, "24000/1001");
-    let d = video(&o, 24.0).chain.describe();
+    let d = video(&o, 24.0).describe();
     assert!(d.contains("retime(dup, 23.976 fps, 240 frames)"), "{d}");
     set(&mut o.fps, "30");
-    assert!(video(&o, 24.0).chain.describe().contains("retime(mci, 30.000 fps, 300 frames)"));
+    assert!(video(&o, 24.0).describe().contains("retime(mci, 30.000 fps, 300 frames)"));
     set(&mut o.fps, "60");
     o.source_frame_count = 1;
-    assert!(video(&o, 24.0).chain.describe().contains("retime(dup"));
+    assert!(video(&o, 24.0).describe().contains("retime(dup"));
     o.source_frame_count = 240;
     set(&mut o.mi_mode, "dup");
-    assert!(video(&o, 24.0).chain.describe().contains("retime(dup"));
+    assert!(video(&o, 24.0).describe().contains("retime(dup"));
     // Unverified timing: interpolate without a frame limit, and say so.
     set(&mut o.mi_mode, "blend");
     o.source_cfr_verified = 0;
     let plan = video(&o, 24.0);
-    assert!(plan.chain.describe().contains("retime(blend, 60.000 fps)"));
+    assert!(plan.describe().contains("retime(blend, 60.000 fps)"));
     assert!(plan.notes.iter().any(|n| n.contains("Source timing is unknown")));
     set(&mut o.fps, "source");
     o.source_cfr_verified = 1;

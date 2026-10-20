@@ -1,4 +1,4 @@
-// Building blocks in the ArtCraft-suite style: panels with underlined tab headers, collapsible sections with an
+// Building blocks of the editor layout: panels with underlined tab headers, collapsible sections with an
 // on/off switch, dense property rows (label, control, blue value), buttons and the progress line. The input controls
 // are in controls.slint.
 
@@ -31,7 +31,7 @@ export component Panel inherits Rectangle {
     clip: true;
 }
 
-// Underlined tab headers with a menu glyph on the active one ("Program ≡", "Lumetri Color ≡  Effects").
+// Underlined tab headers with a menu glyph on the active one ("Program ≡", "Restore ≡  Processor").
 export component PanelTabs inherits HorizontalLayout {
     in property <[string]> items;
     in-out property <int> selected;

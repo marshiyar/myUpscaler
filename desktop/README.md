@@ -1,8 +1,8 @@
 # myUpscaler desktop (macOS, Windows, Linux)
 
 The cross-platform version of myUpscaler: a [Slint](https://slint.dev) interface on the same Rust processing
-backend (`../backend`) the macOS app uses, with the same settings. It is laid out like the ArtCraft suite's editors
-(FilmCraft, PhotoCraft): a top bar with three workspaces (Import, Edit, Export) and the document title, flat panels
+backend (`../backend`) the macOS app uses, with the same settings. It is laid out like a professional media editor: a top
+bar with three workspaces (Import, Edit, Export) and the document title, flat panels
 tiled on a black window, and a status bar. Edit pairs the Program monitor (preview, blue timecode, original or
 filtered view, scrubber) with the adjustments panel, whose effects are collapsible sections with an on/off switch and
 one-line slider rows; Export holds the destination, the format summary and the Export button. Every control is drawn

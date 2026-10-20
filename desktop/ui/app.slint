@@ -1,0 +1,413 @@
+// The main window (ContentView.swift): toolbar, preview card with the log under it, the docked adjustments panel,
+// and the progress bar with Run / Cancel at the bottom. About and Settings open as sheets.
+
+import { ScrollView, Slider, Switch, ProgressIndicator, AboutSlint, ComboBox, Spinner, Palette } from "std-widgets.slint";
+import { Theme, ThemePreference } from "theme.slint";
+import { Settings, App, Actions } from "globals.slint";
+import { IconButton, AccentButton, EmptyState, FormSection, ChoiceRow, Divider } from "components.slint";
+import { Inspector } from "inspector.slint";
+
+export { Settings, App, Actions, Theme }
+
+component Toolbar inherits Rectangle {
+    height: 52px;
+    background: Theme.bar-background;
+    HorizontalLayout {
+        padding-left: Theme.md;
+        padding-right: Theme.md;
+        padding-top: 12px;
+        padding-bottom: 12px;
+        spacing: Theme.sm;
+        alignment: stretch;
+        IconButton {
+            icon: @image-url("icons/import.svg");
+            label: "Import";
+            enabled: !App.running;
+            clicked => { Actions.import(); }
+        }
+        HorizontalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            spacing: Theme.sm;
+            Image {
+                source: @image-url("icons/upscale.svg");
+                width: 18px;
+                colorize: Theme.accent;
+                vertical-alignment: center;
+            }
+            Text {
+                text: App.input-name == "" ? "myUpscaler" : App.input-name;
+                font-size: Theme.font-body;
+                font-weight: 600;
+                color: Theme.text;
+                vertical-alignment: center;
+                overflow: elide;
+            }
+        }
+        IconButton {
+            icon: @image-url("icons/sidebar.svg");
+            label: "";
+            active: App.inspector-visible;
+            accessible-label: App.inspector-visible ? "Hide adjustments panel" : "Show adjustments panel";
+            clicked => { App.inspector-visible = !App.inspector-visible; }
+        }
+        IconButton {
+            icon: @image-url("icons/settings.svg");
+            label: "";
+            accessible-label: "Settings";
+            clicked => { App.settings-open = true; }
+        }
+        IconButton {
+            icon: @image-url("icons/info.svg");
+            label: "";
+            accessible-label: "About";
+            clicked => { App.about-open = true; }
+        }
+    }
+    Rectangle {
+        y: parent.height - 1px;
+        height: 1px;
+        background: Theme.separator;
+    }
+}
+
+component PreviewCard inherits Rectangle {
+    background: Theme.card-background;
+    border-radius: Theme.radius-card;
+    border-width: 1px;
+    border-color: Theme.stroke;
+    clip: true;
+    if App.input-path == "": EmptyState {
+        icon: @image-url("icons/video.svg");
+        title: "Import a video or image";
+        message: "Choose a file or a folder for batch processing. Restoration and upscaling run on this computer.";
+        HorizontalLayout {
+            alignment: center;
+            spacing: Theme.sm;
+            AccentButton {
+                text: "Import…";
+                icon: @image-url("icons/import.svg");
+                enabled: !App.running;
+                clicked => { Actions.import(); }
+            }
+            AccentButton {
+                text: "Batch folder…";
+                icon: @image-url("icons/folder.svg");
+                primary: false;
+                enabled: !App.running;
+                clicked => { Actions.import-folder(); }
+            }
+        }
+    }
+    if App.input-path != "": VerticalLayout {
+        padding: Theme.sm;
+        spacing: Theme.sm;
+        Rectangle {
+            vertical-stretch: 1;
+            background: #000000;
+            border-radius: Theme.radius-medium;
+            clip: true;
+            if App.has-preview: Image {
+                width: parent.width;
+                height: parent.height;
+                source: App.preview;
+                image-fit: contain;
+            }
+            if !App.has-preview && App.preview-note != "": Text {
+                text: App.preview-note;
+                color: #ffffffb0;
+                font-size: Theme.font-body;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                wrap: word-wrap;
+                width: parent.width - 2 * Theme.lg;
+            }
+            if App.preview-busy: Rectangle {
+                x: parent.width - self.width - Theme.sm;
+                y: Theme.sm;
+                width: 28px;
+                height: 28px;
+                border-radius: 14px;
+                background: #00000080;
+                Spinner {
+                    width: 18px;
+                    height: 18px;
+                    indeterminate: true;
+                }
+            }
+            if App.running: Rectangle {
+                background: #0000004d;
+                Text {
+                    text: "Processing… preview frozen";
+                    color: white;
+                    font-size: Theme.font-caption;
+                }
+            }
+        }
+        HorizontalLayout {
+            spacing: Theme.sm;
+            padding-left: Theme.xs;
+            padding-right: Theme.xs;
+            Text {
+                text: App.input-info;
+                font-size: Theme.font-caption;
+                color: Theme.secondary-text;
+                vertical-alignment: center;
+                overflow: elide;
+                horizontal-stretch: 1;
+            }
+            Switch {
+                text: "Preview filters";
+                checked <=> App.show-processed;
+                enabled: !App.running;
+                toggled => { Actions.refresh-preview(); }
+            }
+        }
+        if !App.is-image && App.duration > 0: Slider {
+            minimum: 0;
+            maximum: App.duration;
+            value: App.position;
+            enabled: !App.running;
+            accessible-label: "Preview position";
+            released(v) => {
+                App.position = v;
+                Actions.seek(v);
+            }
+        }
+    }
+}
+
+component LogPanel inherits Rectangle {
+    background: Theme.card-background;
+    border-radius: Theme.radius-large;
+    border-width: 1px;
+    border-color: Theme.stroke;
+    VerticalLayout {
+        padding: Theme.sm;
+        spacing: Theme.xs;
+        HorizontalLayout {
+            padding-left: Theme.xs;
+            Text {
+                text: "Log";
+                font-size: Theme.font-body;
+                font-weight: 600;
+                color: Theme.text;
+                vertical-alignment: center;
+                horizontal-stretch: 1;
+            }
+            IconButton {
+                icon: @image-url("icons/reset.svg");
+                label: "Clear";
+                icon-size: 12px;
+                clicked => { Actions.clear-log(); }
+            }
+        }
+        ScrollView {
+            vertical-stretch: 1;
+            content-y: min(0px, self.visible-height - log-text.preferred-height);
+            log-text := Text {
+                width: parent.width - Theme.md;
+                text: App.log == "" ? "Messages from the engine appear here." : App.log;
+                font-family: "monospace";
+                font-size: Theme.font-small;
+                color: App.log == "" ? Theme.secondary-text : Theme.text;
+                wrap: word-wrap;
+            }
+        }
+    }
+}
+
+component BottomBar inherits Rectangle {
+    height: 72px;
+    background: Theme.bar-background;
+    Rectangle {
+        y: 0;
+        height: 1px;
+        background: Theme.separator;
+    }
+    HorizontalLayout {
+        padding: Theme.md;
+        spacing: 20px;
+        VerticalLayout {
+            horizontal-stretch: 1;
+            spacing: 6px;
+            alignment: center;
+            HorizontalLayout {
+                spacing: Theme.md;
+                Text {
+                    text: App.phase;
+                    font-size: Theme.font-body;
+                    font-weight: 600;
+                    color: App.error != "" ? Theme.error : Theme.text;
+                    overflow: elide;
+                    horizontal-stretch: 1;
+                }
+                Text {
+                    text: "FPS " + App.fps-text;
+                    font-size: Theme.font-caption;
+                    color: Theme.secondary-text;
+                }
+                Text {
+                    text: "Time " + App.time-text;
+                    font-size: Theme.font-caption;
+                    color: Theme.secondary-text;
+                }
+                Text {
+                    text: "ETA " + App.eta-text;
+                    font-size: Theme.font-caption;
+                    color: Theme.secondary-text;
+                }
+            }
+            ProgressIndicator {
+                height: 6px;
+                progress: App.progress;
+                indeterminate: App.running && !App.progress-known;
+            }
+        }
+        if !App.running: AccentButton {
+            width: 150px;
+            text: "Run";
+            icon: @image-url("icons/play.svg");
+            enabled: App.input-path != "";
+            clicked => { Actions.run(); }
+        }
+        if App.running: AccentButton {
+            width: 150px;
+            text: App.cancelling ? "Cancelling…" : "Cancel";
+            icon: @image-url("icons/stop.svg");
+            primary: false;
+            enabled: !App.cancelling;
+            clicked => { Actions.cancel(); }
+        }
+    }
+}
+
+// A modal sheet over the window: dimmed backdrop, centred card.
+component Sheet inherits Rectangle {
+    in property <length> card-width: 420px;
+    callback close();
+    background: #00000066;
+    TouchArea { clicked => { root.close(); } }
+    Rectangle {
+        width: root.card-width;
+        height: content.preferred-height;
+        background: Theme.window-background;
+        border-radius: Theme.radius-large;
+        drop-shadow-blur: 20px;
+        drop-shadow-color: #00000059;
+        drop-shadow-offset-y: 8px;
+        TouchArea { }
+        content := VerticalLayout {
+            padding: Theme.lg;
+            spacing: Theme.md;
+            @children
+        }
+    }
+}
+
+export component AppWindow inherits Window {
+    title: "myUpscaler";
+    icon: @image-url("icons/upscale.svg");
+    min-width: 720px;
+    min-height: 600px;
+    preferred-width: 1180px;
+    preferred-height: 780px;
+    background: Theme.window-background;
+    default-font-size: Theme.font-body;
+
+    // The built-in widgets follow Slint's palette: keep it in step with the appearance setting.
+    property <ThemePreference> appearance: Theme.preference;
+    changed appearance => {
+        Palette.color-scheme = self.appearance == ThemePreference.dark ? ColorScheme.dark
+            : self.appearance == ThemePreference.light ? ColorScheme.light : ColorScheme.unknown;
+    }
+
+    VerticalLayout {
+        Toolbar { }
+        HorizontalLayout {
+            vertical-stretch: 1;
+            VerticalLayout {
+                horizontal-stretch: 1;
+                padding: 20px;
+                spacing: Theme.md;
+                PreviewCard {
+                    vertical-stretch: 1;
+                    min-height: 280px;
+                }
+                LogPanel {
+                    height: 170px;
+                }
+            }
+            if App.inspector-visible: Rectangle {
+                width: 1px;
+                background: Theme.separator;
+            }
+            if App.inspector-visible: Inspector {
+                min-width: 320px;
+                preferred-width: 440px;
+                max-width: 440px;
+                horizontal-stretch: 0;
+            }
+        }
+        if App.input-path != "" || App.running: BottomBar { }
+    }
+
+    if App.about-open: Sheet {
+        close => { App.about-open = false; }
+        Text {
+            text: "myUpscaler";
+            font-size: Theme.font-title;
+            font-weight: 700;
+            color: Theme.text;
+            horizontal-alignment: center;
+        }
+        Text {
+            text: "Video restoration and upscaling for macOS, Windows and Linux.\nProcessing engine written in Rust; media engine: MpVFX " + App.engine-version + ".";
+            font-size: Theme.font-body;
+            color: Theme.secondary-text;
+            horizontal-alignment: center;
+            wrap: word-wrap;
+        }
+        Divider { }
+        AboutSlint {
+            height: 160px;
+        }
+        HorizontalLayout {
+            alignment: center;
+            AccentButton {
+                text: "Close";
+                width: 120px;
+                clicked => { App.about-open = false; }
+            }
+        }
+    }
+
+    if App.settings-open: Sheet {
+        close => { App.settings-open = false; }
+        Text {
+            text: "Settings";
+            font-size: Theme.font-title;
+            font-weight: 700;
+            color: Theme.text;
+        }
+        FormSection {
+            ChoiceRow {
+                label: "Appearance";
+                choices: ["System", "Light", "Dark"];
+                index: Theme.preference == ThemePreference.light ? 1 : Theme.preference == ThemePreference.dark ? 2 : 0;
+                changed => {
+                    Theme.preference = self.index == 1 ? ThemePreference.light
+                        : self.index == 2 ? ThemePreference.dark : ThemePreference.system;
+                }
+            }
+        }
+        HorizontalLayout {
+            alignment: end;
+            AccentButton {
+                text: "Done";
+                width: 100px;
+                clicked => { App.settings-open = false; }
+            }
+        }
+    }
+}

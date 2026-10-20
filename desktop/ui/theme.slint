@@ -1,0 +1,46 @@
+// Design tokens shared by every screen: the same spacing, type sizes, radii and colours as the macOS app's
+// DesignSystem.swift, in light and dark, so the app looks the same on macOS, Windows and Linux.
+
+import { Palette } from "std-widgets.slint";
+
+export enum ThemePreference { system, light, dark }
+
+export global Theme {
+    in-out property <ThemePreference> preference;
+    out property <bool> dark: preference == ThemePreference.dark ? true
+        : preference == ThemePreference.light ? false
+        : Palette.color-scheme == ColorScheme.dark;
+
+    // DesignSystem.Spacing
+    out property <length> xs: 4px;
+    out property <length> sm: 8px;
+    out property <length> md: 16px;
+    out property <length> lg: 24px;
+    out property <length> xl: 32px;
+
+    // DesignSystem.CornerRadius
+    out property <length> radius-small: 6px;
+    out property <length> radius-medium: 8px;
+    out property <length> radius-large: 12px;
+    out property <length> radius-card: 14px;
+
+    // DesignSystem.Typography (macOS point sizes)
+    out property <length> font-title: 20px;
+    out property <length> font-body: 13px;
+    out property <length> font-caption: 12px;
+    out property <length> font-small: 11px;
+
+    // macOS system colours: window, control and text backgrounds, separators and the accent.
+    out property <color> window-background: dark ? #1e1e1e : #ececec;
+    out property <color> control-background: dark ? #262626 : #ffffff;
+    out property <color> card-background: dark ? #2b2b2b : #f6f6f6;
+    out property <color> bar-background: dark ? #2a2a2a : #e4e4e4;
+    out property <color> separator: dark ? #ffffff1a : #0000001a;
+    out property <color> stroke: dark ? #ffffff14 : #00000014;
+    out property <color> text: dark ? #ffffffd9 : #000000d9;
+    out property <color> secondary-text: dark ? #ffffff8c : #00000080;
+    out property <color> accent: dark ? #0a84ff : #007aff;
+    out property <color> accent-soft: accent.with-alpha(0.12);
+    out property <color> warning: dark ? #ff9f0a : #c56a00;
+    out property <color> error: dark ? #ff453a : #d70015;
+}

@@ -1,0 +1,432 @@
+// The docked adjustments panel (WorkspaceInspector.swift): Upscale, Restore, Processor and Output pages.
+
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { Settings, App, Actions } from "globals.slint";
+import { FormSection, Segmented, ChoiceRow, SwitchRow, FieldRow, ParameterRow, LabeledRow, AccentButton, Divider } from "components.slint";
+
+component UpscalePage inherits VerticalLayout {
+    spacing: Theme.md;
+    alignment: start;
+    FormSection {
+        title: "Upscaling";
+        footer: "Real-ESRGAN (AI) upscaling arrives in the cross-platform app with the GPU model runner.";
+        ChoiceRow {
+            label: "Scaler";
+            choices: ["Lanczos"];
+            index: 0;
+        }
+    }
+    FormSection {
+        title: "Quality & Scale";
+        ParameterRow {
+            title: "CRF";
+            value <=> Settings.crf;
+            minimum: 0;
+            maximum: 51;
+            step: 1;
+            default-value: 20;
+            digits: 0;
+            changed => { Actions.settings-changed(); }
+        }
+        Text {
+            text: "Lower is better: ≤ 20 high quality, ≥ 27 draft.";
+            font-size: Theme.font-small;
+            color: Theme.secondary-text;
+        }
+        Divider { }
+        FieldRow {
+            label: "Scale";
+            detail: "Output size multiplier";
+            value <=> Settings.scale;
+            placeholder: "2.0";
+            changed => { Actions.settings-changed(); }
+        }
+        FieldRow {
+            label: "FPS";
+            detail: "A number, a fraction (30000/1001) or source";
+            value <=> Settings.fps;
+            placeholder: "60";
+            changed => { Actions.settings-changed(); }
+        }
+        Divider { }
+        ChoiceRow {
+            label: "Interpolation";
+            choices: ["Off", "MCI", "Blend"];
+            index <=> Settings.interpolation;
+            changed => { Actions.settings-changed(); }
+        }
+    }
+}
+
+component RestorePage inherits VerticalLayout {
+    spacing: Theme.md;
+    alignment: start;
+    FormSection {
+        title: "Primary restoration";
+        ChoiceRow {
+            label: "Denoise";
+            choices: ["Off", "BM3D", "hqdn3d", "NLMeans", "ATADenoise"];
+            index <=> Settings.denoiser;
+            changed => { Actions.settings-changed(); }
+        }
+        if Settings.denoiser != 0: ParameterRow {
+            title: "Strength";
+            value <=> Settings.denoise-strength;
+            minimum: Settings.denoise-min;
+            maximum: Settings.denoise-max;
+            step: 0.1;
+            default-value: Settings.denoise-default;
+            changed => { Actions.settings-changed(); }
+        }
+        SwitchRow {
+            label: "Deringing";
+            checked <=> Settings.dering;
+            changed => { Actions.settings-changed(); }
+        }
+        if Settings.dering: ParameterRow {
+            title: "Strength";
+            value <=> Settings.dering-strength;
+            minimum: 0;
+            maximum: 10;
+            step: 0.005;
+            default-value: 0.5;
+            changed => { Actions.settings-changed(); }
+        }
+        SwitchRow {
+            label: "Sharpen";
+            checked <=> Settings.sharpen;
+            changed => { Actions.settings-changed(); }
+        }
+        if Settings.sharpen: ChoiceRow {
+            label: "Method";
+            choices: ["CAS", "Unsharp mask"];
+            index <=> Settings.sharpen-method;
+            changed => { Actions.settings-changed(); }
+        }
+        if Settings.sharpen && Settings.sharpen-method == 0: ParameterRow {
+            title: "Strength";
+            value <=> Settings.cas-strength;
+            minimum: 0;
+            maximum: 1;
+            step: 0.01;
+            default-value: 0.25;
+            changed => { Actions.settings-changed(); }
+        }
+        if Settings.sharpen && Settings.sharpen-method == 1: VerticalLayout {
+            spacing: Theme.sm;
+            ParameterRow {
+                title: "Matrix";
+                value <=> Settings.usm-radius;
+                minimum: 3;
+                maximum: 23;
+                step: 2;
+                default-value: 5;
+                digits: 0;
+                changed => { Actions.settings-changed(); }
+            }
+            ParameterRow {
+                title: "Amount";
+                value <=> Settings.usm-amount;
+                minimum: -2;
+                maximum: 5;
+                step: 0.01;
+                default-value: 1;
+                changed => { Actions.settings-changed(); }
+            }
+            ParameterRow {
+                title: "Threshold";
+                value <=> Settings.usm-threshold;
+                minimum: 0;
+                maximum: 1;
+                step: 0.001;
+                default-value: 0.03;
+                digits: 3;
+                changed => { Actions.settings-changed(); }
+            }
+        }
+    }
+    FormSection {
+        SwitchRow {
+            label: "Color equalizer";
+            checked <=> Settings.eq;
+            changed => { Actions.settings-changed(); }
+        }
+        if Settings.eq: VerticalLayout {
+            spacing: Theme.sm;
+            ParameterRow {
+                title: "Contrast";
+                value <=> Settings.contrast;
+                minimum: 0.5;
+                maximum: 2;
+                step: 0.005;
+                default-value: 1;
+                changed => { Actions.settings-changed(); }
+            }
+            ParameterRow {
+                title: "Brightness";
+                value <=> Settings.brightness;
+                minimum: -0.1;
+                maximum: 0.1;
+                step: 0.005;
+                default-value: 0;
+                digits: 3;
+                changed => { Actions.settings-changed(); }
+            }
+            ParameterRow {
+                title: "Saturation";
+                value <=> Settings.saturation;
+                minimum: 0;
+                maximum: 2;
+                step: 0.005;
+                default-value: 1;
+                changed => { Actions.settings-changed(); }
+            }
+        }
+    }
+    FormSection {
+        title: "Second pass";
+        footer: "Runs after scaling, sharpening and debanding; each stage has its own switch.";
+        SwitchRow {
+            label: "Denoise";
+            checked <=> Settings.denoise2;
+            changed => { Actions.settings-changed(); }
+        }
+        if Settings.denoise2: ChoiceRow {
+            label: "Method";
+            choices: ["BM3D", "hqdn3d", "NLMeans", "ATADenoise"];
+            index <=> Settings.denoiser2;
+            changed => { Actions.settings-changed(); }
+        }
+        if Settings.denoise2: ParameterRow {
+            title: "Strength";
+            value <=> Settings.denoise2-strength;
+            minimum: Settings.denoise2-min;
+            maximum: Settings.denoise2-max;
+            step: 0.1;
+            default-value: Settings.denoise2-default;
+            changed => { Actions.settings-changed(); }
+        }
+        SwitchRow {
+            label: "Deringing";
+            checked <=> Settings.dering2;
+            changed => { Actions.settings-changed(); }
+        }
+        if Settings.dering2: ParameterRow {
+            title: "Strength";
+            value <=> Settings.dering2-strength;
+            minimum: 0;
+            maximum: 10;
+            step: 0.005;
+            default-value: 0.5;
+            changed => { Actions.settings-changed(); }
+        }
+        SwitchRow {
+            label: "Sharpen (CAS)";
+            checked <=> Settings.sharpen2;
+            changed => { Actions.settings-changed(); }
+        }
+        if Settings.sharpen2: ParameterRow {
+            title: "Strength";
+            value <=> Settings.cas2-strength;
+            minimum: 0;
+            maximum: 1;
+            step: 0.01;
+            default-value: 0.25;
+            changed => { Actions.settings-changed(); }
+        }
+        SwitchRow {
+            label: "Deblock";
+            checked <=> Settings.deblock2;
+            changed => { Actions.settings-changed(); }
+        }
+        SwitchRow {
+            label: "Deband";
+            checked <=> Settings.deband2;
+            changed => { Actions.settings-changed(); }
+        }
+        if Settings.deband2: FieldRow {
+            label: "Strength";
+            value <=> Settings.deband2-strength;
+            placeholder: "0.015";
+            changed => { Actions.settings-changed(); }
+        }
+        SwitchRow {
+            label: "Grain";
+            detail: "Replaces the first pass grain amount";
+            checked <=> Settings.grain2;
+            changed => { Actions.settings-changed(); }
+        }
+        if Settings.grain2: FieldRow {
+            label: "Amount";
+            value <=> Settings.grain2-strength;
+            placeholder: "1.0";
+            changed => { Actions.settings-changed(); }
+        }
+    }
+}
+
+component ProcessorPage inherits VerticalLayout {
+    spacing: Theme.md;
+    alignment: start;
+    FormSection {
+        title: "Restoration filters (extra)";
+        ChoiceRow {
+            label: "Deblock";
+            choices: ["Off", "Weak", "Strong"];
+            index <=> Settings.deblock;
+            changed => { Actions.settings-changed(); }
+        }
+        Divider { }
+        ChoiceRow {
+            label: "Deband";
+            choices: ["Off", "Deband", "Gradfun", "F3kdb", "Neo F3kdb"];
+            index <=> Settings.deband;
+            changed => { Actions.settings-changed(); }
+        }
+        if Settings.deband == 1 || Settings.deband == 2: FieldRow {
+            label: "Strength";
+            value <=> Settings.deband-strength;
+            placeholder: Settings.deband == 2 ? "1.2" : "0.015";
+            changed => { Actions.settings-changed(); }
+        }
+        if Settings.deband >= 3: HorizontalLayout {
+            spacing: Theme.sm;
+            FieldRow {
+                label: "Range";
+                field-width: 48px;
+                value <=> Settings.f3kdb-range;
+                placeholder: "15";
+                changed => { Actions.settings-changed(); }
+            }
+            FieldRow {
+                label: "Y";
+                field-width: 48px;
+                value <=> Settings.f3kdb-y;
+                placeholder: "64";
+                changed => { Actions.settings-changed(); }
+            }
+            FieldRow {
+                label: "CbCr";
+                field-width: 48px;
+                value <=> Settings.f3kdb-cbcr;
+                placeholder: "64";
+                changed => { Actions.settings-changed(); }
+            }
+        }
+        if Settings.deband == 4: Text {
+            text: "Neo F3kdb: integer range 0–255, thresholds 0–511 (16 = one 8-bit level).";
+            font-size: Theme.font-small;
+            color: Theme.secondary-text;
+            wrap: word-wrap;
+        }
+        Divider { }
+        FieldRow {
+            label: "Grain";
+            detail: "0 turns grain off";
+            value <=> Settings.grain;
+            placeholder: "1.0";
+            changed => { Actions.settings-changed(); }
+        }
+    }
+    FormSection {
+        SwitchRow {
+            label: "Remove near-duplicate frames";
+            detail: "Decimate before frame-rate conversion";
+            checked <=> Settings.decimate;
+            changed => { Actions.settings-changed(); }
+        }
+        FieldRow {
+            label: "Threads";
+            detail: "Empty uses every core";
+            value <=> Settings.threads;
+            placeholder: "auto";
+            changed => { Actions.settings-changed(); }
+        }
+    }
+    HorizontalLayout {
+        alignment: start;
+        AccentButton {
+            text: "Reset processing settings";
+            icon: @image-url("icons/reset.svg");
+            primary: false;
+            clicked => { Actions.reset-settings(); }
+        }
+    }
+}
+
+component OutputPage inherits VerticalLayout {
+    spacing: Theme.md;
+    alignment: start;
+    FormSection {
+        title: "Output";
+        SwitchRow {
+            label: "Custom output folder";
+            detail: Settings.custom-output ? Settings.output-folder : "Next to the input";
+            checked <=> Settings.custom-output;
+            changed => { Actions.settings-changed(); }
+        }
+        if Settings.custom-output: HorizontalLayout {
+            alignment: start;
+            AccentButton {
+                text: "Choose folder…";
+                icon: @image-url("icons/folder.svg");
+                primary: false;
+                clicked => { Actions.choose-output-folder(); }
+            }
+        }
+        LabeledRow {
+            label: "File";
+            detail: App.predicted-output == "" ? "Choose a video first" : App.predicted-output;
+        }
+    }
+    FormSection {
+        title: "Encoding";
+        footer: "Videos: H.264 in MP4 with lossless FLAC audio. Images: PNG with transparency kept.";
+        LabeledRow {
+            label: "Video";
+            Text {
+                text: "H.264, 8-bit";
+                font-size: Theme.font-body;
+                color: Theme.secondary-text;
+                vertical-alignment: center;
+            }
+        }
+        LabeledRow {
+            label: "Audio";
+            Text {
+                text: "FLAC (lossless)";
+                font-size: Theme.font-body;
+                color: Theme.secondary-text;
+                vertical-alignment: center;
+            }
+        }
+    }
+}
+
+export component Inspector inherits Rectangle {
+    background: Theme.window-background;
+    VerticalLayout {
+        HorizontalLayout {
+            padding: Theme.md;
+            Segmented {
+                items: ["Upscale", "Restore", "Processor", "Output"];
+                selected <=> App.page;
+            }
+        }
+        ScrollView {
+            vertical-stretch: 1;
+            enabled: !App.running;
+            VerticalLayout {
+                padding-left: Theme.md;
+                padding-right: Theme.md;
+                padding-bottom: Theme.md;
+                alignment: start;
+                if App.page == 0: UpscalePage { }
+                if App.page == 1: RestorePage { }
+                if App.page == 2: ProcessorPage { }
+                if App.page == 3: OutputPage { }
+            }
+        }
+    }
+}

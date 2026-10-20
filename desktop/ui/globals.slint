@@ -1,0 +1,110 @@
+// State the Rust side pushes in (App, Settings) and the actions it handles (Actions). Settings starts from the
+// backend's factory options (set by Rust at startup), so the defaults live in one place: backend/src/options.rs.
+// Choices are indexes into the option lists below; Rust maps them to the backend's names.
+
+export global Settings {
+    // Upscale
+    in-out property <float> crf: 20;
+    in-out property <string> scale: "2";
+    in-out property <string> fps: "60";
+    in-out property <int> interpolation;            // 0 off, 1 MCI, 2 blend
+
+    // Restore: primary pass
+    in-out property <int> denoiser;                 // 0 off, 1 BM3D, 2 hqdn3d, 3 NLMeans, 4 ATADenoise
+    in-out property <float> denoise-strength: 2.5;
+    in-out property <bool> dering;
+    in-out property <float> dering-strength: 0.5;
+    in-out property <bool> sharpen: true;
+    in-out property <int> sharpen-method;           // 0 CAS, 1 unsharp mask
+    in-out property <float> cas-strength: 0.25;
+    in-out property <float> usm-radius: 5;
+    in-out property <float> usm-amount: 1;
+    in-out property <float> usm-threshold: 0.03;
+    in-out property <bool> eq;
+    in-out property <float> contrast: 1;
+    in-out property <float> brightness: 0;
+    in-out property <float> saturation: 1;
+
+    // Restore: second pass
+    in-out property <bool> denoise2;
+    in-out property <int> denoiser2: 1;             // 0 BM3D, 1 hqdn3d, 2 NLMeans, 3 ATADenoise (no "off")
+    in-out property <float> denoise2-strength: 2.5;
+    in-out property <bool> dering2;
+    in-out property <float> dering2-strength: 0.5;
+    in-out property <bool> sharpen2;
+    in-out property <float> cas2-strength: 0.25;
+    in-out property <bool> deblock2;
+    in-out property <bool> deband2;
+    in-out property <string> deband2-strength: "0.015";
+    in-out property <bool> grain2;
+    in-out property <string> grain2-strength: "1.0";
+
+    // Processor
+    in-out property <int> deblock;                  // 0 off, 1 weak, 2 strong
+    in-out property <int> deband;                   // 0 off, 1 deband, 2 gradfun, 3 f3kdb, 4 Neo F3kdb
+    in-out property <string> deband-strength: "0.015";
+    in-out property <string> f3kdb-range: "15";
+    in-out property <string> f3kdb-y: "64";
+    in-out property <string> f3kdb-cbcr: "64";
+    in-out property <string> grain: "1.0";
+    in-out property <bool> decimate: true;
+    in-out property <string> threads;
+
+    // Output
+    in-out property <bool> custom-output;
+    in-out property <string> output-folder;
+
+    // Ranges that depend on the chosen denoiser (DenoiseRange in Rust).
+    in-out property <float> denoise-min: 0;
+    in-out property <float> denoise-max: 20;
+    in-out property <float> denoise-default: 2.5;
+    in-out property <float> denoise2-min: 1;
+    in-out property <float> denoise2-max: 10;
+    in-out property <float> denoise2-default: 4;
+}
+
+export global App {
+    in property <string> input-path;
+    in property <string> input-name;
+    in property <string> input-info;
+    in property <bool> is-image;
+    in property <image> preview;
+    in property <bool> has-preview;
+    in property <bool> preview-busy;
+    in property <string> preview-note;
+    in-out property <bool> show-processed;
+    in-out property <float> position;               // seconds into the source
+    in property <float> duration;
+
+    in property <bool> running;
+    in property <bool> cancelling;
+    in property <bool> progress-known;
+    in property <float> progress;                   // 0..1
+    in property <string> phase: "Ready";
+    in property <string> fps-text: "--";
+    in property <string> time-text: "--:--";
+    in property <string> eta-text: "--:--";
+    in property <string> log;
+    in property <string> predicted-output;
+    in property <string> engine-version;
+    in property <string> error;
+
+    in-out property <bool> inspector-visible: true;
+    in-out property <int> page;                     // 0 Upscale, 1 Restore, 2 Processor, 3 Output
+    in-out property <bool> about-open;
+    in-out property <bool> settings-open;
+    in-out property <bool> log-open: true;
+}
+
+export global Actions {
+    callback import();
+    callback import-folder();
+    callback choose-output-folder();
+    callback run();
+    callback cancel();
+    callback reset-settings();
+    callback settings-changed();
+    callback seek(float);
+    callback refresh-preview();
+    callback clear-log();
+}

@@ -16,7 +16,7 @@ The app keeps one authoritative settings object for the UI. A job captures a sep
 
 ## File budget
 
-Maintained application `.swift`, `.rs` and `.metal` files target roughly 500 lines and must stay within 600 lines. `scripts/check-source-budget.py` enforces the ceiling. Focused files can be shorter. Vendor material, licenses, compiled models and generated/build outputs are not split or rewritten to satisfy this rule. The current maintained source has no ceiling exemptions.
+Maintained application `.swift`, `.rs`, `.slint` and `.metal` files target roughly 500 lines and must stay within 600 lines. `scripts/check-source-budget.py` enforces the ceiling. Focused files can be shorter. Vendor material, licenses, compiled models and generated/build outputs are not split or rewritten to satisfy this rule. The current maintained source has no ceiling exemptions.
 
 Split by an identifiable responsibility and explicit ownership boundary, not arbitrary line numbers. Keep request generations and cancellation handles with their coordinator. Keep dynamically loaded shader entry points, valid OS fallbacks, preset migration fields and upstream notices even when a simple static reference search finds no direct call.
 

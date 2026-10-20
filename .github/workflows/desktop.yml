@@ -1,0 +1,102 @@
+name: Desktop app
+
+on:
+  pull_request:
+    paths: &desktop-paths
+      - 'desktop/**'
+      - 'backend/**'
+      - 'rust-toolchain.toml'
+      - 'scripts/prepare-media-engine.sh'
+      - '.github/actions/media-engine/**'
+      - '.github/workflows/desktop.yml'
+  push:
+    branches: [main]
+    paths: *desktop-paths
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: desktop
+
+jobs:
+  linux:
+    # Format, lints and tests, then screenshots of the real window (light, dark, filtered preview, a finished run)
+    # rendered headless with Slint's software renderer, kept as an artifact for review.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: ./.github/actions/media-engine
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: desktop, shared-key: desktop-linux }
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test
+      - name: Screenshots
+        run: |
+          set -euo pipefail
+          cargo build --release
+          app=target/release/myupscaler
+          shots="$RUNNER_TEMP/screenshots"
+          mkdir -p "$shots"
+          python3 scripts/sample-image.py "$shots/sample.png"
+          "$app" --screenshot "$shots/empty.png"
+          "$app" --screenshot "$shots/restore-dark.png" --dark --page 1 "$shots/sample.png"
+          "$app" --screenshot "$shots/processor-preview.png" --processed --page 2 "$shots/sample.png"
+          "$app" --screenshot "$shots/output.png" --page 3 "$shots/sample.png"
+          "$app" --screenshot "$shots/finished-run.png" --run "$shots/sample.png"
+          test -s "$shots/sample_[restored].png"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-screenshots
+          path: ${{ runner.temp }}/screenshots/*.png
+          if-no-files-found: error
+
+  windows:
+    # The media engine has no Windows package yet: the app builds without it and says so in its log.
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: desktop, shared-key: desktop-windows }
+      - run: cargo test
+      - run: cargo build --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: myupscaler-windows-x64
+          path: desktop/target/release/myupscaler.exe
+          if-no-files-found: error
+
+  macos:
+    runs-on: xcode-27
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: ./.github/actions/media-engine
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: desktop, shared-key: desktop-macos }
+      - run: cargo test
+      - name: Build and render a finished run
+        run: |
+          set -euo pipefail
+          cargo build --release
+          shots="$RUNNER_TEMP/screenshots"
+          mkdir -p "$shots"
+          python3 scripts/sample-image.py "$shots/sample.png"
+          target/release/myupscaler --screenshot "$shots/macos-finished-run.png" --run "$shots/sample.png"
+          test -s "$shots/sample_[restored].png"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-macos-screenshot
+          path: ${{ runner.temp }}/screenshots/macos-finished-run.png

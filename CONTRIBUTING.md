@@ -58,7 +58,7 @@ settings. CI tests the supplied set and predicts with the packaged models.
 
 ## Actions workflows
 
-CI is split into four workflows whose jobs run in parallel; each runs only when
+CI is split into five workflows whose jobs run in parallel; each runs only when
 the files it covers change, and nothing is checked twice:
 
 | Workflow | Jobs |
@@ -66,6 +66,7 @@ the files it covers change, and nothing is checked twice:
 | **Rust** (`rust.yml`, Linux) | format, lints, unit tests, engine tests, build without the engine |
 | **Swift tests** (`swift-tests.yml`) | source lint (Linux); one macOS job with every logic test and XCTest |
 | **Regression tests** (`regression.yml`) | one macOS job: finishing chain through the Rust dry run, media tests, Metal kernels |
+| **Desktop app** (`desktop.yml`) | cross-platform Slint app: Linux checks, tests and screenshots; Windows build; macOS build and run |
 | **macOS build and bundle** (`build.yml`) | Release app (verify engine, signature, models and inference, package); model-set preparation |
 
 All jobs use GitHub's free standard runners (macOS jobs on the `xcode-27`
@@ -75,7 +76,7 @@ and the Metal kernels) report the runner's Metal device and fail if there is
 none; GitHub's macOS runners are virtual machines, so their GPU is slower than a
 real Mac's. The Rust backend runs on the CPU.
 
-There are four macOS jobs, within the free plan's five concurrent macOS jobs,
+There are five macOS jobs, the free plan's limit of concurrent macOS jobs,
 so none waits for another. Inside a job, `scripts/run-parallel.sh` runs the
 scripts at the same time, one per CPU core.
 The media engine is a precompiled, pinned binary: it is downloaded and verified

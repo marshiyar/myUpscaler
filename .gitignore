@@ -161,9 +161,11 @@ yarn-error.log*
 package-lock.json
 yarn.lock
 
-# Rust (if any Rust code is used)
+# Rust: build output. The applications' lockfiles are committed so builds are reproducible.
 target/
 Cargo.lock
+!backend/Cargo.lock
+!desktop/Cargo.lock
 
 # Go (if any Go code is used)
 *.exe

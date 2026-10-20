@@ -1,0 +1,334 @@
+// Building blocks matching the macOS app's DesignSystem and ContentViewComponents: grouped-form sections,
+// parameter rows (label, slider, value, reset), labelled controls, toolbar buttons and the segmented page picker.
+
+import { Slider, Switch, ComboBox, LineEdit } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+
+// A grouped-form section: optional title above a rounded panel (Form .grouped on macOS).
+export component FormSection inherits VerticalLayout {
+    in property <string> title;
+    in property <string> footer;
+    spacing: Theme.xs;
+    alignment: start;
+    if root.title != "": HorizontalLayout {
+        padding-left: Theme.sm;
+        Text {
+            text: root.title;
+            font-size: Theme.font-body;
+            font-weight: 600;
+            color: Theme.text;
+        }
+    }
+    Rectangle {
+        background: Theme.control-background;
+        border-radius: Theme.radius-medium;
+        border-width: 1px;
+        border-color: Theme.stroke;
+        VerticalLayout {
+            padding: Theme.md * 0.75;
+            spacing: Theme.sm;
+            alignment: start;
+            @children
+        }
+    }
+    if root.footer != "": HorizontalLayout {
+        padding-left: Theme.sm;
+        Text {
+            text: root.footer;
+            font-size: Theme.font-small;
+            color: Theme.secondary-text;
+            wrap: word-wrap;
+        }
+    }
+}
+
+export component Divider inherits Rectangle {
+    height: 1px;
+    background: Theme.separator;
+}
+
+// A small borderless icon button (the reset arrows, toolbar items).
+export component IconButton inherits Rectangle {
+    in property <image> icon;
+    in property <string> label;
+    in property <bool> enabled: true;
+    in property <bool> active;
+    in property <length> icon-size: 16px;
+    callback clicked();
+    accessible-role: button;
+    accessible-label: root.label;
+    min-width: layout.preferred-width;
+    height: 28px;
+    border-radius: Theme.radius-small;
+    background: !root.enabled ? transparent
+        : touch.pressed ? Theme.separator
+        : touch.has-hover || root.active ? Theme.stroke : transparent;
+    animate background { duration: 150ms; }
+    opacity: root.enabled ? 1 : 0.4;
+    layout := HorizontalLayout {
+        padding-left: root.label == "" ? 6px : 8px;
+        padding-right: root.label == "" ? 6px : 10px;
+        spacing: 6px;
+        alignment: center;
+        VerticalLayout {
+            alignment: center;
+            Image {
+                source: root.icon;
+                width: root.icon-size;
+                height: root.icon-size;
+                colorize: root.active ? Theme.accent : Theme.text;
+            }
+        }
+        if root.label != "": Text {
+            text: root.label;
+            font-size: Theme.font-body;
+            color: Theme.text;
+            vertical-alignment: center;
+        }
+    }
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+// The accent-filled and accent-outlined buttons (PrimaryButtonStyle / SecondaryButtonStyle).
+export component AccentButton inherits Rectangle {
+    in property <string> text;
+    in property <image> icon;
+    in property <bool> primary: true;
+    in property <bool> enabled: true;
+    callback clicked();
+    accessible-role: button;
+    accessible-label: root.text;
+    height: 32px;
+    min-width: layout.preferred-width;
+    border-radius: Theme.radius-medium;
+    background: root.primary ? (touch.pressed ? Theme.accent.darker(0.15) : Theme.accent) : Theme.accent-soft;
+    border-width: root.primary ? 0 : 1px;
+    border-color: Theme.accent.with-alpha(0.3);
+    opacity: root.enabled ? 1 : 0.45;
+    animate background { duration: 100ms; }
+    layout := HorizontalLayout {
+        padding-left: Theme.md;
+        padding-right: Theme.md;
+        spacing: 6px;
+        alignment: center;
+        VerticalLayout {
+            alignment: center;
+            Image {
+                source: root.icon;
+                width: 14px;
+                height: 14px;
+                colorize: root.primary ? white : Theme.accent;
+            }
+        }
+        Text {
+            text: root.text;
+            font-size: Theme.font-body;
+            font-weight: 500;
+            color: root.primary ? white : Theme.accent;
+            vertical-alignment: center;
+        }
+    }
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+// Segmented page picker (Picker .segmented).
+export component Segmented inherits Rectangle {
+    in property <[string]> items;
+    in-out property <int> selected;
+    callback changed(int);
+    height: 28px;
+    border-radius: Theme.radius-medium;
+    background: Theme.stroke;
+    HorizontalLayout {
+        padding: 2px;
+        spacing: 2px;
+        for item[i] in root.items: Rectangle {
+            border-radius: Theme.radius-small;
+            background: i == root.selected ? Theme.control-background : transparent;
+            drop-shadow-blur: i == root.selected ? 2px : 0;
+            drop-shadow-color: #0000002a;
+            drop-shadow-offset-y: 1px;
+            accessible-role: tab;
+            accessible-label: item;
+            Text {
+                text: item;
+                font-size: Theme.font-body;
+                font-weight: i == root.selected ? 600 : 400;
+                color: Theme.text;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+            TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    root.selected = i;
+                    root.changed(i);
+                }
+            }
+        }
+    }
+}
+
+// Label on the left, control on the right (Form rows).
+export component LabeledRow inherits HorizontalLayout {
+    in property <string> label;
+    in property <string> detail;
+    spacing: Theme.sm;
+    alignment: stretch;
+    VerticalLayout {
+        alignment: center;
+        horizontal-stretch: 1;
+        Text {
+            text: root.label;
+            font-size: Theme.font-body;
+            color: Theme.text;
+        }
+        if root.detail != "": Text {
+            text: root.detail;
+            font-size: Theme.font-small;
+            color: Theme.secondary-text;
+        }
+    }
+    @children
+}
+
+export component ChoiceRow inherits LabeledRow {
+    in property <[string]> choices;
+    in-out property <int> index;
+    in property <bool> enabled: true;
+    callback changed();
+    ComboBox {
+        min-width: 150px;
+        model: root.choices;
+        current-index <=> root.index;
+        enabled: root.enabled;
+        accessible-label: root.label;
+        selected => { root.changed(); }
+    }
+}
+
+export component SwitchRow inherits LabeledRow {
+    in-out property <bool> checked;
+    in property <bool> enabled: true;
+    callback changed();
+    Switch {
+        checked <=> root.checked;
+        enabled: root.enabled;
+        accessible-label: root.label;
+        toggled => { root.changed(); }
+    }
+}
+
+export component FieldRow inherits LabeledRow {
+    in-out property <string> value;
+    in property <string> placeholder;
+    in property <length> field-width: 70px;
+    in property <bool> enabled: true;
+    callback changed();
+    LineEdit {
+        width: root.field-width;
+        text <=> root.value;
+        placeholder-text: root.placeholder;
+        enabled: root.enabled;
+        horizontal-alignment: right;
+        accessible-label: root.label;
+        edited => { root.changed(); }
+    }
+}
+
+// ParameterRow: title, slider, value and a reset button. The value is committed when the drag ends.
+export component ParameterRow inherits HorizontalLayout {
+    in property <string> title;
+    in-out property <float> value;
+    in property <float> minimum: 0;
+    in property <float> maximum: 1;
+    in property <float> step: 0.01;
+    in property <float> default-value;
+    in property <int> digits: 2;
+    in property <bool> enabled: true;
+    callback changed();
+    spacing: Theme.sm;
+    Text {
+        text: root.title;
+        width: 78px;
+        font-size: Theme.font-body;
+        font-weight: 500;
+        color: Theme.text;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    slider := Slider {
+        horizontal-stretch: 1;
+        min-width: 120px;
+        minimum: root.minimum;
+        maximum: root.maximum;
+        step: root.step;
+        value: root.value;
+        enabled: root.enabled;
+        accessible-label: root.title;
+        released(v) => {
+            root.value = v;
+            root.changed();
+        }
+    }
+    Text {
+        text: slider.value.to-fixed(root.digits);
+        width: 44px;
+        font-size: Theme.font-body;
+        font-weight: 500;
+        color: Theme.text;
+        horizontal-alignment: right;
+        vertical-alignment: center;
+    }
+    IconButton {
+        icon: @image-url("icons/reset.svg");
+        icon-size: 13px;
+        label: "";
+        enabled: root.enabled;
+        accessible-label: "Reset " + root.title;
+        clicked => {
+            root.value = root.default-value;
+            slider.value = root.default-value;
+            root.changed();
+        }
+    }
+}
+
+// Shown when no video is loaded (EmptyStateView).
+export component EmptyState inherits VerticalLayout {
+    in property <image> icon;
+    in property <string> title;
+    in property <string> message;
+    alignment: center;
+    spacing: Theme.md;
+    padding: Theme.xl;
+    Image {
+        source: root.icon;
+        height: 48px;
+        colorize: Theme.secondary-text;
+        image-fit: contain;
+    }
+    Text {
+        text: root.title;
+        font-size: Theme.font-title;
+        font-weight: 600;
+        color: Theme.text;
+        horizontal-alignment: center;
+    }
+    Text {
+        text: root.message;
+        font-size: Theme.font-body;
+        color: Theme.secondary-text;
+        horizontal-alignment: center;
+        wrap: word-wrap;
+    }
+    @children
+}

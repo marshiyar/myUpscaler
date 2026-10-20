@@ -5,8 +5,8 @@ import sys
 
 repo = Path(__file__).resolve().parents[1]
 root = repo / "myUpscaler"
-extensions = {".swift", ".rs", ".metal"}
-files = [p for base in (root, repo / "backend" / "src") for p in base.rglob("*")
+extensions = {".swift", ".rs", ".metal", ".slint"}
+files = [p for base in (root, repo / "backend" / "src", repo / "desktop" / "src", repo / "desktop" / "ui") for p in base.rglob("*")
          if p.is_file() and p.suffix in extensions and "ThirdParty" not in p.parts]
 violations = [(p, len(p.read_text().splitlines())) for p in files
               if len(p.read_text().splitlines()) > 600]

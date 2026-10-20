@@ -1,0 +1,94 @@
+name: Swift tests
+
+on:
+  pull_request:
+    paths: &swift-paths
+      - 'myUpscaler/**'
+      - 'myUpscaler.xcodeproj/**'
+      - 'tests/**'
+      - 'scripts/**'
+      - '.github/actions/setup-macos/**'
+      - '.github/workflows/swift-tests.yml'
+  push:
+    branches: [main]
+    paths: *swift-paths
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: swift-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - name: Shell syntax, whitespace and the source size ceiling
+        run: |
+          set -euo pipefail
+          git diff --check
+          git ls-files '*.sh' -z | xargs -0 -n 1 bash -n
+          python3 scripts/check-source-budget.py
+
+  logic:
+    # Each group's scripts compile and run at the same time on one runner.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: settings
+            scripts: >-
+              tests/test-upscale-settings.sh tests/test-restoration-controls.sh
+              tests/test-shortcuts.sh tests/test-shortcuts-persistence.sh
+          - name: editor
+            scripts: >-
+              tests/test-editor-state.sh tests/test-workspace-actions.sh
+              tests/upscaling-mode-support/run.sh tests/progress-parser/run.sh
+          - name: processing
+            scripts: >-
+              tests/test-processing-lifecycle.sh tests/test-batch.sh tests/logging/run.sh
+              tests/commit-boundary/run-committed-output-tests.sh tests/commit-boundary/run-stage-tests.sh
+    name: logic (${{ matrix.name }})
+    runs-on: macos-26
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: ./.github/actions/setup-macos
+      - run: bash scripts/run-parallel.sh ${{ matrix.scripts }}
+
+  xctest:
+    runs-on: macos-26
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: ./.github/actions/setup-macos
+      - name: myUpscalerUnitTests (does not build the app)
+        run: |
+          set -euo pipefail
+          xcodebuild -project myUpscaler.xcodeproj -scheme myUpscalerUnitTests \
+            -destination 'platform=macOS,arch=arm64' \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+            -resultBundlePath "$RUNNER_TEMP/UnitTests.xcresult" \
+            CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= \
+            test 2>&1 | tail -n 200
+          xcrun xcresulttool get test-results summary --path "$RUNNER_TEMP/UnitTests.xcresult" > "$RUNNER_TEMP/summary.json"
+          python3 - "$RUNNER_TEMP/summary.json" <<'PY'
+          import json, sys
+          summary = json.load(open(sys.argv[1]))
+          passed, failed = summary.get('passedTests', 0), summary.get('failedTests', 0)
+          assert passed >= 8 and failed == 0, summary
+          print(f'::notice::XCTest: {passed} passed, {failed} failed.')
+          PY
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xctest-results
+          path: ${{ runner.temp }}/UnitTests.xcresult
+          if-no-files-found: ignore

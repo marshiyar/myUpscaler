@@ -1,0 +1,61 @@
+name: Regression tests
+
+on:
+  pull_request:
+    paths: &regression-paths
+      - 'myUpscaler/**'
+      - 'backend/**'
+      - 'tests/**'
+      - 'scripts/**'
+      - 'rust-toolchain.toml'
+      - '.github/actions/**'
+      - '.github/workflows/regression.yml'
+  push:
+    branches: [main]
+    paths: *regression-paths
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: regression-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  finishing-chain:
+    # The app's settings through the Rust engine's dry run: filter order, entered strengths, zero bypass.
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: ./.github/actions/setup-macos
+      - uses: ./.github/actions/media-engine
+        with: { rust-cache-key: macos-release }
+      - run: bash tests/test-finishing-strengths.sh
+
+  media:
+    # Apple media APIs on generated clips; each group's scripts run at the same time on one runner.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: video-io
+            scripts: tests/apple-api/run.sh tests/apple-api/run-orientation.sh
+          - name: audio-timing
+            scripts: tests/apple-api/run-audio.sh tests/apple-api/run-timing.sh
+          - name: timeline
+            scripts: tests/test-timeline.sh
+    name: media (${{ matrix.name }})
+    runs-on: macos-26
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: ./.github/actions/setup-macos
+      - name: Build the test-media generator once
+        run: |
+          bash tests/fixtures/build.sh "$RUNNER_TEMP/make-test-media"
+          echo "MAKE_TEST_MEDIA=$RUNNER_TEMP/make-test-media" >> "$GITHUB_ENV"
+      - run: bash scripts/run-parallel.sh ${{ matrix.scripts }}

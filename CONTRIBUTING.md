@@ -56,16 +56,27 @@ RGB x2 supplied explicitly can pass validation. Assets are stored in the ignored
 or incompatible assets. Native model scale and final output scale remain separate
 settings. CI tests the supplied set and predicts with the packaged models.
 
-## Actions app builds
+## Actions workflows
 
-The **macOS build, test and bundle** Actions workflow runs for pull requests,
-pushes to `main`, and manual runs. It builds a Release app and uploads a unique
-`myUpscaler-macos-arm64-<run>-<attempt>` artifact containing a DMG, an inner ZIP
-that preserves app permissions, checksums, and build information. Artifacts are
-retained for 90 days and are never overwritten or deleted by the workflow.
-GitHub expires them after that period. These builds are ad hoc signed and are
-not notarized. The workflow has read-only repository permissions and does not
-publish to GitHub Releases.
+CI is split into four workflows whose jobs run in parallel; each runs only when
+the files it covers change, and nothing is checked twice:
+
+| Workflow | Jobs |
+| --- | --- |
+| **Rust** (`rust.yml`, Linux) | format, lints, unit tests, engine tests, build without the engine |
+| **Swift tests** (`swift-tests.yml`) | source lint (Linux); logic tests in three groups; XCTest (`myUpscalerUnitTests`) |
+| **Regression tests** (`regression.yml`) | finishing chain through the Rust dry run; media tests in three groups |
+| **macOS build and bundle** (`build.yml`) | Release app (verify engine, signature, models and inference, package); model-set preparation |
+
+Inside a group, `scripts/run-parallel.sh` runs the scripts at the same time.
+The media engine, CoreML models and Rust builds are cached between runs.
+
+The Release job uploads a unique `myUpscaler-macos-arm64-<run>-<attempt>`
+artifact containing a DMG, an inner ZIP that preserves app permissions,
+checksums, and build information. Artifacts are retained for 90 days and are
+never overwritten or deleted by the workflow. These builds are ad hoc signed and
+are not notarized. The workflows have read-only repository permissions and do
+not publish to GitHub Releases.
 
 ## Fast checks without downloaded assets
 

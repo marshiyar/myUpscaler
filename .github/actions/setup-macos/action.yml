@@ -1,0 +1,15 @@
+name: Set up macOS
+description: Selects the newest installed Xcode 26.
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        set -euo pipefail
+        xcode_app=$(find /Applications -maxdepth 1 -name 'Xcode_26*.app' | sort -V | tail -n 1)
+        if [[ -z "$xcode_app" ]]; then
+          echo '::error::This runner image does not have Xcode 26 installed.'
+          exit 1
+        fi
+        sudo xcode-select --switch "$xcode_app/Contents/Developer"
+        xcodebuild -version

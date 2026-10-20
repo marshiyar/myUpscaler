@@ -3,8 +3,8 @@
 # against the pinned SHA-256 and unpacks it into third_party/mpvfx-media/{lib,include}.
 #
 # The engine is published as compiled releases of marshiyar/mpvfx-media-binaries; it is proprietary and shipped in
-# this app by permission of its author (see LICENSE and NOTICE in the package). On macOS the arm64 package is used;
-# on Linux the x86_64 package (for running the backend's tests).
+# this app by permission of its author (see LICENSE and NOTICE in the package). On macOS the arm64 package is used,
+# on Linux and Windows the x86_64 one. On Windows, run it from Git Bash (installed with Git for Windows).
 set -euo pipefail
 
 version=0.2.0
@@ -19,6 +19,11 @@ case "$(uname -s)-$(uname -m)" in
     sha256=980c8ae553ff8f6b0f9d420313d931c638f653615e67a72cf1dcf28fa24af12b
     library=libmpvfx_ffi.so
     ;;
+  MINGW*-x86_64 | MSYS*-x86_64 | CYGWIN*-x86_64)
+    platform=windows-x86_64
+    sha256=12228165b7f45002b45446944b1c0bec732a69ee77cb4a555a411c00b91c27b5
+    library=mpvfx_ffi.dll
+    ;;
   *)
     echo "No MpVFX media engine package for $(uname -s) $(uname -m)." >&2
     exit 1
@@ -28,7 +33,9 @@ esac
 repo_dir=$(cd "$(dirname "$0")/.." && pwd)
 dest="$repo_dir/third_party/mpvfx-media"
 stamp="$dest/.package"
-package="mpvfx-media-$version-$platform.tar.gz"
+archive=tar.gz
+[[ $platform == windows-* ]] && archive=zip
+package="mpvfx-media-$version-$platform.$archive"
 
 if [[ -f "$stamp" && "$(cat "$stamp")" == "$package $sha256" && -f "$dest/lib/$library" ]]; then
   echo "MpVFX media engine $version ($platform) is already prepared at $dest"
@@ -46,7 +53,17 @@ if [[ ${actual%% *} != "$sha256" ]]; then
   exit 1
 fi
 mkdir -p "$work_dir/unpacked"
-tar -xzf "$work_dir/$package" -C "$work_dir/unpacked" --strip-components=1
+if [[ $archive == zip ]]; then
+  # The zip holds one top-level folder, like the tarballs.
+  if command -v unzip >/dev/null; then
+    unzip -q "$work_dir/$package" -d "$work_dir/zip"
+  else
+    powershell.exe -NoProfile -Command "Expand-Archive -LiteralPath '$(cygpath -w "$work_dir/$package")' -DestinationPath '$(cygpath -w "$work_dir/zip")'"
+  fi
+  mv "$work_dir/zip"/*/* "$work_dir/unpacked/"
+else
+  tar -xzf "$work_dir/$package" -C "$work_dir/unpacked" --strip-components=1
+fi
 test -f "$work_dir/unpacked/lib/$library"
 test -f "$work_dir/unpacked/include/mpvfx_media.h"
 if [[ $platform == macos-arm64 && $(xcrun lipo -archs "$work_dir/unpacked/lib/$library") != arm64 ]]; then

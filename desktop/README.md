@@ -10,9 +10,14 @@ from one set of design tokens (`ui/theme.slint`), dark with a light variant, and
 Geist Mono for timecodes), so it looks the same on macOS, Windows and Linux.
 
 ```sh
-bash ../scripts/prepare-media-engine.sh   # the media engine (macOS arm64, Linux x86_64)
+bash ../scripts/prepare-media-engine.sh   # the media engine (macOS arm64, Linux x86_64, Windows x86_64)
 cargo run --release                        # or: cargo run --release -- path/to/video.mp4
 ```
+
+On Windows, run the first line from Git Bash (it comes with Git for Windows) and build with the MSVC toolchain (Visual
+Studio Build Tools, "Desktop development with C++"). The build copies the engine's `mpvfx_ffi.dll` next to
+`target\release\myupscaler.exe`; the two files together are the app. CI builds the same pair as the
+`myupscaler-windows-x64` artifact, after processing a test clip with it.
 
 ## Layout
 
@@ -32,8 +37,7 @@ cargo run --release                        # or: cargo run --release -- path/to/
 
 Working: import (file or batch folder), every Lanczos-path setting, the frame preview with optional filters,
 processing with live progress and cancel, light and dark appearance. Not yet: Real-ESRGAN (AI) upscaling (planned as a
-GPU model runner: CoreML on macOS, wgpu elsewhere), the timeline editor, presets, and installers. The media engine has
-no Windows package yet, so the Windows build runs the interface but cannot process files.
+GPU model runner: CoreML on macOS, wgpu elsewhere), the timeline editor, presets, and installers.
 
 ## Licence
 

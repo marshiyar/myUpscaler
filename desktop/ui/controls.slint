@@ -12,21 +12,21 @@ export component Toggle inherits Rectangle {
     accessible-checkable: true;
     accessible-checked: root.checked;
     accessible-action-default => { touch.clicked(); }
-    width: 30px;
-    height: 18px;
-    border-radius: 9px;
-    background: root.checked ? Theme.accent : Theme.dark ? #3a3b40 : #d4d4d8;
+    width: 28px;
+    height: 16px;
+    border-radius: 8px;
+    background: root.checked ? Theme.accent : Theme.field;
+    border-width: root.checked ? 0 : 1px;
+    border-color: Theme.track;
     opacity: root.enabled ? 1 : 0.4;
     animate background { duration: Theme.fast; easing: ease-out; }
     Rectangle {
-        width: 14px;
-        height: 14px;
-        y: 2px;
-        x: root.checked ? root.width - self.width - 2px : 2px;
-        border-radius: 7px;
-        background: white;
-        drop-shadow-blur: 2px;
-        drop-shadow-color: #0000004d;
+        width: 10px;
+        height: 10px;
+        y: 3px;
+        x: root.checked ? root.width - self.width - 3px : 3px;
+        border-radius: 5px;
+        background: root.checked ? Theme.on-accent : Theme.dim;
         animate x { duration: Theme.fast; easing: ease-out; }
     }
     touch := TouchArea {
@@ -48,9 +48,9 @@ export component SliderControl inherits Rectangle {
     in property <string> label;
     callback released(float);
     property <float> fraction: ((root.value - root.minimum) / max(0.000001, root.maximum - root.minimum)).clamp(0, 1);
-    property <length> knob: 14px;
-    height: 18px;
-    min-width: 80px;
+    property <length> knob: 11px;
+    height: 16px;
+    min-width: 60px;
     opacity: root.enabled ? 1 : 0.4;
     accessible-role: slider;
     accessible-label: root.label;
@@ -74,18 +74,10 @@ export component SliderControl inherits Rectangle {
     }
 
     Rectangle {
-        y: (root.height - 4px) / 2;
-        height: 4px;
-        border-radius: 2px;
-        background: Theme.dark ? #2e2f34 : #d9d9de;
-    }
-    Rectangle {
-        x: 0;
-        y: (root.height - 4px) / 2;
-        width: (root.width - root.knob) * root.fraction + root.knob / 2;
-        height: 4px;
-        border-radius: 2px;
-        background: Theme.accent;
+        y: (root.height - 2px) / 2;
+        height: 2px;
+        border-radius: 1px;
+        background: Theme.track;
     }
     Rectangle {
         x: (root.width - root.knob) * root.fraction;
@@ -93,12 +85,9 @@ export component SliderControl inherits Rectangle {
         width: root.knob;
         height: root.knob;
         border-radius: root.knob / 2;
-        background: white;
+        background: touch.has-hover || touch.pressed ? Theme.strong : Theme.knob;
         border-width: focus.has-focus ? 2px : 1px;
-        border-color: focus.has-focus ? Theme.accent : #0000002e;
-        drop-shadow-blur: 3px;
-        drop-shadow-color: #00000059;
-        drop-shadow-offset-y: 1px;
+        border-color: focus.has-focus ? Theme.focus : #00000040;
     }
     touch := TouchArea {
         enabled: root.enabled;
@@ -144,20 +133,19 @@ export component Dropdown inherits Rectangle {
     accessible-value: root.model[root.current-index];
     accessible-action-default => { popup.show(); }
     height: Theme.control-height;
-    min-width: 128px;
+    min-width: 96px;
     border-radius: Theme.radius-small;
-    background: touch.has-hover && root.enabled ? Theme.controls-hover : Theme.controls;
+    background: touch.has-hover && root.enabled ? Theme.hover : Theme.field;
     border-width: 1px;
-    border-color: Theme.hairline;
+    border-color: Theme.field-border;
     opacity: root.enabled ? 1 : 0.4;
-    animate background { duration: Theme.fast; }
     HorizontalLayout {
         padding-left: Theme.sm;
-        padding-right: 6px;
+        padding-right: Theme.sm;
         spacing: Theme.xs;
         Text {
             text: root.model[root.current-index];
-            font-size: Theme.font-body;
+            font-size: Theme.font-small;
             color: Theme.text;
             vertical-alignment: center;
             overflow: elide;
@@ -166,10 +154,10 @@ export component Dropdown inherits Rectangle {
         VerticalLayout {
             alignment: center;
             Image {
-                source: @image-url("icons/chevron-down.svg");
-                width: 12px;
-                height: 12px;
-                colorize: Theme.muted;
+                source: @image-url("icons/caret-down.svg");
+                width: 8px;
+                height: 8px;
+                colorize: Theme.text;
             }
         }
     }
@@ -180,40 +168,42 @@ export component Dropdown inherits Rectangle {
     }
     popup := PopupWindow {
         x: 0;
-        y: root.height + 4px;
-        width: root.width;
+        y: root.height + 2px;
+        width: max(root.width, 140px);
         Rectangle {
-            background: Theme.controls;
-            border-radius: Theme.radius;
+            background: Theme.raised;
+            border-radius: Theme.radius-large;
             border-width: 1px;
-            border-color: Theme.border;
-            drop-shadow-blur: 16px;
-            drop-shadow-color: #00000066;
-            drop-shadow-offset-y: 6px;
+            border-color: Theme.field-border;
+            drop-shadow-blur: 14px;
+            drop-shadow-color: #00000080;
+            drop-shadow-offset-y: 4px;
             VerticalLayout {
                 padding: 4px;
                 for item[i] in root.model: Rectangle {
-                    height: 26px;
-                    border-radius: 4px;
+                    height: 24px;
+                    border-radius: Theme.radius-small;
                     background: option.has-hover ? Theme.accent : transparent;
                     HorizontalLayout {
                         padding-left: Theme.sm;
                         padding-right: Theme.sm;
+                        spacing: Theme.sm;
+                        VerticalLayout {
+                            alignment: center;
+                            width: 10px;
+                            if i == root.current-index: Image {
+                                source: @image-url("icons/check.svg");
+                                width: 10px;
+                                height: 10px;
+                                colorize: option.has-hover ? Theme.on-accent : Theme.text;
+                            }
+                        }
                         Text {
                             text: item;
-                            font-size: Theme.font-body;
+                            font-size: Theme.font-small;
                             color: option.has-hover ? Theme.on-accent : Theme.text;
                             vertical-alignment: center;
                             horizontal-stretch: 1;
-                        }
-                        if i == root.current-index: VerticalLayout {
-                            alignment: center;
-                            Image {
-                                source: @image-url("icons/check.svg");
-                                width: 12px;
-                                height: 12px;
-                                colorize: option.has-hover ? Theme.on-accent : Theme.accent;
-                            }
                         }
                     }
                     option := TouchArea {
@@ -233,27 +223,26 @@ export component TextField inherits Rectangle {
     in property <string> placeholder;
     in property <bool> enabled: true;
     in property <string> label;
+    in property <bool> numeric: true;
     callback edited();
     accessible-role: text-input;
     accessible-label: root.label;
     accessible-value: root.text;
     height: Theme.control-height;
-    min-width: 56px;
+    min-width: 48px;
     border-radius: Theme.radius-small;
-    background: Theme.controls;
+    background: Theme.field;
     border-width: 1px;
-    border-color: input.has-focus ? Theme.accent : Theme.hairline;
+    border-color: input.has-focus ? Theme.focus : Theme.field-border;
     opacity: root.enabled ? 1 : 0.4;
-    animate border-color { duration: Theme.fast; }
     if root.text == "": Text {
         x: Theme.sm;
         width: root.width - 2 * Theme.sm;
         height: root.height;
         text: root.placeholder;
-        font-family: Theme.mono;
         font-size: Theme.font-small;
         color: Theme.faint;
-        horizontal-alignment: right;
+        horizontal-alignment: root.numeric ? right : left;
         vertical-alignment: center;
     }
     input := TextInput {
@@ -263,11 +252,10 @@ export component TextField inherits Rectangle {
         text <=> root.text;
         enabled: root.enabled;
         single-line: true;
-        font-family: Theme.mono;
         font-size: Theme.font-small;
-        color: Theme.text;
-        selection-background-color: Theme.accent-soft;
-        horizontal-alignment: right;
+        color: root.numeric ? Theme.value : Theme.text;
+        selection-background-color: Theme.accent.with-alpha(0.4);
+        horizontal-alignment: root.numeric ? right : left;
         vertical-alignment: center;
         edited => { root.edited(); }
     }

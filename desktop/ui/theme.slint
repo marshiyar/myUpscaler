@@ -1,6 +1,6 @@
-// Design tokens. Dark-first studio palette (a sunken canvas, flat panels, raised controls, hairline borders) with a
-// matching light theme; Inter for the interface and Geist Mono for numbers and labels, embedded so every platform
-// renders the same. Spacing follows a 4 px grid; motion uses short ease-out transitions.
+// Design tokens in the style of the ArtCraft suite (FilmCraft, PhotoCraft): flat panels tiled on a black window with
+// small gaps, hairline separators, dense rows, blue numeric values and timecodes, and a light variant. Inter is
+// embedded for the interface and Geist Mono for timecodes, so every platform renders the same.
 
 import { Palette } from "std-widgets.slint";
 import "fonts/Inter-Regular.ttf";
@@ -20,49 +20,57 @@ export global Theme {
     // Type
     out property <string> font: "Inter";
     out property <string> mono: "Geist Mono";
-    out property <length> font-title: 18px;
+    out property <length> font-title: 15px;
     out property <length> font-body: 13px;
     out property <length> font-small: 12px;
-    out property <length> font-label: 10.5px;
+    out property <length> font-label: 11px;
+    out property <length> font-timecode: 17px;
 
-    // Spacing (4 px grid) and shape
+    // Spacing and shape
+    out property <length> gap: 4px;
     out property <length> xs: 4px;
-    out property <length> sm: 8px;
-    out property <length> md: 12px;
+    out property <length> sm: 6px;
+    out property <length> md: 10px;
     out property <length> lg: 16px;
     out property <length> xl: 24px;
-    out property <length> radius-small: 6px;
-    out property <length> radius: 8px;
-    out property <length> radius-large: 12px;
-    out property <length> row-height: 28px;
-    out property <length> control-height: 26px;
+    out property <length> radius-small: 3px;
+    out property <length> radius: 4px;
+    out property <length> radius-large: 6px;
+    out property <length> row-height: 24px;
+    out property <length> control-height: 22px;
 
     // Motion
-    out property <duration> fast: 140ms;
-    out property <duration> base: 220ms;
+    out property <duration> fast: 120ms;
+    out property <duration> base: 200ms;
 
-    // Surfaces: the canvas is sunken, panels are flat, controls are raised.
-    out property <color> background: dark ? #121316 : #ffffff;
-    out property <color> panel: dark ? #101014 : #f8f8f8;
-    out property <color> canvas: dark ? #060607 : #ececef;
-    out property <color> controls: dark ? #1e1f22 : #eeeeef;
-    out property <color> controls-hover: dark ? #26272b : #e4e4e7;
-    out property <color> floating: dark ? #1e1f22f2 : #fffffff2;
-    out property <color> border: dark ? #ffffff26 : #dcdcdf;
-    out property <color> hairline: dark ? #ffffff14 : #e5e7eb;
+    // Surfaces
+    out property <color> app: dark ? #000000 : #c9c9c9;
+    out property <color> header: dark ? #1d1d1d : #ececec;
+    out property <color> panel: dark ? #1d1d1d : #f4f4f4;
+    out property <color> monitor: dark ? #141414 : #dcdcdc;
+    out property <color> field: dark ? #0e0e0e : #ffffff;
+    out property <color> field-border: dark ? #303030 : #c4c4c4;
+    out property <color> separator: dark ? #303030 : #d6d6d6;
+    out property <color> hover: dark ? #2c2c2c : #e2e2e2;
+    out property <color> pressed: dark ? #4b4b4b : #cfcfcf;
+    out property <color> selected: dark ? #333333 : #dddddd;
+    out property <color> raised: dark ? #242424 : #ffffff;
 
-    // Text
-    out property <color> text: dark ? #f2f1ee : #18181b;
-    out property <color> muted: dark ? #f2f1ee99 : #18181b99;
-    out property <color> faint: dark ? #f2f1ee59 : #18181b59;
+    // Text and icons
+    out property <color> text: dark ? #d1d1d1 : #1f1f1f;
+    out property <color> dim: dark ? #b0b0b0 : #4a4a4a;
+    out property <color> faint: dark ? #6e6e6e : #8a8a8a;
+    out property <color> strong: dark ? #ebebeb : #000000;
 
     // Accent and states
-    out property <color> accent: #2d81ff;
-    out property <color> accent-hover: #59a7ff;
-    out property <color> accent-pressed: #1b63f5;
-    out property <color> accent-soft: dark ? #2d81ff26 : #2d81ff1a;
+    out property <color> accent: #2f6bdf;
+    out property <color> accent-hover: #3f7ce8;
+    out property <color> focus: #5794ec;
+    out property <color> value: dark ? #4096f3 : #1f63d6;
     out property <color> on-accent: #ffffff;
-    out property <color> success: dark ? #3fb36b : #308752;
-    out property <color> danger: #d33242;
+    out property <color> track: dark ? #505050 : #b8b8b8;
+    out property <color> knob: dark ? #e0e0e0 : #ffffff;
+    out property <color> success: #2d9d78;
+    out property <color> danger: #dc513d;
     out property <color> warning: #e8a33d;
 }

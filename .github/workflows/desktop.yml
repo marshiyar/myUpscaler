@@ -48,15 +48,15 @@ jobs:
           shots="$RUNNER_TEMP/screenshots"
           mkdir -p "$shots"
           python3 scripts/sample-image.py "$shots/sample.png"
-          "$app" --screenshot "$shots/empty.png"
-          "$app" --screenshot "$shots/restore-dark.png" --dark --page 1 "$shots/sample.png"
-          "$app" --screenshot "$shots/processor-preview.png" --processed --page 2 "$shots/sample.png"
-          "$app" --screenshot "$shots/output-light.png" --light --page 3 "$shots/sample.png"
+          "$app" --screenshot "$shots/import.png"
+          "$app" --screenshot "$shots/edit-restore-dark.png" --dark --page 1 "$shots/sample.png"
+          "$app" --screenshot "$shots/edit-processor-filtered.png" --processed --page 2 "$shots/sample.png"
+          "$app" --screenshot "$shots/export-light.png" --light --workspace 2 "$shots/sample.png"
           "$app" --screenshot "$shots/finished-run.png" --run "$shots/sample.png"
           test -s "$shots/sample_[restored].png"
           cargo run --release --example sample_clip -- "$shots/clip.mp4"
           "$app" --screenshot "$shots/video-light.png" --light --processed --page 1 "$shots/clip.mp4"
-          "$app" --screenshot "$shots/video-running.png" --dark --run --after 5 "$shots/clip.mp4"
+          "$app" --screenshot "$shots/video-running.png" --dark --workspace 2 --run --after 5 "$shots/clip.mp4"
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-screenshots

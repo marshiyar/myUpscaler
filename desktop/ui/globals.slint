@@ -10,7 +10,8 @@ export global Settings {
     in-out property <int> interpolation;            // 0 off, 1 MCI, 2 blend
 
     // Restore: primary pass
-    in-out property <int> denoiser;                 // 0 off, 1 BM3D, 2 hqdn3d, 3 NLMeans, 4 ATADenoise
+    in-out property <bool> denoise: true;
+    in-out property <int> denoiser;                 // 0 BM3D, 1 hqdn3d, 2 NLMeans, 3 ATADenoise
     in-out property <float> denoise-strength: 2.5;
     in-out property <bool> dering;
     in-out property <float> dering-strength: 0.5;
@@ -40,8 +41,10 @@ export global Settings {
     in-out property <string> grain2-strength: "1.0";
 
     // Processor
-    in-out property <int> deblock;                  // 0 off, 1 weak, 2 strong
-    in-out property <int> deband;                   // 0 off, 1 deband, 2 gradfun, 3 f3kdb, 4 Neo F3kdb
+    in-out property <bool> deblock: true;
+    in-out property <int> deblock-mode: 1;          // 0 weak, 1 strong
+    in-out property <bool> deband: true;
+    in-out property <int> deband-method;            // 0 deband, 1 gradfun, 2 f3kdb, 3 Neo F3kdb
     in-out property <string> deband-strength: "0.015";
     in-out property <string> f3kdb-range: "15";
     in-out property <string> f3kdb-y: "64";
@@ -88,11 +91,13 @@ export global App {
     in property <string> eta-text: "--:--";
     in property <string> log;
     in property <string> predicted-output;
+    in property <string> output-video;              // e.g. "1280×720 → 2560×1440 · 60 fps"
     in property <string> engine-version;
     in property <string> error;
 
     in-out property <bool> inspector-visible: true;
-    in-out property <int> page;                     // 0 Upscale, 1 Restore, 2 Processor, 3 Output
+    in-out property <int> workspace;                // 0 Import, 1 Edit, 2 Export
+    in-out property <int> page;                     // 0 Upscale, 1 Restore, 2 Processor
     in-out property <bool> about-open;
     in-out property <bool> settings-open;
     in-out property <bool> log-open;

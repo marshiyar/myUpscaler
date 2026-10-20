@@ -1,12 +1,13 @@
 # myUpscaler desktop (macOS, Windows, Linux)
 
 The cross-platform version of myUpscaler: a [Slint](https://slint.dev) interface on the same Rust processing
-backend (`../backend`) the macOS app uses, with the same workflow and settings (the Upscale / Restore / Processor /
-Output adjustments panel). The preview is the workspace: a sunken canvas with a floating view toolbar (original or
-filtered frame, file details) and a floating command bar (timeline, setting chips, progress, Run / Cancel); the log is a
-drawer. Every control is drawn from one set of design tokens (`ui/theme.slint`), dark-first with a matching light theme,
-and the fonts are embedded (Inter for the interface, Geist Mono for numbers and labels), so it looks the same on
-macOS, Windows and Linux.
+backend (`../backend`) the macOS app uses, with the same settings. It is laid out like the ArtCraft suite's editors
+(FilmCraft, PhotoCraft): a top bar with three workspaces (Import, Edit, Export) and the document title, flat panels
+tiled on a black window, and a status bar. Edit pairs the Program monitor (preview, blue timecode, original or
+filtered view, scrubber) with the adjustments panel, whose effects are collapsible sections with an on/off switch and
+one-line slider rows; Export holds the destination, the format summary and the Export button. Every control is drawn
+from one set of design tokens (`ui/theme.slint`), dark with a light variant, and the fonts are embedded (Inter, and
+Geist Mono for timecodes), so it looks the same on macOS, Windows and Linux.
 
 ```sh
 bash ../scripts/prepare-media-engine.sh   # the media engine (macOS arm64, Linux x86_64)
@@ -15,16 +16,16 @@ cargo run --release                        # or: cargo run --release -- path/to/
 
 ## Layout
 
-- `ui/`: the interface. `theme.slint` holds the design tokens (surfaces, text, accent, spacing, type, motion),
-  `controls.slint` the inputs (switch, slider, dropdown, text field), `components.slint` buttons, chips, tabs, rows
-  and sections, `inspector.slint` the four adjustment pages, `app.slint` the window. `fonts/` holds Inter and
+- `ui/`: the interface. `theme.slint` holds the design tokens, `controls.slint` the inputs (switch, slider, dropdown,
+  text field), `components.slint` panels, tabs, sections, rows and buttons, `inspector.slint` the adjustments panel,
+  `edit.slint` the Edit workspace, `workspaces.slint` Import and Export, `app.slint` the window. `fonts/` holds Inter and
   Geist Mono with their OFL licences.
 - `src/settings.rs`: interface settings ↔ the backend's `Options`; the interface starts from the backend's factory
   settings, so the defaults are defined once.
 - `src/preview.rs`: the preview thread (one frame, decoded or through the export's spatial filters).
 - `src/progress.rs`: the backend's progress lines → progress, FPS, time and ETA.
 - `src/screenshot.rs`: headless rendering for review and CI:
-  `myupscaler --screenshot out.png [--size 1180x780] [--page 0-3] [--dark | --light] [--processed]
+  `myupscaler --screenshot out.png [--size 1280x800] [--workspace 0-2] [--page 0-2] [--dark | --light] [--processed]
   [--run [--after SECONDS]] [input]`. `cargo run --example sample_clip -- clip.mp4` writes a test video for it.
 
 ## Status

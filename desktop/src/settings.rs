@@ -44,7 +44,8 @@ pub fn load(s: &Settings, o: &Options) {
     });
 
     let denoiser = text(&o.denoiser);
-    s.set_denoiser(if flag(o.no_denoise) { 0 } else { index_of(&DENOISERS, &denoiser).map_or(1, |i| i as i32 + 1) });
+    s.set_denoise(!flag(o.no_denoise));
+    s.set_denoiser(index_of(&DENOISERS, &denoiser).unwrap_or(0) as i32);
     s.set_denoise_strength(number(&text(&o.denoise_strength), denoise_range(&denoiser).2));
     s.set_dering(flag(o.dering_active));
     s.set_dering_strength(number(&text(&o.dering_strength), 0.5));
@@ -73,16 +74,10 @@ pub fn load(s: &Settings, o: &Options) {
     s.set_grain2(flag(o.use_grain_2));
     s.set_grain2_strength(text(&o.grain_strength_2).into());
 
-    s.set_deblock(if flag(o.no_deblock) {
-        0
-    } else {
-        index_of(&DEBLOCK_MODES, &text(&o.deblock_mode)).map_or(2, |i| i as i32 + 1)
-    });
-    s.set_deband(if flag(o.no_deband) {
-        0
-    } else {
-        index_of(&DEBAND_METHODS, &text(&o.deband_method)).map_or(1, |i| i as i32 + 1)
-    });
+    s.set_deblock(!flag(o.no_deblock));
+    s.set_deblock_mode(index_of(&DEBLOCK_MODES, &text(&o.deblock_mode)).unwrap_or(1) as i32);
+    s.set_deband(!flag(o.no_deband));
+    s.set_deband_method(index_of(&DEBAND_METHODS, &text(&o.deband_method)).unwrap_or(0) as i32);
     s.set_deband_strength(text(&o.deband_strength).into());
     s.set_f3kdb_range(text(&o.f3kdb_range).into());
     s.set_f3kdb_y(text(&o.f3kdb_y).into());
@@ -97,7 +92,7 @@ pub fn load(s: &Settings, o: &Options) {
 
 /// Keeps the denoise sliders' ranges in step with the chosen denoisers, clamping the strengths into them.
 pub fn update_ranges(s: &Settings) {
-    let first = DENOISERS[(s.get_denoiser() - 1).clamp(0, 3) as usize];
+    let first = DENOISERS[s.get_denoiser().clamp(0, 3) as usize];
     let (lo, hi, default) = denoise_range(first);
     s.set_denoise_min(lo);
     s.set_denoise_max(hi);
@@ -122,9 +117,8 @@ pub fn options(s: &Settings) -> Options {
     o.no_interpolate = (interpolation == 0) as i32;
     set(&mut o.mi_mode, if interpolation == 2 { "blend" } else { "mci" });
 
-    let denoiser = s.get_denoiser();
-    o.no_denoise = (denoiser == 0) as i32;
-    set(&mut o.denoiser, DENOISERS[(denoiser - 1).clamp(0, 3) as usize]);
+    o.no_denoise = !s.get_denoise() as i32;
+    set(&mut o.denoiser, DENOISERS[s.get_denoiser().clamp(0, 3) as usize]);
     set(&mut o.denoise_strength, &format!("{:.2}", s.get_denoise_strength()));
     o.dering_active = s.get_dering() as i32;
     set(&mut o.dering_strength, &format!("{:.3}", s.get_dering_strength()));
@@ -153,12 +147,10 @@ pub fn options(s: &Settings) -> Options {
     o.use_grain_2 = s.get_grain2() as i32;
     set(&mut o.grain_strength_2, &s.get_grain2_strength());
 
-    let deblock = s.get_deblock();
-    o.no_deblock = (deblock == 0) as i32;
-    set(&mut o.deblock_mode, DEBLOCK_MODES[(deblock - 1).clamp(0, 1) as usize]);
-    let deband = s.get_deband();
-    o.no_deband = (deband == 0) as i32;
-    set(&mut o.deband_method, DEBAND_METHODS[(deband - 1).clamp(0, 3) as usize]);
+    o.no_deblock = !s.get_deblock() as i32;
+    set(&mut o.deblock_mode, DEBLOCK_MODES[s.get_deblock_mode().clamp(0, 1) as usize]);
+    o.no_deband = !s.get_deband() as i32;
+    set(&mut o.deband_method, DEBAND_METHODS[s.get_deband_method().clamp(0, 3) as usize]);
     set(&mut o.deband_strength, &s.get_deband_strength());
     set(&mut o.f3kdb_range, &s.get_f3kdb_range());
     set(&mut o.f3kdb_y, &s.get_f3kdb_y());
@@ -226,10 +218,10 @@ mod tests {
         let ui = window();
         let s = ui.global::<Settings>();
         load(&s, &Options::default());
-        s.set_denoiser(0);
+        s.set_denoise(false);
         s.set_interpolation(2);
-        s.set_deblock(1);
-        s.set_deband(4);
+        s.set_deblock_mode(0);
+        s.set_deband_method(3);
         s.set_sharpen_method(1);
         s.set_custom_output(true);
         s.set_output_folder("/out".into());
@@ -249,7 +241,7 @@ mod tests {
         let ui = window();
         let s = ui.global::<Settings>();
         load(&s, &Options::default());
-        s.set_denoiser(3); // NLMeans: 1..30
+        s.set_denoiser(2); // NLMeans: 1..30
         s.set_denoise_strength(45.0);
         update_ranges(&s);
         assert_eq!((s.get_denoise_min(), s.get_denoise_max(), s.get_denoise_default()), (1.0, 30.0, 1.0));

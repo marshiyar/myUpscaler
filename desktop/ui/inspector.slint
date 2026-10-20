@@ -1,41 +1,60 @@
-// The docked adjustments panel (WorkspaceInspector.swift): Upscale, Restore, Processor and Output pages.
+// The adjustments panel of the Edit workspace: Upscale, Restore and Processor tabs, each a list of collapsible
+// effect sections with an on/off switch, in the style of FilmCraft's colour and effect panels.
 
 import { ScrollView } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { Settings, App, Actions } from "globals.slint";
-import { Tabs, ChoiceRow, SwitchRow, FieldRow, ParameterRow, Row, Button, ButtonKind, Divider, SectionLabel, Hint } from "components.slint";
-
-// A titled group of rows; groups are separated by hairlines rather than boxed.
-component Section inherits VerticalLayout {
-    in property <string> title;
-    in property <string> footer;
-    in property <bool> first;
-    spacing: 2px;
-    alignment: start;
-    if !root.first: VerticalLayout {
-        padding-top: Theme.sm;
-        Divider { }
-    }
-    SectionLabel { text: root.title; }
-    @children
-    if root.footer != "": Hint { text: root.footer; }
-}
+import { PanelTabs, SectionHeader, ChoiceRow, SwitchRow, FieldRow, ParameterRow, Row, Button, ButtonKind, Divider, Hint } from "components.slint";
 
 component UpscalePage inherits VerticalLayout {
-    spacing: 0;
+    property <bool> scaling-open: true;
+    property <bool> rate-open: true;
+    property <bool> quality-open: true;
     alignment: start;
-    Section {
-        first: true;
-        title: "Upscaling";
-        footer: "Real-ESRGAN (AI) upscaling arrives in the cross-platform app with the GPU model runner.";
+    SectionHeader {
+        title: "Scaling";
+        expanded <=> root.scaling-open;
+    }
+    if root.scaling-open: VerticalLayout {
         ChoiceRow {
             label: "Scaler";
             choices: ["Lanczos"];
             index: 0;
         }
+        FieldRow {
+            label: "Scale";
+            value <=> Settings.scale;
+            placeholder: "2";
+            changed => { Actions.settings-changed(); }
+        }
+        Hint { text: "Real-ESRGAN (AI) upscaling arrives with the GPU model runner."; }
     }
-    Section {
-        title: "Quality & Scale";
+    Divider { }
+    SectionHeader {
+        title: "Frame rate";
+        expanded <=> root.rate-open;
+    }
+    if root.rate-open: VerticalLayout {
+        FieldRow {
+            label: "FPS";
+            detail: "Number, fraction or source";
+            value <=> Settings.fps;
+            placeholder: "60";
+            changed => { Actions.settings-changed(); }
+        }
+        ChoiceRow {
+            label: "Interpolation";
+            choices: ["Off", "Motion (MCI)", "Blend"];
+            index <=> Settings.interpolation;
+            changed => { Actions.settings-changed(); }
+        }
+    }
+    Divider { }
+    SectionHeader {
+        title: "Quality";
+        expanded <=> root.quality-open;
+    }
+    if root.quality-open: VerticalLayout {
         ParameterRow {
             title: "CRF";
             value <=> Settings.crf;
@@ -47,86 +66,87 @@ component UpscalePage inherits VerticalLayout {
             changed => { Actions.settings-changed(); }
         }
         Hint { text: "Lower is better: 20 or less is high quality, 27 or more is draft."; }
-        FieldRow {
-            label: "Scale";
-            detail: "Output size multiplier";
-            value <=> Settings.scale;
-            placeholder: "2.0";
-            changed => { Actions.settings-changed(); }
-        }
-        FieldRow {
-            label: "FPS";
-            detail: "Number, fraction or source";
-            value <=> Settings.fps;
-            placeholder: "60";
-            changed => { Actions.settings-changed(); }
-        }
-        ChoiceRow {
-            label: "Interpolation";
-            choices: ["Off", "MCI", "Blend"];
-            index <=> Settings.interpolation;
-            changed => { Actions.settings-changed(); }
-        }
     }
 }
 
 component RestorePage inherits VerticalLayout {
-    spacing: 0;
+    property <bool> denoise-open: true;
+    property <bool> dering-open: true;
+    property <bool> sharpen-open: true;
+    property <bool> color-open: true;
+    property <bool> second-open: false;
     alignment: start;
-    Section {
-        first: true;
-        title: "Primary restoration";
+    SectionHeader {
+        title: "Denoise";
+        expanded <=> root.denoise-open;
+        has-switch: true;
+        checked <=> Settings.denoise;
+        toggled => { Actions.settings-changed(); }
+    }
+    if root.denoise-open: VerticalLayout {
         ChoiceRow {
-            label: "Denoise";
-            choices: ["Off", "BM3D", "hqdn3d", "NLMeans", "ATADenoise"];
+            label: "Method";
+            choices: ["BM3D", "hqdn3d", "NLMeans", "ATADenoise"];
             index <=> Settings.denoiser;
+            enabled: Settings.denoise;
             changed => { Actions.settings-changed(); }
         }
-        if Settings.denoiser != 0: ParameterRow {
+        ParameterRow {
             title: "Strength";
             value <=> Settings.denoise-strength;
             minimum: Settings.denoise-min;
             maximum: Settings.denoise-max;
             step: 0.1;
             default-value: Settings.denoise-default;
+            enabled: Settings.denoise;
             changed => { Actions.settings-changed(); }
         }
-        SwitchRow {
-            label: "Deringing";
-            checked <=> Settings.dering;
-            changed => { Actions.settings-changed(); }
-        }
-        if Settings.dering: ParameterRow {
-            title: "Strength";
-            value <=> Settings.dering-strength;
-            minimum: 0;
-            maximum: 10;
-            step: 0.005;
-            default-value: 0.5;
-            changed => { Actions.settings-changed(); }
-        }
-        SwitchRow {
-            label: "Sharpen";
-            checked <=> Settings.sharpen;
-            changed => { Actions.settings-changed(); }
-        }
-        if Settings.sharpen: ChoiceRow {
+    }
+    Divider { }
+    SectionHeader {
+        title: "Deringing";
+        expanded <=> root.dering-open;
+        has-switch: true;
+        checked <=> Settings.dering;
+        toggled => { Actions.settings-changed(); }
+    }
+    if root.dering-open: ParameterRow {
+        title: "Strength";
+        value <=> Settings.dering-strength;
+        minimum: 0;
+        maximum: 10;
+        step: 0.005;
+        default-value: 0.5;
+        enabled: Settings.dering;
+        changed => { Actions.settings-changed(); }
+    }
+    Divider { }
+    SectionHeader {
+        title: "Sharpen";
+        expanded <=> root.sharpen-open;
+        has-switch: true;
+        checked <=> Settings.sharpen;
+        toggled => { Actions.settings-changed(); }
+    }
+    if root.sharpen-open: VerticalLayout {
+        ChoiceRow {
             label: "Method";
             choices: ["CAS", "Unsharp mask"];
             index <=> Settings.sharpen-method;
+            enabled: Settings.sharpen;
             changed => { Actions.settings-changed(); }
         }
-        if Settings.sharpen && Settings.sharpen-method == 0: ParameterRow {
+        if Settings.sharpen-method == 0: ParameterRow {
             title: "Strength";
             value <=> Settings.cas-strength;
             minimum: 0;
             maximum: 1;
             step: 0.01;
             default-value: 0.25;
+            enabled: Settings.sharpen;
             changed => { Actions.settings-changed(); }
         }
-        if Settings.sharpen && Settings.sharpen-method == 1: VerticalLayout {
-            spacing: 2px;
+        if Settings.sharpen-method == 1: VerticalLayout {
             ParameterRow {
                 title: "Matrix";
                 value <=> Settings.usm-radius;
@@ -135,6 +155,7 @@ component RestorePage inherits VerticalLayout {
                 step: 2;
                 default-value: 5;
                 digits: 0;
+                enabled: Settings.sharpen;
                 changed => { Actions.settings-changed(); }
             }
             ParameterRow {
@@ -144,6 +165,7 @@ component RestorePage inherits VerticalLayout {
                 maximum: 5;
                 step: 0.01;
                 default-value: 1;
+                enabled: Settings.sharpen;
                 changed => { Actions.settings-changed(); }
             }
             ParameterRow {
@@ -154,52 +176,59 @@ component RestorePage inherits VerticalLayout {
                 step: 0.001;
                 default-value: 0.03;
                 digits: 3;
+                enabled: Settings.sharpen;
                 changed => { Actions.settings-changed(); }
             }
         }
     }
-    Section {
+    Divider { }
+    SectionHeader {
         title: "Color";
-        SwitchRow {
-            label: "Color equalizer";
-            checked <=> Settings.eq;
+        expanded <=> root.color-open;
+        has-switch: true;
+        checked <=> Settings.eq;
+        toggled => { Actions.settings-changed(); }
+    }
+    if root.color-open: VerticalLayout {
+        ParameterRow {
+            title: "Contrast";
+            value <=> Settings.contrast;
+            minimum: 0.5;
+            maximum: 2;
+            step: 0.005;
+            default-value: 1;
+            enabled: Settings.eq;
             changed => { Actions.settings-changed(); }
         }
-        if Settings.eq: VerticalLayout {
-            spacing: 2px;
-            ParameterRow {
-                title: "Contrast";
-                value <=> Settings.contrast;
-                minimum: 0.5;
-                maximum: 2;
-                step: 0.005;
-                default-value: 1;
-                changed => { Actions.settings-changed(); }
-            }
-            ParameterRow {
-                title: "Brightness";
-                value <=> Settings.brightness;
-                minimum: -0.1;
-                maximum: 0.1;
-                step: 0.005;
-                default-value: 0;
-                digits: 3;
-                changed => { Actions.settings-changed(); }
-            }
-            ParameterRow {
-                title: "Saturation";
-                value <=> Settings.saturation;
-                minimum: 0;
-                maximum: 2;
-                step: 0.005;
-                default-value: 1;
-                changed => { Actions.settings-changed(); }
-            }
+        ParameterRow {
+            title: "Brightness";
+            value <=> Settings.brightness;
+            minimum: -0.1;
+            maximum: 0.1;
+            step: 0.005;
+            default-value: 0;
+            digits: 3;
+            enabled: Settings.eq;
+            changed => { Actions.settings-changed(); }
+        }
+        ParameterRow {
+            title: "Saturation";
+            value <=> Settings.saturation;
+            minimum: 0;
+            maximum: 2;
+            step: 0.005;
+            default-value: 1;
+            enabled: Settings.eq;
+            changed => { Actions.settings-changed(); }
         }
     }
-    Section {
+    Divider { }
+    SectionHeader {
         title: "Second pass";
-        footer: "Runs after scaling, sharpening and debanding; each stage has its own switch.";
+        expanded <=> root.second-open;
+    }
+    if root.second-open: VerticalLayout {
+        Hint { text: "Runs after scaling, sharpening and debanding; each stage has its own switch."; }
         SwitchRow {
             label: "Denoise";
             checked <=> Settings.denoise2;
@@ -266,7 +295,7 @@ component RestorePage inherits VerticalLayout {
         }
         SwitchRow {
             label: "Grain";
-            detail: "Replaces the first pass grain amount";
+            detail: "Replaces the first-pass amount";
             checked <=> Settings.grain2;
             changed => { Actions.settings-changed(); }
         }
@@ -280,69 +309,95 @@ component RestorePage inherits VerticalLayout {
 }
 
 component ProcessorPage inherits VerticalLayout {
-    spacing: 0;
+    property <bool> deblock-open: true;
+    property <bool> deband-open: true;
+    property <bool> grain-open: true;
+    property <bool> frames-open: true;
     alignment: start;
-    Section {
-        first: true;
-        title: "Extra filters";
+    SectionHeader {
+        title: "Deblock";
+        expanded <=> root.deblock-open;
+        has-switch: true;
+        checked <=> Settings.deblock;
+        toggled => { Actions.settings-changed(); }
+    }
+    if root.deblock-open: ChoiceRow {
+        label: "Mode";
+        choices: ["Weak", "Strong"];
+        index <=> Settings.deblock-mode;
+        enabled: Settings.deblock;
+        changed => { Actions.settings-changed(); }
+    }
+    Divider { }
+    SectionHeader {
+        title: "Deband";
+        expanded <=> root.deband-open;
+        has-switch: true;
+        checked <=> Settings.deband;
+        toggled => { Actions.settings-changed(); }
+    }
+    if root.deband-open: VerticalLayout {
         ChoiceRow {
-            label: "Deblock";
-            choices: ["Off", "Weak", "Strong"];
-            index <=> Settings.deblock;
+            label: "Method";
+            choices: ["Deband", "Gradfun", "F3kdb", "Neo F3kdb"];
+            index <=> Settings.deband-method;
+            enabled: Settings.deband;
             changed => { Actions.settings-changed(); }
         }
-        ChoiceRow {
-            label: "Deband";
-            choices: ["Off", "Deband", "Gradfun", "F3kdb", "Neo F3kdb"];
-            index <=> Settings.deband;
-            changed => { Actions.settings-changed(); }
-        }
-        if Settings.deband == 1 || Settings.deband == 2: FieldRow {
+        if Settings.deband-method <= 1: FieldRow {
             label: "Strength";
             value <=> Settings.deband-strength;
-            placeholder: Settings.deband == 2 ? "1.2" : "0.015";
+            placeholder: Settings.deband-method == 1 ? "1.2" : "0.015";
+            enabled: Settings.deband;
             changed => { Actions.settings-changed(); }
         }
-        if Settings.deband >= 3: HorizontalLayout {
-            spacing: Theme.md;
+        if Settings.deband-method >= 2: VerticalLayout {
             FieldRow {
                 label: "Range";
-                field-width: 48px;
                 value <=> Settings.f3kdb-range;
                 placeholder: "15";
+                enabled: Settings.deband;
                 changed => { Actions.settings-changed(); }
             }
             FieldRow {
-                label: "Y";
-                field-width: 48px;
+                label: "Luma threshold";
                 value <=> Settings.f3kdb-y;
                 placeholder: "64";
+                enabled: Settings.deband;
                 changed => { Actions.settings-changed(); }
             }
             FieldRow {
-                label: "CbCr";
-                field-width: 48px;
+                label: "Chroma threshold";
                 value <=> Settings.f3kdb-cbcr;
                 placeholder: "64";
+                enabled: Settings.deband;
                 changed => { Actions.settings-changed(); }
             }
         }
-        if Settings.deband == 4: Hint {
+        if Settings.deband-method == 3: Hint {
             text: "Neo F3kdb: integer range 0–255, thresholds 0–511 (16 = one 8-bit level).";
         }
-        FieldRow {
-            label: "Grain";
-            detail: "0 turns grain off";
-            value <=> Settings.grain;
-            placeholder: "1.0";
-            changed => { Actions.settings-changed(); }
-        }
     }
-    Section {
+    Divider { }
+    SectionHeader {
+        title: "Grain";
+        expanded <=> root.grain-open;
+    }
+    if root.grain-open: FieldRow {
+        label: "Amount";
+        detail: "0 turns grain off";
+        value <=> Settings.grain;
+        placeholder: "1.0";
+        changed => { Actions.settings-changed(); }
+    }
+    Divider { }
+    SectionHeader {
         title: "Frames & threads";
+        expanded <=> root.frames-open;
+    }
+    if root.frames-open: VerticalLayout {
         SwitchRow {
             label: "Remove near-duplicate frames";
-            detail: "Decimate before frame-rate conversion";
             checked <=> Settings.decimate;
             changed => { Actions.settings-changed(); }
         }
@@ -356,95 +411,39 @@ component ProcessorPage inherits VerticalLayout {
     }
     HorizontalLayout {
         alignment: start;
-        padding-top: Theme.md;
+        padding-top: Theme.lg;
         Button {
-            text: "Reset processing settings";
+            text: "Reset all";
             icon: @image-url("icons/reset.svg");
+            has-icon: true;
             kind: ButtonKind.secondary;
+            tall: 26px;
             clicked => { Actions.reset-settings(); }
-        }
-    }
-}
-
-component OutputPage inherits VerticalLayout {
-    spacing: 0;
-    alignment: start;
-    Section {
-        first: true;
-        title: "Output";
-        SwitchRow {
-            label: "Custom output folder";
-            detail: Settings.custom-output ? Settings.output-folder : "Next to the input";
-            checked <=> Settings.custom-output;
-            changed => { Actions.settings-changed(); }
-        }
-        if Settings.custom-output: HorizontalLayout {
-            alignment: start;
-            Button {
-                text: "Choose folder…";
-                icon: @image-url("icons/folder.svg");
-                kind: ButtonKind.secondary;
-                clicked => { Actions.choose-output-folder(); }
-            }
-        }
-        Row {
-            label: "File";
-            detail: App.predicted-output == "" ? "Choose a video first" : App.predicted-output;
-        }
-    }
-    Section {
-        title: "Encoding";
-        footer: "Videos: H.264 in MP4 with lossless FLAC audio. Images: PNG with transparency kept.";
-        Row {
-            label: "Video";
-            Text {
-                text: "H.264 · 8-bit";
-                font-family: Theme.mono;
-                font-size: Theme.font-small;
-                color: Theme.muted;
-            }
-        }
-        Row {
-            label: "Audio";
-            Text {
-                text: "FLAC · lossless";
-                font-family: Theme.mono;
-                font-size: Theme.font-small;
-                color: Theme.muted;
-            }
         }
     }
 }
 
 export component Inspector inherits Rectangle {
     background: Theme.panel;
-    Rectangle {
-        x: 0;
-        width: 1px;
-        background: Theme.hairline;
-    }
+    border-radius: Theme.radius;
+    clip: true;
     VerticalLayout {
-        HorizontalLayout {
-            padding: Theme.md;
-            padding-bottom: Theme.xs;
-            Tabs {
-                items: ["Upscale", "Restore", "Processor", "Output"];
-                selected <=> App.page;
-            }
+        PanelTabs {
+            items: ["Upscale", "Restore", "Processor"];
+            selected <=> App.page;
         }
         ScrollView {
             vertical-stretch: 1;
-            opacity: App.running ? 0.5 : 1;
+            opacity: App.running ? 0.45 : 1;
             animate opacity { duration: Theme.base; }
             VerticalLayout {
-                padding-left: Theme.lg;
-                padding-right: Theme.lg;
+                padding-left: Theme.md;
+                padding-right: Theme.md;
                 padding-bottom: Theme.lg;
                 alignment: start;
                 if App.page == 0: UpscalePage { }
                 if App.page == 1: RestorePage { }
                 if App.page == 2: ProcessorPage { }
-                if App.page == 3: OutputPage { }
             }
         }
     }

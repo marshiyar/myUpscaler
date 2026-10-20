@@ -92,6 +92,35 @@ fn predicted_output(options: &Options, input: &Path) -> String {
     }
 }
 
+/// What the export will be: "1280×720 → 2560×1440 · 60 fps" (or the input's rate), or the batch description.
+fn output_video(options: &Options, input: &Path) -> String {
+    if input.is_dir() {
+        return "Each file at its own size, scaled".into();
+    }
+    let Ok(video) = engine::Video::open(input) else { return String::new() };
+    let scale = up60p::filters::number(&up60p::options::text(&options.scale_factor))
+        .filter(|v| *v > 0.0 && *v <= 16.0)
+        .unwrap_or(2.0);
+    let (w, h) = up60p::pipeline::output_size(video.width, video.height, scale);
+    let size = format!("{}×{} → {w}×{h}", video.width, video.height);
+    if video.is_still {
+        return size;
+    }
+    let fps = up60p::options::text(&options.fps);
+    match fps.as_str() {
+        "source" | "lock" => format!("{size} · {} fps (source)", (video.frame_rate * 1000.0).round() / 1000.0),
+        _ => format!("{size} · {fps} fps"),
+    }
+}
+
+/// Refreshes what depends on both the settings and the input: the output file name and summary.
+fn refresh_output(ui: &AppWindow, input: &Path) {
+    let options = settings::options(&ui.global::<Settings>());
+    let app = ui.global::<App>();
+    app.set_predicted_output(predicted_output(&options, input).into());
+    app.set_output_video(output_video(&options, input).into());
+}
+
 fn request_preview(ui: &AppWindow, state: &State) {
     let app = ui.global::<App>();
     let Some(input) = state.input.clone().filter(|p| p.is_file()) else {
@@ -119,7 +148,8 @@ fn select_input(ui: &AppWindow, state: &mut State, path: PathBuf) {
     app.set_error(SharedString::new());
     app.set_phase("Ready".into());
     app.set_progress(0.0);
-    app.set_predicted_output(predicted_output(&settings::options(&ui.global::<Settings>()), &path).into());
+    app.set_workspace(1);
+    refresh_output(ui, &path);
     state.input = Some(path);
     request_preview(ui, state);
 }
@@ -281,7 +311,7 @@ fn wire(ui: &AppWindow) -> Arc<Mutex<State>> {
             s.set_output_folder(dir.display().to_string().into());
             s.set_custom_output(true);
             if let Some(input) = st.lock().unwrap().input.clone() {
-                ui.global::<App>().set_predicted_output(predicted_output(&settings::options(&s), &input).into());
+                refresh_output(&ui, &input);
             }
         }
     });
@@ -312,7 +342,7 @@ fn wire(ui: &AppWindow) -> Arc<Mutex<State>> {
         settings::update_ranges(&s);
         let state = st.lock().unwrap();
         if let Some(input) = &state.input {
-            ui.global::<App>().set_predicted_output(predicted_output(&settings::options(&s), input).into());
+            refresh_output(&ui, input);
         }
         if ui.global::<App>().get_show_processed() {
             request_preview(&ui, &state);

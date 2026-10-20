@@ -1,0 +1,202 @@
+// The Edit workspace: the Program monitor (preview, timecode, view, scrubber) and the log beside the adjustments
+// panel.
+
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { Settings, App, Actions } from "globals.slint";
+import { Panel, PanelTabs, IconButton, Button, ButtonKind, SliderControl, Dropdown, TextField, ProgressLine } from "components.slint";
+import { Inspector } from "inspector.slint";
+
+// The picture: the preview frame on the monitor background, with its notes and a busy dot.
+export component Viewer inherits Rectangle {
+    background: Theme.monitor;
+    clip: true;
+    if App.has-preview: Image {
+        x: Theme.sm;
+        y: Theme.sm;
+        width: parent.width - 2 * Theme.sm;
+        height: parent.height - 2 * Theme.sm;
+        source: App.preview;
+        image-fit: contain;
+    }
+    if !App.has-preview && App.preview-note != "": Text {
+        width: parent.width - 2 * Theme.xl;
+        text: App.preview-note;
+        color: Theme.dim;
+        font-size: Theme.font-body;
+        horizontal-alignment: center;
+        wrap: word-wrap;
+    }
+    if App.preview-busy: Rectangle {
+        x: Theme.md;
+        y: Theme.md;
+        width: 8px;
+        height: 8px;
+        border-radius: 4px;
+        background: Theme.success;
+        opacity: 0.4 + 0.6 * Math.abs(Math.sin(animation-tick() / 600ms * 180deg));
+    }
+}
+
+// Ruler ticks under the monitor's scrubber.
+component Ruler inherits Rectangle {
+    height: 6px;
+    for i in 41: Rectangle {
+        x: (root.width - 1px) * i / 40;
+        y: Math.mod(i, 5) == 0 ? 0 : 3px;
+        width: 1px;
+        height: Math.mod(i, 5) == 0 ? 6px : 3px;
+        background: Theme.faint;
+    }
+}
+
+component ProgramMonitor inherits Panel {
+    property <bool> video: !App.is-image && App.duration > 0;
+    VerticalLayout {
+        PanelTabs {
+            items: ["Program"];
+            selected: 0;
+        }
+        Viewer {
+            vertical-stretch: 1;
+        }
+        VerticalLayout {
+            padding: Theme.md;
+            padding-top: Theme.sm;
+            spacing: Theme.sm;
+            HorizontalLayout {
+                spacing: Theme.md;
+                height: 26px;
+                Text {
+                    text: root.video ? App.position-text : "Still";
+                    font-family: Theme.mono;
+                    font-size: Theme.font-timecode;
+                    color: Theme.value;
+                    vertical-alignment: center;
+                }
+                VerticalLayout {
+                    alignment: center;
+                    Dropdown {
+                        width: 100px;
+                        model: ["Original", "Filtered"];
+                        current-index: App.show-processed ? 1 : 0;
+                        enabled: !App.running;
+                        label: "View";
+                        selected(i) => {
+                            App.show-processed = i == 1;
+                            Actions.refresh-preview();
+                        }
+                    }
+                }
+                Rectangle { horizontal-stretch: 1; }
+                Text {
+                    text: App.input-info;
+                    font-size: Theme.font-small;
+                    color: Theme.dim;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+                if root.video: Text {
+                    text: App.duration-text;
+                    font-family: Theme.mono;
+                    font-size: Theme.font-timecode;
+                    color: Theme.text;
+                    vertical-alignment: center;
+                }
+            }
+            if root.video: VerticalLayout {
+                spacing: 2px;
+                SliderControl {
+                    minimum: 0;
+                    maximum: App.duration;
+                    step: 0.04;
+                    value: App.position;
+                    enabled: !App.running;
+                    label: "Preview position";
+                    released(v) => {
+                        App.position = v;
+                        Actions.seek(v);
+                    }
+                }
+                Ruler { }
+            }
+            if root.video: HorizontalLayout {
+                alignment: center;
+                spacing: Theme.sm;
+                IconButton {
+                    icon: @image-url("icons/step-back.svg");
+                    enabled: !App.running;
+                    accessible-label: "Back one second";
+                    clicked => {
+                        App.position = max(0, App.position - 1);
+                        Actions.seek(App.position);
+                    }
+                }
+                IconButton {
+                    icon: @image-url("icons/step-forward.svg");
+                    enabled: !App.running;
+                    accessible-label: "Forward one second";
+                    clicked => {
+                        App.position = min(App.duration, App.position + 1);
+                        Actions.seek(App.position);
+                    }
+                }
+            }
+        }
+    }
+}
+
+component LogPanel inherits Panel {
+    VerticalLayout {
+        HorizontalLayout {
+            PanelTabs {
+                items: ["Log"];
+                selected: 0;
+            }
+            Rectangle { horizontal-stretch: 1; }
+            VerticalLayout {
+                alignment: center;
+                padding-right: Theme.sm;
+                IconButton {
+                    icon: @image-url("icons/reset.svg");
+                    label: "Clear";
+                    icon-size: 12px;
+                    clicked => { Actions.clear-log(); }
+                }
+            }
+        }
+        ScrollView {
+            vertical-stretch: 1;
+            content-y: min(0px, self.visible-height - log-text.preferred-height);
+            log-text := Text {
+                x: Theme.md;
+                width: parent.width - 2 * Theme.md;
+                text: App.log == "" ? "Messages from the engine appear here." : App.log;
+                font-family: Theme.mono;
+                font-size: Theme.font-label;
+                color: App.log == "" ? Theme.faint : Theme.dim;
+                wrap: word-wrap;
+            }
+        }
+    }
+}
+
+export component EditWorkspace inherits HorizontalLayout {
+    spacing: Theme.gap;
+    VerticalLayout {
+        horizontal-stretch: 1;
+        spacing: Theme.gap;
+        ProgramMonitor {
+            vertical-stretch: 1;
+        }
+        if App.log-open: LogPanel {
+            height: 170px;
+        }
+    }
+    Inspector {
+        min-width: 300px;
+        preferred-width: 360px;
+        max-width: 380px;
+        horizontal-stretch: 0;
+    }
+}

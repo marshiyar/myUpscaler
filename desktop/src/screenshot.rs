@@ -1,5 +1,5 @@
 //! Renders the window to a PNG without a display, with Slint's software renderer:
-//! `myupscaler --screenshot out.png [--size 1180x780] [--page 0-3] [--dark | --light] [--processed] [--run [--after SECONDS]] [input]`.
+//! `myupscaler --screenshot out.png [--size 1280x800] [--workspace 0-2] [--page 0-2] [--dark | --light] [--processed] [--run [--after SECONDS]] [input]`.
 //! `--run` presses Run and waits for processing to finish before taking the picture.
 //! Used to review the interface in CI and on machines without a screen.
 
@@ -24,6 +24,7 @@ pub struct Shot {
     pub path: std::path::PathBuf,
     pub size: (u32, u32),
     pub page: i32,
+    pub workspace: Option<i32>,
     pub dark: bool,
     pub light: bool,
     pub processed: bool,
@@ -39,8 +40,9 @@ impl Shot {
         let path = args.next().ok_or("--screenshot needs an output .png path")?.into();
         let mut shot = Shot {
             path,
-            size: (1180, 780),
+            size: (1280, 800),
             page: 0,
+            workspace: None,
             dark: false,
             light: false,
             processed: false,
@@ -55,7 +57,10 @@ impl Shot {
                     let (w, h) = v.split_once('x').ok_or("--size needs WIDTHxHEIGHT")?;
                     shot.size = (w.parse().map_err(|_| "bad width")?, h.parse().map_err(|_| "bad height")?);
                 }
-                "--page" => shot.page = args.next().and_then(|p| p.parse().ok()).ok_or("--page needs 0-3")?,
+                "--page" => shot.page = args.next().and_then(|p| p.parse().ok()).ok_or("--page needs 0-2")?,
+                "--workspace" => {
+                    shot.workspace = Some(args.next().and_then(|p| p.parse().ok()).ok_or("--workspace needs 0-2")?)
+                }
                 "--dark" => shot.dark = true,
                 "--light" => shot.light = true,
                 "--processed" => shot.processed = true,
@@ -86,6 +91,9 @@ pub fn take(shot: &Shot, setup: impl FnOnce(&AppWindow) -> Box<dyn FnMut(&AppWin
         ui.global::<Theme>().set_preference(ThemePreference::Light);
     }
     let mut tick = setup(&ui);
+    if let Some(workspace) = shot.workspace {
+        app.set_workspace(workspace);
+    }
     if shot.run {
         ui.global::<Actions>().invoke_run();
     }

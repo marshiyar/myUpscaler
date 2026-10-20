@@ -1,0 +1,290 @@
+// The Import and Export workspaces.
+
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { Settings, App, Actions } from "globals.slint";
+import { Panel, PanelTabs, IconButton, Button, ButtonKind, SliderControl, Dropdown, TextField, ProgressLine } from "components.slint";
+import { Viewer } from "edit.slint";
+
+component ImportTile inherits Rectangle {
+    in property <image> icon;
+    in property <string> title;
+    in property <string> detail;
+    callback clicked();
+    accessible-role: button;
+    accessible-label: root.title;
+    accessible-action-default => { root.clicked(); }
+    width: 260px;
+    height: 150px;
+    border-radius: Theme.radius-large;
+    background: touch.has-hover && !App.running ? Theme.hover : Theme.raised;
+    border-width: 1px;
+    border-color: touch.has-hover ? Theme.accent : Theme.separator;
+    opacity: App.running ? 0.4 : 1;
+    VerticalLayout {
+        padding: Theme.lg;
+        spacing: Theme.sm;
+        alignment: center;
+        Image {
+            source: root.icon;
+            height: 28px;
+            colorize: Theme.value;
+            image-fit: contain;
+        }
+        Text {
+            text: root.title;
+            font-size: Theme.font-title;
+            font-weight: 600;
+            color: Theme.strong;
+            horizontal-alignment: center;
+        }
+        Text {
+            text: root.detail;
+            font-size: Theme.font-small;
+            color: Theme.dim;
+            horizontal-alignment: center;
+            wrap: word-wrap;
+        }
+    }
+    touch := TouchArea {
+        enabled: !App.running;
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+export component ImportWorkspace inherits Panel {
+    VerticalLayout {
+        alignment: center;
+        spacing: Theme.xl;
+        Text {
+            text: "Bring in media to restore and upscale";
+            font-size: 20px;
+            font-weight: 600;
+            color: Theme.strong;
+            horizontal-alignment: center;
+        }
+        HorizontalLayout {
+            alignment: center;
+            spacing: Theme.lg;
+            ImportTile {
+                icon: @image-url("icons/video.svg");
+                title: "Video or image";
+                detail: "MP4, MOV, MKV, WebM, PNG, JPEG, BMP, WebP";
+                clicked => { Actions.import(); }
+            }
+            ImportTile {
+                icon: @image-url("icons/folder.svg");
+                title: "Batch folder";
+                detail: "Every video and image in the folder and its subfolders";
+                clicked => { Actions.import-folder(); }
+            }
+        }
+        if App.input-path != "": HorizontalLayout {
+            alignment: center;
+            spacing: Theme.md;
+            VerticalLayout {
+                alignment: center;
+                Text {
+                    text: App.input-name + "  ·  " + App.input-info;
+                    font-size: Theme.font-small;
+                    color: Theme.dim;
+                }
+            }
+            Button {
+                text: "Edit";
+                tall: 26px;
+                clicked => { App.workspace = 1; }
+            }
+        }
+        Text {
+            text: "Everything runs on this computer: nothing is uploaded.";
+            font-size: Theme.font-small;
+            color: Theme.faint;
+            horizontal-alignment: center;
+        }
+    }
+}
+
+component Destination inherits Rectangle {
+    in property <string> text;
+    in property <bool> selected;
+    callback clicked();
+    height: 30px;
+    border-radius: Theme.radius;
+    background: root.selected ? Theme.selected : touch.has-hover ? Theme.hover : transparent;
+    accessible-role: list-item;
+    accessible-label: root.text;
+    accessible-item-selected: root.selected;
+    HorizontalLayout {
+        padding-left: Theme.md;
+        Text {
+            text: root.text;
+            font-size: Theme.font-body;
+            color: root.selected ? Theme.strong : Theme.text;
+            vertical-alignment: center;
+        }
+    }
+    touch := TouchArea {
+        enabled: !App.running;
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+component SettingLine inherits HorizontalLayout {
+    in property <string> label;
+    in property <string> value;
+    spacing: Theme.md;
+    height: 24px;
+    padding-left: Theme.md;
+    Text {
+        text: root.label;
+        width: 60px;
+        font-size: Theme.font-small;
+        color: Theme.dim;
+        vertical-alignment: center;
+    }
+    Text {
+        text: root.value;
+        font-size: Theme.font-small;
+        color: Theme.text;
+        vertical-alignment: center;
+        overflow: elide;
+        horizontal-stretch: 1;
+    }
+}
+
+export component ExportWorkspace inherits HorizontalLayout {
+    spacing: Theme.gap;
+    Panel {
+        width: 230px;
+        VerticalLayout {
+            padding: Theme.sm;
+            spacing: 2px;
+            alignment: start;
+            Text {
+                text: "Destinations";
+                font-size: Theme.font-body;
+                font-weight: 600;
+                color: Theme.strong;
+                height: 32px;
+                vertical-alignment: center;
+                x: Theme.sm;
+            }
+            Destination {
+                text: "Next to the input";
+                selected: !Settings.custom-output;
+                clicked => {
+                    Settings.custom-output = false;
+                    Actions.settings-changed();
+                }
+            }
+            Destination {
+                text: "Custom folder…";
+                selected: Settings.custom-output;
+                clicked => { Actions.choose-output-folder(); }
+            }
+        }
+    }
+    Panel {
+        horizontal-stretch: 1;
+        Viewer {
+            x: Theme.xl;
+            y: Theme.xl;
+            width: parent.width - 2 * Theme.xl;
+            height: parent.height - 2 * Theme.xl;
+        }
+    }
+    Panel {
+        width: 340px;
+        VerticalLayout {
+            padding: Theme.sm;
+            padding-bottom: Theme.lg;
+            spacing: Theme.xs;
+            Text {
+                text: "Settings";
+                font-size: Theme.font-title;
+                color: Theme.strong;
+                height: 34px;
+                vertical-alignment: center;
+                x: Theme.md;
+            }
+            VerticalLayout {
+                padding-left: Theme.md;
+                padding-right: Theme.md;
+                spacing: 4px;
+                alignment: start;
+                vertical-stretch: 0;
+                Text {
+                    text: "File name / location";
+                    font-size: Theme.font-small;
+                    color: Theme.dim;
+                }
+                TextField {
+                    text: App.predicted-output;
+                    numeric: false;
+                    enabled: false;
+                    label: "Output file";
+                }
+                Text {
+                    text: "Format";
+                    font-size: Theme.font-small;
+                    color: Theme.dim;
+                    height: 26px;
+                    vertical-alignment: bottom;
+                }
+                Dropdown {
+                    model: [App.is-image ? "PNG (transparency kept)" : "H.264 · MP4"];
+                    current-index: 0;
+                    label: "Format";
+                }
+            }
+            SettingLine {
+                label: "Video";
+                value: App.output-video;
+            }
+            if !App.is-image: SettingLine {
+                label: "Audio";
+                value: "FLAC · lossless";
+            }
+            SettingLine {
+                label: "Quality";
+                value: App.is-image ? "Lossless" : "CRF " + Settings.crf.round();
+            }
+            Rectangle { vertical-stretch: 1; }
+            if App.running: VerticalLayout {
+                padding-left: Theme.md;
+                padding-right: Theme.md;
+                spacing: Theme.sm;
+                ProgressLine {
+                    progress: App.progress;
+                    indeterminate: !App.progress-known;
+                }
+                Text {
+                    text: App.phase + "  " + (App.progress-known ? (App.progress * 100).round() + "%" : "") + "  ·  ETA " + App.eta-text;
+                    font-size: Theme.font-small;
+                    color: Theme.dim;
+                }
+            }
+            HorizontalLayout {
+                padding-right: Theme.sm;
+                alignment: end;
+                spacing: Theme.sm;
+                if App.running: Button {
+                    text: App.cancelling ? "Cancelling…" : "Cancel";
+                    kind: ButtonKind.secondary;
+                    enabled: !App.cancelling;
+                    tall: 34px;
+                    clicked => { Actions.cancel(); }
+                }
+                if !App.running: Button {
+                    text: "Export";
+                    tall: 34px;
+                    enabled: App.input-path != "";
+                    clicked => { Actions.run(); }
+                }
+            }
+        }
+    }
+}

@@ -59,7 +59,8 @@ settings. CI tests the supplied set and predicts with the packaged models.
 ## Actions workflows
 
 CI is split into five workflows whose jobs run in parallel; each runs only when
-the files it covers change, and nothing is checked twice:
+the files it covers change, and nothing is checked twice. A sixth, **Release**,
+runs for tags:
 
 | Workflow | Jobs |
 | --- | --- |
@@ -68,6 +69,7 @@ the files it covers change, and nothing is checked twice:
 | **Regression tests** (`regression.yml`) | one macOS job: finishing chain through the Rust dry run, media tests, Metal kernels |
 | **Desktop app** (`desktop.yml`) | cross-platform Slint app: Linux checks, tests and screenshots; Windows build; macOS build and run |
 | **macOS build and bundle** (`build.yml`) | Release app (verify engine, signature, models and inference, package); model-set preparation |
+| **Release** (`release.yml`, `v*` tags or by hand for a tag) | desktop app built and smoke-tested on macOS, Windows and Linux; packaged apps and screenshots published on the tag's release |
 
 The Linux and Windows jobs use GitHub's free standard runners. The five macOS
 jobs run on the maintainer's self-hosted Mac (runner labels `self-hosted`,
@@ -90,8 +92,21 @@ The Release job uploads a unique `myUpscaler-macos-arm64-<run>-<attempt>`
 artifact containing a DMG, an inner ZIP that preserves app permissions,
 checksums, and build information. Artifacts are retained for 90 days and are
 never overwritten or deleted by the workflow. These builds are ad hoc signed and
-are not notarized. The workflows have read-only repository permissions and do
-not publish to GitHub Releases.
+are not notarized.
+
+The Release workflow runs for a pushed `v*` tag (or by hand for an existing
+tag). On each platform it builds the desktop app and runs its smoke test
+(`desktop/scripts/smoke-test.sh`): the real window rendered headless on the
+import view, on the adjustments panel with a generated clip, and after that clip
+is exported end to end, with the exported file checked. The packaged apps
+(`myupscaler-<tag>-<platform>-<arch>`, with the media engine library beside the
+program) and the screenshots go on the tag's GitHub release, whose description
+gets a "Smoke tests" section showing each platform's result and screenshots
+(`scripts/release-notes.py`). An existing release keeps its own text and
+assets: only that section, between its markers, is added or replaced. A platform
+whose smoke test failed is shown as failed rather than left out. Only this
+job has write access to the repository (to publish the release); every other
+workflow is read-only.
 
 ## Fast checks without downloaded assets
 

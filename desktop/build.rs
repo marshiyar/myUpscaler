@@ -1,5 +1,6 @@
-//! Compiles the Slint interface (`ui/`), and makes the MpVFX media engine library findable by the app: a run path on
-//! macOS and Linux (the backend's own applies only to the backend's binaries), the DLL beside the program on Windows.
+//! Compiles the Slint interface (`ui/`), and makes the MpVFX media engine library findable by the app: run paths on
+//! macOS and Linux (to the prepared engine, and beside the program for a packaged app; the backend's own apply only to
+//! the backend's binaries), the DLL beside the program on Windows.
 
 use std::env;
 use std::path::PathBuf;
@@ -27,6 +28,13 @@ fn main() {
         if !windows && ["libmpvfx_ffi.dylib", "libmpvfx_ffi.so"].iter().any(|n| dir.join(n).is_file()) {
             let dir = dir.canonicalize().unwrap_or(dir);
             println!("cargo:rustc-link-arg=-Wl,-rpath,{}", dir.display());
+            // A packaged app keeps the library beside the program (the release archives).
+            let beside = if env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("macos") {
+                "@executable_path"
+            } else {
+                "$ORIGIN"
+            };
+            println!("cargo:rustc-link-arg=-Wl,-rpath,{beside}");
             break;
         }
     }

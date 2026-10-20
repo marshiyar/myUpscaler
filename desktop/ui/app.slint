@@ -1,196 +1,270 @@
-// The main window, laid out as a media editor: a top bar with the Import / Edit /
-// Export workspaces and the document title, flat panels tiled on a black window, and a status bar. Edit pairs the
-// Program monitor (and the log) with the adjustments panel; Export pairs the destination and format with the Export
-// button. About and Settings open as sheets.
+// The main window, laid out as the macOS app (myUpscaler/Views/ContentView): a toolbar (Import; adjustments panel,
+// Settings, About), the input and processing-details cards, the adjustments panel docked on the right, and the
+// progress bar with the Export button at the bottom. Settings and About open as sheets, and a double-clicked
+// preview fills the window. The macOS app's keyboard shortcuts work on every platform (Ctrl for ⌘).
 
-import { AboutSlint, Palette } from "std-widgets.slint";
+import { AboutSlint, Palette, ScrollView } from "std-widgets.slint";
 import { Theme, ThemePreference } from "theme.slint";
 import { Settings, App, Actions } from "globals.slint";
-import { IconButton, Button, ButtonKind, ProgressLine, Divider, ChoiceRow, Hint } from "components.slint";
-import { EditWorkspace } from "edit.slint";
-import { ImportWorkspace, ExportWorkspace } from "workspaces.slint";
+import { ToolbarButton, Button, ButtonKind, ButtonSize } from "controls.slint";
+import { Divider, FormSection, FormRow, ChoiceRow } from "components.slint";
+import { Inspector } from "inspector.slint";
+import { InputCard, LogCard, BottomBar } from "workspace.slint";
 
 export { Settings, App, Actions, Theme }
 
-component WorkspaceTab inherits Rectangle {
-    in property <string> text;
-    in property <int> index;
-    in property <bool> enabled: true;
-    width: label.preferred-width + 2 * Theme.md;
-    accessible-role: tab;
-    accessible-label: root.text;
-    accessible-item-selected: App.workspace == root.index;
-    label := Text {
-        text: root.text;
-        font-size: Theme.font-body;
-        color: !root.enabled ? Theme.faint : App.workspace == root.index ? Theme.strong : touch.has-hover ? Theme.text : Theme.dim;
-        vertical-alignment: center;
-    }
-    Rectangle {
-        x: Theme.md;
-        y: root.height / 2 + 10px;
-        width: label.preferred-width;
-        height: 2px;
-        background: App.workspace == root.index ? Theme.strong : transparent;
-    }
-    touch := TouchArea {
-        enabled: root.enabled;
-        mouse-cursor: pointer;
-        clicked => { App.workspace = root.index; }
-    }
-}
-
-component TopBar inherits Rectangle {
-    height: 44px;
-    background: Theme.header;
-    // The document title, centred on the window.
-    Text {
-        width: min(parent.width - 600px, 520px);
-        x: (parent.width - self.width) / 2;
-        text: App.input-name == "" ? "myUpscaler" : App.input-name + (App.running ? " — Processing" : "");
-        font-size: Theme.font-title;
-        color: Theme.strong;
-        horizontal-alignment: center;
-        vertical-alignment: center;
-        overflow: elide;
-    }
+component Toolbar inherits Rectangle {
+    background: Theme.bar;
+    height: Theme.toolbar-height;
     HorizontalLayout {
-        padding-left: Theme.md;
-        padding-right: Theme.md;
-        spacing: 2px;
+        padding-left: 12px;
+        padding-right: 12px;
+        spacing: 6px;
         VerticalLayout {
             alignment: center;
-            IconButton {
-                icon: @image-url("icons/home.svg");
-                label: "";
-                accessible-label: "Import";
-                clicked => { App.workspace = 0; }
+            ToolbarButton {
+                icon: @image-url("icons/import.svg");
+                label: "Import";
+                enabled: !App.running;
+                clicked => { Actions.import(); }
             }
         }
-        WorkspaceTab {
-            text: "Import";
-            index: 0;
-        }
-        WorkspaceTab {
-            text: "Edit";
-            index: 1;
-            enabled: App.input-path != "";
-        }
-        WorkspaceTab {
-            text: "Export";
-            index: 2;
-            enabled: App.input-path != "";
+        Text {
+            text: "myUpscaler";
+            font-size: 15px;
+            font-weight: 700;
+            color: Theme.text;
+            vertical-alignment: center;
         }
         Rectangle { horizontal-stretch: 1; }
         VerticalLayout {
             alignment: center;
-            IconButton {
-                icon: @image-url("icons/sun.svg");
-                accessible-label: "Appearance";
-                clicked => {
-                    Theme.preference = Theme.dark ? ThemePreference.light : ThemePreference.dark;
-                }
+            ToolbarButton {
+                icon: @image-url("icons/sidebar.svg");
+                label: App.inspector-visible ? "Hide adjustments panel" : "Show adjustments panel";
+                active: App.inspector-visible;
+                clicked => { App.inspector-visible = !App.inspector-visible; }
             }
         }
         VerticalLayout {
             alignment: center;
-            IconButton {
-                icon: @image-url("icons/terminal.svg");
-                active: App.log-open;
-                accessible-label: "Log";
-                clicked => { App.log-open = !App.log-open; }
-            }
-        }
-        VerticalLayout {
-            alignment: center;
-            IconButton {
+            ToolbarButton {
                 icon: @image-url("icons/settings.svg");
-                accessible-label: "Settings";
+                label: "Settings";
                 clicked => { App.settings-open = true; }
             }
         }
         VerticalLayout {
             alignment: center;
-            IconButton {
+            ToolbarButton {
                 icon: @image-url("icons/info.svg");
-                accessible-label: "About";
+                label: "About";
                 clicked => { App.about-open = true; }
             }
         }
     }
+    Divider {
+        y: parent.height - 1px;
+        width: parent.width;
+    }
 }
 
-component StatusBar inherits Rectangle {
-    height: 24px;
-    background: Theme.header;
-    HorizontalLayout {
-        padding-left: Theme.md;
-        padding-right: Theme.md;
-        spacing: Theme.lg;
-        Text {
-            text: App.running
-                ? App.phase + " · " + (App.progress-known ? (App.progress * 100).round() + "%" : "starting") + " · " + App.fps-text + " fps · ETA " + App.eta-text
-                : App.error != "" ? App.error
-                : App.input-path == "" ? "Import a video, an image or a folder to begin."
-                : App.phase == "Ready" ? "Adjust in Edit, then render from Export." : App.phase;
-            font-size: Theme.font-small;
-            color: App.error != "" ? Theme.danger : Theme.dim;
-            vertical-alignment: center;
-            overflow: elide;
-            horizontal-stretch: 1;
-        }
-        if App.running: VerticalLayout {
-            alignment: center;
-            ProgressLine {
-                width: 160px;
-                progress: App.progress;
-                indeterminate: !App.progress-known;
-            }
-        }
-        Text {
-            text: "MpVFX " + App.engine-version;
-            font-size: Theme.font-small;
-            color: Theme.faint;
-            vertical-alignment: center;
+// A modal sheet: dimmed backdrop, centred panel.
+component Sheet inherits Rectangle {
+    in property <length> sheet-width: 450px;
+    callback close();
+    background: #00000066;
+    TouchArea { clicked => { root.close(); } }
+    Rectangle {
+        width: root.sheet-width;
+        height: min(content.preferred-height, root.height - 40px);
+        background: Theme.window;
+        border-radius: 12px;
+        border-width: 0.5px;
+        border-color: Theme.control-border;
+        drop-shadow-blur: 30px;
+        drop-shadow-color: #00000066;
+        drop-shadow-offset-y: 12px;
+        clip: true;
+        TouchArea { }
+        content := VerticalLayout {
+            @children
         }
     }
 }
 
-// A modal sheet: dimmed backdrop, centred card.
-component Sheet inherits Rectangle {
-    in property <length> card-width: 420px;
-    callback close();
-    background: #00000099;
-    TouchArea { clicked => { root.close(); } }
-    Rectangle {
-        width: root.card-width;
-        height: content.preferred-height;
-        background: Theme.panel;
-        border-radius: Theme.radius-large;
-        border-width: 1px;
-        border-color: Theme.separator;
-        drop-shadow-blur: 30px;
-        drop-shadow-color: #000000a0;
-        drop-shadow-offset-y: 10px;
-        TouchArea { }
-        content := VerticalLayout {
-            padding: Theme.xl;
-            spacing: Theme.md;
-            @children
+component ShortcutBadge inherits Rectangle {
+    in property <string> keys;
+    background: Theme.card;
+    border-radius: 6px;
+    width: label.preferred-width + 16px;
+    height: 24px;
+    label := Text {
+        text: root.keys;
+        font-family: Theme.mono;
+        font-size: Theme.body;
+        color: Theme.text;
+    }
+}
+
+component SettingsSheet inherits Sheet {
+    sheet-width: 540px;
+    property <string> cmd: App.mac ? "⌘" : "Ctrl+";
+    property <string> shift: App.mac ? "⇧" : "Shift+";
+    property <string> option: App.mac ? "⌥" : "Alt+";
+    HorizontalLayout {
+        padding: 12px;
+        alignment: end;
+        Button {
+            text: "Done";
+            icon: @image-url("icons/check.svg");
+            has-icon: true;
+            kind: ButtonKind.prominent;
+            clicked => { App.settings-open = false; }
+        }
+    }
+    VerticalLayout {
+        padding: 20px;
+        padding-top: 0;
+        spacing: 16px;
+        FormSection {
+            title: "Commands";
+            for command[i] in [
+                { name: "Export video", keys: root.cmd + "R" },
+                { name: "Cancel processing", keys: root.cmd + "." },
+                { name: "Settings", keys: root.cmd + "," },
+                { name: "About myUpscaler", keys: root.shift + root.cmd + "I" },
+                { name: "Import video or folder", keys: root.cmd + "O" },
+                { name: "Choose output folder", keys: root.shift + root.cmd + "O" },
+                { name: "Show or hide adjustments", keys: root.option + root.cmd + "I" },
+            ]: VerticalLayout {
+                spacing: 8px;
+                if i > 0: Divider { }
+                FormRow {
+                    label: command.name;
+                    ShortcutBadge { keys: command.keys; }
+                }
+            }
+        }
+        FormSection {
+            title: "Appearance";
+            ChoiceRow {
+                label: "Appearance";
+                choices: ["System", "Light", "Dark"];
+                menu-width: 110px;
+                index: Theme.preference == ThemePreference.light ? 1 : Theme.preference == ThemePreference.dark ? 2 : 0;
+                changed => {
+                    Theme.preference = self.index == 1 ? ThemePreference.light
+                        : self.index == 2 ? ThemePreference.dark : ThemePreference.system;
+                }
+            }
+        }
+    }
+}
+
+component AboutSheet inherits Sheet {
+    VerticalLayout {
+        padding-left: Theme.lg;
+        padding-right: Theme.lg;
+        padding-top: Theme.xl;
+        padding-bottom: Theme.xl;
+        spacing: Theme.lg;
+        HorizontalLayout {
+            alignment: start;
+            Rectangle {
+                width: 96px;
+                height: 96px;
+                border-radius: 12px;
+                clip: true;
+                drop-shadow-blur: 4px;
+                drop-shadow-color: #0000001f;
+                drop-shadow-offset-y: 2px;
+                Image {
+                    source: @image-url("icons/app-icon.png");
+                    width: parent.width;
+                    height: parent.height;
+                }
+            }
+        }
+        Text {
+            text: "MyUpscaler";
+            font-size: 28px;
+            font-weight: 700;
+            color: Theme.accent;
+        }
+        Text {
+            text: "Version " + App.version + " · MpVFX " + App.engine-version;
+            font-size: Theme.body;
+            color: Theme.secondary;
+        }
+        Divider { }
+        Text {
+            text: "Video restoration and upscaling for macOS, Windows and Linux.";
+            font-size: Theme.body;
+            color: Theme.text;
+            wrap: word-wrap;
+        }
+        AboutSlint {
+            height: 120px;
+        }
+        Rectangle {
+            height: 34px;
+            border-radius: 8px;
+            background: Theme.accent.with-alpha(0.1);
+            border-width: 1px;
+            border-color: Theme.accent.with-alpha(0.3);
+            accessible-role: button;
+            accessible-label: "Visit GitHub Repository";
+            HorizontalLayout {
+                alignment: center;
+                spacing: Theme.sm;
+                VerticalLayout {
+                    alignment: center;
+                    Image {
+                        source: @image-url("icons/globe.svg");
+                        width: 14px;
+                        height: 14px;
+                        colorize: Theme.accent;
+                    }
+                }
+                Text {
+                    text: "Visit GitHub Repository";
+                    font-size: Theme.body;
+                    font-weight: 500;
+                    color: Theme.accent;
+                    vertical-alignment: center;
+                }
+            }
+            TouchArea { clicked => { Actions.open-website(); } }
+        }
+        Rectangle {
+            height: 32px;
+            border-radius: 8px;
+            background: Theme.secondary.with-alpha(0.1);
+            accessible-role: button;
+            accessible-label: "Close";
+            Text {
+                text: "Close";
+                font-size: Theme.body;
+                font-weight: 500;
+                color: Theme.text;
+            }
+            TouchArea { clicked => { App.about-open = false; } }
         }
     }
 }
 
 export component AppWindow inherits Window {
     title: App.input-name == "" ? "myUpscaler" : App.input-name + " — myUpscaler";
-    icon: @image-url("icons/upscale.svg");
-    min-width: 900px;
-    min-height: 580px;
-    preferred-width: 1280px;
-    preferred-height: 800px;
-    background: Theme.app;
+    icon: @image-url("icons/app-icon.png");
+    min-width: 720px;
+    min-height: 600px;
+    preferred-width: 1180px;
+    preferred-height: 780px;
+    background: Theme.window;
     default-font-family: Theme.font;
-    default-font-size: Theme.font-body;
+    default-font-size: Theme.body;
+    forward-focus: keys;
 
     // The built-in widgets follow Slint's palette: keep it in step with the appearance setting.
     property <ThemePreference> appearance: Theme.preference;
@@ -198,81 +272,115 @@ export component AppWindow inherits Window {
         Palette.color-scheme = self.appearance == ThemePreference.dark ? ColorScheme.dark
             : self.appearance == ThemePreference.light ? ColorScheme.light : ColorScheme.unknown;
     }
+    property <bool> modal: App.settings-open || App.about-open || App.enlarged;
 
-    VerticalLayout {
-        TopBar { }
+    keys := FocusScope {
+        key-pressed(e) => {
+            if e.text == Key.Escape {
+                if App.enlarged || App.settings-open || App.about-open {
+                    App.enlarged = false;
+                    App.settings-open = false;
+                    App.about-open = false;
+                    return accept;
+                }
+                return reject;
+            }
+            if !e.modifiers.control || root.modal {
+                return reject;
+            }
+            if e.text == "r" && !e.modifiers.shift && !App.running && App.input-path != "" {
+                Actions.run();
+                return accept;
+            }
+            if e.text == "." && App.running && !App.cancelling {
+                Actions.cancel();
+                return accept;
+            }
+            if e.text == "," {
+                App.settings-open = true;
+                return accept;
+            }
+            if (e.text == "i" || e.text == "I") && e.modifiers.alt {
+                App.inspector-visible = !App.inspector-visible;
+                return accept;
+            }
+            if (e.text == "i" || e.text == "I") && e.modifiers.shift {
+                App.about-open = true;
+                return accept;
+            }
+            if (e.text == "o" || e.text == "O") && !App.running {
+                if e.modifiers.shift {
+                    Actions.choose-output-folder();
+                } else {
+                    Actions.import();
+                }
+                return accept;
+            }
+            reject
+        }
+
         VerticalLayout {
-            vertical-stretch: 1;
-            padding: Theme.gap;
-            if App.workspace == 0 || App.input-path == "": ImportWorkspace {
+            Toolbar { }
+            HorizontalLayout {
                 vertical-stretch: 1;
+                main := ScrollView {
+                    horizontal-stretch: 1;
+                    VerticalLayout {
+                        padding: 20px;
+                        spacing: Theme.md;
+                        alignment: start;
+                        InputCard {
+                            height: max(360px, main.visible-height - 140px);
+                        }
+                        LogCard { }
+                    }
+                }
+                if App.inspector-visible: Rectangle {
+                    width: 1px;
+                    background: Theme.separator;
+                }
+                // 440 wide when the window has room for it, down to 320 in a small window.
+                if App.inspector-visible: Inspector {
+                    min-width: 320px;
+                    preferred-width: 440px;
+                    max-width: 440px;
+                }
             }
-            if App.workspace == 1 && App.input-path != "": EditWorkspace {
-                vertical-stretch: 1;
-            }
-            if App.workspace == 2 && App.input-path != "": ExportWorkspace {
-                vertical-stretch: 1;
-            }
-        }
-        StatusBar { }
-    }
-
-    if App.about-open: Sheet {
-        close => { App.about-open = false; }
-        Text {
-            text: "myUpscaler";
-            font-size: 20px;
-            font-weight: 600;
-            color: Theme.strong;
-            horizontal-alignment: center;
-        }
-        Text {
-            text: "Video restoration and upscaling for macOS, Windows and Linux. The processing engine is written in Rust; media engine: MpVFX " + App.engine-version + ".";
-            font-size: Theme.font-body;
-            color: Theme.dim;
-            horizontal-alignment: center;
-            wrap: word-wrap;
-        }
-        Divider { }
-        AboutSlint {
-            height: 150px;
-        }
-        HorizontalLayout {
-            alignment: center;
-            Button {
-                text: "Close";
-                kind: ButtonKind.secondary;
-                width: 120px;
-                clicked => { App.about-open = false; }
-            }
+            if App.input-path != "" || App.running: BottomBar { }
         }
     }
 
-    if App.settings-open: Sheet {
+    if App.enlarged: Rectangle {
+        background: #000000d9;
+        TouchArea { double-clicked => { App.enlarged = false; } }
+        VerticalLayout {
+            padding: 40px;
+            spacing: 20px;
+            Rectangle {
+                vertical-stretch: 1;
+                Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: App.preview;
+                    image-fit: contain;
+                }
+            }
+            HorizontalLayout {
+                alignment: center;
+                spacing: 6px;
+                for hint[i] in ["Double-click to close", "•", "Press ESC"]: Text {
+                    text: hint;
+                    font-size: Theme.caption;
+                    color: i == 1 ? #ffffff66 : #ffffff99;
+                }
+            }
+        }
+    }
+
+    if App.settings-open: SettingsSheet {
         close => { App.settings-open = false; }
-        Text {
-            text: "Settings";
-            font-size: 20px;
-            font-weight: 600;
-            color: Theme.strong;
-        }
-        ChoiceRow {
-            label: "Appearance";
-            choices: ["System", "Light", "Dark"];
-            index: Theme.preference == ThemePreference.light ? 1 : Theme.preference == ThemePreference.dark ? 2 : 0;
-            changed => {
-                Theme.preference = self.index == 1 ? ThemePreference.light
-                    : self.index == 2 ? ThemePreference.dark : ThemePreference.system;
-            }
-        }
-        Hint { text: "Processing settings are in the Edit workspace; the output is set in Export."; }
-        HorizontalLayout {
-            alignment: end;
-            Button {
-                text: "Done";
-                width: 100px;
-                clicked => { App.settings-open = false; }
-            }
-        }
+    }
+    if App.about-open: AboutSheet {
+        close => { App.about-open = false; }
     }
 }

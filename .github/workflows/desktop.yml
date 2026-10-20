@@ -27,7 +27,7 @@ defaults:
 
 jobs:
   linux:
-    # Format, lints and tests, then screenshots of the real window (light, dark, filtered preview, a finished run)
+    # Format, lints and tests, then screenshots of the real window (light, dark, each adjustments page, a finished run)
     # rendered headless with Slint's software renderer, kept as an artifact for review.
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -51,14 +51,15 @@ jobs:
           mkdir -p "$shots"
           python3 scripts/sample-image.py "$shots/sample.png"
           "$app" --screenshot "$shots/import.png"
-          "$app" --screenshot "$shots/edit-restore-dark.png" --dark --page 1 "$shots/sample.png"
-          "$app" --screenshot "$shots/edit-processor-filtered.png" --processed --page 2 "$shots/sample.png"
-          "$app" --screenshot "$shots/export-light.png" --light --workspace 2 "$shots/sample.png"
-          "$app" --screenshot "$shots/finished-run.png" --run "$shots/sample.png"
+          "$app" --screenshot "$shots/restore-dark.png" --dark --page 1 "$shots/sample.png"
+          "$app" --screenshot "$shots/processor-light.png" --light --page 2 "$shots/sample.png"
+          "$app" --screenshot "$shots/output-dark.png" --dark --page 3 "$shots/sample.png"
+          "$app" --screenshot "$shots/settings-light.png" --light --settings
+          "$app" --screenshot "$shots/finished-run.png" --run --log "$shots/sample.png"
           test -s "$shots/sample_[restored].png"
           cargo run --release --example sample_clip -- "$shots/clip.mp4"
-          "$app" --screenshot "$shots/video-light.png" --light --processed --page 1 "$shots/clip.mp4"
-          "$app" --screenshot "$shots/video-running.png" --dark --workspace 2 --run --after 5 "$shots/clip.mp4"
+          "$app" --screenshot "$shots/video-light.png" --light --page 0 "$shots/clip.mp4"
+          "$app" --screenshot "$shots/video-running.png" --dark --inspector --run --after 5 "$shots/clip.mp4"
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-screenshots

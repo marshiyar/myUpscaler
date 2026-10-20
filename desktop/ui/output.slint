@@ -1,0 +1,409 @@
+// The Output page of the adjustments panel, as in the macOS app: where the export goes, hardware and encoding,
+// x265 parameters and saved presets.
+
+import { Theme } from "theme.slint";
+import { Settings, App, Actions } from "globals.slint";
+import {
+    Divider, Caption, FormSection, PanelHeader, FormRow, ChoiceRow, FieldRow, StackedField, Disclosure, Dropdown,
+    TextField, Toggle, Button, ButtonKind, ButtonSize,
+} from "components.slint";
+
+// A mini switch followed by its caption ("Use HEVC (H.265)").
+component MiniSwitch inherits HorizontalLayout {
+    in property <string> label;
+    in-out property <bool> checked;
+    in property <bool> enabled: true;
+    callback changed();
+    spacing: 5px;
+    Toggle {
+        mini: true;
+        checked <=> root.checked;
+        enabled: root.enabled;
+        label: root.label;
+        toggled => { root.changed(); }
+    }
+    Text {
+        text: root.label;
+        font-size: Theme.caption;
+        color: Theme.text;
+        opacity: root.enabled ? 1 : 0.45;
+        vertical-alignment: center;
+    }
+}
+
+component PresetRow inherits Rectangle {
+    in property <string> name;
+    in property <int> index;
+    property <bool> renaming;
+    property <string> draft;
+    property <bool> confirm-delete;
+    background: Theme.accent.with-alpha(0.04);
+    border-radius: 8px;
+    function commit-rename() {
+        if root.draft != "" {
+            Actions.rename-preset(root.index, root.draft);
+        }
+        root.renaming = false;
+    }
+    VerticalLayout {
+        padding: 8px;
+        spacing: 6px;
+        HorizontalLayout {
+            spacing: 6px;
+            if root.renaming: TextField {
+                text <=> root.draft;
+                placeholder: "Preset name";
+                label: "Preset name";
+                accepted => { root.commit-rename(); }
+            }
+            if !root.renaming: Text {
+                text: root.name;
+                font-size: Theme.subheadline;
+                font-weight: 500;
+                color: Theme.text;
+                vertical-alignment: center;
+                horizontal-stretch: 1;
+                overflow: elide;
+            }
+            Rectangle {
+                width: 20px;
+                accessible-role: button;
+                accessible-label: root.renaming ? "Save name" : "Rename";
+                Image {
+                    source: root.renaming ? @image-url("icons/check.svg") : @image-url("icons/pencil.svg");
+                    width: 13px;
+                    height: 13px;
+                    colorize: Theme.accent;
+                }
+                TouchArea {
+                    enabled: !App.running;
+                    clicked => {
+                        if root.renaming {
+                            root.commit-rename();
+                        } else {
+                            root.draft = root.name;
+                            root.renaming = true;
+                        }
+                    }
+                }
+            }
+        }
+        if !root.confirm-delete: HorizontalLayout {
+            spacing: 8px;
+            alignment: start;
+            Button {
+                text: "Apply";
+                icon: @image-url("icons/apply.svg");
+                has-icon: true;
+                size: ButtonSize.small;
+                enabled: !App.running;
+                clicked => { Actions.apply-preset(root.index); }
+            }
+            Button {
+                text: "Update";
+                icon: @image-url("icons/update.svg");
+                has-icon: true;
+                kind: ButtonKind.prominent;
+                size: ButtonSize.small;
+                enabled: !App.running;
+                clicked => { Actions.update-preset(root.index); }
+            }
+            Button {
+                text: "Duplicate";
+                icon: @image-url("icons/duplicate.svg");
+                has-icon: true;
+                size: ButtonSize.small;
+                clicked => { Actions.duplicate-preset(root.index); }
+            }
+            Button {
+                text: "Delete";
+                icon: @image-url("icons/trash.svg");
+                has-icon: true;
+                size: ButtonSize.small;
+                destructive: true;
+                clicked => { root.confirm-delete = true; }
+            }
+        }
+        if root.confirm-delete: HorizontalLayout {
+            spacing: 8px;
+            alignment: start;
+            Text {
+                text: "Delete preset?";
+                font-size: Theme.subheadline;
+                color: Theme.text;
+                vertical-alignment: center;
+            }
+            Button {
+                text: "Delete \"" + root.name + "\"";
+                size: ButtonSize.small;
+                destructive: true;
+                clicked => {
+                    root.confirm-delete = false;
+                    Actions.delete-preset(root.index);
+                }
+            }
+            Button {
+                text: "Cancel";
+                size: ButtonSize.small;
+                clicked => { root.confirm-delete = false; }
+            }
+        }
+    }
+}
+
+export component OutputPage inherits VerticalLayout {
+    in-out property <bool> encoding-open;
+    in-out property <string> preset-name;
+    spacing: Theme.md;
+    FormSection {
+        ChoiceRow {
+            label: "Location";
+            small: true;
+            choices: ["Same folder", "Custom folder"];
+            index: Settings.custom-output ? 1 : 0;
+            menu-width: 120px;
+            changed => {
+                Settings.custom-output = self.index == 1;
+                Actions.settings-changed();
+            }
+        }
+        if Settings.custom-output: Rectangle {
+            background: Theme.window;
+            border-radius: 6px;
+            HorizontalLayout {
+                padding: 6px;
+                padding-left: 4px;
+                padding-right: 4px;
+                spacing: 6px;
+                VerticalLayout {
+                    alignment: center;
+                    Image {
+                        source: @image-url("icons/folder.svg");
+                        width: 10px;
+                        height: 10px;
+                        colorize: Theme.secondary;
+                    }
+                }
+                Text {
+                    text: Settings.output-folder == "" ? "Choose an output folder" : Settings.output-folder;
+                    font-size: Theme.caption;
+                    color: Theme.secondary;
+                    vertical-alignment: center;
+                    overflow: elide;
+                    horizontal-stretch: 1;
+                }
+                Button {
+                    text: "Choose";
+                    size: ButtonSize.mini;
+                    clicked => { Actions.choose-output-folder(); }
+                }
+            }
+        }
+        Divider { }
+        HorizontalLayout {
+            spacing: 5px;
+            VerticalLayout {
+                alignment: center;
+                Image {
+                    source: @image-url("icons/doc.svg");
+                    width: 10px;
+                    height: 10px;
+                    colorize: Theme.accent;
+                }
+            }
+            Text {
+                text: "Output:";
+                font-size: Theme.caption;
+                color: Theme.secondary;
+                vertical-alignment: center;
+            }
+            Text {
+                text: App.input-path == "" ? "Choose a video first" : App.predicted-output;
+                font-size: Theme.caption;
+                font-weight: 500;
+                color: Theme.text;
+                vertical-alignment: center;
+                overflow: elide;
+                horizontal-stretch: 1;
+            }
+        }
+    }
+    FormSection {
+        PanelHeader {
+            title: "Hardware & Encoding";
+            icon: @image-url("icons/gears.svg");
+        }
+        ChoiceRow {
+            label: "Decode acceleration";
+            small: true;
+            choices: App.hwaccels;
+            index <=> Settings.hwaccel;
+            changed => { Actions.settings-changed(); }
+        }
+        Divider { }
+        ChoiceRow {
+            label: "Encoder";
+            small: true;
+            choices: App.encoders;
+            index <=> Settings.encoder;
+            changed => { Actions.settings-changed(); }
+        }
+        Divider { }
+        HorizontalLayout {
+            spacing: 12px;
+            alignment: start;
+            MiniSwitch {
+                label: "Use HEVC (H.265)";
+                checked <=> Settings.hevc;
+                changed => { Actions.settings-changed(); }
+            }
+            MiniSwitch {
+                label: "10‑Bit Output";
+                checked <=> Settings.ten-bit;
+                enabled: Settings.hevc && !Settings.force-8bit;
+                changed => { Actions.settings-changed(); }
+            }
+            MiniSwitch {
+                label: "Faststart";
+                checked <=> Settings.faststart;
+                changed => { Actions.settings-changed(); }
+            }
+        }
+        HorizontalLayout {
+            alignment: start;
+            MiniSwitch {
+                label: "Force 8-bit processing";
+                checked <=> Settings.force-8bit;
+                changed => { Actions.settings-changed(); }
+            }
+        }
+        Divider { }
+        FieldRow {
+            label: "Audio Bitrate";
+            small: true;
+            value <=> Settings.audio-bitrate;
+            placeholder: "192k";
+            field-width: 60px;
+            changed => { Actions.settings-changed(); }
+        }
+        Divider { }
+        ChoiceRow {
+            label: "CPU encoding speed";
+            small: true;
+            choices: ["veryfast", "faster", "medium"];
+            index <=> Settings.preset;
+            enabled: Settings.encoder != 2;
+            changed => { Actions.settings-changed(); }
+        }
+        Divider { }
+        FieldRow {
+            label: "Threads";
+            small: true;
+            value <=> Settings.threads;
+            placeholder: "0 (auto)";
+            field-width: 60px;
+            changed => { Actions.settings-changed(); }
+        }
+        Disclosure {
+            title: "CPU HEVC parameters";
+            expanded <=> root.encoding-open;
+            enabled: Settings.hevc && Settings.encoder != 2;
+        }
+        if root.encoding-open: VerticalLayout {
+            spacing: 6px;
+            PanelHeader {
+                title: "x265 Parameters";
+                icon: @image-url("icons/sliders.svg");
+            }
+            HorizontalLayout {
+                spacing: 12px;
+                alignment: start;
+                StackedField {
+                    label: "AQ Mode";
+                    value <=> Settings.aq-mode;
+                    placeholder: "3";
+                    changed => { Actions.settings-changed(); }
+                }
+                StackedField {
+                    label: "Psy-RD";
+                    value <=> Settings.psy-rd;
+                    placeholder: "2.0";
+                    changed => { Actions.settings-changed(); }
+                }
+                VerticalLayout {
+                    spacing: 2px;
+                    Text {
+                        text: "Deblock";
+                        font-size: Theme.caption;
+                        color: Theme.secondary;
+                    }
+                    HorizontalLayout {
+                        spacing: 4px;
+                        TextField {
+                            width: 35px;
+                            text <=> Settings.x265-deblock1;
+                            placeholder: "-2";
+                            label: "x265 deblock strength";
+                            edited => { Actions.settings-changed(); }
+                        }
+                        Text {
+                            text: ",";
+                            font-size: Theme.caption;
+                            color: Theme.secondary;
+                            vertical-alignment: center;
+                        }
+                        TextField {
+                            width: 35px;
+                            text <=> Settings.x265-deblock2;
+                            placeholder: "-2";
+                            label: "x265 deblock threshold";
+                            edited => { Actions.settings-changed(); }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    FormSection {
+        PanelHeader {
+            title: "Saved Presets";
+            icon: @image-url("icons/bookmark.svg");
+        }
+        HorizontalLayout {
+            spacing: 8px;
+            TextField {
+                text <=> root.preset-name;
+                placeholder: "Preset name";
+                label: "Preset name";
+                enabled: !App.running;
+            }
+            Button {
+                text: "Save current";
+                icon: @image-url("icons/save.svg");
+                has-icon: true;
+                kind: ButtonKind.prominent;
+                size: ButtonSize.small;
+                enabled: !App.running && root.preset-name != "";
+                clicked => {
+                    Actions.save-preset(root.preset-name);
+                    root.preset-name = "";
+                }
+            }
+        }
+        Text {
+            text: "Presets capture all current upscale settings for quick reuse.";
+            font-size: Theme.caption;
+            color: Theme.secondary;
+            wrap: word-wrap;
+        }
+        Divider { }
+        if App.presets.length == 0: Caption {
+            text: "No presets yet. Save one to reuse your favorite configuration.";
+            font-size: Theme.caption;
+        }
+        for name[i] in App.presets: PresetRow {
+            name: name;
+            index: i;
+        }
+    }
+}

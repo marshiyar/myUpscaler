@@ -1,452 +1,401 @@
-// The adjustments panel of the Edit workspace: Upscale, Restore and Processor tabs, each a list of collapsible
-// effect sections with an on/off switch.
+// The adjustments panel, as the macOS app's WorkspaceInspector: a segmented picker (Upscale, Restore, Processor,
+// Output) over a grouped form. Locked while processing.
 
 import { ScrollView } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { Settings, App, Actions } from "globals.slint";
-import { PanelTabs, SectionHeader, ChoiceRow, SwitchRow, FieldRow, ParameterRow, Row, Button, ButtonKind, Divider, Hint } from "components.slint";
+import { SegmentedPicker } from "controls.slint";
+import {
+    Divider, Caption, FormSection, PanelHeader, FormRow, ChoiceRow, SwitchRow, FieldRow, StackedField, ParameterRow,
+    Disclosure, Dropdown, TextField, Toggle, SliderControl, Button, ButtonKind, ButtonSize,
+} from "components.slint";
+import { OutputPage } from "output.slint";
+import { FinishingFilters } from "finishing.slint";
 
 component UpscalePage inherits VerticalLayout {
-    property <bool> scaling-open: true;
-    property <bool> rate-open: true;
-    property <bool> quality-open: true;
-    alignment: start;
-    SectionHeader {
-        title: "Scaling";
-        expanded <=> root.scaling-open;
-    }
-    if root.scaling-open: VerticalLayout {
-        ChoiceRow {
+    spacing: Theme.md;
+    FormSection {
+        FormRow {
             label: "Scaler";
-            choices: ["Lanczos"];
-            index: 0;
+            small: true;
+            Dropdown {
+                width: 160px;
+                model: ["Lanczos"];
+                current-index <=> Settings.scaler;
+                label: "Scaler";
+            }
         }
-        FieldRow {
-            label: "Scale";
-            value <=> Settings.scale;
-            placeholder: "2";
-            changed => { Actions.settings-changed(); }
-        }
-        Hint { text: "Real-ESRGAN (AI) upscaling arrives with the GPU model runner."; }
     }
-    Divider { }
-    SectionHeader {
-        title: "Frame rate";
-        expanded <=> root.rate-open;
-    }
-    if root.rate-open: VerticalLayout {
-        FieldRow {
-            label: "FPS";
-            detail: "Number, fraction or source";
-            value <=> Settings.fps;
-            placeholder: "60";
-            changed => { Actions.settings-changed(); }
+    FormSection {
+        PanelHeader {
+            title: "Quality & Scale";
+            icon: @image-url("icons/chart-bar.svg");
         }
+        VerticalLayout {
+            spacing: 4px;
+            HorizontalLayout {
+                spacing: 4px;
+                Text {
+                    text: "CRF";
+                    font-size: Theme.caption;
+                    font-weight: 500;
+                    color: Theme.text;
+                    horizontal-stretch: 1;
+                }
+                Text {
+                    text: crf.value.round();
+                    font-size: Theme.caption;
+                    font-weight: 500;
+                    color: Theme.text;
+                }
+                Text {
+                    text: "(Lower is better)";
+                    font-size: Theme.caption;
+                    color: Theme.secondary;
+                }
+            }
+            crf := SliderControl {
+                value: Settings.crf;
+                minimum: 0;
+                maximum: 51;
+                step: 1;
+                label: "CRF";
+                released(v) => {
+                    Settings.crf = v;
+                    Actions.settings-changed();
+                }
+            }
+        }
+        Divider { }
+        HorizontalLayout {
+            spacing: 12px;
+            alignment: start;
+            StackedField {
+                label: "Scale";
+                value <=> Settings.scale;
+                placeholder: "2.0";
+                field-width: 60px;
+                changed => { Actions.settings-changed(); }
+            }
+            StackedField {
+                label: "FPS";
+                value <=> Settings.fps;
+                placeholder: "60";
+                field-width: 60px;
+                changed => { Actions.settings-changed(); }
+            }
+        }
+        Divider { }
         ChoiceRow {
             label: "Interpolation";
-            choices: ["Off", "Motion (MCI)", "Blend"];
+            small: true;
+            choices: ["Off", "MCI", "Blend"];
             index <=> Settings.interpolation;
             changed => { Actions.settings-changed(); }
         }
     }
-    Divider { }
-    SectionHeader {
-        title: "Quality";
-        expanded <=> root.quality-open;
-    }
-    if root.quality-open: VerticalLayout {
-        ParameterRow {
-            title: "CRF";
-            value <=> Settings.crf;
-            minimum: 0;
-            maximum: 51;
-            step: 1;
-            default-value: 20;
-            digits: 0;
-            changed => { Actions.settings-changed(); }
-        }
-        Hint { text: "Lower is better: 20 or less is high quality, 27 or more is draft."; }
-    }
 }
 
 component RestorePage inherits VerticalLayout {
-    property <bool> denoise-open: true;
-    property <bool> dering-open: true;
-    property <bool> sharpen-open: true;
-    property <bool> color-open: true;
-    property <bool> second-open: false;
-    alignment: start;
-    SectionHeader {
-        title: "Denoise";
-        expanded <=> root.denoise-open;
-        has-switch: true;
-        checked <=> Settings.denoise;
-        toggled => { Actions.settings-changed(); }
-    }
-    if root.denoise-open: VerticalLayout {
+    spacing: Theme.md;
+    in-out property <bool> finishing-open;
+    FormSection {
+        title: "Primary restoration";
         ChoiceRow {
-            label: "Method";
-            choices: ["BM3D", "hqdn3d", "NLMeans", "ATADenoise"];
-            index <=> Settings.denoiser;
-            enabled: Settings.denoise;
+            label: "Denoise";
+            choices: ["Off", "bm3d", "nlmeans", "hqdn3d", "atadenoise"];
+            index <=> Settings.denoise;
             changed => { Actions.settings-changed(); }
         }
-        ParameterRow {
+        if Settings.denoise > 0: Divider { }
+        if Settings.denoise > 0: ParameterRow {
             title: "Strength";
             value <=> Settings.denoise-strength;
             minimum: Settings.denoise-min;
             maximum: Settings.denoise-max;
             step: 0.1;
             default-value: Settings.denoise-default;
-            enabled: Settings.denoise;
             changed => { Actions.settings-changed(); }
         }
-    }
-    Divider { }
-    SectionHeader {
-        title: "Deringing";
-        expanded <=> root.dering-open;
-        has-switch: true;
-        checked <=> Settings.dering;
-        toggled => { Actions.settings-changed(); }
-    }
-    if root.dering-open: ParameterRow {
-        title: "Strength";
-        value <=> Settings.dering-strength;
-        minimum: 0;
-        maximum: 10;
-        step: 0.005;
-        default-value: 0.5;
-        enabled: Settings.dering;
-        changed => { Actions.settings-changed(); }
-    }
-    Divider { }
-    SectionHeader {
-        title: "Sharpen";
-        expanded <=> root.sharpen-open;
-        has-switch: true;
-        checked <=> Settings.sharpen;
-        toggled => { Actions.settings-changed(); }
-    }
-    if root.sharpen-open: VerticalLayout {
-        ChoiceRow {
+        Divider { }
+        ParameterRow {
+            title: "Deringing";
+            value <=> Settings.dering;
+            maximum: 10;
+            step: 0.005;
+            default-value: 0.5;
+            changed => { Actions.settings-changed(); }
+        }
+        Divider { }
+        SwitchRow {
+            label: "Sharpen";
+            checked <=> Settings.sharpen;
+            changed => { Actions.settings-changed(); }
+        }
+        if Settings.sharpen: Divider { }
+        if Settings.sharpen: ChoiceRow {
             label: "Method";
             choices: ["CAS", "Unsharp mask"];
             index <=> Settings.sharpen-method;
-            enabled: Settings.sharpen;
             changed => { Actions.settings-changed(); }
         }
-        if Settings.sharpen-method == 0: ParameterRow {
+        if Settings.sharpen && Settings.sharpen-method == 0: Divider { }
+        if Settings.sharpen && Settings.sharpen-method == 0: ParameterRow {
             title: "Strength";
             value <=> Settings.cas-strength;
-            minimum: 0;
-            maximum: 1;
-            step: 0.01;
+            step: 0.005;
             default-value: 0.25;
-            enabled: Settings.sharpen;
             changed => { Actions.settings-changed(); }
         }
-        if Settings.sharpen-method == 1: VerticalLayout {
-            ParameterRow {
-                title: "Matrix";
-                value <=> Settings.usm-radius;
-                minimum: 3;
-                maximum: 23;
-                step: 2;
-                default-value: 5;
-                digits: 0;
-                enabled: Settings.sharpen;
-                changed => { Actions.settings-changed(); }
-            }
-            ParameterRow {
-                title: "Amount";
-                value <=> Settings.usm-amount;
-                minimum: -2;
-                maximum: 5;
-                step: 0.01;
-                default-value: 1;
-                enabled: Settings.sharpen;
-                changed => { Actions.settings-changed(); }
-            }
-            ParameterRow {
-                title: "Threshold";
-                value <=> Settings.usm-threshold;
-                minimum: 0;
-                maximum: 1;
-                step: 0.001;
-                default-value: 0.03;
-                digits: 3;
-                enabled: Settings.sharpen;
-                changed => { Actions.settings-changed(); }
-            }
+        if Settings.sharpen && Settings.sharpen-method == 1: Divider { }
+        if Settings.sharpen && Settings.sharpen-method == 1: ParameterRow {
+            title: "Matrix";
+            value <=> Settings.usm-radius;
+            minimum: 3;
+            maximum: 23;
+            step: 1;
+            digits: 0;
+            default-value: 5;
+            changed => { Actions.settings-changed(); }
+        }
+        if Settings.sharpen && Settings.sharpen-method == 1: Divider { }
+        if Settings.sharpen && Settings.sharpen-method == 1: ParameterRow {
+            title: "Amount";
+            value <=> Settings.usm-amount;
+            minimum: -2;
+            maximum: 5;
+            default-value: 1;
+            changed => { Actions.settings-changed(); }
         }
     }
-    Divider { }
-    SectionHeader {
-        title: "Color";
-        expanded <=> root.color-open;
-        has-switch: true;
-        checked <=> Settings.eq;
-        toggled => { Actions.settings-changed(); }
-    }
-    if root.color-open: VerticalLayout {
-        ParameterRow {
+    FormSection {
+        SwitchRow {
+            label: "Color equalizer";
+            checked <=> Settings.eq;
+            changed => { Actions.settings-changed(); }
+        }
+        if Settings.eq: Divider { }
+        if Settings.eq: ParameterRow {
             title: "Contrast";
             value <=> Settings.contrast;
             minimum: 0.5;
             maximum: 2;
             step: 0.005;
             default-value: 1;
-            enabled: Settings.eq;
             changed => { Actions.settings-changed(); }
         }
-        ParameterRow {
+        if Settings.eq: Divider { }
+        if Settings.eq: ParameterRow {
             title: "Brightness";
             value <=> Settings.brightness;
             minimum: -0.1;
             maximum: 0.1;
             step: 0.005;
-            default-value: 0;
             digits: 3;
-            enabled: Settings.eq;
+            default-value: 0;
             changed => { Actions.settings-changed(); }
         }
-        ParameterRow {
+        if Settings.eq: Divider { }
+        if Settings.eq: ParameterRow {
             title: "Saturation";
             value <=> Settings.saturation;
-            minimum: 0;
             maximum: 2;
             step: 0.005;
             default-value: 1;
-            enabled: Settings.eq;
             changed => { Actions.settings-changed(); }
         }
     }
-    Divider { }
-    SectionHeader {
-        title: "Second pass";
-        expanded <=> root.second-open;
-    }
-    if root.second-open: VerticalLayout {
-        Hint { text: "Runs after scaling, sharpening and debanding; each stage has its own switch."; }
-        SwitchRow {
-            label: "Denoise";
-            checked <=> Settings.denoise2;
-            changed => { Actions.settings-changed(); }
+    FormSection {
+        Disclosure {
+            title: "Finishing filters (Lanczos)";
+            icon: @image-url("icons/sparkles.svg");
+            has-icon: true;
+            expanded <=> root.finishing-open;
         }
-        if Settings.denoise2: ChoiceRow {
-            label: "Method";
-            choices: ["BM3D", "hqdn3d", "NLMeans", "ATADenoise"];
-            index <=> Settings.denoiser2;
-            changed => { Actions.settings-changed(); }
-        }
-        if Settings.denoise2: ParameterRow {
-            title: "Strength";
-            value <=> Settings.denoise2-strength;
-            minimum: Settings.denoise2-min;
-            maximum: Settings.denoise2-max;
-            step: 0.1;
-            default-value: Settings.denoise2-default;
-            changed => { Actions.settings-changed(); }
-        }
-        SwitchRow {
-            label: "Deringing";
-            checked <=> Settings.dering2;
-            changed => { Actions.settings-changed(); }
-        }
-        if Settings.dering2: ParameterRow {
-            title: "Strength";
-            value <=> Settings.dering2-strength;
-            minimum: 0;
-            maximum: 10;
-            step: 0.005;
-            default-value: 0.5;
-            changed => { Actions.settings-changed(); }
-        }
-        SwitchRow {
-            label: "Sharpen (CAS)";
-            checked <=> Settings.sharpen2;
-            changed => { Actions.settings-changed(); }
-        }
-        if Settings.sharpen2: ParameterRow {
-            title: "Strength";
-            value <=> Settings.cas2-strength;
-            minimum: 0;
-            maximum: 1;
-            step: 0.01;
-            default-value: 0.25;
-            changed => { Actions.settings-changed(); }
-        }
-        SwitchRow {
-            label: "Deblock";
-            checked <=> Settings.deblock2;
-            changed => { Actions.settings-changed(); }
-        }
-        SwitchRow {
-            label: "Deband";
-            checked <=> Settings.deband2;
-            changed => { Actions.settings-changed(); }
-        }
-        if Settings.deband2: FieldRow {
-            label: "Strength";
-            value <=> Settings.deband2-strength;
-            placeholder: "0.015";
-            changed => { Actions.settings-changed(); }
-        }
-        SwitchRow {
-            label: "Grain";
-            detail: "Replaces the first-pass amount";
-            checked <=> Settings.grain2;
-            changed => { Actions.settings-changed(); }
-        }
-        if Settings.grain2: FieldRow {
-            label: "Amount";
-            value <=> Settings.grain2-strength;
-            placeholder: "1.0";
-            changed => { Actions.settings-changed(); }
-        }
+        if root.finishing-open: FinishingFilters { }
     }
 }
 
 component ProcessorPage inherits VerticalLayout {
-    property <bool> deblock-open: true;
-    property <bool> deband-open: true;
-    property <bool> grain-open: true;
-    property <bool> frames-open: true;
-    alignment: start;
-    SectionHeader {
-        title: "Deblock";
-        expanded <=> root.deblock-open;
-        has-switch: true;
-        checked <=> Settings.deblock;
-        toggled => { Actions.settings-changed(); }
-    }
-    if root.deblock-open: ChoiceRow {
-        label: "Mode";
-        choices: ["Weak", "Strong"];
-        index <=> Settings.deblock-mode;
-        enabled: Settings.deblock;
-        changed => { Actions.settings-changed(); }
-    }
-    Divider { }
-    SectionHeader {
-        title: "Deband";
-        expanded <=> root.deband-open;
-        has-switch: true;
-        checked <=> Settings.deband;
-        toggled => { Actions.settings-changed(); }
-    }
-    if root.deband-open: VerticalLayout {
+    spacing: Theme.md;
+    FormSection {
         ChoiceRow {
-            label: "Method";
-            choices: ["Deband", "Gradfun", "F3kdb", "Neo F3kdb"];
-            index <=> Settings.deband-method;
-            enabled: Settings.deband;
+            label: "Deblock";
+            small: true;
+            choices: ["Off", "weak", "strong"];
+            index <=> Settings.deblock;
+            menu-width: 110px;
             changed => { Actions.settings-changed(); }
         }
-        if Settings.deband-method <= 1: FieldRow {
-            label: "Strength";
-            value <=> Settings.deband-strength;
-            placeholder: Settings.deband-method == 1 ? "1.2" : "0.015";
-            enabled: Settings.deband;
-            changed => { Actions.settings-changed(); }
+        if Settings.deblock > 0: VerticalLayout {
+            spacing: 4px;
+            HorizontalLayout {
+                Caption {
+                    text: "Thresholds";
+                    horizontal-stretch: 1;
+                    vertical-alignment: center;
+                }
+                Button {
+                    text: "Defaults";
+                    size: ButtonSize.mini;
+                    clicked => {
+                        Settings.deblock-alpha = "";
+                        Settings.deblock-beta = "";
+                        Settings.deblock-gamma = "";
+                        Settings.deblock-delta = "";
+                        Actions.settings-changed();
+                    }
+                }
+            }
+            HorizontalLayout {
+                spacing: 6px;
+                StackedField {
+                    label: "alpha";
+                    value <=> Settings.deblock-alpha;
+                    placeholder: "0.098";
+                    field-width: 52px;
+                    changed => { Actions.settings-changed(); }
+                }
+                StackedField {
+                    label: "beta";
+                    value <=> Settings.deblock-beta;
+                    placeholder: "0.05";
+                    field-width: 52px;
+                    changed => { Actions.settings-changed(); }
+                }
+                StackedField {
+                    label: "gamma";
+                    value <=> Settings.deblock-gamma;
+                    placeholder: "0.05";
+                    field-width: 52px;
+                    changed => { Actions.settings-changed(); }
+                }
+                StackedField {
+                    label: "delta";
+                    value <=> Settings.deblock-delta;
+                    placeholder: "0.05";
+                    field-width: 52px;
+                    changed => { Actions.settings-changed(); }
+                }
+            }
+            if !Settings.deblock-valid: Text {
+                text: "Invalid saved or draft thresholds; use values from 0 to 1 or Defaults.";
+                font-size: Theme.caption;
+                color: Theme.red;
+                wrap: word-wrap;
+            }
         }
-        if Settings.deband-method >= 2: VerticalLayout {
-            FieldRow {
+        Divider { }
+        ChoiceRow {
+            label: "Deband";
+            small: true;
+            choices: ["Off", "Deband", "Gradfun", "Neo F3kdb (CPU)"];
+            index <=> Settings.deband;
+            menu-width: 200px;
+            changed => {
+                if Settings.deband != 1 {
+                    Settings.f3kdb = false;
+                }
+                Actions.settings-changed();
+            }
+        }
+        if (Settings.deband == 1 && Settings.f3kdb) || Settings.deband == 3: HorizontalLayout {
+            spacing: 6px;
+            padding-left: 8px;
+            alignment: start;
+            StackedField {
                 label: "Range";
                 value <=> Settings.f3kdb-range;
                 placeholder: "15";
-                enabled: Settings.deband;
                 changed => { Actions.settings-changed(); }
             }
-            FieldRow {
-                label: "Luma threshold";
+            StackedField {
+                label: "Y";
                 value <=> Settings.f3kdb-y;
                 placeholder: "64";
-                enabled: Settings.deband;
                 changed => { Actions.settings-changed(); }
             }
-            FieldRow {
-                label: "Chroma threshold";
+            StackedField {
+                label: "CbCr";
                 value <=> Settings.f3kdb-cbcr;
                 placeholder: "64";
-                enabled: Settings.deband;
                 changed => { Actions.settings-changed(); }
             }
         }
-        if Settings.deband-method == 3: Hint {
-            text: "Neo F3kdb: integer range 0–255, thresholds 0–511 (16 = one 8-bit level).";
+        if Settings.deband != 3 && !(Settings.deband == 1 && Settings.f3kdb): FieldRow {
+            label: "Strength";
+            small: true;
+            padding-left: 8px;
+            value <=> Settings.deband-strength;
+            placeholder: "0.015";
+            changed => { Actions.settings-changed(); }
+        }
+        Divider { }
+        FieldRow {
+            label: "Grain";
+            small: true;
+            value <=> Settings.grain;
+            placeholder: "1.0";
+            field-width: 50px;
+            changed => { Actions.settings-changed(); }
         }
     }
-    Divider { }
-    SectionHeader {
-        title: "Grain";
-        expanded <=> root.grain-open;
-    }
-    if root.grain-open: FieldRow {
-        label: "Amount";
-        detail: "0 turns grain off";
-        value <=> Settings.grain;
-        placeholder: "1.0";
-        changed => { Actions.settings-changed(); }
-    }
-    Divider { }
-    SectionHeader {
-        title: "Frames & threads";
-        expanded <=> root.frames-open;
-    }
-    if root.frames-open: VerticalLayout {
+    FormSection {
         SwitchRow {
             label: "Remove near-duplicate frames";
             checked <=> Settings.decimate;
             changed => { Actions.settings-changed(); }
         }
-        FieldRow {
-            label: "Threads";
-            detail: "Empty uses every core";
-            value <=> Settings.threads;
-            placeholder: "auto";
-            changed => { Actions.settings-changed(); }
-        }
     }
-    HorizontalLayout {
-        alignment: start;
-        padding-top: Theme.lg;
-        Button {
-            text: "Reset all";
-            icon: @image-url("icons/reset.svg");
-            has-icon: true;
-            kind: ButtonKind.secondary;
-            tall: 26px;
-            clicked => { Actions.reset-settings(); }
+    FormSection {
+        HorizontalLayout {
+            alignment: start;
+            Button {
+                text: "Reset processing settings";
+                icon: @image-url("icons/reset.svg");
+                has-icon: true;
+                kind: ButtonKind.plain;
+                clicked => { Actions.reset-settings(); }
+            }
         }
     }
 }
 
 export component Inspector inherits Rectangle {
-    background: Theme.panel;
-    border-radius: Theme.radius;
-    clip: true;
+    in-out property <bool> finishing-open;
+    background: Theme.form;
     VerticalLayout {
-        PanelTabs {
-            items: ["Upscale", "Restore", "Processor"];
-            selected <=> App.page;
+        HorizontalLayout {
+            padding: Theme.md;
+            SegmentedPicker {
+                items: ["Upscale", "Restore", "Processor", "Output"];
+                selected <=> App.page;
+            }
         }
         ScrollView {
             vertical-stretch: 1;
-            opacity: App.running ? 0.45 : 1;
-            animate opacity { duration: Theme.base; }
             VerticalLayout {
                 padding-left: Theme.md;
                 padding-right: Theme.md;
-                padding-bottom: Theme.lg;
+                padding-bottom: Theme.md;
                 alignment: start;
                 if App.page == 0: UpscalePage { }
-                if App.page == 1: RestorePage { }
+                if App.page == 1: RestorePage {
+                    finishing-open <=> root.finishing-open;
+                }
                 if App.page == 2: ProcessorPage { }
+                if App.page == 3: OutputPage { }
             }
         }
     }
-    // Settings are locked while a file is processed.
-    if App.running: TouchArea { }
+    // Settings are locked while processing.
+    if App.running: TouchArea {
+        y: 56px;
+        height: root.height - 56px;
+    }
+    if App.running: Rectangle {
+        y: 56px;
+        height: root.height - 56px;
+        background: Theme.form.with-alpha(0.45);
+    }
 }

@@ -1,25 +1,29 @@
-//! myUpscaler for macOS, Windows and Linux: the Slint interface (`ui/`) on the Rust processing backend (`backend/`).
-//! Processing and the preview run on their own threads and report back through channels that a timer on the
-//! interface thread drains, so the window never waits on the engine.
+//! myUpscaler for macOS, Windows and Linux: the Slint interface (`ui/`, laid out as the macOS app) on the Rust
+//! processing backend (`backend/`). Processing, the preview and the frame strip run on their own threads and report
+//! back through channels that a timer on the interface thread drains, so the window never waits on the engine.
 
 #![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
 
+mod presets;
 mod preview;
 mod progress;
 mod screenshot;
 mod settings;
 
+use std::cell::RefCell;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::rc::Rc;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use slint::{ComponentHandle, Image, SharedString, Timer, TimerMode};
+use slint::{ComponentHandle, Image, ModelRc, Rgba8Pixel, SharedPixelBuffer, SharedString, Timer, TimerMode, VecModel};
 use up60p::engine;
 use up60p::job::{self, Job};
 use up60p::options::Options;
 
+use presets::Preset;
 use progress::Progress;
 
 slint::include_modules!();
@@ -30,6 +34,9 @@ enum Report {
     Finished { result: Result<(), String>, cancelled: bool },
 }
 
+/// A batch of the frame strip, for the input it was made for (its generation).
+type Thumbnails = (u64, Vec<(SharedPixelBuffer<Rgba8Pixel>, f64)>);
+
 /// Inputs the file dialog offers: what the backend processes.
 const MEDIA_EXTENSIONS: [&str; 12] =
     ["mp4", "mov", "m4v", "mkv", "webm", "png", "jpg", "jpeg", "bmp", "webp", "tif", "tiff"];
@@ -37,13 +44,27 @@ const MEDIA_EXTENSIONS: [&str; 12] =
 /// The longest the log may grow before its oldest lines are dropped.
 const LOG_LIMIT: usize = 200_000;
 
+const WEBSITE: &str = "https://github.com/marshiyar/myUpscaler";
+
 struct State {
     input: Option<PathBuf>,
     cancel: Arc<AtomicBool>,
     reports: Option<Receiver<Report>>,
     progress: Progress,
+    /// Where the finished export is, once a run completed.
+    completed: Option<PathBuf>,
+    expected: Option<PathBuf>,
     preview: Sender<preview::Request>,
     replies: Receiver<preview::Reply>,
+    thumbnail_tx: Sender<Thumbnails>,
+    thumbnail_rx: Receiver<Thumbnails>,
+    /// Bumped for every input, so a strip still loading for an earlier one stops and its batches are ignored.
+    generation: Arc<AtomicU64>,
+    thumbnail_times: Vec<f64>,
+    thumbnails: Rc<VecModel<Image>>,
+    thumbnail_labels: Rc<VecModel<SharedString>>,
+    presets: Vec<Preset>,
+    preset_file: Option<PathBuf>,
 }
 
 fn append_log(ui: &AppWindow, text: &str) {
@@ -58,67 +79,39 @@ fn append_log(ui: &AppWindow, text: &str) {
     app.set_log(log.into());
 }
 
-fn describe_input(path: &Path) -> (String, f64, bool) {
-    let image = job::is_image(path);
-    let size = engine::Video::open(path).map_or(String::new(), |v| format!("{}×{} · ", v.width, v.height));
-    match engine::probe(path) {
-        Ok(probe) => match probe.video {
-            Some(v) if image => (format!("{size}{}", v.codec), 0.0, true),
-            Some(v) => (
-                format!(
-                    "{size}{} · {} fps · {}{}",
-                    v.codec,
-                    (v.frame_rate * 1000.0).round() / 1000.0,
-                    progress::clock(probe.duration),
-                    probe.audio.map_or(String::new(), |a| format!(" · {}", a.codec))
-                ),
-                probe.duration,
-                false,
-            ),
-            None => ("No video track".into(), 0.0, image),
-        },
-        Err(e) => (format!("Not readable: {e}"), 0.0, image),
-    }
-}
-
-fn predicted_output(options: &Options, input: &Path) -> String {
+fn output_path(options: &Options, input: &Path) -> PathBuf {
     let cancel = AtomicBool::new(false);
     let log = |_: &str| {};
-    let job = Job { options, log: &log, cancel: &cancel, dry_run: true };
-    if input.is_dir() {
-        "One <name>_[restored] file per video or image in the folder".into()
-    } else {
-        job.output_path(input).display().to_string()
-    }
+    Job { options, log: &log, cancel: &cancel, dry_run: true }.output_path(input)
 }
 
-/// What the export will be: "1280×720 → 2560×1440 · 60 fps" (or the input's rate), or the batch description.
-fn output_video(options: &Options, input: &Path) -> String {
+/// The output file's name, as the macOS app's Output page shows it.
+fn predicted_output(options: &Options, input: &Path) -> String {
     if input.is_dir() {
-        return "Each file at its own size, scaled".into();
+        return "One <name>_[restored] file per video or image".into();
     }
-    let Ok(video) = engine::Video::open(input) else { return String::new() };
-    let scale = up60p::filters::number(&up60p::options::text(&options.scale_factor))
-        .filter(|v| *v > 0.0 && *v <= 16.0)
-        .unwrap_or(2.0);
-    let (w, h) = up60p::pipeline::output_size(video.width, video.height, scale);
-    let size = format!("{}×{} → {w}×{h}", video.width, video.height);
-    if video.is_still {
-        return size;
-    }
-    let fps = up60p::options::text(&options.fps);
-    match fps.as_str() {
-        "source" | "lock" => format!("{size} · {} fps (source)", (video.frame_rate * 1000.0).round() / 1000.0),
-        _ => format!("{size} · {fps} fps"),
-    }
+    output_path(options, input).file_name().map_or_else(String::new, |n| n.to_string_lossy().into_owned())
 }
 
-/// Refreshes what depends on both the settings and the input: the output file name and summary.
-fn refresh_output(ui: &AppWindow, input: &Path) {
-    let options = settings::options(&ui.global::<Settings>());
+/// The bottom bar's status line, in the macOS app's words.
+fn update_status(ui: &AppWindow, state: &State) {
     let app = ui.global::<App>();
-    app.set_predicted_output(predicted_output(&options, input).into());
-    app.set_output_video(output_video(&options, input).into());
+    let status = if app.get_cancelling() {
+        "Stopping…"
+    } else if app.get_running() {
+        match state.progress.phase {
+            Some("Finalizing") | Some("Done") => "Finalizing export…",
+            Some(_) => "Processing frames",
+            None => "Preparing video…",
+        }
+    } else if state.completed.is_some() {
+        "Export complete"
+    } else if state.input.is_none() {
+        "Import a video to begin"
+    } else {
+        "Ready to export"
+    };
+    app.set_status(status.into());
 }
 
 fn request_preview(ui: &AppWindow, state: &State) {
@@ -128,29 +121,47 @@ fn request_preview(ui: &AppWindow, state: &State) {
         app.set_preview_note("Folder selected: every video and image in it is processed.".into());
         return;
     };
-    let filters = app.get_show_processed().then(|| Box::new(settings::options(&ui.global::<Settings>())));
+    let index = app.get_selected_frame().max(0) as usize;
+    let seconds = state.thumbnail_times.get(index).copied().unwrap_or(0.0);
+    let filters = Some(Box::new(settings::options(&ui.global::<Settings>())));
     app.set_preview_busy(true);
-    let _ = state.preview.send(preview::Request { path: input, seconds: app.get_position() as f64, filters });
+    let _ = state.preview.send(preview::Request { path: input, seconds, filters });
 }
 
 fn select_input(ui: &AppWindow, state: &mut State, path: PathBuf) {
     let app = ui.global::<App>();
     let name = path.file_name().map_or_else(|| path.display().to_string(), |n| n.to_string_lossy().into_owned());
-    let (info, duration, image) = if path.is_dir() { ("Folder".into(), 0.0, false) } else { describe_input(&path) };
     app.set_input_path(path.display().to_string().into());
     app.set_input_name(name.into());
-    app.set_input_info(info.into());
-    app.set_duration(duration as f32);
-    app.set_duration_text(progress::clock(duration).into());
-    app.set_position_text(progress::clock(0.0).into());
-    app.set_is_image(image);
-    app.set_position(0.0);
-    app.set_error(SharedString::new());
-    app.set_phase("Ready".into());
+    app.set_is_image(job::is_image(&path));
+    app.set_has_preview(false);
+    app.set_preview_note(SharedString::new());
+    app.set_selected_frame(0);
+    state.completed = None;
+    app.set_completed(false);
+    app.set_completed_output(SharedString::new());
     app.set_progress(0.0);
-    app.set_workspace(1);
-    refresh_output(ui, &path);
-    state.input = Some(path);
+    let options = settings::options(&ui.global::<Settings>());
+    app.set_predicted_output(predicted_output(&options, &path).into());
+    state.input = Some(path.clone());
+
+    // The frame strip, decoded on its own thread.
+    let generation = state.generation.fetch_add(1, Ordering::SeqCst) + 1;
+    state.thumbnail_times.clear();
+    state.thumbnails.set_vec(Vec::new());
+    state.thumbnail_labels.set_vec(Vec::new());
+    let videoish = path.is_file() && !job::is_image(&path);
+    app.set_thumbnails_loading(videoish);
+    if videoish {
+        let (tx, current) = (state.thumbnail_tx.clone(), state.generation.clone());
+        std::thread::spawn(move || {
+            let still = || current.load(Ordering::SeqCst) == generation;
+            let send = |batch| tx.send((generation, batch)).is_ok();
+            let _ = preview::thumbnails(&path, send, still);
+            let _ = tx.send((generation, Vec::new()));
+        });
+    }
+    update_status(ui, state);
     request_preview(ui, state);
 }
 
@@ -161,18 +172,32 @@ fn start(ui: &AppWindow, state: &mut State) {
     let (tx, rx) = channel();
     state.reports = Some(rx);
     state.progress = Progress::default();
+    state.completed = None;
     state.cancel.store(false, Ordering::SeqCst);
     let cancel = state.cancel.clone();
     app.set_running(true);
     app.set_cancelling(false);
+    app.set_completed(false);
+    app.set_completed_output(SharedString::new());
     app.set_progress_known(false);
     app.set_progress(0.0);
-    app.set_error(SharedString::new());
-    app.set_phase("Starting…".into());
-    app.set_fps_text("--".into());
-    app.set_time_text("--:--".into());
+    app.set_fps_text("0".into());
+    app.set_time_text("0:00".into());
     app.set_eta_text("--:--".into());
-    append_log(ui, &format!("--- Starting Rust Engine: {} ---\n", input.display()));
+
+    let output = output_path(&options, &input);
+    let folder = output.parent().map(Path::to_path_buf).unwrap_or_default();
+    state.expected = Some(if input.is_dir() { folder.clone() } else { output.clone() });
+    app.set_log(SharedString::new());
+    append_log(ui, "--- Starting Rust Engine ---\n");
+    append_log(ui, &format!("Input: {}\nOutput: {}\n\n", input.display(), folder.display()));
+    if !input.is_dir() {
+        append_log(ui, &format!("Expected output file: {}\n\n", output.display()));
+    }
+    if engine::version().is_none() {
+        append_log(ui, "The MpVFX media engine is missing from this build; processing is unavailable.\n");
+    }
+    update_status(ui, state);
     std::thread::spawn(move || {
         let sender = Mutex::new(tx.clone());
         let log = |line: &str| {
@@ -186,7 +211,7 @@ fn start(ui: &AppWindow, state: &mut State) {
     });
 }
 
-/// Applies what the processing and preview threads reported since the last tick.
+/// Applies what the processing, preview and frame-strip threads reported since the last tick.
 fn drain(ui: &AppWindow, state: &mut State) {
     let app = ui.global::<App>();
     while let Ok(reply) = state.replies.try_recv() {
@@ -201,6 +226,19 @@ fn drain(ui: &AppWindow, state: &mut State) {
                 app.set_has_preview(false);
                 app.set_preview_note(format!("No preview: {e}").into());
             }
+        }
+    }
+    while let Ok((generation, batch)) = state.thumbnail_rx.try_recv() {
+        if generation != state.generation.load(Ordering::SeqCst) {
+            continue;
+        }
+        if batch.is_empty() {
+            app.set_thumbnails_loading(false);
+        }
+        for (buffer, time) in batch {
+            state.thumbnail_times.push(time);
+            state.thumbnails.push(Image::from_rgba8(buffer));
+            state.thumbnail_labels.push(progress::clock(time).into());
         }
     }
     let Some(reports) = &state.reports else { return };
@@ -219,10 +257,7 @@ fn drain(ui: &AppWindow, state: &mut State) {
         append_log(ui, &text);
     }
     let p = &state.progress;
-    if let Some(phase) = p.phase {
-        app.set_phase(phase.into());
-    }
-    app.set_progress_known(p.fraction.is_some());
+    app.set_progress_known(p.fraction.is_some() && p.phase == Some("Processing"));
     if let Some(f) = p.fraction {
         app.set_progress(f as f32);
     }
@@ -239,23 +274,25 @@ fn drain(ui: &AppWindow, state: &mut State) {
         state.reports = None;
         app.set_running(false);
         app.set_cancelling(false);
-        app.set_progress_known(true);
         match (result, cancelled) {
-            (_, true) => {
-                app.set_phase("Cancelled".into());
-                app.set_progress(0.0);
-            }
+            (_, true) => app.set_progress(0.0),
             (Ok(()), _) => {
-                app.set_phase("Completed".into());
+                state.completed = state.expected.take();
+                app.set_completed(true);
                 app.set_progress(1.0);
+                app.set_eta_text("0:00".into());
+                let path = state.completed.as_ref().map_or_else(String::new, |p| p.display().to_string());
+                app.set_completed_output(path.into());
+                append_log(ui, "\n--- Process Finished Successfully ---\n");
             }
             (Err(e), _) => {
-                app.set_phase(format!("Failed: {e}").into());
-                app.set_error(e.into());
                 app.set_progress(0.0);
+                append_log(ui, &format!("\n--- ERROR: {e} ---\n"));
+                app.set_log_open(true);
             }
         }
     }
+    update_status(ui, state);
 }
 
 fn pick_input(folder: bool) -> Option<PathBuf> {
@@ -268,104 +305,233 @@ fn pick_input(folder: bool) -> Option<PathBuf> {
     }
 }
 
-/// Connects the window to the backend: factory settings, the preview thread and every action.
-fn wire(ui: &AppWindow) -> Arc<Mutex<State>> {
-    settings::load(&ui.global::<Settings>(), &Options::default());
-    ui.global::<App>().set_engine_version(engine::version().unwrap_or_else(|| "(not installed)".into()).into());
-    if engine::version().is_none() {
-        append_log(ui, "The MpVFX media engine is missing from this build; processing is unavailable.\n");
+/// Opens a file or web address with the system's default application, or shows a file in its folder.
+fn open_with_system(target: &str, reveal: bool) {
+    let mut command = if cfg!(target_os = "macos") {
+        let mut c = std::process::Command::new("open");
+        if reveal {
+            c.arg("-R");
+        }
+        c.arg(target);
+        c
+    } else if cfg!(windows) {
+        let mut c = std::process::Command::new("explorer");
+        c.arg(if reveal { format!("/select,{target}") } else { target.to_owned() });
+        c
+    } else {
+        let mut c = std::process::Command::new("xdg-open");
+        let path = Path::new(target);
+        c.arg(if reveal { path.parent().unwrap_or(path) } else { path });
+        c
+    };
+    let _ = command.spawn();
+}
+
+fn refresh_presets(ui: &AppWindow, state: &State) {
+    let names: Vec<SharedString> = state.presets.iter().map(|p| p.name.as_str().into()).collect();
+    ui.global::<App>().set_presets(ModelRc::new(VecModel::from(names)));
+}
+
+fn store_presets(ui: &AppWindow, state: &State) {
+    if let Some(file) = &state.preset_file {
+        if let Err(e) = presets::save(file, &state.presets) {
+            append_log(ui, &format!("The presets could not be saved to {}: {e}\n", file.display()));
+        }
     }
+    refresh_presets(ui, state);
+}
+
+/// Shows a preset's settings, keeping the current output folder.
+fn apply_preset(ui: &AppWindow, state: &State, preset: &Preset) {
+    let s = ui.global::<Settings>();
+    let mut options = preset.options.clone();
+    up60p::options::set(&mut options.outdir, &if s.get_custom_output() { s.get_output_folder() } else { "".into() });
+    settings::load(&s, &options);
+    settings_changed(ui, state);
+}
+
+fn settings_changed(ui: &AppWindow, state: &State) {
+    settings::update_ranges(&ui.global::<Settings>());
+    if let Some(input) = &state.input {
+        let options = settings::options(&ui.global::<Settings>());
+        ui.global::<App>().set_predicted_output(predicted_output(&options, input).into());
+    }
+    request_preview(ui, state);
+}
+
+/// Runs `f` with the window and the state, when the window still exists.
+fn with(ui: &slint::Weak<AppWindow>, state: &Rc<RefCell<State>>, f: impl FnOnce(&AppWindow, &mut State)) {
+    if let Some(ui) = ui.upgrade() {
+        f(&ui, &mut state.borrow_mut());
+    }
+}
+
+/// Connects the window to the backend: factory settings, the preview thread, presets and every action.
+fn wire(ui: &AppWindow) -> Rc<RefCell<State>> {
+    settings::load(&ui.global::<Settings>(), &Options::default());
+    let app = ui.global::<App>();
+    app.set_engine_version(engine::version().unwrap_or_else(|| "(not installed)".into()).into());
+    app.set_version(env!("CARGO_PKG_VERSION").into());
+    app.set_mac(cfg!(target_os = "macos"));
+    let list = |items: &[&str]| ModelRc::new(VecModel::from(items.iter().map(|&i| i.into()).collect::<Vec<_>>()));
+    app.set_hwaccels(list(settings::hwaccels()));
+    app.set_encoders(list(settings::encoders()));
+    let thumbnails = Rc::new(VecModel::default());
+    let thumbnail_labels = Rc::new(VecModel::default());
+    app.set_thumbnails(ModelRc::from(thumbnails.clone()));
+    app.set_thumbnail_times(ModelRc::from(thumbnail_labels.clone()));
 
     let (requests, worker_requests) = channel();
     let (worker_replies, replies) = channel();
     std::thread::spawn(move || preview::worker(worker_requests, worker_replies, || {}));
-    let state = Arc::new(Mutex::new(State {
+    let (thumbnail_tx, thumbnail_rx) = channel();
+    let preset_file = presets::file();
+    let state = Rc::new(RefCell::new(State {
         input: None,
         cancel: Arc::new(AtomicBool::new(false)),
         reports: None,
         progress: Progress::default(),
+        completed: None,
+        expected: None,
         preview: requests,
         replies,
+        thumbnail_tx,
+        thumbnail_rx,
+        generation: Arc::new(AtomicU64::new(0)),
+        thumbnail_times: Vec::new(),
+        thumbnails,
+        thumbnail_labels,
+        presets: preset_file.as_deref().map(presets::load).unwrap_or_default(),
+        preset_file,
     }));
+    refresh_presets(ui, &state.borrow());
 
     let actions = ui.global::<Actions>();
-    let (weak, st) = (ui.as_weak(), state.clone());
+    let (w, st) = (ui.as_weak(), state.clone());
     actions.on_import(move || {
-        let Some(ui) = weak.upgrade() else { return };
         if let Some(path) = pick_input(false) {
-            select_input(&ui, &mut st.lock().unwrap(), path);
+            with(&w, &st, |ui, s| select_input(ui, s, path));
         }
     });
-    let (weak, st) = (ui.as_weak(), state.clone());
+    let (w, st) = (ui.as_weak(), state.clone());
     actions.on_import_folder(move || {
-        let Some(ui) = weak.upgrade() else { return };
         if let Some(path) = pick_input(true) {
-            select_input(&ui, &mut st.lock().unwrap(), path);
+            with(&w, &st, |ui, s| select_input(ui, s, path));
         }
     });
-    let (weak, st) = (ui.as_weak(), state.clone());
+    let (w, st) = (ui.as_weak(), state.clone());
     actions.on_choose_output_folder(move || {
-        let Some(ui) = weak.upgrade() else { return };
         if let Some(dir) = rfd::FileDialog::new().set_title("Choose the output folder").pick_folder() {
-            let s = ui.global::<Settings>();
-            s.set_output_folder(dir.display().to_string().into());
-            s.set_custom_output(true);
-            if let Some(input) = st.lock().unwrap().input.clone() {
-                refresh_output(&ui, &input);
-            }
+            with(&w, &st, |ui, s| {
+                let settings = ui.global::<Settings>();
+                settings.set_output_folder(dir.display().to_string().into());
+                settings.set_custom_output(true);
+                settings_changed(ui, s);
+            });
         }
     });
-    let (weak, st) = (ui.as_weak(), state.clone());
-    actions.on_run(move || {
-        if let Some(ui) = weak.upgrade() {
-            start(&ui, &mut st.lock().unwrap());
-        }
-    });
-    let (weak, st) = (ui.as_weak(), state.clone());
+    let (w, st) = (ui.as_weak(), state.clone());
+    actions.on_run(move || with(&w, &st, start));
+    let (w, st) = (ui.as_weak(), state.clone());
     actions.on_cancel(move || {
-        if let Some(ui) = weak.upgrade() {
-            st.lock().unwrap().cancel.store(true, Ordering::SeqCst);
+        with(&w, &st, |ui, s| {
+            s.cancel.store(true, Ordering::SeqCst);
             ui.global::<App>().set_cancelling(true);
-        }
+            append_log(ui, "\n--- User Canceled Process (stopping engine) ---\n");
+            update_status(ui, s);
+        })
     });
-    let (weak, st) = (ui.as_weak(), state.clone());
+    let (w, st) = (ui.as_weak(), state.clone());
     actions.on_reset_settings(move || {
-        if let Some(ui) = weak.upgrade() {
-            settings::load(&ui.global::<Settings>(), &Options::default());
-            request_preview(&ui, &st.lock().unwrap());
-        }
+        with(&w, &st, |ui, s| {
+            let settings = ui.global::<Settings>();
+            let (custom, folder) = (settings.get_custom_output(), settings.get_output_folder());
+            settings::load(&settings, &Options::default());
+            settings.set_custom_output(custom);
+            settings.set_output_folder(folder);
+            settings_changed(ui, s);
+        })
     });
-    let (weak, st) = (ui.as_weak(), state.clone());
-    actions.on_settings_changed(move || {
-        let Some(ui) = weak.upgrade() else { return };
-        let s = ui.global::<Settings>();
-        settings::update_ranges(&s);
-        let state = st.lock().unwrap();
-        if let Some(input) = &state.input {
-            refresh_output(&ui, input);
-        }
-        if ui.global::<App>().get_show_processed() {
-            request_preview(&ui, &state);
-        }
+    let (w, st) = (ui.as_weak(), state.clone());
+    actions.on_settings_changed(move || with(&w, &st, |ui, s| settings_changed(ui, s)));
+    let (w, st) = (ui.as_weak(), state.clone());
+    actions.on_select_frame(move |index| {
+        with(&w, &st, |ui, s| {
+            ui.global::<App>().set_selected_frame(index);
+            request_preview(ui, s);
+        })
     });
-    let (weak, st) = (ui.as_weak(), state.clone());
-    actions.on_seek(move |seconds| {
-        if let Some(ui) = weak.upgrade() {
-            ui.global::<App>().set_position_text(progress::clock(seconds as f64).into());
-            request_preview(&ui, &st.lock().unwrap());
-        }
+    let (w, st) = (ui.as_weak(), state.clone());
+    actions.on_open_output(move || {
+        with(&w, &st, |_, s| s.completed.iter().for_each(|p| open_with_system(&p.display().to_string(), false)))
     });
-    let (weak, st) = (ui.as_weak(), state.clone());
-    actions.on_refresh_preview(move || {
-        if let Some(ui) = weak.upgrade() {
-            request_preview(&ui, &st.lock().unwrap());
-        }
+    let (w, st) = (ui.as_weak(), state.clone());
+    actions.on_reveal_output(move || {
+        with(&w, &st, |_, s| s.completed.iter().for_each(|p| open_with_system(&p.display().to_string(), true)))
     });
-    let weak = ui.as_weak();
-    actions.on_clear_log(move || {
-        if let Some(ui) = weak.upgrade() {
-            ui.global::<App>().set_log(SharedString::new());
-        }
+    actions.on_open_website(|| open_with_system(WEBSITE, false));
+
+    let (w, st) = (ui.as_weak(), state.clone());
+    actions.on_save_preset(move |name| {
+        with(&w, &st, |ui, s| {
+            let name = name.trim();
+            if name.is_empty() {
+                return;
+            }
+            let name = presets::unique_name(&s.presets, name);
+            s.presets.push(Preset { name, options: settings::options(&ui.global::<Settings>()) });
+            store_presets(ui, s);
+        })
+    });
+    let (w, st) = (ui.as_weak(), state.clone());
+    actions.on_apply_preset(move |i| {
+        with(&w, &st, |ui, s| {
+            if let Some(preset) = s.presets.get(i as usize).cloned() {
+                apply_preset(ui, s, &preset);
+            }
+        })
+    });
+    let (w, st) = (ui.as_weak(), state.clone());
+    actions.on_update_preset(move |i| {
+        with(&w, &st, |ui, s| {
+            if let Some(preset) = s.presets.get_mut(i as usize) {
+                preset.options = settings::options(&ui.global::<Settings>());
+                store_presets(ui, s);
+            }
+        })
+    });
+    let (w, st) = (ui.as_weak(), state.clone());
+    actions.on_rename_preset(move |i, name| {
+        with(&w, &st, |ui, s| {
+            let name = name.trim();
+            let i = i as usize;
+            if name.is_empty() || i >= s.presets.len() || s.presets[i].name == name {
+                return;
+            }
+            let others: Vec<Preset> =
+                s.presets.iter().enumerate().filter(|(j, _)| *j != i).map(|(_, p)| p.clone()).collect();
+            s.presets[i].name = presets::unique_name(&others, name);
+            store_presets(ui, s);
+        })
+    });
+    let (w, st) = (ui.as_weak(), state.clone());
+    actions.on_duplicate_preset(move |i| {
+        with(&w, &st, |ui, s| {
+            if let Some(preset) = s.presets.get(i as usize).cloned() {
+                let name = presets::unique_name(&s.presets, &format!("{} copy", preset.name));
+                s.presets.insert(i as usize + 1, Preset { name, ..preset });
+                store_presets(ui, s);
+            }
+        })
+    });
+    let (w, st) = (ui.as_weak(), state.clone());
+    actions.on_delete_preset(move |i| {
+        with(&w, &st, |ui, s| {
+            if (i as usize) < s.presets.len() {
+                s.presets.remove(i as usize);
+                store_presets(ui, s);
+            }
+        })
     });
 
     state
@@ -380,24 +546,20 @@ fn main() -> Result<(), String> {
         return screenshot::take(&shot, |ui| {
             let state = wire(ui);
             if let Some(path) = input {
-                select_input(ui, &mut state.lock().unwrap(), path);
+                select_input(ui, &mut state.borrow_mut(), path);
             }
-            Box::new(move |ui| drain(ui, &mut state.lock().unwrap()))
+            Box::new(move |ui| drain(ui, &mut state.borrow_mut()))
         });
     }
 
     let ui = AppWindow::new().map_err(|e| e.to_string())?;
     let state = wire(&ui);
     let timer = Timer::default();
-    let (weak, st) = (ui.as_weak(), state.clone());
-    timer.start(TimerMode::Repeated, Duration::from_millis(100), move || {
-        if let Some(ui) = weak.upgrade() {
-            drain(&ui, &mut st.lock().unwrap());
-        }
-    });
+    let (w, st) = (ui.as_weak(), state.clone());
+    timer.start(TimerMode::Repeated, Duration::from_millis(100), move || with(&w, &st, drain));
 
     if let Some(path) = args.next().map(PathBuf::from) {
-        select_input(&ui, &mut state.lock().unwrap(), path);
+        select_input(&ui, &mut state.borrow_mut(), path);
     }
     ui.run().map_err(|e| e.to_string())
 }

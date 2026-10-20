@@ -1,96 +1,129 @@
-//! `up60p_options` (the C struct the Swift app fills, laid out exactly as in `up60p.h`) and its defaults.
+//! `up60p_options`, the options struct the Swift app fills, and its defaults.
 
 use std::ffi::{c_char, c_int};
 
-/// `UP60P_PATH_MAX` in `up60p.h`.
+/// `UP60P_PATH_MAX` in the generated `up60p.h`.
 pub const PATH_MAX: usize = 1024;
 
-/// Mirrors `up60p_options` in `myUpscaler/upscaler/up60p.h` field for field.
-#[repr(C)]
-#[derive(Clone)]
-pub struct Options {
-    // Core
-    pub codec: [c_char; 8],
-    pub crf: [c_char; 16],
-    pub preset: [c_char; 32],
-    pub fps: [c_char; 16],
-    pub scale_factor: [c_char; 16],
-    // Scaler / AI
-    pub scaler: [c_char; 16],
-    pub ai_backend: [c_char; 16],
-    pub ai_model: [c_char; PATH_MAX],
-    pub ai_model_type: [c_char; 16],
-    pub dnn_backend: [c_char; 32],
-    // Filters, first set
-    pub denoiser: [c_char; 16],
-    pub denoise_strength: [c_char; 16],
-    pub deblock_mode: [c_char; 16],
-    pub deblock_thresh: [c_char; 64],
-    pub dering_active: c_int,
-    pub dering_strength: [c_char; 16],
-    pub sharpen_method: [c_char; 16],
-    pub sharpen_strength: [c_char; 32],
-    pub usm_radius: [c_char; 16],
-    pub usm_amount: [c_char; 16],
-    pub usm_threshold: [c_char; 16],
-    pub deband_method: [c_char; 16],
-    pub deband_strength: [c_char; 32],
-    pub f3kdb_range: [c_char; 16],
-    pub f3kdb_y: [c_char; 16],
-    pub f3kdb_cbcr: [c_char; 16],
-    pub grain_strength: [c_char; 16],
-    // Filters, second set
-    pub denoiser_2: [c_char; 16],
-    pub denoise_strength_2: [c_char; 16],
-    pub deblock_mode_2: [c_char; 16],
-    pub deblock_thresh_2: [c_char; 64],
-    pub dering_active_2: c_int,
-    pub dering_strength_2: [c_char; 16],
-    pub sharpen_method_2: [c_char; 16],
-    pub sharpen_strength_2: [c_char; 32],
-    pub usm_radius_2: [c_char; 16],
-    pub usm_amount_2: [c_char; 16],
-    pub usm_threshold_2: [c_char; 16],
-    pub deband_method_2: [c_char; 16],
-    pub deband_strength_2: [c_char; 32],
-    pub f3kdb_range_2: [c_char; 16],
-    pub f3kdb_y_2: [c_char; 16],
-    pub f3kdb_cbcr_2: [c_char; 16],
-    pub grain_strength_2: [c_char; 16],
-    pub use_denoise_2: c_int,
-    pub use_deblock_2: c_int,
-    pub use_dering_2: c_int,
-    pub use_sharpen_2: c_int,
-    pub use_deband_2: c_int,
-    pub use_grain_2: c_int,
-    // Interpolation / EQ
-    pub mi_mode: [c_char; 16],
-    pub eq_contrast: [c_char; 16],
-    pub eq_brightness: [c_char; 16],
-    pub eq_saturation: [c_char; 16],
-    // Encoder extra
-    pub x265_params: [c_char; 256],
-    // I/O
-    pub outdir: [c_char; PATH_MAX],
-    pub audio_bitrate: [c_char; 32],
-    pub threads: [c_char; 16],
-    pub movflags: [c_char; 32],
-    pub use10: c_int,
-    pub preview: c_int,
-    // Toggles
-    pub no_deblock: c_int,
-    pub no_denoise: c_int,
-    pub no_decimate: c_int,
-    pub no_interpolate: c_int,
-    pub no_sharpen: c_int,
-    pub no_deband: c_int,
-    pub no_eq: c_int,
-    pub no_grain: c_int,
-    pub pci_safe_mode: c_int,
-    // Hardware (accepted for compatibility; the backend runs on the CPU)
-    pub hwaccel: [c_char; 16],
-    pub encoder: [c_char; 16],
+/// Declares `Options` and, from the same list, `FIELDS`, which `header.rs` turns into the C declaration of
+/// `up60p_options` that Swift imports. One list, so the two layouts cannot drift apart.
+macro_rules! options {
+    ($($field:ident : $kind:tt,)*) => {
+        /// The app's processing options (`up60p_options` in the generated `up60p.h`): text fields are NUL-terminated
+        /// byte arrays, switches are `int`s.
+        #[repr(C)]
+        #[derive(Clone)]
+        pub struct Options {
+            $(pub $field: options!(@type $kind),)*
+        }
+
+        /// Every field in declaration order: name and text capacity (`None` for an `int` switch).
+        pub const FIELDS: &[(&str, Option<usize>)] = &[$((stringify!($field), options!(@size $kind)),)*];
+    };
+    (@type flag) => { c_int };
+    (@type [$n:expr]) => { [c_char; $n] };
+    (@size flag) => { None };
+    (@size [$n:expr]) => { Some($n) };
 }
+
+options! {
+    // Core
+    codec: [8],
+    crf: [16],
+    preset: [32],
+    fps: [16],
+    scale_factor: [16],
+    // Scaler / AI
+    scaler: [16],
+    ai_backend: [16],
+    ai_model: [PATH_MAX],
+    ai_model_type: [16],
+    dnn_backend: [32],
+    // Filters, first set
+    denoiser: [16],
+    denoise_strength: [16],
+    deblock_mode: [16],
+    deblock_thresh: [64],
+    dering_active: flag,
+    dering_strength: [16],
+    sharpen_method: [16],
+    sharpen_strength: [32],
+    usm_radius: [16],
+    usm_amount: [16],
+    usm_threshold: [16],
+    deband_method: [16],
+    deband_strength: [32],
+    f3kdb_range: [16],
+    f3kdb_y: [16],
+    f3kdb_cbcr: [16],
+    grain_strength: [16],
+    // Filters, second set
+    denoiser_2: [16],
+    denoise_strength_2: [16],
+    deblock_mode_2: [16],
+    deblock_thresh_2: [64],
+    dering_active_2: flag,
+    dering_strength_2: [16],
+    sharpen_method_2: [16],
+    sharpen_strength_2: [32],
+    usm_radius_2: [16],
+    usm_amount_2: [16],
+    usm_threshold_2: [16],
+    deband_method_2: [16],
+    deband_strength_2: [32],
+    f3kdb_range_2: [16],
+    f3kdb_y_2: [16],
+    f3kdb_cbcr_2: [16],
+    grain_strength_2: [16],
+    use_denoise_2: flag,
+    use_deblock_2: flag,
+    use_dering_2: flag,
+    use_sharpen_2: flag,
+    use_deband_2: flag,
+    use_grain_2: flag,
+    // Interpolation / EQ
+    mi_mode: [16],
+    eq_contrast: [16],
+    eq_brightness: [16],
+    eq_saturation: [16],
+    // Encoder extra
+    x265_params: [256],
+    // I/O
+    outdir: [PATH_MAX],
+    audio_bitrate: [32],
+    threads: [16],
+    movflags: [32],
+    use10: flag,
+    preview: flag,
+    // Toggles
+    no_deblock: flag,
+    no_denoise: flag,
+    no_decimate: flag,
+    no_interpolate: flag,
+    no_sharpen: flag,
+    no_deband: flag,
+    no_eq: flag,
+    no_grain: flag,
+    pci_safe_mode: flag,
+    // Hardware (accepted for compatibility; the backend runs on the CPU)
+    hwaccel: [16],
+    encoder: [16],
+}
+
+/// Fields the app sends that the backend deliberately does not use, with the reason. Every other field changes the
+/// output; `tests/settings_contract.rs` checks both halves of that statement against the source.
+pub const NOT_USED: &[(&str, &str)] = &[
+    ("preset", "x264 speed preset; the engine's H.264 encoder has quality tiers, chosen from crf"),
+    ("ai_backend", "legacy FFmpeg DNN scaler; CoreML upscaling runs in Swift"),
+    ("ai_model", "legacy FFmpeg DNN scaler; CoreML upscaling runs in Swift"),
+    ("ai_model_type", "legacy FFmpeg DNN scaler; CoreML upscaling runs in Swift"),
+    ("dnn_backend", "legacy FFmpeg DNN scaler; CoreML upscaling runs in Swift"),
+    ("x265_params", "HEVC encoder settings; the engine encodes H.264"),
+    ("audio_bitrate", "AAC bitrate; audio is written as lossless FLAC"),
+    ("movflags", "MP4 layout flags; the engine's muxer decides the layout"),
+    ("hwaccel", "hardware decoding; the engine decodes in software"),
+    ("encoder", "hardware encoder choice; the engine's H.264 encoder is software"),
+];
 
 /// Reads a NUL-terminated field (the whole array when no NUL is present).
 pub fn text(field: &[c_char]) -> String {

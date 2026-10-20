@@ -22,7 +22,7 @@ The processing backend lives in `backend/` (see its README). It builds and tests
 ```sh
 bash scripts/prepare-media-engine.sh   # also works on Linux x86_64, for the tests
 cd backend
-cargo test --release                   # unit tests, ABI check against up60p.h, end-to-end renders
+cargo test --release                   # unit tests, C API and header checks, end-to-end renders
 cargo clippy --all-targets -- -D warnings
 cargo run --release --example bench    # timings per filter on a synthetic 720p clip
 cargo run --release -- --set scale_factor=2 input.mp4   # the backend from the command line

@@ -1,7 +1,8 @@
 # up60p: myUpscaler's Rust backend
 
 Everything the app does to a video or a still between reading and writing it, in Rust with no third-party crates,
-linked into the app as `libup60p.a` behind the C API in `myUpscaler/upscaler/up60p.h`. Decoding, H.264 encoding
+linked into the app as `libup60p.a`. Swift calls it through `up60p.h`, which is generated from the Rust
+definitions (`src/header.rs`, written by `up60p --write-header` during the build), so the repository holds no C. Decoding, H.264 encoding
 and MP4 muxing go through the MpVFX media engine's C API (`libmpvfx_ffi`, prepared by
 `scripts/prepare-media-engine.sh`).
 
@@ -31,8 +32,9 @@ Videos run as three threads (decode, filter, encode) joined by short queues; fil
 ## Layout
 
 - `src/lib.rs`: the C API (`up60p_*`), panics stopped at the boundary.
-- `src/options.rs`: `up60p_options` mirrored field for field (`tests/abi.rs` compiles the header and compares
-  every offset) and the factory defaults.
+- `src/options.rs`: `up60p_options`, declared once as a field list that produces both the Rust struct and the
+  header's struct, and the factory defaults.
+- `src/header.rs`: generates `up60p.h` (status codes, options struct, function declarations).
 - `src/job.rs`: files, folders, progress lines (`Duration:`, `frame= fps= time=`, `Done.`) for the app's parser.
 - `src/engine.rs`: the only code that calls the media engine.
 - `src/png.rs`: PNG writer (zlib/DEFLATE with fixed Huffman codes and LZ77).

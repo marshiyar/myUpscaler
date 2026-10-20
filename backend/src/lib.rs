@@ -1,11 +1,12 @@
-//! myUpscaler's processing backend, linked into the app as `libup60p.a` behind the C API in
-//! `myUpscaler/upscaler/up60p.h`. Restoration filters, Lanczos scaling and frame interpolation are implemented here;
+//! myUpscaler's processing backend, linked into the app as `libup60p.a` behind a C API whose header (`up60p.h`)
+//! is generated from this crate (`header.rs`). Restoration filters, Lanczos scaling and frame interpolation are implemented here;
 //! decoding, H.264 encoding and MP4 muxing go through the MpVFX media engine (`libmpvfx_ffi`). No FFmpeg and no
 //! external processes.
 
 pub mod engine;
 pub mod filters;
 pub mod frame;
+pub mod header;
 pub mod job;
 pub mod options;
 pub mod par;
@@ -21,7 +22,7 @@ use std::sync::{Mutex, OnceLock};
 use job::{Job, JobError};
 use options::{text, Options};
 
-/// `up60p_error` in `up60p.h`.
+/// `up60p_error` in the generated `up60p.h`.
 pub mod status {
     pub const OK: i32 = 0;
     pub const INVALID_OPTIONS: i32 = 1;
@@ -31,6 +32,18 @@ pub mod status {
     pub const CANCELLED: i32 = 5;
     pub const UNSUPPORTED_SCALER: i32 = 6;
     pub const UNSUPPORTED_MEDIA: i32 = 7;
+
+    /// Header names (after `UP60P_`) and values.
+    pub const ALL: &[(&str, i32)] = &[
+        ("OK", OK),
+        ("ERR_INVALID_OPTIONS", INVALID_OPTIONS),
+        ("ERR_ENGINE_UNAVAILABLE", ENGINE_UNAVAILABLE),
+        ("ERR_IO", IO),
+        ("ERR_INTERNAL", INTERNAL),
+        ("ERR_CANCELLED", CANCELLED),
+        ("ERR_UNSUPPORTED_SCALER", UNSUPPORTED_SCALER),
+        ("ERR_UNSUPPORTED_MEDIA", UNSUPPORTED_MEDIA),
+    ];
 }
 
 pub type LogCallback = extern "C" fn(*const c_char);

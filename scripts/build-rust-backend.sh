@@ -1,7 +1,8 @@
 #!/bin/bash
-# Builds the Rust backend (backend/) as the static library the app links: backend/target/<target>/release/libup60p.a.
-# Runs as the first Xcode build phase, and works from a shell too. Always an optimised build: the filters are too
-# slow to use unoptimised.
+# Builds the Rust backend (backend/) as the static library the app links, backend/target/<target>/release/libup60p.a,
+# and generates the header Swift imports it through, backend/target/include/up60p.h (the bridging header). Runs as
+# the first Xcode build phase, and works from a shell too. Always an optimised build: the filters are too slow to
+# use unoptimised.
 set -euo pipefail
 
 repo_dir=$(cd "$(dirname "$0")/.." && pwd)
@@ -26,3 +27,6 @@ fi
 export MACOSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-15.2}"
 cargo build --manifest-path "$repo_dir/backend/Cargo.toml" --release --lib --target "$target"
 test -f "$repo_dir/backend/target/$target/release/libup60p.a"
+cargo run --manifest-path "$repo_dir/backend/Cargo.toml" --release --quiet --bin up60p --target "$target" -- \
+  --write-header "$repo_dir/backend/target/include/up60p.h"
+test -f "$repo_dir/backend/target/include/up60p.h"

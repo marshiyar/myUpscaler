@@ -179,6 +179,7 @@
 			);
 			outputPaths = (
 				"$(PROJECT_DIR)/backend/target/aarch64-apple-darwin/release/libup60p.a",
+				"$(PROJECT_DIR)/backend/target/include/up60p.h",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -433,7 +434,7 @@
 				GCC_STRICT_ALIASING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				GENERATE_PRELINK_OBJECT_FILE = NO;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/myUpscaler/upscaler";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/backend/target/include";
 				INFOPLIST_FILE = myUpscaler/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MyUpscaler;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
@@ -485,7 +486,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_ENABLE_EMIT_CONST_VALUES = NO;
 				SWIFT_INCLUDE_PATHS = "";
-				SWIFT_OBJC_BRIDGING_HEADER = myUpscaler/upscaler/Up60PBridging.h;
+				SWIFT_OBJC_BRIDGING_HEADER = backend/target/include/up60p.h;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_PRECOMPILE_BRIDGING_HEADER = YES;
 				SWIFT_SKIP_AUTOLINKING_LIBRARIES = "";
@@ -552,7 +553,7 @@
 				GCC_STRICT_ALIASING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				GENERATE_PRELINK_OBJECT_FILE = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/myUpscaler/upscaler";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/backend/target/include";
 				INFOPLIST_FILE = myUpscaler/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MyUpscaler;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
@@ -606,7 +607,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_ENABLE_EMIT_CONST_VALUES = NO;
 				SWIFT_INCLUDE_PATHS = "";
-				SWIFT_OBJC_BRIDGING_HEADER = myUpscaler/upscaler/Up60PBridging.h;
+				SWIFT_OBJC_BRIDGING_HEADER = backend/target/include/up60p.h;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_PRECOMPILE_BRIDGING_HEADER = YES;
 				SWIFT_SKIP_AUTOLINKING_LIBRARIES = "";

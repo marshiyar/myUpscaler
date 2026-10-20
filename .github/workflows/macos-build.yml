@@ -113,6 +113,13 @@ jobs:
             -o "$RUNNER_TEMP/upscaling-mode-tests"
           "$RUNNER_TEMP/upscaling-mode-tests"
 
+      - name: Test progress parsing of the backend's log
+        run: |
+          set -euo pipefail
+          xcrun swiftc myUpscaler/ProgressParser.swift tests/progress-parser/main.swift \
+            -o "$RUNNER_TEMP/progress-parser-tests"
+          "$RUNNER_TEMP/progress-parser-tests"
+
       - name: Build Debug app
         shell: bash
         run: |

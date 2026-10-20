@@ -367,6 +367,9 @@ final class Up60PEngine {
                     }
                     
                     try Task.checkCancellation()
+                    // Dry run logs the plan for each file without writing output.
+                    let dryRun = await MainActor.run { settings.dryRun }
+                    Up60PEngine.bridge.setDryRunFunc(dryRun ? 1 : 0)
                     let result = await Up60PEngine.bridge.processPathFunc(inputPath, &mutableOpts)
                     
                     await MainActor.run {

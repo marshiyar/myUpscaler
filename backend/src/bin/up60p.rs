@@ -2,6 +2,7 @@
 //!
 //! ```text
 //! up60p [--set key=value ...] [--dry-run] <input file or folder>
+//! up60p --write-header <path>     # the C header Swift imports (see header.rs)
 //! ```
 //!
 //! Keys are the `up60p_options` field names (`scale_factor=4`, `denoiser=hqdn3d`, `no_grain=1`, `outdir=/tmp`).
@@ -45,6 +46,19 @@ fn main() -> ExitCode {
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--dry-run" => dry_run = true,
+            "--write-header" => {
+                let Some(path) = args.next() else {
+                    eprintln!("--write-header needs a path");
+                    return ExitCode::from(2);
+                };
+                return match up60p::header::write(std::path::Path::new(&path)) {
+                    Ok(()) => ExitCode::SUCCESS,
+                    Err(e) => {
+                        eprintln!("{path}: {e}");
+                        ExitCode::from(1)
+                    }
+                };
+            }
             "--set" => {
                 let Some(kv) = args.next() else {
                     eprintln!("--set needs key=value");

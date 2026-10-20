@@ -24,7 +24,7 @@ impl Deband {
     /// Thresholds as fractions of the range.
     pub fn new(luma: f64, chroma: f64, range: usize, blur: bool) -> Deband {
         let t = |v: f64| (v.clamp(0.00003, 0.5) * 255.0) as f32;
-        Deband { thresholds: [t(luma), t(chroma), t(chroma)], range: range.clamp(1, 64), blur }
+        Deband { thresholds: [t(luma), t(chroma), t(chroma)], range: range.clamp(1, 255), blur }
     }
 }
 

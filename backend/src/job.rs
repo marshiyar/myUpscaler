@@ -70,6 +70,17 @@ pub fn timestamp(seconds: f64) -> String {
 }
 
 impl Job<'_> {
+    /// The dry-run plan, one `CMD: ` line per file: input, filter chain and output.
+    fn log_command(&self, input: &Path, output: &Path, plan: &pipeline::Plan) {
+        let fps = plan.fps.map_or(String::new(), |(n, d)| format!(" -r {n}/{d}"));
+        (self.log)(&format!(
+            "CMD: up60p -i {} -vf {}{fps} {}\n",
+            input.display(),
+            plan.chain.describe(),
+            output.display()
+        ));
+    }
+
     fn cancelled(&self) -> Result<(), JobError> {
         if self.cancel.load(Ordering::Relaxed) {
             Err(JobError::Cancelled)
@@ -147,10 +158,10 @@ impl Job<'_> {
                 "TIFF images are not supported by the Rust engine. Convert the image to PNG first.".into(),
             ));
         }
-        let mut plan = pipeline::build(self.options, Source::Image);
+        let mut plan = pipeline::build(self.options, Source::Image).map_err(JobError::InvalidOptions)?;
         (self.log)(&format!("Filters: {}\n", plan.chain.describe()));
         if self.dry_run {
-            (self.log)(&format!("PLAN: {} -> {}\n", input.display(), output.display()));
+            self.log_command(input, output, &plan);
             return Ok(());
         }
         let bytes = std::fs::read(input).map_err(|e| JobError::Io(format!("{}: {e}", input.display())))?;
@@ -197,7 +208,8 @@ impl Job<'_> {
             src_fps
         ));
 
-        let mut plan = pipeline::build(self.options, Source::Video { fps: src_fps });
+        let mut plan =
+            pipeline::build(self.options, Source::Video { fps: src_fps }).map_err(JobError::InvalidOptions)?;
         for note in &plan.notes {
             (self.log)(&format!("Note: {note}\n"));
         }
@@ -247,7 +259,7 @@ impl Job<'_> {
             audio.as_ref().map_or(String::new(), |(r, rate)| format!(", FLAC {rate} Hz {} ch", r.channels))
         ));
         if self.dry_run {
-            (self.log)(&format!("PLAN: {} -> {}\n", input.display(), output.display()));
+            self.log_command(input, output, &plan);
             return Ok(());
         }
 
@@ -287,6 +299,7 @@ impl Job<'_> {
                 }
                 true
             };
+            (self.log)("stage=processing Decoding, filtering and encoding\n");
             let mut open = true;
             for frame in frame_rx.iter() {
                 if cancel.load(Ordering::Relaxed) || !send(plan.chain.push(frame), &mut written) {
@@ -299,6 +312,9 @@ impl Job<'_> {
             }
             drop(out_tx);
             drop(frame_rx);
+            if open && !cancel.load(Ordering::Relaxed) {
+                (self.log)("stage=finalizing Encoding and writing output\n");
+            }
             let decoded = decoder.join().unwrap_or_else(|e| std::panic::resume_unwind(e));
             let encoded = encoder.join().unwrap_or_else(|e| std::panic::resume_unwind(e));
             self.cancelled()?;

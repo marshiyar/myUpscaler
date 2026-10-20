@@ -2,6 +2,19 @@
 
 use std::ffi::{c_char, c_int};
 
+/// The C type of one `up60p_options` field.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Kind {
+    /// `char name[n]`, NUL-terminated text.
+    Text(usize),
+    /// `int`, a switch.
+    Flag,
+    /// `double`.
+    Real,
+    /// `int64_t`.
+    Long,
+}
+
 /// `UP60P_PATH_MAX` in the generated `up60p.h`.
 pub const PATH_MAX: usize = 1024;
 
@@ -10,20 +23,24 @@ pub const PATH_MAX: usize = 1024;
 macro_rules! options {
     ($($field:ident : $kind:tt,)*) => {
         /// The app's processing options (`up60p_options` in the generated `up60p.h`): text fields are NUL-terminated
-        /// byte arrays, switches are `int`s.
+        /// byte arrays, switches are `int`s, and the source timing the app measures is numeric.
         #[repr(C)]
         #[derive(Clone)]
         pub struct Options {
             $(pub $field: options!(@type $kind),)*
         }
 
-        /// Every field in declaration order: name and text capacity (`None` for an `int` switch).
-        pub const FIELDS: &[(&str, Option<usize>)] = &[$((stringify!($field), options!(@size $kind)),)*];
+        /// Every field in declaration order with its C type.
+        pub const FIELDS: &[(&str, Kind)] = &[$((stringify!($field), options!(@kind $kind)),)*];
     };
     (@type flag) => { c_int };
+    (@type real) => { f64 };
+    (@type long) => { i64 };
     (@type [$n:expr]) => { [c_char; $n] };
-    (@size flag) => { None };
-    (@size [$n:expr]) => { Some($n) };
+    (@kind flag) => { Kind::Flag };
+    (@kind real) => { Kind::Real };
+    (@kind long) => { Kind::Long };
+    (@kind [$n:expr]) => { Kind::Text($n) };
 }
 
 options! {
@@ -105,9 +122,15 @@ options! {
     no_eq: flag,
     no_grain: flag,
     pci_safe_mode: flag,
-    // Hardware (accepted for compatibility; the backend runs on the CPU)
+    // Hardware: validated (auto/cpu/videotoolbox, none/videotoolbox); the backend runs on the CPU
     hwaccel: [16],
     encoder: [16],
+    // Source timing measured by the app (all zero when unknown); see `pipeline::Timing`
+    source_video_duration: real,
+    source_rate_num: long,
+    source_rate_den: long,
+    source_cfr_verified: flag,
+    source_frame_count: long,
 }
 
 /// Fields the app sends that the backend deliberately does not use, with the reason. Every other field changes the
@@ -121,8 +144,7 @@ pub const NOT_USED: &[(&str, &str)] = &[
     ("x265_params", "HEVC encoder settings; the engine encodes H.264"),
     ("audio_bitrate", "AAC bitrate; audio is written as lossless FLAC"),
     ("movflags", "MP4 layout flags; the engine's muxer decides the layout"),
-    ("hwaccel", "hardware decoding; the engine decodes in software"),
-    ("encoder", "hardware encoder choice; the engine's H.264 encoder is software"),
+    ("dering_active_2", "the second-set dering runs on use_dering_2 alone, as in the app"),
 ];
 
 /// Reads a NUL-terminated field (the whole array when no NUL is present).
@@ -143,7 +165,7 @@ pub fn set(field: &mut [c_char], value: &str) {
 impl Default for Options {
     /// The app's factory settings (formerly `set_defaults` in the C engine).
     fn default() -> Options {
-        // SAFETY: every field is an integer or an array of integers, for which all-zero bytes are valid.
+        // SAFETY: every field is a number or an array of integers, for which all-zero bytes are valid.
         let mut o: Options = unsafe { std::mem::zeroed() };
         set(&mut o.codec, "h264");
         set(&mut o.crf, "20");
@@ -214,9 +236,10 @@ impl Default for Options {
             set(grain, "1.0");
         }
         set(&mut o.mi_mode, "mci");
-        set(&mut o.eq_contrast, "1.03");
-        set(&mut o.eq_brightness, "0.005");
-        set(&mut o.eq_saturation, "1.06");
+        set(&mut o.eq_contrast, "1");
+        set(&mut o.eq_brightness, "0");
+        set(&mut o.eq_saturation, "1");
+        o.no_interpolate = 1;
         set(&mut o.audio_bitrate, "192k");
         set(&mut o.movflags, "+faststart");
         set(&mut o.hwaccel, "none");

@@ -116,14 +116,14 @@ jobs:
       - name: Test upscaling mode availability
         run: |
           set -euo pipefail
-          xcrun swiftc myUpscaler/UpscalingModeSupport.swift tests/upscaling-mode-support/main.swift \
+          xcrun swiftc myUpscaler/Models/UpscalingModeSupport.swift tests/upscaling-mode-support/main.swift \
             -o "$RUNNER_TEMP/upscaling-mode-tests"
           "$RUNNER_TEMP/upscaling-mode-tests"
 
       - name: Test progress parsing of the backend's log
         run: |
           set -euo pipefail
-          xcrun swiftc myUpscaler/ProgressParser.swift tests/progress-parser/main.swift \
+          xcrun swiftc myUpscaler/Support/ProgressParser.swift tests/progress-parser/main.swift \
             -o "$RUNNER_TEMP/progress-parser-tests"
           "$RUNNER_TEMP/progress-parser-tests"
 

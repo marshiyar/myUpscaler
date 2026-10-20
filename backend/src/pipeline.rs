@@ -1,9 +1,11 @@
-//! Turns the app's options into a filter chain, in the order the app has always applied them:
+//! Turns the app's options into a filter chain, in the order the app applies them:
 //!
-//! decimate → deblock → dering → denoise → retime/interpolate → Lanczos scale → sharpen → deband → second-set
-//! deblock, dering, denoise, sharpen and deband → EQ → grain.
+//! decimate → deblock → denoise → dering → retime/interpolate → Lanczos scale → sharpen → deband → second-set
+//! dering, deblock, denoise, sharpen and deband → EQ → grain.
 //!
-//! Strength mappings (how a slider value becomes filter parameters) are the app's established ones.
+//! Strength mappings (how a slider value becomes filter parameters) are the app's established ones. A strength of
+//! exactly zero leaves its stage out, as does a neutral EQ. Invalid EQ values, frame rates, Neo F3kdb parameters and
+//! hardware choices are errors rather than silently replaced.
 
 use crate::filters::atadenoise::AtaDenoise;
 use crate::filters::bm3d::Bm3d;
@@ -95,7 +97,16 @@ pub fn dering(s: &str) -> Hqdn3d {
     Hqdn3d::new(luma.min(15.0), chroma, luma_t, luma_t * 0.75).dering()
 }
 
+/// The dering stage; a strength of exactly zero leaves it out.
+fn dering_stage(s: &str) -> Option<Box<dyn Filter>> {
+    (!is_zero(s)).then(|| Box::new(dering(s)) as Box<dyn Filter>)
+}
+
+/// The denoiser named by `kind`; unknown names and a strength of exactly zero leave it out.
 fn denoiser(kind: &str, s: &str) -> Option<Box<dyn Filter>> {
+    if is_zero(s) {
+        return None;
+    }
     Some(match kind {
         "bm3d" => Box::new(bm3d(s)),
         "hqdn3d" => Box::new(hqdn3d(s)),
@@ -105,22 +116,50 @@ fn denoiser(kind: &str, s: &str) -> Option<Box<dyn Filter>> {
     })
 }
 
-fn sharpener(method: &str, strength_s: &str, radius: &str, amount: &str, threshold: &str) -> Box<dyn Filter> {
+/// True for text that is exactly the number zero ("0", "0.0"): the app's way of switching a stage off.
+fn is_zero(s: &str) -> bool {
+    number(s) == Some(0.0)
+}
+
+fn sharpener(method: &str, strength_s: &str, radius: &str, amount: &str, threshold: &str) -> Option<Box<dyn Filter>> {
     if method == "unsharp" {
-        Box::new(Unsharp::new(
-            number(radius).unwrap_or(5.0),
-            number(amount).unwrap_or(1.0),
-            number(threshold).unwrap_or(0.0),
-        ))
+        let amount = number(amount).unwrap_or(1.0);
+        (amount != 0.0).then(|| {
+            Box::new(Unsharp::new(number(radius).unwrap_or(5.0), amount, number(threshold).unwrap_or(0.0)))
+                as Box<dyn Filter>
+        })
     } else {
-        Box::new(Cas::new(number(strength_s).unwrap_or(0.25)))
+        let s = number(strength_s).unwrap_or(0.25);
+        (s > 0.0).then(|| Box::new(Cas::new(s)) as Box<dyn Filter>)
     }
 }
 
-fn debander(method: &str, s: &str, range: &str, y: &str, cbcr: &str) -> Box<dyn Filter> {
-    match method {
+/// A whole number in `0..=max`, or `None`.
+fn integer(s: &str, max: u32) -> Option<u32> {
+    number(s).filter(|v| *v >= 0.0 && *v <= max as f64 && v.fract() == 0.0).map(|v| v as u32)
+}
+
+fn debander(method: &str, s: &str, range: &str, y: &str, cbcr: &str) -> Result<Option<Box<dyn Filter>>, String> {
+    if method != "f3kdb" && method != "neo_f3kdb" && is_zero(s) {
+        return Ok(None);
+    }
+    Ok(Some(match method {
         "gradfun" => Box::new(GradFun::new(number(s).unwrap_or(1.2))),
+        "neo_f3kdb" => {
+            // f3kdb's integer parameters: thresholds are on its 12-bit scale (16 per 8-bit code value).
+            let (Some(r), Some(y), Some(c)) = (integer(range, 255), integer(y, 511), integer(cbcr, 511)) else {
+                return Err("Neo F3kdb requires an integer range 0..255 and thresholds 0..511.".into());
+            };
+            if r == 0 || (y == 0 && c == 0) {
+                return Ok(None);
+            }
+            let level = |t: u32| t as f64 / 16.0 / 255.0;
+            Box::new(Deband::new(level(y), level(c), r as usize, false))
+        }
         "f3kdb" => {
+            if is_zero(range) && is_zero(y) && is_zero(cbcr) {
+                return Ok(None);
+            }
             let y = number(y).unwrap_or(0.0);
             let c = number(cbcr).unwrap_or(0.0);
             let thr_y = if y > 0.0 { y / 2000.0 } else { 0.03 }.clamp(0.001, 0.5);
@@ -129,18 +168,37 @@ fn debander(method: &str, s: &str, range: &str, y: &str, cbcr: &str) -> Box<dyn 
             Box::new(Deband::new(thr_y, thr_c, if r < 1 { 16 } else { r as usize }, false))
         }
         _ => Box::new(Deband::new(number(s).unwrap_or(0.02), 0.02, 16, true)),
+    }))
+}
+
+/// A target frame rate: a positive number or fraction such as `30000/1001`, as a fraction.
+pub fn target_rate(s: &str) -> Option<(u32, u32)> {
+    let s = s.trim();
+    let (num, den) = match s.split_once('/') {
+        Some((n, d)) => (number(n)?, number(d)?),
+        None => (number(s)?, 1.0),
+    };
+    let rate = num / den;
+    if !(num > 0.0 && den > 0.0 && rate.is_finite() && rate > 0.0 && rate <= MAX_FPS) {
+        return None;
+    }
+    if num.fract() == 0.0 && den.fract() == 0.0 && num <= u32::MAX as f64 && den <= u32::MAX as f64 {
+        let g = gcd(num as u64, den as u64);
+        return Some(((num as u64 / g) as u32, (den as u64 / g) as u32));
+    }
+    Some(rational(rate))
+}
+
+fn gcd(a: u64, b: u64) -> u64 {
+    if b == 0 {
+        a.max(1)
+    } else {
+        gcd(b, a % b)
     }
 }
 
-/// The output frame rate for a source rate and the fps option (`source`/`lock` keep the source rate).
-pub fn output_fps(fps_option: &str, src_fps: f64, interpolate: bool) -> f64 {
-    let target = if interpolate && fps_option != "source" && fps_option != "lock" { number(fps_option) } else { None };
-    match target.filter(|v| *v > 0.0 && *v <= 240.0) {
-        Some(v) => v,
-        None if src_fps > 0.0 => src_fps,
-        None => 30.0,
-    }
-}
+/// Highest output frame rate accepted.
+pub const MAX_FPS: f64 = 1000.0;
 
 /// A frame rate as a fraction, recognising the NTSC rates.
 pub fn rational(fps: f64) -> (u32, u32) {
@@ -155,10 +213,65 @@ pub fn rational(fps: f64) -> (u32, u32) {
     ((fps * 1000.0).round().max(1.0) as u32, 1000)
 }
 
-pub fn build(o: &Options, source: Source) -> Plan {
+/// The source timing the app measured, when it is complete and the source is verified constant-rate.
+pub struct Timing {
+    pub duration: f64,
+    pub rate: f64,
+    pub frames: i64,
+}
+
+impl Timing {
+    pub fn from_options(o: &Options) -> Option<Timing> {
+        let known = flag(o.source_cfr_verified)
+            && o.source_frame_count > 0
+            && o.source_video_duration.is_finite()
+            && o.source_video_duration > 0.0
+            && o.source_rate_num > 0
+            && o.source_rate_den > 0;
+        known.then(|| Timing {
+            duration: o.source_video_duration,
+            rate: o.source_rate_num as f64 / o.source_rate_den as f64,
+            frames: o.source_frame_count,
+        })
+    }
+}
+
+/// A strictly parsed value in `min..=max`.
+fn within(s: &str, min: f64, max: f64) -> Option<f64> {
+    number(s).filter(|v| (min..=max).contains(v))
+}
+
+fn validate_hardware(o: &Options, video: bool) -> Result<(), String> {
+    let (encoder, hwaccel) = (text(&o.encoder), text(&o.hwaccel));
+    if !matches!(encoder.as_str(), "" | "auto" | "cpu" | "videotoolbox")
+        || !matches!(hwaccel.as_str(), "" | "none" | "videotoolbox")
+    {
+        return Err("Unsupported encoder or hardware decoder. Choose CPU/Auto or VideoToolbox.".into());
+    }
+    if video && encoder == "videotoolbox" && flag(o.use10) && text(&o.codec) == "h264" {
+        return Err("VideoToolbox H.264 supports 8-bit output. Select HEVC for 10-bit output.".into());
+    }
+    Ok(())
+}
+
+/// Builds the filter chain, or explains which setting is invalid.
+pub fn build(o: &Options, source: Source) -> Result<Plan, String> {
     let mut chain = Chain::default();
     let mut notes = Vec::new();
     let video = matches!(source, Source::Video { .. });
+    validate_hardware(o, video)?;
+    let eq = if flag(o.no_eq) {
+        None
+    } else {
+        let (Some(c), Some(b), Some(s)) = (
+            within(&text(&o.eq_contrast), -1000.0, 1000.0),
+            within(&text(&o.eq_brightness), -1.0, 1.0),
+            within(&text(&o.eq_saturation), 0.0, 3.0),
+        ) else {
+            return Err("Invalid EQ values: contrast -1000..1000, brightness -1..1, saturation 0..3.".into());
+        };
+        Some(Eq::new(c, b, s)).filter(|e| !e.is_identity())
+    };
     let scale = number(&text(&o.scale_factor)).filter(|v| *v > 0.0 && *v <= 16.0).unwrap_or(2.0);
 
     if video && !flag(o.no_decimate) {
@@ -167,25 +280,53 @@ pub fn build(o: &Options, source: Source) -> Plan {
     if !flag(o.no_deblock) {
         chain.push_stage(Box::new(Deblock::new(&text(&o.deblock_mode), &text(&o.deblock_thresh))));
     }
-    if flag(o.dering_active) {
-        chain.push_stage(Box::new(dering(&text(&o.dering_strength))));
-    }
     if !flag(o.no_denoise) {
-        if let Some(f) = denoiser(&text(&o.denoiser), &text(&o.denoise_strength)) {
-            chain.push_stage(f);
-        }
+        chain.push_some(denoiser(&text(&o.denoiser), &text(&o.denoise_strength)));
+    }
+    if flag(o.dering_active) {
+        chain.push_some(dering_stage(&text(&o.dering_strength)));
     }
     let mut fps = None;
     if let Source::Video { fps: src_fps } = source {
-        let interpolate = !flag(o.no_interpolate);
-        let out = output_fps(&text(&o.fps), src_fps, interpolate);
-        let mode = if interpolate { Mode::parse(&text(&o.mi_mode)) } else { Mode::Dup };
-        chain.push_stage(Box::new(Retimer::new(mode, out, src_fps)));
-        fps = Some(rational(out));
+        let fps_option = text(&o.fps);
+        let timing = Timing::from_options(o);
+        let src_rate = timing.as_ref().map_or(src_fps, |t| t.rate);
+        if fps_option == "source" || fps_option == "lock" {
+            chain.push_stage(Box::new(Retimer::new(Mode::Dup, src_rate, src_rate)));
+            let exact =
+                timing.as_ref().and_then(|_| target_rate(&format!("{}/{}", o.source_rate_num, o.source_rate_den)));
+            fps = Some(exact.unwrap_or_else(|| rational(src_rate)));
+        } else {
+            let (num, den) =
+                target_rate(&fps_option).ok_or("Invalid target FPS: a positive rate or fraction is required.")?;
+            let target = num as f64 / den as f64;
+            let mi_mode = text(&o.mi_mode);
+            let mut interpolate = !flag(o.no_interpolate) && mi_mode != "dup";
+            let mut retimer_frames = None;
+            match &timing {
+                Some(t) => {
+                    if target <= t.rate * (1.0 + 1e-9) || t.frames == 1 {
+                        interpolate = false;
+                    }
+                    retimer_frames = Some((t.duration * target + 0.5 + 1e-9).floor().max(1.0) as u64);
+                }
+                None if interpolate => notes.push(
+                    "Source timing is unknown or variable; motion interpolation may shorten the final frames.".into(),
+                ),
+                None => {}
+            }
+            let mode = if interpolate { Mode::parse(&mi_mode) } else { Mode::Dup };
+            let mut retimer = Retimer::new(mode, target, src_rate);
+            if let Some(n) = retimer_frames {
+                retimer = retimer.with_frame_limit(n);
+            }
+            chain.push_stage(Box::new(retimer));
+            fps = Some((num, den));
+        }
     }
     chain.push_stage(Box::new(Lanczos { factor: scale }));
     if !flag(o.no_sharpen) {
-        chain.push_stage(sharpener(
+        chain.push_some(sharpener(
             &text(&o.sharpen_method),
             &text(&o.sharpen_strength),
             &text(&o.usm_radius),
@@ -194,27 +335,25 @@ pub fn build(o: &Options, source: Source) -> Plan {
         ));
     }
     if !flag(o.no_deband) {
-        chain.push_stage(debander(
+        chain.push_some(debander(
             &text(&o.deband_method),
             &text(&o.deband_strength),
             &text(&o.f3kdb_range),
             &text(&o.f3kdb_y),
             &text(&o.f3kdb_cbcr),
-        ));
+        )?);
     }
-    if flag(o.use_deblock_2) && !flag(o.no_deblock) {
+    if flag(o.use_dering_2) {
+        chain.push_some(dering_stage(&text(&o.dering_strength_2)));
+    }
+    if flag(o.use_deblock_2) {
         chain.push_stage(Box::new(Deblock::new(&text(&o.deblock_mode_2), &text(&o.deblock_thresh_2))));
     }
-    if flag(o.use_dering_2) && flag(o.dering_active_2) {
-        chain.push_stage(Box::new(dering(&text(&o.dering_strength_2))));
+    if flag(o.use_denoise_2) {
+        chain.push_some(denoiser(&text(&o.denoiser_2), &text(&o.denoise_strength_2)));
     }
-    if flag(o.use_denoise_2) && !flag(o.no_denoise) {
-        if let Some(f) = denoiser(&text(&o.denoiser_2), &text(&o.denoise_strength_2)) {
-            chain.push_stage(f);
-        }
-    }
-    if flag(o.use_sharpen_2) && !flag(o.no_sharpen) {
-        chain.push_stage(sharpener(
+    if flag(o.use_sharpen_2) {
+        chain.push_some(sharpener(
             &text(&o.sharpen_method_2),
             &text(&o.sharpen_strength_2),
             &text(&o.usm_radius_2),
@@ -222,26 +361,19 @@ pub fn build(o: &Options, source: Source) -> Plan {
             &text(&o.usm_threshold_2),
         ));
     }
-    if flag(o.use_deband_2) && !flag(o.no_deband) {
-        chain.push_stage(debander(
+    if flag(o.use_deband_2) {
+        chain.push_some(debander(
             &text(&o.deband_method_2),
             &text(&o.deband_strength_2),
             &text(&o.f3kdb_range_2),
             &text(&o.f3kdb_y_2),
             &text(&o.f3kdb_cbcr_2),
-        ));
+        )?);
     }
-    if !flag(o.no_eq) {
-        let eq = Eq::new(
-            number(&text(&o.eq_contrast)).unwrap_or(1.0),
-            number(&text(&o.eq_brightness)).unwrap_or(0.0),
-            number(&text(&o.eq_saturation)).unwrap_or(1.0),
-        );
-        if !eq.is_identity() {
-            chain.push_stage(Box::new(eq));
-        }
+    if let Some(eq) = eq {
+        chain.push_stage(Box::new(eq));
     }
-    if !flag(o.no_grain) {
+    if flag(o.use_grain_2) || !flag(o.no_grain) {
         let s = if flag(o.use_grain_2) { text(&o.grain_strength_2) } else { text(&o.grain_strength) };
         let g = number(&s).unwrap_or(0.0);
         if g > 0.0 {
@@ -260,7 +392,7 @@ pub fn build(o: &Options, source: Source) -> Plan {
             notes.push("Live preview is not available in the Rust engine; processing without it.".into());
         }
     }
-    Plan { chain, fps, scale, notes }
+    Ok(Plan { chain, fps, scale, notes })
 }
 
 /// Output size for an input size: Lanczos rounding to even sides.
@@ -274,61 +406,5 @@ pub fn quality(crf: &str) -> crate::engine::Quality {
         Some(c) if c <= 20.0 => crate::engine::Quality::High,
         Some(c) if c > 26.0 => crate::engine::Quality::Draft,
         _ => crate::engine::Quality::Standard,
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::options::set;
-
-    #[test]
-    fn default_video_chain_matches_the_app_order() {
-        let plan = build(&Options::default(), Source::Video { fps: 24.0 });
-        let d = plan.chain.describe();
-        let order =
-            ["decimate", "deblock", "bm3d", "retime(mci, 60.000", "lanczos(x2.00)", "cas", "deband", "eq", "grain"];
-        let mut at = 0;
-        for name in order {
-            let found = d[at..].find(name).unwrap_or_else(|| panic!("{name} missing or out of order in {d}"));
-            at += found + name.len();
-        }
-        assert_eq!(plan.fps, Some((60, 1)));
-    }
-
-    #[test]
-    fn images_skip_temporal_stages() {
-        let d = build(&Options::default(), Source::Image).chain.describe();
-        assert!(!d.contains("decimate") && !d.contains("retime"), "{d}");
-    }
-
-    #[test]
-    fn source_rate_and_toggles() {
-        let mut o = Options::default();
-        set(&mut o.fps, "source");
-        o.no_denoise = 1;
-        o.no_grain = 1;
-        o.no_eq = 1;
-        let plan = build(&o, Source::Video { fps: 30000.0 / 1001.0 });
-        assert_eq!(plan.fps, Some((30000, 1001)));
-        let d = plan.chain.describe();
-        assert!(!d.contains("bm3d") && !d.contains("grain") && !d.contains("eq("), "{d}");
-        o.no_interpolate = 1;
-        set(&mut o.fps, "120");
-        assert_eq!(build(&o, Source::Video { fps: 25.0 }).fps, Some((25, 1)));
-    }
-
-    #[test]
-    fn strength_mappings() {
-        assert_eq!(nlmeans("12").patch, 11);
-        assert_eq!(nlmeans("12").research, 19);
-        assert_eq!(atadenoise("").frames, 9);
-        assert!(bm3d("auto").sigma.is_none());
-        assert_eq!(bm3d("50").sigma, Some(20.0));
-        assert_eq!(rational(23.976), (24000, 1001));
-        assert_eq!(rational(25.0), (25, 1));
-        assert_eq!(quality("18"), crate::engine::Quality::High);
-        assert_eq!(quality("23"), crate::engine::Quality::Standard);
-        assert_eq!(quality("30"), crate::engine::Quality::Draft);
     }
 }

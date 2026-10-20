@@ -54,6 +54,12 @@ impl Chain {
         self.spent.push(std::time::Duration::ZERO);
     }
 
+    pub fn push_some(&mut self, filter: Option<Box<dyn Filter>>) {
+        if let Some(f) = filter {
+            self.push_stage(f);
+        }
+    }
+
     /// Seconds spent in each stage so far, with the stage's description.
     pub fn timings(&self) -> Vec<(String, f64)> {
         self.stages.iter().zip(&self.spent).map(|(s, t)| (s.describe(), t.as_secs_f64())).collect()

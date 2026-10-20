@@ -31,7 +31,9 @@ pub mod status {
     pub const INTERNAL: i32 = 4;
     pub const CANCELLED: i32 = 5;
     pub const UNSUPPORTED_SCALER: i32 = 6;
-    pub const UNSUPPORTED_MEDIA: i32 = 7;
+    /// Success for a single file whose output was written and moved into place (a folder run returns `OK`).
+    pub const OK_COMMITTED: i32 = 7;
+    pub const UNSUPPORTED_MEDIA: i32 = 8;
 
     /// Header names (after `UP60P_`) and values.
     pub const ALL: &[(&str, i32)] = &[
@@ -42,6 +44,7 @@ pub mod status {
         ("ERR_INTERNAL", INTERNAL),
         ("ERR_CANCELLED", CANCELLED),
         ("ERR_UNSUPPORTED_SCALER", UNSUPPORTED_SCALER),
+        ("OK_COMMITTED", OK_COMMITTED),
         ("ERR_UNSUPPORTED_MEDIA", UNSUPPORTED_MEDIA),
     ];
 }
@@ -131,8 +134,12 @@ pub unsafe extern "C" fn up60p_process_path(input_path: *const c_char, opts: *co
         }
         CANCEL.store(false, Ordering::SeqCst);
         job::configure_threads(&options);
-        let job = Job { options: &options, log: &log, cancel: &CANCEL, dry_run: DRY_RUN.load(Ordering::Relaxed) };
-        match job.run(Path::new(&input)) {
+        let dry_run = DRY_RUN.load(Ordering::Relaxed);
+        let job = Job { options: &options, log: &log, cancel: &CANCEL, dry_run };
+        let path = Path::new(&input);
+        match job.run(path) {
+            // A single file's output is in place; a folder run may still be cancelled before its next file.
+            Ok(()) if !dry_run && path.is_file() => status::OK_COMMITTED,
             Ok(()) => status::OK,
             Err(JobError::Cancelled) => {
                 log("Processing cancelled.\n");

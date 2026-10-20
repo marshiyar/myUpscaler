@@ -5,7 +5,7 @@ work_dir=$(mktemp -d)
 trap 'rm -rf "$work_dir"' EXIT
 # Inspect compiled models through CoreML's public API, not compiler metadata
 # files, fixed tile dimensions, or a manifest of particular model bytes.
-xcrun swiftc "$repo_dir/myUpscaler/CoreMLModelRegistry.swift" \
+xcrun swiftc "$repo_dir/myUpscaler/Models/CoreMLModelRegistry.swift" \
   "$repo_dir/tests/packaged-models/main.swift" -o "$work_dir/model-validator"
 python3 - "$work_dir/model-validator" "$@" <<'PY'
 import subprocess, sys

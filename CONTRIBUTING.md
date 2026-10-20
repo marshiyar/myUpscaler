@@ -66,3 +66,51 @@ retained for 90 days and are never overwritten or deleted by the workflow.
 GitHub expires them after that period. These builds are ad hoc signed and are
 not notarized. The workflow has read-only repository permissions and does not
 publish to GitHub Releases.
+
+## Fast checks without downloaded assets
+
+Run `bash scripts/check.sh` on an Apple Silicon Mac. It checks the 600-line
+maintained-source ceiling, runs the Rust backend's format, lint and test suite,
+the dry-run filter-chain and native media/FPS/preview/scale/progress regressions
+(their test videos are generated with AVFoundation, so no external tool is
+needed), and the independent `myUpscalerUnitTests` XCTest scheme. The test scheme
+does not build the app or require Core ML model files. The backend tests and the
+Swift tests that link the backend need the media engine from
+`scripts/prepare-media-engine.sh`; packaged-app verification
+(`tests/verify-packaged-engine.sh`) remains a separate requirement.
+
+`bash scripts/check-environment.sh` reports Xcode/SDK, the Metal compiler
+component and Rust. It does not install tools or download assets. Xcode may be present
+while its separately supplied Metal compiler component is missing.
+
+For focused checks:
+
+```sh
+bash tests/test-editor-state.sh
+bash tests/test-processing-lifecycle.sh
+bash tests/apple-api/run.sh
+xcodebuild -project myUpscaler.xcodeproj -scheme myUpscalerUnitTests \
+  -destination 'platform=macOS,arch=arm64' \
+  CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= test
+```
+
+The native video-I/O test exercises both the modern and compatibility paths on
+macOS 26+. This is not a macOS 15.2 runtime test or a model-throughput benchmark.
+The processing test includes a blend microbenchmark; avoid treating its result
+as end-to-end AI speed. Keep quality, frame counts, timestamps and audio checks
+alongside performance measurements.
+
+## Source changes
+
+Follow [architecture and ownership](docs/architecture.md). Keep observable UI
+state on its owning actor, background pixel work out of the UI executor, and
+superseded preview requests unable to publish. Split maintained source by
+responsibility around 500 lines, with a 600-line ceiling. Add new settings files
+to the independent XCTest source list as needed; the application target uses
+Xcode synchronized folders.
+
+Legacy preset fields, dynamically loaded Metal kernels and valid OS fallback
+paths must not be removed merely because a direct reference search is empty.
+Keep license notices and avoid committing prepared models, binaries or build
+outputs. Stage logic/performance and structural/UI changes separately when
+possible.

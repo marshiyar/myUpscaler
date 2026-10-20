@@ -39,8 +39,15 @@ fn every_field_is_used_or_explained() {
     }
 }
 
+/// Defaults with every first-set stage on: interpolation and a non-neutral EQ are off in the factory settings.
+fn all_on() -> Options {
+    let mut o = Options { no_interpolate: 0, ..Default::default() };
+    set(&mut o.eq_contrast, "1.03");
+    o
+}
+
 fn video(o: &Options) -> String {
-    build(o, Source::Video { fps: 24.0 }).chain.describe()
+    build(o, Source::Video { fps: 24.0 }).unwrap().chain.describe()
 }
 
 #[test]
@@ -56,14 +63,13 @@ fn each_off_switch_removes_its_stage() {
         ("no_grain", |o| o.no_grain = 1, "grain("),
     ];
     for (name, switch_off, stage) in cases {
-        let mut o = Options::default();
-        assert!(video(&o).contains(stage), "{stage} is on by default");
+        let mut o = all_on();
+        assert!(video(&o).contains(stage), "{stage} is on");
         switch_off(&mut o);
         assert!(!video(&o).contains(stage), "{name} leaves {stage} in place: {}", video(&o));
     }
-    // Without interpolation the output still runs on a constant clock, repeating frames.
-    let o = Options { no_interpolate: 1, ..Default::default() };
-    assert!(video(&o).contains("retime(dup, 24.000 fps)"));
+    // Without interpolation the output still runs at the target rate, repeating frames.
+    assert!(video(&Options::default()).contains("retime(dup, 60.000 fps)"));
 }
 
 #[test]
@@ -72,13 +78,7 @@ fn each_second_set_switch_adds_its_stage() {
     let base = video(&Options::default());
     let cases: [(Tweak, &str); 6] = [
         (|o| o.use_deblock_2 = 1, "deblock("),
-        (
-            |o| {
-                o.use_dering_2 = 1;
-                o.dering_active_2 = 1;
-            },
-            "dering(",
-        ),
+        (|o| o.use_dering_2 = 1, "dering("),
         (|o| o.use_denoise_2 = 1, "bm3d("),
         (|o| o.use_sharpen_2 = 1, "cas("),
         (|o| o.use_deband_2 = 1, "deband("),
@@ -96,9 +96,9 @@ fn each_second_set_switch_adds_its_stage() {
         let d = video(&o);
         assert!(count(&d, stage) > count(&base, stage), "{stage} not added: {d}");
     }
-    // The second dering needs both its own switch and its "active" flag, as in the app.
-    let o = Options { use_dering_2: 1, ..Default::default() };
-    assert!(!video(&o).contains("dering("));
+    // The second set runs on its own switches, even with the first set's stage off.
+    let o = Options { use_denoise_2: 1, no_denoise: 1, ..Default::default() };
+    assert!(video(&o).contains("bm3d("));
     let o = Options { dering_active: 1, ..Default::default() };
     assert!(video(&o).contains("dering("), "first-set dering");
 }
@@ -116,7 +116,7 @@ fn each_method_choice_selects_its_filter() {
         (|o| set(&mut o.mi_mode, "blend"), "retime(blend"),
     ];
     for (choose, expected) in cases {
-        let mut o = Options::default();
+        let mut o = all_on();
         choose(&mut o);
         assert!(video(&o).contains(expected), "expected {expected}: {}", video(&o));
     }
@@ -132,7 +132,7 @@ fn output_rate_follows_the_fps_setting() {
     for (fps, expected) in [("60", (60, 1)), ("30", (30, 1)), ("source", (24, 1)), ("lock", (24, 1))] {
         let mut o = Options::default();
         set(&mut o.fps, fps);
-        assert_eq!(build(&o, Source::Video { fps: 24.0 }).fps, Some(expected), "fps={fps}");
+        assert_eq!(build(&o, Source::Video { fps: 24.0 }).unwrap().fps, Some(expected), "fps={fps}");
     }
 }
 
@@ -142,7 +142,7 @@ fn unsupported_requests_are_reported_not_ignored() {
     set(&mut o.codec, "hevc");
     o.use10 = 1;
     o.preview = 1;
-    let notes = build(&o, Source::Video { fps: 24.0 }).notes.join("\n");
+    let notes = build(&o, Source::Video { fps: 24.0 }).unwrap().notes.join("\n");
     assert!(notes.contains("HEVC") && notes.contains("10-bit") && notes.contains("preview"), "{notes}");
-    assert!(build(&Options::default(), Source::Video { fps: 24.0 }).notes.is_empty());
+    assert!(build(&Options::default(), Source::Video { fps: 24.0 }).unwrap().notes.is_empty());
 }

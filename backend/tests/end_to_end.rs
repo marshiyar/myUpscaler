@@ -86,7 +86,7 @@ fn restores_and_upscales_a_video_with_defaults() {
     let input = dir.join("clip.mp4");
     make_clip(&input, 96, 64, 48);
 
-    let mut options = Options::default();
+    let mut options = Options { no_interpolate: 0, ..Default::default() };
     set(&mut options.outdir, dir.join("out").to_str().unwrap());
     let log = run(&options, &input);
     let text = log.join("");
@@ -97,7 +97,7 @@ fn restores_and_upscales_a_video_with_defaults() {
     let probe = engine::probe(&output).unwrap();
     let video = probe.video.expect("video stream");
     assert_eq!(video.codec, "h264");
-    assert!((video.frame_rate - 60.0).abs() < 0.01, "default interpolates to 60 fps: {}", video.frame_rate);
+    assert!((video.frame_rate - 60.0).abs() < 0.01, "interpolates to 60 fps: {}", video.frame_rate);
     let audio = probe.audio.expect("audio is carried over");
     assert_eq!((audio.codec.as_str(), audio.sample_rate, audio.channels), ("flac", 48_000, 2));
     assert!((probe.duration - 2.0).abs() < 0.1, "duration {}", probe.duration);
@@ -122,6 +122,7 @@ fn keeps_the_source_rate_without_interpolation_and_cancels_cleanly() {
     let input = dir.join("clip.mp4");
     make_clip(&input, 64, 48, 24);
     let mut options = Options { no_interpolate: 1, no_denoise: 1, ..Default::default() };
+    set(&mut options.fps, "source");
     set(&mut options.scale_factor, "1.5");
     set(&mut options.crf, "28");
     run(&options, &input);
@@ -141,6 +142,33 @@ fn keeps_the_source_rate_without_interpolation_and_cancels_cleanly() {
     let job = Job { options: &options, log: &log, cancel: &cancel, dry_run: false };
     assert!(matches!(job.run(&input), Err(up60p::job::JobError::Cancelled)));
     assert_eq!(std::fs::read_dir(&cancelled).unwrap().count(), 0);
+}
+
+#[test]
+fn verified_timing_gives_the_exact_frame_count() {
+    let _serial = SERIAL.lock().unwrap_or_else(|e| e.into_inner());
+    if !engine_ready() {
+        return;
+    }
+    let dir = scratch("timed");
+    let input = dir.join("clip.mp4");
+    make_clip(&input, 64, 48, 24);
+    let mut options = Options {
+        no_denoise: 1,
+        no_decimate: 0,
+        source_video_duration: 1.0,
+        source_rate_num: 24,
+        source_rate_den: 1,
+        source_cfr_verified: 1,
+        source_frame_count: 24,
+        ..Default::default()
+    };
+    set(&mut options.fps, "30");
+    let text = run(&options, &input).join("");
+    assert!(text.contains("stage=processing") && text.contains("stage=finalizing"), "{text}");
+    assert!(text.contains("(30 frames)"), "{text}");
+    let video = engine::probe(&dir.join("clip_[restored].mp4")).unwrap().video.unwrap();
+    assert!((video.frame_rate - 30.0).abs() < 0.01, "{}", video.frame_rate);
 }
 
 #[test]

@@ -1,0 +1,448 @@
+import Foundation
+import Synchronization
+import Combine
+import SwiftUI
+import AVFoundation
+
+class UpscaleRunner: ObservableObject {
+
+    enum OutputMode { case same, custom }
+    enum ProcessingPhase { case idle, preparing, processing, finalizing }
+    @Published var phase: ProcessingPhase = .idle
+    @Published var progressKnown = false
+
+
+    // MARK: - Dependencies
+     let fileSystem: FileSystemProtocol
+     let engine: EngineProtocol
+     let assetLoader: AssetLoaderProtocol
+    // MARK: - Input/Output Configuration
+    @Published var inputPath = "" {
+        didSet {
+            guard inputPath != oldValue else { return }
+            completedOutputPath = nil
+            if !isRunning {
+                batchTotal = 0
+                batchCompleted = 0
+                progress = 0
+                progressKnown = false
+            }
+        }
+    }
+    @Published var outputMode: OutputMode = .custom
+    @Published var customOutputFolder = ""
+
+     var activeOutputFolder: String? = nil
+
+     var expectedOutputPath: String? = nil
+     var activeEngine: EngineProtocol?
+
+    var securityScopedOutputURL: URL? = nil
+
+    // MARK: - Settings Source of Truth
+    @Published var settings = UpscaleSettings()
+
+    // MARK: - Execution State
+    @Published var isRunning = false
+    @Published var log = ""
+    @Published var completedOutputPath: String? = nil
+    @Published private(set) var batchTotal = 0
+    @Published var batchCompleted = 0
+
+    // MARK: - Progress Stats
+    @Published var progress: Double = 0.0
+    @Published var fpsString = "0"
+    @Published var timeString = "0:00"
+    @Published var etaString = "--:--"
+
+    var videoDuration: Double = 0.0
+
+     var currentTask: Task<Void, Never>?
+    private var currentRunID = UUID()
+    @Published private(set) var isCancelling = false
+
+     var logBuffer: String = ""
+     var lastLogFlushTime: TimeInterval = 0
+     let logFlushInterval: TimeInterval = 1.0
+     var lastLogBufferTime: TimeInterval = 0
+     let logBufferInterval: TimeInterval = 0.1
+     var lastErrorLogLine: String?
+
+    // MARK: - Initialization
+
+    init(fileSystem: FileSystemProtocol = FileManager.default,
+         engine: EngineProtocol? = nil,
+         assetLoader: AssetLoaderProtocol = AVAssetLoader()) {
+        self.fileSystem = fileSystem
+        self.engine = engine ?? Up60PEngine.shared
+        self.assetLoader = assetLoader
+        if let downloads = fileSystem.urls(for: .downloadsDirectory, in: .userDomainMask).first {
+            self.customOutputFolder = downloads.path
+        }
+    }
+
+    // MARK: - Computed Properties
+
+    var predictedOutputName: String {
+        let inputURL = URL(fileURLWithPath: inputPath)
+        if (try? fileSystem.attributesOfItem(atPath: inputPath)[.type] as? FileAttributeType) == .typeDirectory {
+            return inputURL.lastPathComponent + "_[restored]"
+        }
+        let base = inputURL.deletingPathExtension().lastPathComponent
+        return base + "_[restored].mp4"
+    }
+
+    var outputVideoPath: String {
+        let folder = outputFolder()
+        let fileName = predictedOutputName
+        return (folder as NSString).appendingPathComponent(fileName)
+    }
+
+    func outputFolder() -> String {
+        if let active = activeOutputFolder { return active }
+        switch outputMode {
+        case .same:
+            return (inputPath as NSString).deletingLastPathComponent
+        case .custom:
+            return customOutputFolder
+        }
+    }
+
+     func cloneSettings(_ settings: UpscaleSettings) -> UpscaleSettings {
+        let snapshot = UpscaleSettingsSnapshot(settings: settings)
+        let cloned = UpscaleSettings()
+        snapshot.apply(to: cloned)
+        return cloned
+    }
+
+    // MARK: - Execution Logic
+    nonisolated final class SafeDuration: Sendable {
+        private let state: Mutex<Double>
+        var duration: Double {
+            get { state.withLock { $0 } }
+            set { state.withLock { $0 = newValue } }
+        }
+        init(duration: Double) { state = Mutex(duration) }
+    }
+
+    func run() {
+        guard !isRunning else { return }
+        if let reason = settings.upscalingUnavailableReason {
+            log.append("ERROR: \(reason)\n")
+            return
+        }
+        guard !inputPath.isEmpty else {
+            log.append("ERROR: No input file selected.\n")
+            return
+        }
+        let isBatch = (try? fileSystem.attributesOfItem(atPath: inputPath)[.type] as? FileAttributeType) == .typeDirectory
+        guard isBatch || VideoInput.isVideo(URL(fileURLWithPath: inputPath)) else {
+            log.append("ERROR: \(VideoInput.message)\n")
+            return
+        }
+        let runID = UUID()
+        currentRunID = runID
+
+        log = ""
+        progress = 0.0
+        videoDuration = 0.0
+        fpsString = "0"
+        timeString = "0:00"
+        etaString = "--:--"
+        completedOutputPath = nil
+        batchTotal = 0
+        batchCompleted = 0
+        expectedOutputPath = nil
+        isCancelling = false
+        isRunning = true
+        phase = .preparing
+        progressKnown = false
+        lastErrorLogLine = nil
+
+        logBuffer = ""
+        lastLogFlushTime = Date().timeIntervalSince1970
+        lastLogBufferTime = Date().timeIntervalSince1970
+
+
+        let selectedEngine: EngineProtocol
+        if settings.upscaling.scaler == "coreml" {
+            selectedEngine = CoreMLEngine.shared
+            let backend = CoreMLModelRegistry.model(for: settings.upscaling.coremlModelId).backend
+            log.append("--- Starting \(backend == .coreAI ? "Core AI" : "Core ML") Engine ---\n")
+        } else {
+            selectedEngine = self.engine
+            log.append("--- Starting Rust Engine ---\n")
+        }
+        self.activeEngine = selectedEngine
+        log.append("Input: \(inputPath)\n")
+        log.append("Output: \(outputFolder())\n\n")
+        if !isBatch { log.append("Expected output file: \(outputVideoPath)\n\n") }
+
+        // Capture safe state for the background callback
+        let safeState = SafeDuration(duration: self.videoDuration)
+        let updateGate = ProgressUpdateGate()
+
+        // Set up log handler for the ACTIVE engine
+        selectedEngine.setLogHandler { [weak self] message in
+            guard let self = self else { return }
+
+            guard updateGate.shouldEmit(message) else { return }
+            // 1. Parse on background thread immediately using safe state
+            let currentDur = safeState.duration
+            let parseState = ProgressParser.parse(line: message, currentDuration: currentDur)
+
+            // Update safe state if we found a new duration
+            if let newDur = parseState.newDuration {
+                safeState.duration = newDur
+            }
+
+            Task { @MainActor in
+                guard self.currentRunID == runID else { return }
+                let lower = message.lowercased()
+                let diagnostic = lower.contains("error") || lower.contains("fail") || lower.contains("warning") || lower.contains("cancel")
+                let terminalText = lower.contains("lsize=") || message.trimmingCharacters(in: .whitespacesAndNewlines) == "Done."
+                guard self.isRunning && !self.isCancelling else {
+                    if diagnostic || terminalText {
+                        self.logBuffer.append(message)
+                        self.flushLogBuffer()
+                    }
+                    return
+                }
+                let now = Date().timeIntervalSince1970
+                let isError = lower.contains("error") || lower.contains("fail")
+
+                // Always track errors immediately
+                if isError {
+                    self.lastErrorLogLine = message
+                }
+
+                let isProgressMessage = lower.contains("time=") || lower.contains("fps=")
+                let shouldBuffer = !isProgressMessage || diagnostic || terminalText || (now - self.lastLogBufferTime >= self.logBufferInterval)
+
+                if shouldBuffer {
+                    self.logBuffer.append(message)
+                    if !isError {
+                        self.lastLogBufferTime = now
+                    }
+                }
+
+                // Apply parsed state - update UI stats
+                if self.batchTotal == 0 && self.phase != .finalizing && lower.hasPrefix("stage=processing") {
+                    self.phase = .processing
+                    self.progressKnown = false
+                    self.etaString = "--:--"
+                }
+                if let newDur = parseState.newDuration {
+                    self.videoDuration = newDur
+                }
+                if let fps = parseState.fps, fps != self.fpsString { self.fpsString = fps }
+                if let time = parseState.timeString, time != self.timeString { self.timeString = time }
+                if let eta = parseState.eta, eta != self.etaString { self.etaString = eta }
+                if let prog = parseState.progress, self.batchTotal == 0 {
+                    if prog >= 1 {
+                        self.phase = .finalizing
+                        self.progressKnown = false
+                    } else if self.phase != .finalizing {
+                        self.phase = .processing
+                        self.progressKnown = true
+                        if prog > self.progress { self.progress = prog }
+                    }
+                }
+
+                // Flush buffer periodically
+                if now - self.lastLogFlushTime >= self.logFlushInterval {
+                    self.flushLogBuffer()
+                    self.lastLogFlushTime = now
+                }
+
+                let lowerMessage = message.lowercased()
+                let isDoneMessage = message.trimmingCharacters(in: .whitespacesAndNewlines) == "Done."
+
+                if self.batchTotal == 0 && (isDoneMessage || lowerMessage.contains("stage=finalizing")) {
+                    self.flushLogBuffer()
+
+                    self.phase = .finalizing
+                    self.progressKnown = false
+
+                }
+            }
+        }
+
+        if !isBatch { loadVideoDuration(progressDuration: safeState) }
+
+        let capturedInputPath = inputPath
+        let capturedSettings = cloneSettings(settings)
+        let capturedOutputDirectory = outputFolder()
+        expectedOutputPath = (capturedOutputDirectory as NSString).appendingPathComponent(predictedOutputName)
+        log.append("Writing output to folder:\n\(capturedOutputDirectory)\n\n")
+        let accessStopper: (() -> Void)?
+        if let scopedURL = securityScopedOutputURL, scopedURL.startAccessingSecurityScopedResource() {
+            accessStopper = { scopedURL.stopAccessingSecurityScopedResource() }
+            log.append("Using security-scoped output folder: \(scopedURL.path)\n")
+        } else {
+            accessStopper = nil
+        }
+        do {
+            if !fileSystem.fileExists(atPath: capturedOutputDirectory) {
+                try fileSystem.createDirectory(atPath: capturedOutputDirectory, withIntermediateDirectories: true, attributes: nil)
+            }
+        } catch {
+            log.append("\n--- ERROR: Could not create output directory ---\n")
+            log.append("Path: \(capturedOutputDirectory)\n")
+            log.append("Error: \(error.localizedDescription)\n")
+            isRunning = false
+            phase = .idle
+            accessStopper?()
+            activeOutputFolder = nil
+            return
+        }
+
+        // Verify input file exists before starting
+        if !fileSystem.fileExists(atPath: capturedInputPath) {
+            log.append("\n--- ERROR: Input file does not exist ---\n")
+            log.append("Path: \(capturedInputPath)\n")
+            isRunning = false
+            phase = .idle
+            activeOutputFolder = nil
+            accessStopper?()
+            return
+        }
+
+        let capturedExpectedOutputPath = expectedOutputPath
+        currentTask = Task(priority: .userInitiated) { [weak self] in
+            guard let self = self else { return }
+            defer { accessStopper?() }
+
+            do {
+                await Task.yield()
+                try Task.checkCancellation()
+
+                if isBatch {
+                    let plan = try await Self.makeBatchPlan(input: capturedInputPath, output: capturedOutputDirectory,
+                                                          coreML: capturedSettings.upscaling.scaler == "coreml")
+                    self.batchTotal = plan.items.count
+                    try await self.processBatch(plan, engine: selectedEngine, settings: capturedSettings)
+                    try Task.checkCancellation()
+                    guard self.currentRunID == runID else { return }
+                    self.markAsComplete(outputPath: plan.outputRoot.path)
+                    return
+                }
+                let tunedSettings = capturedSettings
+                try await selectedEngine.process(
+                    inputPath: capturedInputPath,
+                    settings: tunedSettings,
+                    outputDirectory: capturedOutputDirectory
+                )
+                if !selectedEngine.hasCommittedOutput { try Task.checkCancellation() }
+
+                try await MainActor.run {
+                    guard self.currentRunID == runID else { return }
+                    let committed = selectedEngine.hasCommittedOutput
+                    guard let path = committed ? capturedExpectedOutputPath : self.expectedOutputPath,
+                          let attributes = try? self.fileSystem.attributesOfItem(atPath: path),
+                          let size = attributes[.size] as? NSNumber, size.int64Value > 0 else {
+                        throw Up60PEngineError.io
+                    }
+                    if committed && self.isCancelling {
+                        self.log.append("Output committed before cancellation took effect.\n")
+                    }
+                    self.markAsComplete(outputPath: path)
+                }
+            }
+            catch {
+                await MainActor.run {
+                    guard self.currentRunID == runID else { return }
+                    self.flushLogBuffer()
+                    if !(error is CancellationError) && !self.isCancelling {
+                        self.log.append("\n--- ERROR: \(error.localizedDescription) ---\n")
+                        if let context = self.lastErrorLogLine {
+                            self.log.append("Context: \(context)\n")
+                        }
+                    }
+                    self.isRunning = false
+                    self.phase = .idle
+                    self.progressKnown = false
+                    self.isCancelling = false
+                    self.expectedOutputPath = nil
+                    self.currentTask = nil
+                    self.activeOutputFolder = nil
+                }
+            }
+        }
+    }
+
+    func cancel() {
+        guard isRunning else { return }
+        guard !isCancelling else { return }
+        isCancelling = true
+        (activeEngine ?? engine).cancel()
+        currentTask?.cancel()
+        completedOutputPath = nil
+        expectedOutputPath = nil
+        log.append("\n--- User Canceled Process (stopping engine) ---\n")
+        // Keep the run occupied until process() exits and releases its resources.
+    }
+
+    // MARK: - Video Duration Loading
+
+    func loadVideoDuration(progressDuration: SafeDuration? = nil) {
+        guard !inputPath.isEmpty else {
+            videoDuration = 0.0
+            return
+        }
+
+        let path = inputPath
+        let runID = currentRunID
+        Task {
+            do {
+                let duration = try await assetLoader.loadDuration(from: path)
+                await MainActor.run {
+                    guard self.currentRunID == runID, self.inputPath == path else { return }
+                    let validated = duration.isFinite && duration > 0 ? duration : 0
+                    self.videoDuration = validated
+                    progressDuration?.duration = validated
+                    self.log.append("Video Duration: \(ProgressParser.formatTime(self.videoDuration))\n")
+                }
+            } catch {
+                await MainActor.run {
+                    guard self.currentRunID == runID, self.inputPath == path else { return }
+                    self.videoDuration = 0.0
+                    print("Failed to load video duration: \(error)")
+                }
+            }
+        }
+    }
+
+    // MARK: - Engine-owned completion
+
+    func markAsComplete(outputPath: String) {
+        guard isRunning else { return }
+        progress = 1.0
+        progressKnown = true
+        phase = .idle
+        if videoDuration > 0 {
+            timeString = ProgressParser.formatTime(videoDuration)
+        }
+        activeOutputFolder = nil
+        etaString = "0:00"
+
+        completedOutputPath = outputPath
+        log.append("\n--- Process Finished Successfully ---\n")
+
+        flushLogBuffer()
+
+        isRunning = false
+        currentTask = nil
+        isCancelling = false
+    }
+
+    func flushLogBuffer() {
+        guard !logBuffer.isEmpty else { return }
+
+        log.append(logBuffer)
+        logBuffer = ""
+        if log.count > 10000 {
+            log = String(log.suffix(10000))
+        }
+    }
+}

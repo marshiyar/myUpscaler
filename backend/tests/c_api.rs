@@ -118,12 +118,21 @@ fn dry_run_plans_without_writing_and_cancel_is_cleared_per_run() {
     up60p_set_dry_run(1);
     assert_eq!(process(input.to_str().unwrap(), &defaults()), status::OK);
     up60p_set_dry_run(0);
-    assert!(log_text().contains("PLAN:"), "{}", log_text());
+    assert!(log_text().contains("CMD: up60p -i "), "{}", log_text());
     assert!(!dir.join("still_[restored].png").exists(), "dry run wrote output");
 
     // A cancel requested between runs does not stop the next run.
+    // A single file reports that its output is committed; a folder run reports plain success.
     up60p_request_cancel();
-    assert_eq!(process(input.to_str().unwrap(), &defaults()), status::OK);
+    assert_eq!(process(input.to_str().unwrap(), &defaults()), status::OK_COMMITTED);
     assert!(dir.join("still_[restored].png").is_file());
+    assert_eq!(process(dir.to_str().unwrap(), &defaults()), status::OK);
+
+    // Invalid settings are refused before anything is written.
+    let mut bad = defaults();
+    up60p::options::set(&mut bad.eq_saturation, "9");
+    std::fs::remove_file(dir.join("still_[restored].png")).unwrap();
+    assert_eq!(process(input.to_str().unwrap(), &bad), status::INVALID_OPTIONS);
+    assert!(!dir.join("still_[restored].png").exists());
     up60p_shutdown();
 }

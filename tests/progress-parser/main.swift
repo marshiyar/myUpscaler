@@ -17,7 +17,7 @@ let halfway = ProgressParser.parse(line: "frame=   2878 fps=14.20 time=00:00:50.
 require(halfway.fps == "14.20", "fps is read")
 require(halfway.timeString == "00:00:50.00", "time is read")
 require(halfway.progress.map { abs($0 - 0.5) < 1e-9 } == true, "progress is time over duration")
-require(halfway.eta == "0:50", "ETA is the remaining time")
+require(halfway.eta == "1:24", "ETA is the remaining time at the current speed (50 s / 0.592)")
 
 let done = ProgressParser.parse(line: "frame=   5755 fps=14.31 time=00:01:40.00 speed=0.597x progress=100.0%\n",
                                 currentDuration: 100)

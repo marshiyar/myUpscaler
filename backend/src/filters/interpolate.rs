@@ -10,7 +10,8 @@
 //!   repeat the nearest frame instead of morphing.
 //!
 //! Timestamps come from the input frames, so frames dropped upstream (decimation) or variable-rate sources are
-//! regenerated on the output grid.
+//! regenerated on the output grid. With a frame limit (the source's verified duration times the output rate) the
+//! output has exactly that many frames: the last source frame is held to fill the end, and nothing past it is made.
 
 use super::Filter;
 use crate::frame::{Frame, Plane};
@@ -43,6 +44,7 @@ pub struct Retimer {
     prev: Option<Frame>,
     motion: Option<MotionField>,
     emitted: u64,
+    limit: Option<u64>,
 }
 
 const BLOCK: usize = 16;
@@ -63,7 +65,18 @@ impl Retimer {
             prev: None,
             motion: None,
             emitted: 0,
+            limit: None,
         }
+    }
+
+    /// Makes the output exactly `frames` long (at least one).
+    pub fn with_frame_limit(mut self, frames: u64) -> Retimer {
+        self.limit = Some(frames.max(1));
+        self
+    }
+
+    fn full(&self) -> bool {
+        self.limit.is_some_and(|l| self.emitted >= l)
     }
 
     pub fn emitted(&self) -> u64 {
@@ -75,6 +88,9 @@ impl Retimer {
     }
 
     fn emit(&mut self, mut f: Frame, out: &mut Vec<Frame>) {
+        if self.full() {
+            return;
+        }
         f.pts = self.time(self.next_index);
         self.next_index += 1;
         self.emitted += 1;
@@ -121,7 +137,10 @@ impl Filter for Retimer {
             Mode::Blend => "blend",
             Mode::Mci => "mci",
         };
-        format!("retime({mode}, {:.3} fps)", self.out_fps)
+        match self.limit {
+            Some(n) => format!("retime({mode}, {:.3} fps, {n} frames)", self.out_fps),
+            None => format!("retime({mode}, {:.3} fps)", self.out_fps),
+        }
     }
 
     fn push(&mut self, frame: Frame, out: &mut Vec<Frame>) {
@@ -131,7 +150,7 @@ impl Filter for Retimer {
             return;
         };
         self.motion = None;
-        while self.time(self.next_index) < frame.pts - 1e-9 {
+        while self.time(self.next_index) < frame.pts - 1e-9 && !self.full() {
             let t = self.time(self.next_index);
             let f = self.between(&prev, &frame, t);
             self.emit(f, out);
@@ -141,6 +160,12 @@ impl Filter for Retimer {
 
     fn flush(&mut self, out: &mut Vec<Frame>) {
         if let Some(last) = self.prev.take() {
+            if self.limit.is_some() {
+                while !self.full() {
+                    self.emit(last.clone(), out);
+                }
+                return;
+            }
             let end = last.pts + self.src_frame_duration;
             loop {
                 let t = self.time(self.next_index);
@@ -434,6 +459,22 @@ mod tests {
         }
         r.flush(&mut out);
         assert_eq!(out.iter().map(|f| f.pts).collect::<Vec<_>>(), vec![0.0, 0.5, 1.0, 1.5, 2.0, 2.5]);
+    }
+
+    #[test]
+    fn frame_limit_trims_and_holds_the_last_frame() {
+        let run = |limit: u64, inputs: usize| {
+            let mut r = Retimer::new(Mode::Dup, 2.0, 1.0).with_frame_limit(limit);
+            let mut out = Vec::new();
+            for i in 0..inputs {
+                r.push(scene(32, 32, 0.0, i as f64), &mut out);
+            }
+            r.flush(&mut out);
+            out.iter().map(|f| f.pts).collect::<Vec<_>>()
+        };
+        assert_eq!(run(3, 3), vec![0.0, 0.5, 1.0]);
+        // Fewer source frames than the duration promises (a static tail decimated away): the last one is held.
+        assert_eq!(run(8, 2), vec![0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5]);
     }
 
     #[test]

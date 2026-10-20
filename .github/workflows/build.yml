@@ -33,7 +33,9 @@ env:
 jobs:
   release-app:
     # One Release build: the app that is verified (engine, signature, models, inference) is the one delivered.
-    runs-on: xcode-27
+    # The self-hosted Mac. Pull requests from forks never run on it: their code would run on that machine.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -171,7 +173,9 @@ jobs:
 
   model-sets:
     # The model preparation script against external model sets, caches and missing checksums.
-    runs-on: xcode-27
+    # The self-hosted Mac. Pull requests from forks never run on it: their code would run on that machine.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4

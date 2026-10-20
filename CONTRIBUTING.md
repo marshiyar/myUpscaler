@@ -69,16 +69,16 @@ the files it covers change, and nothing is checked twice:
 | **Desktop app** (`desktop.yml`) | cross-platform Slint app: Linux checks, tests and screenshots; Windows build; macOS build and run |
 | **macOS build and bundle** (`build.yml`) | Release app (verify engine, signature, models and inference, package); model-set preparation |
 
-All jobs use GitHub's free standard runners (macOS jobs on the `xcode-27`
-image: macOS 27, Apple Silicon) (the repository is public; larger
-runners are billed even for public repositories). The GPU jobs (CoreML inference
-and the Metal kernels) report the runner's Metal device and fail if there is
-none; GitHub's macOS runners are virtual machines, so their GPU is slower than a
-real Mac's. The Rust backend runs on the CPU.
-
-There are five macOS jobs, the free plan's limit of concurrent macOS jobs,
-so none waits for another. Inside a job, `scripts/run-parallel.sh` runs the
-scripts at the same time, one per CPU core.
+The Linux and Windows jobs use GitHub's free standard runners. The five macOS
+jobs run on the maintainer's self-hosted Mac (runner labels `self-hosted`,
+`macOS`, `ARM64`), which has a real GPU for the GPU jobs (CoreML inference and
+the Metal kernels report the Metal device and fail if there is none). The Mac
+needs Xcode 27 in `/Applications` (any `Xcode*.app` name; the setup step selects
+it through `DEVELOPER_DIR`, without sudo) and Rust through rustup (the pinned
+release in `rust-toolchain.toml` installs itself). Pull requests from forks
+never run on it: the macOS jobs run for pushes, manual runs and pull requests
+from branches of this repository only. Inside a job, `scripts/run-parallel.sh`
+runs the scripts at the same time, one per CPU core.
 The media engine is a precompiled, pinned binary: it is downloaded and verified
 once, then restored from the cache. The compiled Rust backend (`libup60p.a` and
 its header) is stored the same way, keyed by the backend's sources, and is only

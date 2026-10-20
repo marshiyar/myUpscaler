@@ -15,7 +15,9 @@ runs:
           sudo xcode-select --switch "$xcode_app/Contents/Developer"
         fi
         # The xcode-27 image's default Xcode is 27; anything else means the wrong image.
-        version=$(xcodebuild -version | head -n 1)
+        # Read the whole output first: piping xcodebuild into head makes it crash on the closed pipe.
+        version=$(xcodebuild -version)
+        version=${version%%$'\n'*}
         echo "$version"
         if [[ $version != 'Xcode 27'* ]]; then
           echo "::error::Xcode 27 is required; this runner has $version."

@@ -105,13 +105,12 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 30
-    env:
-      # Kept outside the checkout (which is wiped on every run) and per runner, so a cancelled run's leftover cargo cannot lose its files; a later cargo waits on the lock instead.
-      CARGO_TARGET_DIR: ${{ github.workspace }}/../../../.cargo-target/${{ runner.name }}
     steps:
       - uses: actions/checkout@v4
         with: { persist-credentials: false }
       - uses: ./.github/actions/media-engine
+      # Kept outside the checkout (wiped on every run) and per runner, so a cancelled run's leftover cargo cannot lose its files; a later cargo waits on the lock instead.
+      - run: echo "CARGO_TARGET_DIR=$RUNNER_WORKSPACE/../../.cargo-target/$RUNNER_NAME" >> "$GITHUB_ENV"
       - run: cargo test
       - name: Build and render a finished run
         run: |

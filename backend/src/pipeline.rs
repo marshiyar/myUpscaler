@@ -256,7 +256,7 @@ fn validate_hardware(o: &Options, video: bool) -> Result<(), String> {
         return Err("Unsupported encoder or hardware decoder. Choose CPU/Auto or VideoToolbox.".into());
     }
     if video && encoder == "videotoolbox" && flag(o.use10) && text(&o.codec) == "h264" {
-        return Err("VideoToolbox H.264 supports 8-bit output. Select HEVC for 10-bit output.".into());
+        return Err("VideoToolbox and 10-bit output are not available; the engine writes 8-bit H.264.".into());
     }
     Ok(())
 }

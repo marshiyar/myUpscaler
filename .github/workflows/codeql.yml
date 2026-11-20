@@ -1,0 +1,91 @@
+name: CodeQL
+
+# Security and quality analysis. It reports to the Security tab and never blocks a merge.
+on:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'desktop/**'
+      - 'gpu/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - '.github/**'
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 9 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    # Rust, Python and the workflow files need no build, so they run on a hosted Linux runner.
+    name: ${{ matrix.language }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [rust, python, actions]
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+          queries: security-and-quality
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:${{ matrix.language }}
+
+  swift:
+    # Swift is analysed while the app is built, which needs Xcode. Weekly and on request only, so it never
+    # competes with pull request jobs for the Mac.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: ./.github/actions/setup-macos
+      - uses: ./.github/actions/rust-backend-macos
+      - name: Restore prepared CoreML models
+        uses: actions/cache@v4
+        with:
+          path: third_party/CoreML
+          key: coreml-models-${{ hashFiles('scripts/prepare-bundled-models.sh', 'scripts/validate-bundled-models.sh') }}
+      - name: Prepare bundled CoreML models
+        shell: bash
+        run: bash scripts/prepare-bundled-models.sh
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: swift
+          build-mode: manual
+          queries: security-and-quality
+      - name: Build the app
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project myUpscaler.xcodeproj -scheme myUpscaler \
+            -configuration Debug -destination 'generic/platform=macOS' \
+            -derivedDataPath "$RUNNER_TEMP/myUpscaler-codeql-DerivedData" \
+            CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= \
+            ENABLE_USER_SCRIPT_SANDBOXING=NO \
+            build
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:swift

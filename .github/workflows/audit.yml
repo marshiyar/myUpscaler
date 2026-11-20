@@ -1,0 +1,34 @@
+name: Dependency audit
+
+# Known vulnerabilities and yanked crates in the Rust dependencies. It never blocks a merge.
+on:
+  pull_request:
+    paths: ['**/Cargo.lock', '**/Cargo.toml', '.github/workflows/audit.yml']
+  schedule:
+    - cron: '41 9 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        crate: [backend, desktop, gpu]
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: taiki-e/install-action@v2
+        with: { tool: cargo-audit }
+      - name: cargo audit
+        working-directory: ${{ matrix.crate }}
+        run: |
+          if [ -f Cargo.lock ]; then cargo audit; else echo "no Cargo.lock in ${{ matrix.crate }}: nothing to audit"; fi

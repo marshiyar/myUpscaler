@@ -128,6 +128,7 @@ export global App {
     in property <[string]> hwaccels: ["none"];
     in property <[string]> encoders: ["auto", "cpu"];
     in property <[string]> presets;
+    in-out property <string> preset-message;
     in property <bool> mac;                         // shortcuts read ⌘ rather than Ctrl
 
     in-out property <bool> inspector-visible;

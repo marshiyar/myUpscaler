@@ -77,8 +77,39 @@ pub fn format(presets: &[Preset]) -> String {
     out
 }
 
-pub fn load(path: &Path) -> Vec<Preset> {
-    std::fs::read_to_string(path).map(|t| parse(&t)).unwrap_or_default()
+/// The saved presets and, when the file had to be set aside, a message for the user.
+pub struct Loaded {
+    pub presets: Vec<Preset>,
+    pub message: Option<String>,
+}
+
+/// Reads the presets. A missing file is an empty list. A file that is unreadable, not UTF-8 text or holds no preset
+/// is moved to `presets.txt.bad` (replacing an older one) so the next save cannot overwrite it.
+pub fn load(path: &Path) -> Loaded {
+    let text = match std::fs::read_to_string(path) {
+        Ok(text) => text,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Loaded { presets: Vec::new(), message: None },
+        Err(e) => return set_aside(path, &format!("could not be read ({e})")),
+    };
+    let presets = parse(&text);
+    if presets.is_empty()
+        && !text.trim().is_empty()
+        && !text.lines().all(|l| l.trim().is_empty() || l.trim().starts_with('#'))
+    {
+        return set_aside(path, "held no presets");
+    }
+    Loaded { presets, message: None }
+}
+
+fn set_aside(path: &Path, why: &str) -> Loaded {
+    let bad = path.with_extension("txt.bad");
+    let _ = std::fs::remove_file(&bad);
+    let kept = std::fs::rename(path, &bad).or_else(|_| std::fs::copy(path, &bad).map(|_| ()));
+    let message = match kept {
+        Ok(()) => format!("The saved presets file {why}. It was kept as {}.", bad.display()),
+        Err(e) => format!("The saved presets file {why}, and a copy could not be made: {e}."),
+    };
+    Loaded { presets: Vec::new(), message: Some(message) }
 }
 
 pub fn save(path: &Path, presets: &[Preset]) -> std::io::Result<()> {
@@ -232,7 +263,79 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("myupscaler-presets-{}", std::process::id()));
         let path = dir.join("nested/presets.txt");
         save(&path, &[Preset { name: "A".into(), options: Options::default() }]).unwrap();
-        assert_eq!(load(&path).len(), 1);
+        assert_eq!(load(&path).presets.len(), 1);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    fn temp(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("myupscaler-presets-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    fn set_aside_case(name: &str, bytes: &[u8]) {
+        let dir = temp(name);
+        let path = dir.join("presets.txt");
+        std::fs::write(&path, bytes).unwrap();
+        let loaded = load(&path);
+        assert!(loaded.presets.is_empty());
+        assert!(loaded.message.is_some());
+        assert!(!path.exists());
+        assert_eq!(std::fs::read(dir.join("presets.txt.bad")).unwrap(), bytes);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn a_non_utf8_file_is_kept_as_bad() {
+        set_aside_case("binary", &[0xff, 0xfe, 0x00, 0x9f, 0x92]);
+    }
+
+    #[test]
+    fn a_file_without_presets_is_kept_as_bad() {
+        set_aside_case(
+            "garbage",
+            b"this is not a preset file
+at all
+",
+        );
+    }
+
+    #[test]
+    fn an_older_bad_file_is_replaced() {
+        let dir = temp("replace");
+        std::fs::write(dir.join("presets.txt.bad"), "old").unwrap();
+        std::fs::write(dir.join("presets.txt"), "junk").unwrap();
+        assert!(load(&dir.join("presets.txt")).message.is_some());
+        assert_eq!(std::fs::read_to_string(dir.join("presets.txt.bad")).unwrap(), "junk");
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn a_missing_file_is_empty_without_a_message() {
+        let dir = temp("missing");
+        let loaded = load(&dir.join("presets.txt"));
+        assert!(loaded.presets.is_empty() && loaded.message.is_none());
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn a_valid_file_is_left_alone() {
+        let dir = temp("valid");
+        let path = dir.join("presets.txt");
+        save(&path, &[Preset { name: "A".into(), options: Options::default() }]).unwrap();
+        let loaded = load(&path);
+        assert_eq!(loaded.presets.len(), 1);
+        assert!(loaded.message.is_none() && path.exists() && !dir.join("presets.txt.bad").exists());
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn saving_under_a_regular_file_fails() {
+        let dir = temp("unwritable");
+        let blocker = dir.join("file");
+        std::fs::write(&blocker, "x").unwrap();
+        assert!(save(&blocker.join("presets.txt"), &[]).is_err());
         std::fs::remove_dir_all(dir).unwrap();
     }
 }

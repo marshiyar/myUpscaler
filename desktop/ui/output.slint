@@ -396,6 +396,12 @@ export component OutputPage inherits VerticalLayout {
             color: Theme.secondary;
             wrap: word-wrap;
         }
+        if App.preset-message != "": Text {
+            text: App.preset-message;
+            font-size: Theme.caption;
+            color: Theme.secondary;
+            wrap: word-wrap;
+        }
         Divider { }
         if App.presets.length == 0: Caption {
             text: "No presets yet. Save one to reuse your favorite configuration.";

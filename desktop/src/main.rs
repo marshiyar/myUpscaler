@@ -391,6 +391,8 @@ fn wire(ui: &AppWindow) -> Rc<RefCell<State>> {
     let (player_send, player_events) = channel();
     std::thread::spawn(move || player::worker(player_commands, player_send));
     let preset_file = presets::file();
+    let loaded = preset_file.as_deref().map(presets::load);
+    ui.global::<App>().set_preset_message(loaded.as_ref().and_then(|l| l.message.clone()).unwrap_or_default().into());
     let state = Rc::new(RefCell::new(State {
         input: None,
         cancel: Arc::new(AtomicBool::new(false)),
@@ -406,7 +408,7 @@ fn wire(ui: &AppWindow) -> Rc<RefCell<State>> {
         thumbnail_times: Vec::new(),
         thumbnails,
         thumbnail_labels,
-        presets: preset_file.as_deref().map(presets::load).unwrap_or_default(),
+        presets: loaded.map(|l| l.presets).unwrap_or_default(),
         preset_file,
         player,
         player_events,

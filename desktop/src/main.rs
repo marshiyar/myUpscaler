@@ -5,6 +5,7 @@
 
 #![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
 
+mod device;
 mod dropped;
 mod playback;
 mod player;
@@ -69,6 +70,9 @@ struct State {
     preset_file: Option<PathBuf>,
     player: Sender<player::Command>,
     player_events: Receiver<player::Event>,
+    /// The graphics adapter once found, and the startup search still running.
+    gpu: device::Probe,
+    gpu_search: Option<Receiver<Result<Arc<dyn up60p::accel::Accelerator>, String>>>,
 }
 
 fn append_log(ui: &AppWindow, text: &str) {
@@ -236,6 +240,22 @@ fn start(ui: &AppWindow, state: &mut State) {
 /// Applies what the processing, preview and frame-strip threads reported since the last tick.
 fn drain(ui: &AppWindow, state: &mut State) {
     let app = ui.global::<App>();
+    if let Some(search) = &state.gpu_search {
+        let found = match search.try_recv() {
+            Ok(found) => Some(found),
+            Err(std::sync::mpsc::TryRecvError::Empty) => None,
+            Err(_) => Some(Err("the search stopped".to_owned())),
+        };
+        if let Some(found) = found {
+            state.gpu_search = None;
+            app.set_device_note(device::note(&found).into());
+            state.gpu = found.ok();
+            let names = device::choices(&state.gpu);
+            app.set_devices(ModelRc::new(VecModel::from(
+                names.into_iter().map(SharedString::from).collect::<Vec<_>>(),
+            )));
+        }
+    }
     while let Ok(reply) = state.replies.try_recv() {
         app.set_preview_busy(false);
         match reply {
@@ -352,6 +372,8 @@ fn open_with_system(target: &str, reveal: bool) {
 }
 
 fn settings_changed(ui: &AppWindow, state: &State) {
+    let current = ui.global::<Settings>();
+    current.set_processing(device::apply(current.get_processing(), &state.gpu));
     settings::update_ranges(&ui.global::<Settings>());
     if let Some(input) = &state.input {
         let options = settings::options(&ui.global::<Settings>());
@@ -418,6 +440,10 @@ fn wire(ui: &AppWindow) -> Rc<RefCell<State>> {
     let (player, player_commands) = channel();
     let (player_send, player_events) = channel();
     std::thread::spawn(move || player::worker(player_commands, player_send));
+    let (gpu_tx, gpu_search) = channel();
+    std::thread::spawn(move || {
+        let _ = gpu_tx.send(device::open_gpu());
+    });
     let preset_file = presets::file();
     let loaded = preset_file.as_deref().map(presets::load);
     ui.global::<App>().set_preset_message(loaded.as_ref().and_then(|l| l.message.clone()).unwrap_or_default().into());
@@ -440,6 +466,8 @@ fn wire(ui: &AppWindow) -> Rc<RefCell<State>> {
         preset_file,
         player,
         player_events,
+        gpu: None,
+        gpu_search: Some(gpu_search),
     }));
     presets::refresh(ui, &state.borrow());
 

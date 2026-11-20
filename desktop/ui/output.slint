@@ -214,6 +214,22 @@ export component OutputPage inherits VerticalLayout {
             wrap: word-wrap;
         }
         Divider { }
+        ChoiceRow {
+            label: "Processing";
+            small: true;
+            choices: App.devices;
+            index <=> Settings.processing;
+            enabled: !App.running;
+            menu-width: 200px;
+            changed => { Actions.settings-changed(); }
+        }
+        if App.device-note != "": Text {
+            text: App.device-note;
+            font-size: Theme.caption;
+            color: Theme.secondary;
+            wrap: word-wrap;
+        }
+        Divider { }
         FieldRow {
             label: "Threads";
             small: true;

@@ -2,6 +2,7 @@
 //! backend's stages; anything the GPU cannot do (no adapter, planes too large for its buffers) runs on the CPU
 //! code in `up60p`, which is also the reference every stage here is tested against.
 
+mod bm3d;
 mod context;
 mod lanczos;
 
@@ -14,13 +15,15 @@ use up60p::frame::Plane;
 pub struct GpuAccelerator {
     gpu: Gpu,
     lanczos: lanczos::Lanczos,
+    bm3d: bm3d::Bm3dStage,
 }
 
 impl GpuAccelerator {
     pub fn new(allow_software: bool) -> Result<GpuAccelerator, String> {
         let gpu = Gpu::new(allow_software)?;
         let lanczos = lanczos::Lanczos::new(&gpu);
-        Ok(GpuAccelerator { gpu, lanczos })
+        let bm3d = bm3d::Bm3dStage::new(&gpu);
+        Ok(GpuAccelerator { gpu, lanczos, bm3d })
     }
 }
 
@@ -31,6 +34,10 @@ impl Accelerator for GpuAccelerator {
 
     fn resize(&self, plane: &Plane, w: usize, h: usize) -> Option<Plane> {
         self.lanczos.resize(&self.gpu, plane, w, h)
+    }
+
+    fn bm3d(&self, plane: &Plane, sigma: f32) -> Option<Plane> {
+        self.bm3d.denoise(&self.gpu, plane, sigma)
     }
 }
 

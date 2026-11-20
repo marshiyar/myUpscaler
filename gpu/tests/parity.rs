@@ -50,3 +50,28 @@ fn lanczos_matches_the_cpu() {
         assert!(d <= TOLERANCE, "{sw}x{sh} -> {dw}x{dh}: max difference {d} on {}", gpu.name());
     }
 }
+
+/// BM3D picks groups and thresholds coefficients, so a sample can differ where two candidates match almost equally
+/// or a coefficient sits on the threshold. The mean difference must stay tiny and the largest one bounded.
+const BM3D_MEAN_TOLERANCE: f32 = 0.005;
+const BM3D_MAX_TOLERANCE: f32 = 0.5;
+
+#[test]
+fn bm3d_matches_the_cpu() {
+    let Some(gpu) = accelerator() else { return };
+    use up60p::accel::Accelerator;
+    use up60p::filters::bm3d::Bm3d;
+    for (w, h, sigma) in [(96, 64, 7.0), (131, 77, 3.0), (200, 120, 12.0), (8, 8, 5.0), (7, 20, 5.0)] {
+        let src = picture(w, h);
+        let cpu = Bm3d::new(Some(sigma as f64)).denoise(&src, sigma);
+        let fast = gpu.bm3d(&src, sigma).expect("the GPU denoises a small plane");
+        let d = max_difference(&cpu, &fast);
+        let mean = cpu.data.iter().zip(&fast.data).map(|(a, b)| (a - b).abs()).sum::<f32>() / cpu.data.len() as f32;
+        eprintln!("bm3d {w}x{h} sigma {sigma}: max {d} mean {mean}");
+        assert!(
+            d <= BM3D_MAX_TOLERANCE && mean <= BM3D_MEAN_TOLERANCE,
+            "{w}x{h} sigma {sigma}: max difference {d}, mean {mean} on {}",
+            gpu.name()
+        );
+    }
+}

@@ -5,6 +5,7 @@ on:
     paths: &desktop-paths
       - 'desktop/**'
       - 'backend/**'
+      - 'gpu/**'
       - 'rust-toolchain.toml'
       - 'scripts/prepare-media-engine.sh'
       - '.github/workflows/release.yml'

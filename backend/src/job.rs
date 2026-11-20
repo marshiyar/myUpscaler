@@ -9,6 +9,7 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{sync_channel, Receiver, SyncSender};
+use std::sync::Arc;
 use std::time::Instant;
 
 use crate::engine::{self, EngineError, Mp4Writer, WriterConfig};
@@ -73,12 +74,7 @@ impl Job<'_> {
     /// The dry-run plan, one `CMD: ` line per file: input, filter chain and output.
     fn log_command(&self, input: &Path, output: &Path, plan: &pipeline::Plan) {
         let fps = plan.fps.map_or(String::new(), |(n, d)| format!(" -r {n}/{d}"));
-        (self.log)(&format!(
-            "CMD: up60p -i {} -vf {}{fps} {}\n",
-            input.display(),
-            plan.chain.describe(),
-            output.display()
-        ));
+        (self.log)(&format!("CMD: up60p -i {} -vf {}{fps} {}\n", input.display(), plan.describe(), output.display()));
     }
 
     fn cancelled(&self) -> Result<(), JobError> {
@@ -159,7 +155,7 @@ impl Job<'_> {
             ));
         }
         let mut plan = pipeline::build(self.options, Source::Image).map_err(JobError::InvalidOptions)?;
-        (self.log)(&format!("Filters: {}\n", plan.chain.describe()));
+        (self.log)(&format!("Filters: {}\n", plan.describe()));
         if self.dry_run {
             self.log_command(input, output, &plan);
             return Ok(());
@@ -252,7 +248,7 @@ impl Job<'_> {
             audio_rate: audio.as_ref().map_or(0, |a| a.1),
             audio_channels: audio.as_ref().map_or(0, |a| a.0.channels),
         };
-        (self.log)(&format!("Filters: {}\n", plan.chain.describe()));
+        (self.log)(&format!("Filters: {}\n", plan.describe()));
         (self.log)(&format!(
             "Output: {} ({out_w}x{out_h}, {out_fps:.3} fps, H.264 {quality:?}{})\n",
             output.display(),
@@ -267,34 +263,55 @@ impl Job<'_> {
         let started = Instant::now();
         let expected_frames = (duration * out_fps).ceil().max(1.0) as u64;
         let (frame_tx, frame_rx) = sync_channel::<Frame>(3);
-        let (out_tx, out_rx) = sync_channel::<Vec<u8>>(3);
+        let (out_tx, out_rx) = sync_channel::<Arc<Vec<u8>>>(3);
         let cancel = self.cancel;
+        let mut repeat = plan.repeat.take();
 
         std::thread::scope(|s| {
             let decoder = s.spawn(move || decode(&mut video, src_fps, duration, frame_tx, cancel));
             let encoder = s.spawn(move || encode(writer, audio, out_fps, out_rx, cancel));
 
             let mut written = 0u64;
+            let mut pictures = 0u32;
             let mut last_report = Instant::now();
-            let mut send = |frames: Vec<Frame>, written: &mut u64| -> bool {
-                for f in frames {
-                    let pts = f.pts;
-                    let rgba = f.to_rgba(*written as u32);
-                    if out_tx.send(rgba).is_err() {
+            // The picture waiting for its repeat count (with frame repetition).
+            let mut held: Option<Arc<Vec<u8>>> = None;
+            // Sends a finished picture `times` times; false once the encoder has stopped.
+            let mut show = |rgba: &Arc<Vec<u8>>, times: u64, written: &mut u64| -> bool {
+                for _ in 0..times {
+                    if out_tx.send(rgba.clone()).is_err() {
                         return false;
                     }
                     *written += 1;
                     if last_report.elapsed().as_secs_f64() >= 0.5 {
                         last_report = Instant::now();
                         let elapsed = started.elapsed().as_secs_f64().max(1e-3);
+                        let time = *written as f64 / out_fps;
                         (self.log)(&format!(
                             "frame={:6} fps={:.2} time={} speed={:.3}x progress={:.1}%\n",
                             written,
                             *written as f64 / elapsed,
-                            timestamp(pts),
-                            pts / elapsed,
+                            timestamp(time),
+                            time / elapsed,
                             (*written as f64 / expected_frames as f64 * 100.0).min(100.0)
                         ));
+                    }
+                }
+                true
+            };
+            let mut send = |frames: Vec<Frame>, written: &mut u64| -> bool {
+                for f in frames {
+                    let rgba = Arc::new(f.to_rgba(pictures));
+                    pictures = pictures.wrapping_add(1);
+                    let shown = match repeat.as_mut() {
+                        Some(r) => {
+                            let times = r.push(f.pts);
+                            held.replace(rgba).is_none_or(|previous| show(&previous, times, written))
+                        }
+                        None => show(&rgba, 1, written),
+                    };
+                    if !shown {
+                        return false;
                     }
                 }
                 true
@@ -308,7 +325,10 @@ impl Job<'_> {
                 }
             }
             if open && !cancel.load(Ordering::Relaxed) {
-                send(plan.chain.flush(), &mut written);
+                open = send(plan.chain.flush(), &mut written);
+            }
+            if let (true, Some(r), Some(last)) = (open, repeat.as_mut(), held.take()) {
+                show(&last, r.finish(), &mut written);
             }
             drop(out_tx);
             drop(frame_rx);
@@ -389,7 +409,7 @@ fn encode(
     mut writer: Mp4Writer,
     mut audio: Option<(engine::Audio, u32)>,
     fps: f64,
-    rx: Receiver<Vec<u8>>,
+    rx: Receiver<Arc<Vec<u8>>>,
     cancel: &AtomicBool,
 ) -> Result<(), JobError> {
     let mut frames = 0u64;

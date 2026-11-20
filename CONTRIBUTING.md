@@ -58,27 +58,30 @@ settings. CI tests the supplied set and predicts with the packaged models.
 
 ## Actions workflows
 
-CI is split into five workflows whose jobs run in parallel; each runs only when
-the files it covers change, and nothing is checked twice:
+Workflows are in `.github/workflows/`. Each runs on pull requests and pushes to `main`, and by hand. All except
+`build.yml` and `release.yml` are limited to the paths they cover; `build.yml` skips changes that only touch
+Markdown files. Jobs labelled `ubuntu-24.04` and `windows-2025` run on hosted runners; jobs labelled `xcode-27` run on
+macOS with Xcode 27 and a Metal device.
 
-| Workflow | Jobs |
-| --- | --- |
-| **Rust** (`rust.yml`, Linux) | format, lints, unit tests, engine tests, build without the engine |
-| **Swift tests** (`swift-tests.yml`) | source lint (Linux); one macOS job with every logic test and XCTest |
-| **Regression tests** (`regression.yml`) | one macOS job: finishing chain through the Rust dry run, media tests, Metal kernels |
-| **Desktop app** (`desktop.yml`) | cross-platform Slint app: Linux checks, tests and screenshots; Windows build; macOS build and run |
-| **macOS build and bundle** (`build.yml`) | Release app (verify engine, signature, models and inference, package); model-set preparation |
+- `rust.yml` (Ubuntu): jobs `format`, `lints` (clippy, warnings denied), `unit-tests`, `engine-tests` (C API, engine
+  wrapper and end-to-end renders through the media engine; skipped tests fail the job) and `without-engine` (the crate
+  builds and its filter tests pass without the engine library).
+- `swift-tests.yml`: `source-lint` (Ubuntu: shell syntax, whitespace, the source size ceiling), then `swift` (`xcode-27`:
+  every logic test and the XCTest scheme).
+- `regression.yml` (`xcode-27`): the finishing chain through the Rust dry run, native media tests on generated clips and
+  the Metal kernels.
+- `desktop.yml`: the Slint app. `linux` (format, clippy, tests, screenshots), `windows` (tests, then a build that
+  processes a test clip) and `macos` (`xcode-27`: tests, then a build that renders a finished run).
+- `build.yml` (`xcode-27`): `release-app` (Release app build; verifies the engine, signature, models and inference;
+  packages the app) and `model-sets` (model-set preparation). The jobs report the Metal device and fail if there is none.
+- `release.yml`: for `v*` tags (or by hand for an existing tag): `smoke` builds and smoke-tests the desktop app on
+  Linux (`ubuntu-24.04`), Windows (`windows-2025`) and macOS (`xcode-27`), then `publish` (Ubuntu) uploads the packaged apps
+  and screenshots to the tag's release.
 
-All jobs use GitHub's free standard runners (macOS jobs on the `xcode-27`
-image: macOS 27, Apple Silicon) (the repository is public; larger
-runners are billed even for public repositories). The GPU jobs (CoreML inference
-and the Metal kernels) report the runner's Metal device and fail if there is
-none; GitHub's macOS runners are virtual machines, so their GPU is slower than a
-real Mac's. The Rust backend runs on the CPU.
+The `xcode-27` jobs need Xcode 27 in `/Applications` and Rust through rustup (the pinned release in
+`rust-toolchain.toml` installs itself). Inside a job, `scripts/run-parallel.sh` runs the scripts at the same time, one
+per CPU core.
 
-There are five macOS jobs, the free plan's limit of concurrent macOS jobs,
-so none waits for another. Inside a job, `scripts/run-parallel.sh` runs the
-scripts at the same time, one per CPU core.
 The media engine is a precompiled, pinned binary: it is downloaded and verified
 once, then restored from the cache. The compiled Rust backend (`libup60p.a` and
 its header) is stored the same way, keyed by the backend's sources, and is only
@@ -90,8 +93,21 @@ The Release job uploads a unique `myUpscaler-macos-arm64-<run>-<attempt>`
 artifact containing a DMG, an inner ZIP that preserves app permissions,
 checksums, and build information. Artifacts are retained for 90 days and are
 never overwritten or deleted by the workflow. These builds are ad hoc signed and
-are not notarized. The workflows have read-only repository permissions and do
-not publish to GitHub Releases.
+are not notarized.
+
+The Release workflow runs for a pushed `v*` tag (or by hand for an existing
+tag). On each platform it builds the desktop app and runs its smoke test
+(`desktop/scripts/smoke-test.sh`): the real window rendered headless on the
+import view, on the adjustments panel with a generated clip, and after that clip
+is exported end to end, with the exported file checked. The packaged apps
+(`myupscaler-<tag>-<platform>-<arch>`, with the media engine library beside the
+program) and the screenshots go on the tag's GitHub release, whose description
+gets a "Smoke tests" section showing each platform's result and screenshots
+(`scripts/release-notes.py`). An existing release keeps its own text and
+assets: only that section, between its markers, is added or replaced. A platform
+whose smoke test failed is shown as failed rather than left out. Only this
+job has write access to the repository (to publish the release); every other
+workflow is read-only.
 
 ## Fast checks without downloaded assets
 
@@ -104,6 +120,8 @@ does not build the app or require Core ML model files. The backend tests and the
 Swift tests that link the backend need the media engine from
 `scripts/prepare-media-engine.sh`; packaged-app verification
 (`tests/verify-packaged-engine.sh`) remains a separate requirement.
+
+On Windows, Linux or macOS without Xcode, `bash scripts/check-portable.sh` runs the source budget and the backend and desktop format, clippy and test checks (`cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`). It needs the media engine from `scripts/prepare-media-engine.sh` for the engine-backed tests.
 
 `bash scripts/check-environment.sh` reports Xcode/SDK, the Metal compiler
 component and Rust. It does not install tools or download assets. Xcode may be present

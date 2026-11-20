@@ -1,0 +1,181 @@
+// The finishing filters (the second restoration pass) of the Restore page, in the macOS app's compact layout:
+// small menus, fields and mini switches rather than sliders.
+
+import { Theme } from "theme.slint";
+import { Settings, Actions } from "globals.slint";
+import { Divider, ChoiceRow, StackedField, ParameterRow, Dropdown, TextField, Toggle } from "components.slint";
+
+export component FinishingFilters inherits VerticalLayout {
+    spacing: 8px;
+    Divider { }
+    HorizontalLayout {
+        spacing: 8px;
+        Text {
+            text: "Denoise";
+            font-size: Theme.subheadline;
+            color: Theme.text;
+            vertical-alignment: center;
+            horizontal-stretch: 1;
+        }
+        Dropdown {
+            width: 100px;
+            model: ["Off", "bm3d", "nlmeans", "hqdn3d", "atadenoise"];
+            current-index <=> Settings.denoise2;
+            label: "Finishing denoise";
+            selected => { Actions.settings-changed(); }
+        }
+        if Settings.denoise2 > 0: TextField {
+            width: 50px;
+            text <=> Settings.denoise2-strength;
+            placeholder: "Str";
+            label: "Finishing denoise strength";
+            edited => { Actions.settings-changed(); }
+        }
+        if Settings.denoise2 == 0: Rectangle { width: 50px; }
+    }
+    Divider { }
+    ParameterRow {
+        title: "Deringing";
+        value <=> Settings.dering2;
+        maximum: 10;
+        step: 0.005;
+        default-value: 0.5;
+        changed => { Actions.settings-changed(); }
+    }
+    Divider { }
+    HorizontalLayout {
+        spacing: 8px;
+        alignment: start;
+        Toggle {
+            mini: true;
+            checked <=> Settings.sharpen2;
+            label: "Finishing sharpen";
+            toggled => { Actions.settings-changed(); }
+        }
+        Text {
+            text: "Sharpen";
+            font-size: Theme.subheadline;
+            color: Settings.sharpen2 ? Theme.text : Theme.secondary;
+            vertical-alignment: center;
+        }
+    }
+    if Settings.sharpen2: HorizontalLayout {
+        spacing: 8px;
+        alignment: start;
+        Dropdown {
+            width: 90px;
+            model: ["cas", "unsharp"];
+            current-index <=> Settings.sharpen2-method;
+            label: "Finishing sharpen method";
+            selected => { Actions.settings-changed(); }
+        }
+        if Settings.sharpen2-method == 1: StackedField {
+            label: "Matrix";
+            value <=> Settings.usm2-radius;
+            placeholder: "5";
+            field-width: 35px;
+            changed => { Actions.settings-changed(); }
+        }
+        if Settings.sharpen2-method == 1: StackedField {
+            label: "Amount";
+            value <=> Settings.usm2-amount;
+            placeholder: "1.0";
+            field-width: 35px;
+            changed => { Actions.settings-changed(); }
+        }
+        if Settings.sharpen2-method == 0: Text {
+            text: "CAS";
+            font-size: Theme.subheadline;
+            color: Theme.secondary;
+            vertical-alignment: center;
+        }
+        if Settings.sharpen2-method == 0: TextField {
+            width: 50px;
+            text <=> Settings.cas2-strength;
+            placeholder: "0.25";
+            label: "Finishing CAS strength";
+            edited => { Actions.settings-changed(); }
+        }
+    }
+    Divider { }
+    ChoiceRow {
+        label: "Deband";
+        small: true;
+        choices: ["Off", "Deband", "Gradfun", "Neo F3kdb (CPU)"];
+        index <=> Settings.deband2;
+        changed => {
+            if Settings.deband2 != 1 {
+                Settings.f3kdb2 = false;
+            }
+            Actions.settings-changed();
+        }
+    }
+    if (Settings.deband2 == 1 && Settings.f3kdb2) || Settings.deband2 == 3: HorizontalLayout {
+        spacing: 6px;
+        padding-left: 8px;
+        alignment: start;
+        StackedField {
+            label: "Range";
+            value <=> Settings.f3kdb2-range;
+            placeholder: "15";
+            field-width: 35px;
+            changed => { Actions.settings-changed(); }
+        }
+        StackedField {
+            label: "Y";
+            value <=> Settings.f3kdb2-y;
+            placeholder: "64";
+            field-width: 35px;
+            changed => { Actions.settings-changed(); }
+        }
+        StackedField {
+            label: "CbCr";
+            value <=> Settings.f3kdb2-cbcr;
+            placeholder: "64";
+            field-width: 35px;
+            changed => { Actions.settings-changed(); }
+        }
+    }
+    if Settings.deband2 == 2 || (Settings.deband2 == 1 && !Settings.f3kdb2): HorizontalLayout {
+        spacing: 8px;
+        padding-left: 8px;
+        alignment: start;
+        Text {
+            text: "Strength";
+            font-size: Theme.subheadline;
+            color: Theme.secondary;
+            vertical-alignment: center;
+        }
+        TextField {
+            width: 55px;
+            text <=> Settings.deband2-strength;
+            placeholder: "0.015";
+            label: "Finishing deband strength";
+            edited => { Actions.settings-changed(); }
+        }
+    }
+    Divider { }
+    HorizontalLayout {
+        spacing: 8px;
+        alignment: start;
+        Toggle {
+            mini: true;
+            checked <=> Settings.grain2;
+            label: "Finishing grain";
+            toggled => { Actions.settings-changed(); }
+        }
+        Text {
+            text: "Grain";
+            font-size: Theme.subheadline;
+            color: Settings.grain2 ? Theme.text : Theme.secondary;
+            vertical-alignment: center;
+        }
+        if Settings.grain2: TextField {
+            width: 50px;
+            text <=> Settings.grain2-strength;
+            placeholder: "1.0";
+            label: "Finishing grain strength";
+            edited => { Actions.settings-changed(); }
+        }
+    }
+}

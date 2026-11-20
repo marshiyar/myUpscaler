@@ -32,6 +32,24 @@ macro_rules! options {
 
         /// Every field in declaration order with its C type.
         pub const FIELDS: &[(&str, Kind)] = &[$((stringify!($field), options!(@kind $kind)),)*];
+
+        impl Options {
+            /// A field's value as text, by its name in `FIELDS`.
+            pub fn get(&self, name: &str) -> Option<String> {
+                match name {
+                    $(stringify!($field) => Some(Field::read(&self.$field)),)*
+                    _ => None,
+                }
+            }
+
+            /// Sets a field from text, by its name in `FIELDS` (text fields are truncated to fit).
+            pub fn set_field(&mut self, name: &str, value: &str) -> Result<(), String> {
+                match name {
+                    $(stringify!($field) => Field::write(&mut self.$field, value).map_err(|e| format!("{name}: {e}")),)*
+                    _ => Err(format!("unknown option {name}")),
+                }
+            }
+        }
     };
     (@type flag) => { c_int };
     (@type real) => { f64 };
@@ -162,6 +180,37 @@ pub fn set(field: &mut [c_char], value: &str) {
     }
 }
 
+/// Reading and writing one field as text (`Options::get` and `Options::set_field`).
+trait Field {
+    fn read(&self) -> String;
+    fn write(&mut self, value: &str) -> Result<(), String>;
+}
+
+impl<const N: usize> Field for [c_char; N] {
+    fn read(&self) -> String {
+        text(self)
+    }
+    fn write(&mut self, value: &str) -> Result<(), String> {
+        set(self, value);
+        Ok(())
+    }
+}
+
+macro_rules! numeric_field {
+    ($($t:ty: $what:literal),*) => {$(
+        impl Field for $t {
+            fn read(&self) -> String {
+                self.to_string()
+            }
+            fn write(&mut self, value: &str) -> Result<(), String> {
+                *self = value.trim().parse().map_err(|_| format!("takes {}", $what))?;
+                Ok(())
+            }
+        }
+    )*};
+}
+numeric_field!(c_int: "a whole number (0 or 1 for a switch)", i64: "a whole number", f64: "a number");
+
 impl Default for Options {
     /// The app's factory settings (formerly `set_defaults` in the C engine).
     fn default() -> Options {
@@ -260,6 +309,23 @@ mod tests {
         set(&mut f, "much-too-long");
         assert_eq!(text(&f), "much-to");
         assert_eq!(f[7], 0);
+    }
+
+    #[test]
+    fn fields_by_name() {
+        let mut o = Options::default();
+        for (name, _) in FIELDS {
+            let value = o.get(name).unwrap();
+            o.set_field(name, &value).unwrap();
+        }
+        o.set_field("denoiser", "hqdn3d").unwrap();
+        o.set_field("no_grain", "1").unwrap();
+        o.set_field("source_video_duration", "2.5").unwrap();
+        assert_eq!((text(&o.denoiser).as_str(), o.no_grain, o.source_video_duration), ("hqdn3d", 1, 2.5));
+        assert_eq!(o.get("no_grain").as_deref(), Some("1"));
+        assert!(o.set_field("no_grain", "yes").unwrap_err().contains("no_grain"));
+        assert!(o.set_field("nope", "1").is_err());
+        assert_eq!(o.get("nope"), None);
     }
 
     #[test]

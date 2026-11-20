@@ -47,7 +47,7 @@ fn all_on() -> Options {
 }
 
 fn video(o: &Options) -> String {
-    build(o, Source::Video { fps: 24.0 }).unwrap().chain.describe()
+    build(o, Source::Video { fps: 24.0 }).unwrap().describe()
 }
 
 #[test]

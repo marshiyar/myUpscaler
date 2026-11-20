@@ -1,0 +1,124 @@
+name: Release
+
+# For a pushed v* tag (or, run by hand, an existing tag): builds the desktop app on macOS, Windows and Linux, runs
+# its smoke test on each (desktop/scripts/smoke-test.sh: three screenshots of the real window and an export checked
+# end to end), and publishes the packaged apps and the screenshots on the tag's release. The release's description
+# gets a "Smoke tests" section with each platform's result and screenshots (scripts/release-notes.py); an existing
+# release keeps its own text and assets, and only that section is added or replaced.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to build, smoke-test and publish'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  TAG: ${{ inputs.tag || github.ref_name }}
+
+jobs:
+  smoke:
+    name: smoke (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { platform: linux, runner: ubuntu-24.04, arch: x64 }
+          - { platform: windows, runner: windows-2025, arch: x64 }
+          # The self-hosted Mac; only tags pushed by the repository's writers and manual runs reach it.
+          - { platform: macos, runner: [self-hosted, macOS, ARM64], arch: arm64 }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: bash
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          persist-credentials: false
+      - name: System libraries (fonts, ALSA)
+        if: matrix.platform == 'linux'
+        run: sudo apt-get update -q && sudo apt-get install -y -q libfontconfig1-dev libasound2-dev
+      - uses: ./.github/actions/media-engine
+      - name: Build
+        run: cargo build --release --locked
+      - name: Smoke test
+        run: |
+          set -euo pipefail
+          app=target/release/myupscaler
+          [[ ${{ matrix.platform }} == windows ]] && app=$app.exe
+          bash scripts/smoke-test.sh "$app" "$RUNNER_TEMP/release" ${{ matrix.platform }}
+      - name: Package
+        run: |
+          set -euo pipefail
+          name="myupscaler-$TAG-${{ matrix.platform }}-${{ matrix.arch }}"
+          pkg="$RUNNER_TEMP/$name"
+          mkdir -p "$pkg"
+          engine=../third_party/mpvfx-media
+          case ${{ matrix.platform }} in
+            windows) cp target/release/myupscaler.exe target/release/mpvfx_ffi.dll "$pkg/" ;;
+            macos) cp target/release/myupscaler "$engine/lib/libmpvfx_ffi.dylib" "$pkg/" ;;
+            linux) cp target/release/myupscaler "$engine/lib/libmpvfx_ffi.so" "$pkg/" ;;
+          esac
+          cp "$engine/LICENSE" "$pkg/MpVFX-Media-LICENSE.txt"
+          cp "$engine/NOTICE" "$pkg/MpVFX-Media-NOTICE.txt"
+          cp ../LICENSE "$pkg/LICENSE.txt"
+          cd "$RUNNER_TEMP"
+          if [[ ${{ matrix.platform }} == windows ]]; then
+            7z a -tzip -bso0 "release/$name.zip" "$name"
+          else
+            tar -czf "release/$name.tar.gz" "$name"
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.platform }}
+          path: ${{ runner.temp }}/release/*
+          if-no-files-found: error
+
+  publish:
+    # Publishes whatever the smoke tests produced, so a platform that failed shows as failed on the release.
+    needs: smoke
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+      - name: Publish the release
+        run: |
+          set -euo pipefail
+          ls -l dist
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber
+            gh release view "$TAG" --json body --jq .body > existing.md
+            python3 scripts/release-notes.py "$GH_REPO" "$TAG" dist existing.md > notes.md
+            gh release edit "$TAG" --notes-file notes.md
+          else
+            python3 scripts/release-notes.py "$GH_REPO" "$TAG" dist > notes.md
+            prerelease=()
+            [[ $TAG == *-* ]] && prerelease=(--prerelease)
+            gh release create "$TAG" dist/* --verify-tag --title "myUpscaler $TAG" --notes-file notes.md "${prerelease[@]}"
+          fi
+          echo "Published $(gh release view "$TAG" --json url --jq .url)"

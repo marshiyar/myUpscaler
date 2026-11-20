@@ -1,13 +1,12 @@
-// Design tokens for the editor layout: flat panels tiled on a black window with
-// small gaps, hairline separators, dense rows, blue numeric values and timecodes, and a light variant. Inter is
-// embedded for the interface and Geist Mono for timecodes, so every platform renders the same.
+// Design tokens matching the macOS app (myUpscaler/Views): macOS system colours for windows, cards, grouped forms,
+// labels and separators in light and dark appearance, the system blue accent, and macOS text sizes. Inter is
+// embedded for the interface, so every platform renders the same; the log uses the system's monospaced font, as
+// on macOS.
 
 import { Palette } from "std-widgets.slint";
 import "fonts/Inter-Regular.ttf";
 import "fonts/Inter-Medium.ttf";
 import "fonts/Inter-SemiBold.ttf";
-import "fonts/GeistMono-Regular.ttf";
-import "fonts/GeistMono-Medium.ttf";
 
 export enum ThemePreference { system, light, dark }
 
@@ -17,60 +16,64 @@ export global Theme {
         : preference == ThemePreference.light ? false
         : Palette.color-scheme != ColorScheme.light;
 
-    // Type
+    // Type (macOS text styles)
     out property <string> font: "Inter";
-    out property <string> mono: "Geist Mono";
-    out property <length> font-title: 15px;
-    out property <length> font-body: 13px;
-    out property <length> font-small: 12px;
-    out property <length> font-label: 11px;
-    out property <length> font-timecode: 17px;
+    out property <string> mono: "monospace";
+    out property <length> title: 22px;              // .title
+    out property <length> title2: 17px;             // .title2
+    out property <length> body: 13px;               // .body, .headline
+    out property <length> subheadline: 11px;        // .subheadline
+    out property <length> caption: 10px;            // .caption, .caption2
+    out property <length> log: 11px;
 
     // Spacing and shape
-    out property <length> gap: 4px;
     out property <length> xs: 4px;
-    out property <length> sm: 6px;
-    out property <length> md: 10px;
-    out property <length> lg: 16px;
-    out property <length> xl: 24px;
-    out property <length> radius-small: 3px;
-    out property <length> radius: 4px;
-    out property <length> radius-large: 6px;
-    out property <length> row-height: 24px;
+    out property <length> sm: 8px;
+    out property <length> md: 16px;
+    out property <length> lg: 24px;
+    out property <length> xl: 32px;
+    out property <length> control-radius: 5px;
+    out property <length> section-radius: 8px;
+    out property <length> card-radius: 14px;
     out property <length> control-height: 22px;
+    out property <length> toolbar-height: 52px;
 
     // Motion
     out property <duration> fast: 120ms;
     out property <duration> base: 200ms;
 
     // Surfaces
-    out property <color> app: dark ? #000000 : #c9c9c9;
-    out property <color> header: dark ? #1d1d1d : #ececec;
-    out property <color> panel: dark ? #1d1d1d : #f4f4f4;
-    out property <color> monitor: dark ? #141414 : #dcdcdc;
-    out property <color> field: dark ? #0e0e0e : #ffffff;
-    out property <color> field-border: dark ? #303030 : #c4c4c4;
-    out property <color> separator: dark ? #303030 : #d6d6d6;
-    out property <color> hover: dark ? #2c2c2c : #e2e2e2;
-    out property <color> pressed: dark ? #4b4b4b : #cfcfcf;
-    out property <color> selected: dark ? #333333 : #dddddd;
-    out property <color> raised: dark ? #242424 : #ffffff;
+    out property <color> window: dark ? #1e1e1e : #ececec;              // windowBackgroundColor
+    out property <color> card: dark ? #262626 : #ffffff;                // controlBackgroundColor
+    out property <color> well: dark ? #1a1a1a : #ffffff;                // textBackgroundColor
+    out property <color> card-border: dark ? #ffffff14 : #00000014;     // primary at 8%
+    out property <color> bar: dark ? #2b2b2b : #f6f6f6;                 // toolbar and bottom bar
+    out property <color> form: dark ? #1e1e1e : #f2f2f2;                // grouped form background
+    out property <color> section: dark ? #ffffff0d : #ffffff;           // grouped form section
+    out property <color> section-border: dark ? #ffffff12 : #0000000f;
+    out property <color> separator: dark ? #ffffff1a : #0000001a;
+    out property <color> hover: dark ? #ffffff14 : #0000000d;
+    out property <color> pressed: dark ? #ffffff24 : #0000001a;
+    out property <color> fill: dark ? #ffffff1a : #0000000f;            // quaternary fill: tracks, segments
+    out property <color> control: dark ? #ffffff24 : #ffffff;           // bordered buttons, popup buttons
+    out property <color> control-border: dark ? #ffffff1f : #00000026;
+    out property <color> field: dark ? #ffffff0d : #ffffff;
+    out property <color> field-border: dark ? #ffffff26 : #00000026;
+    out property <color> popover: dark ? #2c2c2e : #f6f6f6;
+    out property <color> segment: dark ? #636366 : #ffffff;             // selected segment
+    out property <color> knob: #ffffff;
 
-    // Text and icons
-    out property <color> text: dark ? #d1d1d1 : #1f1f1f;
-    out property <color> dim: dark ? #b0b0b0 : #4a4a4a;
-    out property <color> faint: dark ? #6e6e6e : #8a8a8a;
-    out property <color> strong: dark ? #ebebeb : #000000;
+    // Labels
+    out property <color> text: dark ? #dfdfdf : #262626;                // labelColor
+    out property <color> secondary: dark ? #98989d : #808080;           // secondaryLabelColor
+    out property <color> tertiary: dark ? #636366 : #b2b2b2;            // tertiaryLabelColor
 
     // Accent and states
-    out property <color> accent: #2f6bdf;
-    out property <color> accent-hover: #3f7ce8;
-    out property <color> focus: #5794ec;
-    out property <color> value: dark ? #4096f3 : #1f63d6;
+    out property <color> accent: dark ? #0a84ff : #007aff;
+    out property <color> accent-pressed: dark ? #0071e3 : #0062cc;
     out property <color> on-accent: #ffffff;
-    out property <color> track: dark ? #505050 : #b8b8b8;
-    out property <color> knob: dark ? #e0e0e0 : #ffffff;
-    out property <color> success: #2d9d78;
-    out property <color> danger: #dc513d;
-    out property <color> warning: #e8a33d;
+    out property <color> focus: dark ? #0a84ff80 : #007aff80;
+    out property <color> green: dark ? #30d158 : #28cd41;
+    out property <color> orange: dark ? #ff9f0a : #ff9500;
+    out property <color> red: dark ? #ff453a : #ff3b30;
 }

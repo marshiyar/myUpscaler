@@ -27,15 +27,15 @@ defaults:
 
 jobs:
   linux:
-    # Format, lints and tests, then screenshots of the real window (light, dark, filtered preview, a finished run)
+    # Format, lints and tests, then screenshots of the real window (light, dark, each adjustments page, a finished run)
     # rendered headless with Slint's software renderer, kept as an artifact for review.
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with: { persist-credentials: false }
-      - name: System libraries for the interface (fonts)
-        run: sudo apt-get update -q && sudo apt-get install -y -q libfontconfig1-dev
+      - name: System libraries for the interface (fonts) and the player (ALSA)
+        run: sudo apt-get update -q && sudo apt-get install -y -q libfontconfig1-dev libasound2-dev
       - uses: ./.github/actions/media-engine
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: desktop, shared-key: desktop-linux }
@@ -51,14 +51,15 @@ jobs:
           mkdir -p "$shots"
           python3 scripts/sample-image.py "$shots/sample.png"
           "$app" --screenshot "$shots/import.png"
-          "$app" --screenshot "$shots/edit-restore-dark.png" --dark --page 1 "$shots/sample.png"
-          "$app" --screenshot "$shots/edit-processor-filtered.png" --processed --page 2 "$shots/sample.png"
-          "$app" --screenshot "$shots/export-light.png" --light --workspace 2 "$shots/sample.png"
-          "$app" --screenshot "$shots/finished-run.png" --run "$shots/sample.png"
+          "$app" --screenshot "$shots/restore-dark.png" --dark --page 1 "$shots/sample.png"
+          "$app" --screenshot "$shots/processor-light.png" --light --page 2 "$shots/sample.png"
+          "$app" --screenshot "$shots/output-dark.png" --dark --page 3 "$shots/sample.png"
+          "$app" --screenshot "$shots/settings-light.png" --light --settings
+          "$app" --screenshot "$shots/finished-run.png" --run --log "$shots/sample.png"
           test -s "$shots/sample_[restored].png"
           cargo run --release --example sample_clip -- "$shots/clip.mp4"
-          "$app" --screenshot "$shots/video-light.png" --light --processed --page 1 "$shots/clip.mp4"
-          "$app" --screenshot "$shots/video-running.png" --dark --workspace 2 --run --after 5 "$shots/clip.mp4"
+          "$app" --screenshot "$shots/video-light.png" --light --page 0 "$shots/clip.mp4"
+          "$app" --screenshot "$shots/video-running.png" --dark --inspector --run --after 5 "$shots/clip.mp4"
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-screenshots
@@ -66,24 +67,48 @@ jobs:
           if-no-files-found: error
 
   windows:
-    # The media engine has no Windows package yet: the app builds without it and says so in its log.
+    # Tests, then a real run of the release build (a generated clip, processed headless), so the shipped app is known
+    # to process files. The artifact is the app with the media engine's DLL beside it.
     runs-on: windows-2025
     timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+        working-directory: desktop
     steps:
       - uses: actions/checkout@v4
         with: { persist-credentials: false }
+      - uses: ./.github/actions/media-engine
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: desktop, shared-key: desktop-windows }
       - run: cargo test
-      - run: cargo build --release
+      - name: Build and process a clip
+        run: |
+          set -euo pipefail
+          cargo build --release
+          test -f target/release/mpvfx_ffi.dll
+          shots="$RUNNER_TEMP/screenshots"
+          mkdir -p "$shots"
+          cargo run --release --example sample_clip -- "$shots/clip.mp4"
+          target/release/myupscaler.exe --screenshot "$shots/windows-finished-run.png" --run "$shots/clip.mp4"
+          test -s "$shots/clip_[restored].mp4"
+          mkdir -p "$RUNNER_TEMP/app"
+          cp target/release/myupscaler.exe target/release/mpvfx_ffi.dll ../third_party/mpvfx-media/LICENSE \
+            ../third_party/mpvfx-media/NOTICE "$RUNNER_TEMP/app/"
       - uses: actions/upload-artifact@v4
         with:
           name: myupscaler-windows-x64
-          path: desktop/target/release/myupscaler.exe
+          path: ${{ runner.temp }}/app/*
           if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-windows-screenshot
+          path: ${{ runner.temp }}/screenshots/windows-finished-run.png
 
   macos:
-    runs-on: xcode-27
+    # The self-hosted Mac. Pull requests from forks never run on it: their code would run on that machine.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4

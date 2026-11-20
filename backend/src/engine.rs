@@ -309,26 +309,22 @@ impl Video {
         Ok(video)
     }
 
-    /// The frame shown at `seconds`, at the display size, into `out` (width * height * 4 bytes). Returns the
-    /// presentation time of the frame returned.
+    /// The frame shown at `seconds`, at the display size; see `frame_scaled`.
     pub fn frame_at(&mut self, seconds: f64, out: &mut [u8]) -> Result<f64> {
-        let needed = self.width as usize * self.height as usize * 4;
-        if out.len() < needed {
+        self.frame_scaled(seconds, self.width, self.height, out)
+    }
+
+    /// The frame shown at `seconds`, scaled by the engine to `width` x `height`, into `out` (width * height * 4
+    /// bytes). Returns the presentation time of the frame returned.
+    pub fn frame_scaled(&mut self, seconds: f64, width: u32, height: u32, out: &mut [u8]) -> Result<f64> {
+        let needed = width as usize * height as usize * 4;
+        if width == 0 || height == 0 || out.len() < needed {
             return Err(EngineError { code: -1, message: "frame buffer too small".into() });
         }
         let mut shown = 0.0f64;
-        // SAFETY: out holds at least width * height * 4 bytes; fit 1 = stretch to the (native) size.
+        // SAFETY: out holds at least width * height * 4 bytes; fit 1 = stretch to that size.
         let code = unsafe {
-            mpvfx_video_frame_at(
-                self.raw.as_ptr(),
-                seconds,
-                self.width,
-                self.height,
-                1,
-                out.as_mut_ptr(),
-                needed,
-                &mut shown,
-            )
+            mpvfx_video_frame_at(self.raw.as_ptr(), seconds, width, height, 1, out.as_mut_ptr(), needed, &mut shown)
         };
         check(code, "a video frame could not be decoded")?;
         Ok(shown)
@@ -588,10 +584,7 @@ mod tests {
         let a = p.audio.unwrap();
         assert_eq!((a.sample_rate, a.channels, a.decodable), (44100, 2, false));
         assert_eq!(a.reason.as_deref(), Some("No \"AAC\" here"));
-    }
-
-    #[test]
-    fn null_streams_are_absent() {
+        // Absent streams are null.
         let p = parse_probe(r#"{"container":"png","duration":0,"video":null,"audio":null}"#);
         assert!(p.video.is_none() && p.audio.is_none());
     }

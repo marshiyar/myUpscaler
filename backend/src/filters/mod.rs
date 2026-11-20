@@ -11,6 +11,7 @@ pub mod grain;
 pub mod hqdn3d;
 pub mod interpolate;
 pub mod nlmeans;
+pub mod repeat;
 pub mod scale;
 pub mod sharpen;
 

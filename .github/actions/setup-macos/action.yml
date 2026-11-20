@@ -1,5 +1,5 @@
 name: Set up macOS
-description: Selects the newest installed Xcode 27; optionally requires a Metal GPU.
+description: Selects the newest installed Xcode 27 (no sudo, so it works on a self-hosted Mac); optionally requires a Metal GPU.
 inputs:
   require-gpu:
     description: Fail unless Metal reports a GPU (for the GPU jobs).
@@ -10,19 +10,25 @@ runs:
     - shell: bash
       run: |
         set -euo pipefail
-        xcode_app=$(find /Applications -maxdepth 1 -name 'Xcode_27*.app' | sort -V | tail -n 1)
-        if [[ -n "$xcode_app" ]]; then
-          sudo xcode-select --switch "$xcode_app/Contents/Developer"
-        fi
-        # The xcode-27 image's default Xcode is 27; anything else means the wrong image.
-        # Read the whole output first: piping xcodebuild into head makes it crash on the closed pipe.
-        version=$(xcodebuild -version)
-        version=${version%%$'\n'*}
-        echo "$version"
-        if [[ $version != 'Xcode 27'* ]]; then
-          echo "::error::Xcode 27 is required; this runner has $version."
+        # The newest installed Xcode 27, whatever its folder is called (Xcode_27.x.app on GitHub's machines,
+        # Xcode.app or Xcode-beta.app on a self-hosted Mac). DEVELOPER_DIR selects it for this job without sudo.
+        # Read the whole version output: piping xcodebuild into head makes it crash on the closed pipe.
+        best='' best_version=''
+        for app in /Applications/Xcode*.app; do
+          tool="$app/Contents/Developer/usr/bin/xcodebuild"
+          [[ -x $tool ]] || continue
+          version=$("$tool" -version 2>/dev/null) || continue
+          version=${version%%$'\n'*}
+          if [[ $version == 'Xcode 27'* ]] && [[ -z $best || $(printf '%s\n%s\n' "$best_version" "$version" | sort -V | tail -n 1) == "$version" ]]; then
+            best=$app best_version=$version
+          fi
+        done
+        if [[ -z $best ]]; then
+          echo "::error::Xcode 27 is required; none was found in /Applications."
           exit 1
         fi
+        echo "DEVELOPER_DIR=$best/Contents/Developer" >> "$GITHUB_ENV"
+        echo "$best_version ($best)"
     - if: inputs.require-gpu == 'true'
       shell: bash
       run: |

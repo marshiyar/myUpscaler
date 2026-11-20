@@ -44,7 +44,7 @@ import Synchronization
             close(sample.presentationTimeStamp, timestamps[frameCount])
             frameCount += 1
         }
-        precondition(frameCount == timestamps.count && frameCount == 38)
+        precondition(frameCount == timestamps.count && frameCount == 38, "frames read \(frameCount), source frames \(timestamps.count), expected 38")
         let audioReader = try AVAssetReader(asset: output)
         let audioOutput = AVAssetReaderTrackOutput(track: outputAudio[0], outputSettings: [AVFormatIDKey: kAudioFormatLinearPCM])
         audioReader.add(audioOutput)

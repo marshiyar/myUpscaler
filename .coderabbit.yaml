@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: en-US
+early_access: false
+reviews:
+  profile: chill
+  # Comments only: a review never blocks a merge.
+  request_changes_workflow: false
+  high_level_summary: false
+  poem: false
+  review_status: false
+  collapse_walkthrough: true
+  sequence_diagrams: false
+  changed_files_summary: false
+  auto_review:
+    enabled: true
+    drafts: false
+  path_filters:
+    - '!**/target/**'
+    - '!**/*.lock'
+    - '!**/*.mlpackage/**'
+    - '!**/*.mlmodelc/**'
+    - '!**/*.xcodeproj/**'
+    - '!third_party/**'
+    - '!docs/**/*.png'
+chat:
+  auto_reply: false

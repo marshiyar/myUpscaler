@@ -4,7 +4,7 @@ A native macOS app for restoring and upscaling video with its Rust engine (Lancz
 
 <img src="https://github.com/user-attachments/assets/0c40540b-d83c-4f9b-bad5-07c0baa4b978" alt="myUpscaler workspace" width="600">
 
-**Requires:** Apple Silicon and macOS 15.2 or later. Building from source uses Xcode 27 with its Metal compiler component installed, and Rust (the toolchain is pinned in `rust-toolchain.toml`).
+**macOS app requires:** Apple Silicon and macOS 15.7 or later. Building from source uses Xcode 27 with its Metal compiler component installed, and Rust (the toolchain is pinned in `rust-toolchain.toml`).
 
 ## Use
 
@@ -19,7 +19,19 @@ Shortcuts: **⌘O** imports, **⌘R** exports, and **⌘.** cancels. Customize b
 
 ## Engine
 
-Lanczos processing runs in a Rust backend written for this app (`backend/`): BM3D, non-local means, hqdn3d and adaptive temporal denoising; deblocking and deringing; duplicate-frame decimation; motion-compensated, blended or repeated frame interpolation; Lanczos-3 scaling; CAS and unsharp sharpening; deband, f3kdb-style and gradfun debanding; color EQ and grain. Filters run multi-threaded in float precision with a dithered 8-bit output. Decoding, H.264 encoding and MP4 muxing go through the MpVFX media engine, also written in Rust. Videos are written as H.264 MP4 with lossless FLAC audio; stills as PNG with transparency kept. There is no FFmpeg and no helper process.
+Lanczos processing runs in a Rust backend written for this app (`backend/`): BM3D, non-local means, hqdn3d and adaptive temporal denoising; deblocking and deringing; duplicate-frame decimation; motion-compensated, blended or repeated frame interpolation; Lanczos-3 scaling; CAS and unsharp sharpening; deband, f3kdb-style and gradfun debanding; color EQ and grain. Filters run multi-threaded in float precision with a dithered 8-bit output. Decoding, H.264 encoding and MP4 muxing go through the MpVFX media engine, also written in Rust. Videos are written as 8-bit H.264 (4:2:0) MP4 with FLAC audio (HEVC and 10-bit requests are written as H.264). Stills are written as PNG with transparency kept. There is no FFmpeg and no helper process.
+
+## Desktop app (Windows, Linux, macOS)
+
+`desktop/` is a [Slint](https://slint.dev) interface on the same Rust backend (`backend/`), with the same settings, saved presets and a player with sound. It runs on Windows x86_64, Linux x86_64 and macOS arm64. The AI (Real-ESRGAN) scaler is only in the macOS app today; the desktop app uses the Lanczos path.
+
+```sh
+bash scripts/prepare-media-engine.sh
+cd desktop
+cargo run --release
+```
+
+See [desktop/README.md](desktop/README.md) for platform requirements and status.
 
 ## Build and run
 

@@ -38,16 +38,15 @@ Studio Build Tools, "Desktop development with C++"). The build copies the engine
   the preview shows the adjustments; playing or scrubbing, the video's own frames.
 - `src/progress.rs`: the backend's progress lines → progress, FPS, time and ETA.
 - `src/screenshot.rs`: headless rendering for review and CI:
-  `myupscaler --screenshot out.png [--size 1280x800] [--inspector] [--page 0-3] [--log] [--about | --settings]
+  `myupscaler --screenshot out.png [--size 1280x800] [--inspector] [--page 0-3] [--log] [--about | --settings] [--dragging]
   [--dark | --light] [--run [--after SECONDS]] [input]`. `cargo run --example sample_clip -- clip.mp4` writes a test
   video for it.
 
 ## Status
 
-Working: import (file or batch folder), every Lanczos-path setting, the adjusted preview and frame strip, playback
+Working: import (file or batch folder, by the dialog or by dropping it on the window on Windows, macOS and X11; Wayland sends no file drops), every Lanczos-path setting, the adjusted preview and frame strip, playback
 with sound of the original or the finished export, saved presets, processing with live progress and cancel, opening or revealing the result, light and dark appearance. Not yet:
-Real-ESRGAN (AI) upscaling (planned as a GPU model runner: CoreML on macOS, wgpu elsewhere), dropping files on the
-window, and installers. The engine writes 8-bit H.264 with FLAC audio, and the Output page shows that.
+Real-ESRGAN (AI) upscaling (planned as a GPU model runner: CoreML on macOS, wgpu elsewhere) and installers. The engine writes 8-bit H.264 with FLAC audio, and the Output page shows that.
 
 ## Licence
 

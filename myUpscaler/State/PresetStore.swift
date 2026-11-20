@@ -481,18 +481,23 @@ nonisolated struct UpscaleSettingsSnapshot: Codable, Equatable, Sendable {
 @MainActor
 final class PresetStore: ObservableObject {
     @Published private(set) var presets: [Preset] = []
+    /// Set when the preset file could not be read or written; shown to the user and cleared by `dismissNotice()`.
+    @Published private(set) var storageNotice: String?
 
     private let storageURL: URL
     private let fileManager: FileManager
 
-    init(fileManager: FileManager = .default) {
+    init(fileManager: FileManager = .default, storageURL: URL? = nil) {
         self.fileManager = fileManager
 
-        let base = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first ?? fileManager.homeDirectoryForCurrentUser
-        let folder = base.appendingPathComponent("myUpscaler", isDirectory: true)
-        try? fileManager.createDirectory(at: folder, withIntermediateDirectories: true)
-
-        storageURL = folder.appendingPathComponent("presets.json")
+        if let storageURL {
+            self.storageURL = storageURL
+        } else {
+            let base = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first ?? fileManager.homeDirectoryForCurrentUser
+            let folder = base.appendingPathComponent("myUpscaler", isDirectory: true)
+            try? fileManager.createDirectory(at: folder, withIntermediateDirectories: true)
+            self.storageURL = folder.appendingPathComponent("presets.json")
+        }
 
         load()
     }
@@ -544,7 +549,8 @@ final class PresetStore: ObservableObject {
         preset.snapshot.apply(to: settings)
     }
 
-    // TODO: REVIEW THIS PIECE
+    func dismissNotice() { storageNotice = nil }
+
     private func load() {
         guard fileManager.fileExists(atPath: storageURL.path) else { return }
         do {
@@ -552,12 +558,28 @@ final class PresetStore: ObservableObject {
             let decoded = try JSONDecoder().decode([Preset].self, from: data)
             presets = decoded.sorted { $0.updatedAt > $1.updatedAt }
         } catch {
-            // If decoding fails, start clean rather than crashing the UI
             presets = []
+            keepUnreadableFileAside()
         }
     }
 
-    // TODO: REVIEW THIS PIECE
+    /// Renames an unreadable preset file to `presets.bad` (`presets.bad.2`, ...) so the next save cannot overwrite it.
+    private func keepUnreadableFileAside() {
+        let folder = storageURL.deletingLastPathComponent()
+        var target = folder.appendingPathComponent("presets.bad")
+        var counter = 2
+        while fileManager.fileExists(atPath: target.path) {
+            target = folder.appendingPathComponent("presets.bad.\(counter)")
+            counter += 1
+        }
+        do {
+            try fileManager.moveItem(at: storageURL, to: target)
+            storageNotice = "Your saved presets could not be read. The file was kept as \(target.lastPathComponent) next to it."
+        } catch {
+            storageNotice = "Your saved presets could not be read, and the file could not be set aside: \(error.localizedDescription)"
+        }
+    }
+
     private func persist() {
         do {
             let encoder = JSONEncoder()
@@ -565,7 +587,7 @@ final class PresetStore: ObservableObject {
             let data = try encoder.encode(presets)
             try data.write(to: storageURL, options: [.atomic])
         } catch {
-            // Intentionally ignore persistence errors to avoid disrupting the UI
+            storageNotice = "Presets could not be saved: \(error.localizedDescription)"
         }
     }
 

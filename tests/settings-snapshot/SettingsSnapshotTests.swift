@@ -16,8 +16,10 @@ nonisolated final class SettingsSnapshotTests: XCTestCase {
             (.realESRGANx8Author, "RealESRGAN_x8_Author", "Real-ESRGAN x8 (experimental)", 8)
         ]
         let models = CoreMLModelRegistry.models
-        XCTAssertEqual(models.map(\.id), CoreMLModelID.allCases)
-        XCTAssertEqual(models.count, expected.count + 17)
+        XCTAssertEqual(models.map(\.id), CoreMLModelID.allCases.filter { !CoreMLModelRegistry.retiredIDs.contains($0) })
+        XCTAssertEqual(models.count, expected.count - CoreMLModelRegistry.retiredIDs.count + 17)
+        XCTAssertEqual(CoreMLModelRegistry.retiredIDs.count, 4)
+        XCTAssertTrue(models.filter { $0.backend == .coreML }.allSatisfy { [4.0, 8.0].contains($0.nativeScale) })
         XCTAssertEqual(models.filter { $0.backend == .coreAI }.count, 17)
         XCTAssertEqual(Set(models.map(\.id)).count, models.count)
         for (id, resource, displayName, scale) in expected {
@@ -26,7 +28,7 @@ nonisolated final class SettingsSnapshotTests: XCTestCase {
             XCTAssertEqual(model.resourceName, resource)
             XCTAssertEqual(model.displayName, displayName)
             XCTAssertEqual(model.nativeScale, scale)
-            XCTAssertEqual(models.filter { $0.id == id }, [model])
+            XCTAssertEqual(models.contains(model), !CoreMLModelRegistry.retiredIDs.contains(id))
         }
         XCTAssertEqual(CoreMLModelRegistry.defaultModel.id, .realESRGANx4)
     }

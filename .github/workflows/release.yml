@@ -35,8 +35,7 @@ jobs:
         include:
           - { platform: linux, runner: ubuntu-24.04, arch: x64 }
           - { platform: windows, runner: windows-2025, arch: x64 }
-          # The self-hosted Mac; only tags pushed by the repository's writers and manual runs reach it.
-          - { platform: macos, runner: [self-hosted, macOS, ARM64], arch: arm64 }
+          - { platform: macos, runner: xcode-27, arch: arm64 }
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 40
     defaults:

@@ -105,12 +105,13 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 30
+    env:
+      # Kept outside the checkout (which is wiped on every run) and per runner, so a cancelled run's leftover cargo cannot lose its files; a later cargo waits on the lock instead.
+      CARGO_TARGET_DIR: ${{ github.workspace }}/../../../.cargo-target/${{ runner.name }}
     steps:
       - uses: actions/checkout@v4
         with: { persist-credentials: false }
       - uses: ./.github/actions/media-engine
-      - uses: Swatinem/rust-cache@v2
-        with: { workspaces: desktop, shared-key: desktop-macos }
       - run: cargo test
       - name: Build and render a finished run
         run: |
@@ -119,7 +120,7 @@ jobs:
           shots="$RUNNER_TEMP/screenshots"
           mkdir -p "$shots"
           python3 scripts/sample-image.py "$shots/sample.png"
-          target/release/myupscaler --screenshot "$shots/macos-finished-run.png" --run "$shots/sample.png"
+          "$CARGO_TARGET_DIR/release/myupscaler" --screenshot "$shots/macos-finished-run.png" --run "$shots/sample.png"
           test -s "$shots/sample_[restored].png"
       - uses: actions/upload-artifact@v4
         with:

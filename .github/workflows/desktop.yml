@@ -7,6 +7,7 @@ on:
       - 'backend/**'
       - 'rust-toolchain.toml'
       - 'scripts/prepare-media-engine.sh'
+      - '.github/workflows/release.yml'
       - '.github/actions/media-engine/**'
       - '.github/workflows/desktop.yml'
   push:
@@ -60,6 +61,16 @@ jobs:
           cargo run --release --example sample_clip -- "$shots/clip.mp4"
           "$app" --screenshot "$shots/video-light.png" --light --page 0 "$shots/clip.mp4"
           "$app" --screenshot "$shots/video-running.png" --dark --inspector --run --after 5 "$shots/clip.mp4"
+      - name: Package
+        run: |
+          set -euo pipefail
+          bash scripts/package.sh linux myupscaler-linux-x64 "$RUNNER_TEMP/package"
+          bash scripts/check-package.sh "$RUNNER_TEMP/package/myupscaler-linux-x64.tar.gz" "$RUNNER_TEMP/package-check"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: myupscaler-linux-x64
+          path: ${{ runner.temp }}/package/*.tar.gz
+          if-no-files-found: error
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-screenshots
@@ -67,14 +78,8 @@ jobs:
           if-no-files-found: error
 
   windows:
-    # Tests, then a real run of the release build (a generated clip, processed headless), so the shipped app is known
-    # to process files. The artifact is the app with the media engine's DLL beside it.
     runs-on: windows-2025
     timeout-minutes: 30
-    defaults:
-      run:
-        shell: bash
-        working-directory: desktop
     steps:
       - uses: actions/checkout@v4
         with: { persist-credentials: false }
@@ -82,28 +87,18 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: desktop, shared-key: desktop-windows }
       - run: cargo test
-      - name: Build and process a clip
+      - run: cargo build --release
+      - name: Package and run from the unpacked folder
+        shell: bash
         run: |
           set -euo pipefail
-          cargo build --release
-          test -f target/release/mpvfx_ffi.dll
-          shots="$RUNNER_TEMP/screenshots"
-          mkdir -p "$shots"
-          cargo run --release --example sample_clip -- "$shots/clip.mp4"
-          target/release/myupscaler.exe --screenshot "$shots/windows-finished-run.png" --run "$shots/clip.mp4"
-          test -s "$shots/clip_[restored].mp4"
-          mkdir -p "$RUNNER_TEMP/app"
-          cp target/release/myupscaler.exe target/release/mpvfx_ffi.dll ../third_party/mpvfx-media/LICENSE \
-            ../third_party/mpvfx-media/NOTICE "$RUNNER_TEMP/app/"
+          bash scripts/package.sh windows myupscaler-windows-x64 "$RUNNER_TEMP/package"
+          bash scripts/check-package.sh "$RUNNER_TEMP/package/myupscaler-windows-x64.zip" "$RUNNER_TEMP/package-check"
       - uses: actions/upload-artifact@v4
         with:
           name: myupscaler-windows-x64
-          path: ${{ runner.temp }}/app/*
+          path: ${{ runner.temp }}/package/*.zip
           if-no-files-found: error
-      - uses: actions/upload-artifact@v4
-        with:
-          name: desktop-windows-screenshot
-          path: ${{ runner.temp }}/screenshots/windows-finished-run.png
 
   macos:
     # The self-hosted Mac. Pull requests from forks never run on it: their code would run on that machine.

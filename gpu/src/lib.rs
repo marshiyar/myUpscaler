@@ -3,6 +3,7 @@
 //! code in `up60p`, which is also the reference every stage here is tested against.
 
 mod bm3d;
+mod cas;
 mod context;
 mod lanczos;
 
@@ -16,6 +17,7 @@ pub struct GpuAccelerator {
     gpu: Gpu,
     lanczos: lanczos::Lanczos,
     bm3d: bm3d::Bm3dStage,
+    cas: cas::Cas,
 }
 
 impl GpuAccelerator {
@@ -23,7 +25,8 @@ impl GpuAccelerator {
         let gpu = Gpu::new(allow_software)?;
         let lanczos = lanczos::Lanczos::new(&gpu);
         let bm3d = bm3d::Bm3dStage::new(&gpu);
-        Ok(GpuAccelerator { gpu, lanczos, bm3d })
+        let cas = cas::Cas::new(&gpu);
+        Ok(GpuAccelerator { gpu, lanczos, bm3d, cas })
     }
 }
 
@@ -38,6 +41,10 @@ impl Accelerator for GpuAccelerator {
 
     fn bm3d(&self, plane: &Plane, sigma: f32) -> Option<Plane> {
         self.bm3d.denoise(&self.gpu, plane, sigma)
+    }
+
+    fn cas(&self, plane: &Plane, strength: f32) -> Option<Plane> {
+        self.cas.apply(&self.gpu, plane, strength)
     }
 }
 

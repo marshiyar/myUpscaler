@@ -2,7 +2,9 @@
 //! software one) the tests report that and pass.
 
 use up60p::filters::scale::resize;
-use up60p::frame::Plane;
+use up60p::filters::sharpen::Cas;
+use up60p::filters::Spatial;
+use up60p::frame::{Frame, Plane};
 use up60p_gpu::GpuAccelerator;
 
 /// Largest allowed difference on the 0..255 sample scale.
@@ -73,5 +75,23 @@ fn bm3d_matches_the_cpu() {
             "{w}x{h} sigma {sigma}: max difference {d}, mean {mean} on {}",
             gpu.name()
         );
+    }
+}
+
+#[test]
+fn cas_matches_the_cpu() {
+    let Some(gpu) = accelerator() else { return };
+    use up60p::accel::Accelerator;
+    for (w, h) in [(1, 1), (5, 3), (15, 17), (16, 16), (33, 20), (97, 61), (200, 120)] {
+        for strength in [0.0f32, 0.5, 1.0] {
+            let src = picture(w, h);
+            let chroma = Plane::new(1, 1, 128.0);
+            let mut frame = Frame { planes: [src.clone(), chroma.clone(), chroma], alpha: None, pts: 0.0 };
+            // No accelerator is installed in this process, so this runs the CPU code.
+            Cas::new(strength as f64).apply(&mut frame);
+            let fast = gpu.cas(&src, strength).expect("the GPU sharpens a small plane");
+            let d = max_difference(&frame.planes[0], &fast);
+            assert!(d <= TOLERANCE, "{w}x{h} strength {strength}: max difference {d} on {}", gpu.name());
+        }
     }
 }

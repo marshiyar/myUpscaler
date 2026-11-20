@@ -3,6 +3,7 @@
 //! decoding, H.264 encoding and MP4 muxing go through the MpVFX media engine (`libmpvfx_ffi`). No FFmpeg and no
 //! external processes.
 
+pub mod accel;
 pub mod engine;
 pub mod filters;
 pub mod frame;

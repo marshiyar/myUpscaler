@@ -27,6 +27,10 @@ impl Spatial for Cas {
     }
 
     fn apply(&mut self, frame: &mut Frame) {
+        if let Some(out) = crate::accel::current().and_then(|a| a.cas(&frame.planes[0], self.strength)) {
+            frame.planes[0] = out;
+            return;
+        }
         let src = frame.planes[0].clone();
         let peak = -1.0 / (8.0 + (5.0 - 8.0) * self.strength);
         let w = src.w;

@@ -47,8 +47,7 @@ Studio Build Tools, "Desktop development with C++"). The build copies the engine
 Working: import (file or batch folder), every Lanczos-path setting, the adjusted preview and frame strip, playback
 with sound of the original or the finished export, saved presets, processing with live progress and cancel, opening or revealing the result, light and dark appearance. Not yet:
 Real-ESRGAN (AI) upscaling (planned as a GPU model runner: CoreML on macOS, wgpu elsewhere), dropping files on the
-window, and installers. HEVC, 10-bit and the hardware options are kept with the settings and presets, as in the macOS
-app; the Rust engine writes 8-bit H.264 on the CPU and says so in the log.
+window, and installers. The engine writes 8-bit H.264 with FLAC audio, and the Output page shows that.
 
 ## Licence
 

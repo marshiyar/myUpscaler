@@ -1,35 +1,10 @@
-// The Output page of the adjustments panel, as in the macOS app: where the export goes, hardware and encoding,
-// x265 parameters and saved presets.
+// The Output page of the adjustments panel, as in the macOS app: where the export goes, encoding and saved presets.
 
 import { Theme } from "theme.slint";
 import { Settings, App, Actions } from "globals.slint";
 import {
-    Divider, Caption, FormSection, PanelHeader, FormRow, ChoiceRow, FieldRow, StackedField, Disclosure, Dropdown,
-    TextField, Toggle, Button, ButtonKind, ButtonSize,
+    Divider, Caption, FormSection, PanelHeader, ChoiceRow, FieldRow, TextField, Button, ButtonKind, ButtonSize,
 } from "components.slint";
-
-// A mini switch followed by its caption ("Use HEVC (H.265)").
-component MiniSwitch inherits HorizontalLayout {
-    in property <string> label;
-    in-out property <bool> checked;
-    in property <bool> enabled: true;
-    callback changed();
-    spacing: 5px;
-    Toggle {
-        mini: true;
-        checked <=> root.checked;
-        enabled: root.enabled;
-        label: root.label;
-        toggled => { root.changed(); }
-    }
-    Text {
-        text: root.label;
-        font-size: Theme.caption;
-        color: Theme.text;
-        opacity: root.enabled ? 1 : 0.45;
-        vertical-alignment: center;
-    }
-}
 
 component PresetRow inherits Rectangle {
     in property <string> name;
@@ -152,7 +127,6 @@ component PresetRow inherits Rectangle {
 }
 
 export component OutputPage inherits VerticalLayout {
-    in-out property <bool> encoding-open;
     in-out property <string> preset-name;
     spacing: Theme.md;
     FormSection {
@@ -230,70 +204,14 @@ export component OutputPage inherits VerticalLayout {
     }
     FormSection {
         PanelHeader {
-            title: "Hardware & Encoding";
+            title: "Encoding";
             icon: @image-url("icons/gears.svg");
         }
-        ChoiceRow {
-            label: "Decode acceleration";
-            small: true;
-            choices: App.hwaccels;
-            index <=> Settings.hwaccel;
-            changed => { Actions.settings-changed(); }
-        }
-        Divider { }
-        ChoiceRow {
-            label: "Encoder";
-            small: true;
-            choices: App.encoders;
-            index <=> Settings.encoder;
-            changed => { Actions.settings-changed(); }
-        }
-        Divider { }
-        HorizontalLayout {
-            spacing: 12px;
-            alignment: start;
-            MiniSwitch {
-                label: "Use HEVC (H.265)";
-                checked <=> Settings.hevc;
-                changed => { Actions.settings-changed(); }
-            }
-            MiniSwitch {
-                label: "10‑Bit Output";
-                checked <=> Settings.ten-bit;
-                enabled: Settings.hevc && !Settings.force-8bit;
-                changed => { Actions.settings-changed(); }
-            }
-            MiniSwitch {
-                label: "Faststart";
-                checked <=> Settings.faststart;
-                changed => { Actions.settings-changed(); }
-            }
-        }
-        HorizontalLayout {
-            alignment: start;
-            MiniSwitch {
-                label: "Force 8-bit processing";
-                checked <=> Settings.force-8bit;
-                changed => { Actions.settings-changed(); }
-            }
-        }
-        Divider { }
-        FieldRow {
-            label: "Audio Bitrate";
-            small: true;
-            value <=> Settings.audio-bitrate;
-            placeholder: "192k";
-            field-width: 60px;
-            changed => { Actions.settings-changed(); }
-        }
-        Divider { }
-        ChoiceRow {
-            label: "CPU encoding speed";
-            small: true;
-            choices: ["veryfast", "faster", "medium"];
-            index <=> Settings.preset;
-            enabled: Settings.encoder != 2;
-            changed => { Actions.settings-changed(); }
+        Text {
+            text: "Output: H.264, 8-bit, MP4 with FLAC audio.";
+            font-size: Theme.caption;
+            color: Theme.secondary;
+            wrap: word-wrap;
         }
         Divider { }
         FieldRow {
@@ -303,65 +221,6 @@ export component OutputPage inherits VerticalLayout {
             placeholder: "0 (auto)";
             field-width: 60px;
             changed => { Actions.settings-changed(); }
-        }
-        Disclosure {
-            title: "CPU HEVC parameters";
-            expanded <=> root.encoding-open;
-            enabled: Settings.hevc && Settings.encoder != 2;
-        }
-        if root.encoding-open: VerticalLayout {
-            spacing: 6px;
-            PanelHeader {
-                title: "x265 Parameters";
-                icon: @image-url("icons/sliders.svg");
-            }
-            HorizontalLayout {
-                spacing: 12px;
-                alignment: start;
-                StackedField {
-                    label: "AQ Mode";
-                    value <=> Settings.aq-mode;
-                    placeholder: "3";
-                    changed => { Actions.settings-changed(); }
-                }
-                StackedField {
-                    label: "Psy-RD";
-                    value <=> Settings.psy-rd;
-                    placeholder: "2.0";
-                    changed => { Actions.settings-changed(); }
-                }
-                VerticalLayout {
-                    spacing: 2px;
-                    Text {
-                        text: "Deblock";
-                        font-size: Theme.caption;
-                        color: Theme.secondary;
-                    }
-                    HorizontalLayout {
-                        spacing: 4px;
-                        TextField {
-                            width: 35px;
-                            text <=> Settings.x265-deblock1;
-                            placeholder: "-2";
-                            label: "x265 deblock strength";
-                            edited => { Actions.settings-changed(); }
-                        }
-                        Text {
-                            text: ",";
-                            font-size: Theme.caption;
-                            color: Theme.secondary;
-                            vertical-alignment: center;
-                        }
-                        TextField {
-                            width: 35px;
-                            text <=> Settings.x265-deblock2;
-                            placeholder: "-2";
-                            label: "x265 deblock threshold";
-                            edited => { Actions.settings-changed(); }
-                        }
-                    }
-                }
-            }
         }
     }
     FormSection {

@@ -44,7 +44,8 @@ import Synchronization
             close(sample.presentationTimeStamp, timestamps[frameCount])
             frameCount += 1
         }
-        precondition(frameCount == timestamps.count && frameCount == 38)
+        // The fixture writes 38 frames; newer AVFoundation readers also return a frame at t=0 when the first frame starts later.
+        precondition(frameCount == timestamps.count && (38...39).contains(frameCount), "frames read \(frameCount), source frames \(timestamps.count)")
         let audioReader = try AVAssetReader(asset: output)
         let audioOutput = AVAssetReaderTrackOutput(track: outputAudio[0], outputSettings: [AVFormatIDKey: kAudioFormatLinearPCM])
         audioReader.add(audioOutput)

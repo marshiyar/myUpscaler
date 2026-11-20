@@ -58,16 +58,29 @@ settings. CI tests the supplied set and predicts with the packaged models.
 
 ## Actions workflows
 
-Workflows are in `.github/workflows/`; each runs only when the files it covers change.
+Workflows are in `.github/workflows/`. Each runs on pull requests and pushes to `main`, and by hand. All except
+`build.yml` and `release.yml` are limited to the paths they cover; `build.yml` skips changes that only touch
+Markdown files. Jobs labelled `ubuntu-24.04` and `windows-2025` run on hosted runners; jobs labelled `xcode-27` run on
+macOS with Xcode 27 and a Metal device.
 
-- `rust.yml`: format, lints, unit tests, engine tests and a build without the engine for the Rust backend.
-- `swift-tests.yml`: source lint, then every logic test and the XCTest scheme.
-- `regression.yml`: the finishing chain through the Rust dry run, media tests and Metal kernels.
-- `desktop.yml`: the cross-platform Slint app: Linux checks, tests and screenshots; Windows build; macOS build and run.
-- `build.yml`: Release app build (verify engine, signature, models and inference, package) and model-set preparation. The GPU jobs report the Metal device and fail if there is none.
-- `release.yml`: for `v*` tags (or by hand for a tag); builds and smoke-tests the desktop app on macOS, Windows and Linux and publishes the packaged apps and screenshots on the tag's release.
+- `rust.yml` (Ubuntu): jobs `format`, `lints` (clippy, warnings denied), `unit-tests`, `engine-tests` (C API, engine
+  wrapper and end-to-end renders through the media engine; skipped tests fail the job) and `without-engine` (the crate
+  builds and its filter tests pass without the engine library).
+- `swift-tests.yml`: `source-lint` (Ubuntu: shell syntax, whitespace, the source size ceiling), then `swift` (`xcode-27`:
+  every logic test and the XCTest scheme).
+- `regression.yml` (`xcode-27`): the finishing chain through the Rust dry run, native media tests on generated clips and
+  the Metal kernels.
+- `desktop.yml`: the Slint app. `linux` (format, clippy, tests, screenshots), `windows` (tests, then a build that
+  processes a test clip) and `macos` (`xcode-27`: tests, then a build that renders a finished run).
+- `build.yml` (`xcode-27`): `release-app` (Release app build; verifies the engine, signature, models and inference;
+  packages the app) and `model-sets` (model-set preparation). The jobs report the Metal device and fail if there is none.
+- `release.yml`: for `v*` tags (or by hand for an existing tag): `smoke` builds and smoke-tests the desktop app on
+  Linux (`ubuntu-24.04`), Windows (`windows-2025`) and macOS (`xcode-27`), then `publish` (Ubuntu) uploads the packaged apps
+  and screenshots to the tag's release.
 
-The macOS jobs need Xcode 27 in `/Applications` and Rust through rustup (the pinned release in `rust-toolchain.toml` installs itself). Inside a job, `scripts/run-parallel.sh` runs the scripts at the same time, one per CPU core.
+The `xcode-27` jobs need Xcode 27 in `/Applications` and Rust through rustup (the pinned release in
+`rust-toolchain.toml` installs itself). Inside a job, `scripts/run-parallel.sh` runs the scripts at the same time, one
+per CPU core.
 
 The media engine is a precompiled, pinned binary: it is downloaded and verified
 once, then restored from the cache. The compiled Rust backend (`libup60p.a` and
@@ -108,7 +121,7 @@ Swift tests that link the backend need the media engine from
 `scripts/prepare-media-engine.sh`; packaged-app verification
 (`tests/verify-packaged-engine.sh`) remains a separate requirement.
 
-`bash scripts/check-portable.sh` runs the source budget and the backend and desktop format, lint and test checks on Windows, Linux or macOS.
+On Windows, Linux or macOS without Xcode, `bash scripts/check-portable.sh` runs the source budget and the backend and desktop format, clippy and test checks (`cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`). It needs the media engine from `scripts/prepare-media-engine.sh` for the engine-backed tests.
 
 `bash scripts/check-environment.sh` reports Xcode/SDK, the Metal compiler
 component and Rust. It does not install tools or download assets. Xcode may be present

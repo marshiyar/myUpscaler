@@ -7,17 +7,17 @@ use super::Spatial;
 use crate::frame::{Frame, Plane};
 use crate::par;
 
-const N: usize = 8;
-const AREA: usize = N * N;
+pub const N: usize = 8;
+pub const AREA: usize = N * N;
 /// Reference blocks every STEP pixels.
-const STEP: usize = 4;
+pub const STEP: usize = 4;
 /// Search window half-size and stride.
-const SEARCH: isize = 10;
-const SEARCH_STRIDE: isize = 2;
+pub const SEARCH: isize = 10;
+pub const SEARCH_STRIDE: isize = 2;
 /// Largest group (a power of two).
-const MAX_GROUP: usize = 8;
+pub const MAX_GROUP: usize = 8;
 /// Hard threshold in noise standard deviations.
-const LAMBDA: f32 = 2.7;
+pub const LAMBDA: f32 = 2.7;
 
 type Block = [[f32; N]; N];
 
@@ -95,7 +95,18 @@ impl Bm3d {
         }
     }
 
-    fn denoise(&self, src: &Plane, sigma: f32) -> Plane {
+    /// The DCT-II basis, `dct[k][n]`; its transpose is the inverse.
+    pub fn dct_basis(&self) -> [[f32; N]; N] {
+        self.dct
+    }
+
+    /// The Kaiser window the blocks are weighted with when they are aggregated.
+    pub fn kaiser_window(&self) -> [[f32; N]; N] {
+        self.kaiser
+    }
+
+    /// The CPU denoiser, which is the reference for accelerated versions.
+    pub fn denoise(&self, src: &Plane, sigma: f32) -> Plane {
         let (w, h) = (src.w, src.h);
         if w < N || h < N {
             return src.clone();

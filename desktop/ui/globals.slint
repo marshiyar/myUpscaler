@@ -66,6 +66,7 @@ export global Settings {
     in-out property <string> output-folder;
     in-out property <int> hwaccel;
     in-out property <int> encoder;
+    in-out property <int> processing;               // 0 CPU, 1 GPU (when App.devices has it)
     in-out property <bool> hevc;
     in-out property <bool> ten-bit;
     in-out property <bool> faststart: true;
@@ -128,6 +129,8 @@ export global App {
 
     in property <[string]> hwaccels: ["none"];
     in property <[string]> encoders: ["auto", "cpu"];
+    in property <[string]> devices: ["CPU"];
+    in property <string> device-note;
     in property <[string]> presets;
     in-out property <string> preset-message;
     in property <bool> mac;                         // shortcuts read ⌘ rather than Ctrl

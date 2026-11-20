@@ -1,0 +1,20 @@
+[package]
+name = "up60p-gpu"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "GPU versions of the heaviest up60p stages (Lanczos, CAS, BM3D) through wgpu, installed through up60p::accel."
+publish = false
+
+[dependencies]
+up60p = { path = "../backend" }
+wgpu = { version = "30", default-features = false, features = ["wgsl", "dx12", "metal", "vulkan"] }
+pollster = "1"
+bytemuck = { version = "1", features = ["derive"] }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+
+[profile.test]
+opt-level = 3

@@ -277,7 +277,9 @@ impl Spatial for Bm3d {
 
     fn apply(&mut self, frame: &mut Frame) {
         let sigma = self.sigma.unwrap_or_else(|| estimate_sigma(&frame.planes[0]));
-        frame.planes[0] = self.denoise(&frame.planes[0], sigma);
+        let plane = &frame.planes[0];
+        let fast = crate::accel::current().and_then(|a| a.bm3d(plane, sigma));
+        frame.planes[0] = fast.unwrap_or_else(|| self.denoise(plane, sigma));
     }
 }
 

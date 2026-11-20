@@ -1,0 +1,44 @@
+name: GPU stages
+
+on:
+  pull_request:
+    paths: &gpu-paths
+      - 'gpu/**'
+      - 'backend/**'
+      - 'rust-toolchain.toml'
+      - '.github/workflows/gpu.yml'
+  push:
+    branches: [main]
+    paths: *gpu-paths
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gpu-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: gpu
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with: { persist-credentials: false }
+      - name: Software Vulkan driver
+        if: runner.os == 'Linux'
+        run: sudo apt-get update -q && sudo apt-get install -y -q mesa-vulkan-drivers
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: gpu, shared-key: "gpu-${{ matrix.os }}" }
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test

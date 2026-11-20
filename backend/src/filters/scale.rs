@@ -26,7 +26,7 @@ fn sinc(x: f64) -> f64 {
 }
 
 /// Taps for every output position: the first source index and the normalised weights.
-fn taps(src: usize, dst: usize) -> Vec<(usize, Vec<f32>)> {
+pub fn taps(src: usize, dst: usize) -> Vec<(usize, Vec<f32>)> {
     let ratio = src as f64 / dst as f64;
     let stretch = ratio.max(1.0);
     let support = LOBES * stretch;
@@ -99,11 +99,13 @@ impl Spatial for Lanczos {
     fn apply(&mut self, frame: &mut Frame) {
         let w = scaled_size(frame.width(), self.factor);
         let h = scaled_size(frame.height(), self.factor);
+        let accel = crate::accel::current();
+        let scale = |p: &Plane| accel.as_ref().and_then(|a| a.resize(p, w, h)).unwrap_or_else(|| resize(p, w, h));
         for p in frame.planes.iter_mut() {
-            *p = resize(p, w, h);
+            *p = scale(p);
         }
         if let Some(a) = frame.alpha.as_mut() {
-            *a = resize(a, w, h);
+            *a = scale(a);
             a.data.iter_mut().for_each(|v| *v = v.clamp(0.0, 255.0));
         }
     }

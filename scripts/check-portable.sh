@@ -18,7 +18,7 @@ step() {
 }
 
 step "$py" scripts/check-source-budget.py
-for crate in backend desktop; do
+for crate in backend gpu desktop; do
   cd "$crate"
   step cargo fmt --check
   step cargo clippy --all-targets -- -D warnings

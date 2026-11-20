@@ -26,27 +26,22 @@ nonisolated struct UpscaleSettingsSnapshot: Codable, Equatable, Sendable {
     var crf: Double
     var preset: String
     var use10Bit: Bool
-
     var x265AqMode: String
     var x265PsyRd: String
     var x265Deblock1: String
     var x265Deblock2: String
-
     var hwAccel: String
     var encoder: String
     var threads: String
-
     var fps: String
     var scaleFactor: Double
     var interpolation: String
-
     var scaler: String
     var coremlModelId: CoreMLModelID
     var aiModelPath: String
     var aiBackend: String
     var aiModelType: String
     var dnnBackend: String
-
     var denoiser: String
     var denoiseStrength: String
     var deblockMode: String
@@ -64,41 +59,32 @@ nonisolated struct UpscaleSettingsSnapshot: Codable, Equatable, Sendable {
     var f3kdbY: String
     var f3kdbCbCr: String
     var grainStrength: String
-
     var denoiser2: String
     var denoiseStrength2: String
     var useDenoise2: Bool
-
     var deblockMode2: String
     var deblockThresh2: String
     var useDeblock2: Bool
-
     var deringActive2: Bool
     var deringStrength2: String
     var useDering2: Bool
-
     var sharpenMethod2: String
     var sharpenStrength2: String
     var useSharpen2: Bool
-
     var usmRadius2: String
     var usmAmount2: String
     var usmThreshold2: String
-
     var debandMethod2: String
     var debandStrength2: String
     var useDeband2: Bool
-
     var f3kdbRange2: String
     var f3kdbY2: String
     var f3kdbCbCr2: String
     var grainStrength2: String
     var useGrain2: Bool
-
     var eqContrast: String
     var eqBrightness: String
     var eqSaturation: String
-
     var enableColorLinearize: Bool = true
     var colorExposure: String = "1.0"
     var enableToneMap: Bool = false
@@ -481,18 +467,22 @@ nonisolated struct UpscaleSettingsSnapshot: Codable, Equatable, Sendable {
 @MainActor
 final class PresetStore: ObservableObject {
     @Published private(set) var presets: [Preset] = []
+    @Published private(set) var storageNotice: String?
 
     private let storageURL: URL
     private let fileManager: FileManager
 
-    init(fileManager: FileManager = .default) {
+    init(fileManager: FileManager = .default, storageURL: URL? = nil) {
         self.fileManager = fileManager
 
-        let base = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first ?? fileManager.homeDirectoryForCurrentUser
-        let folder = base.appendingPathComponent("myUpscaler", isDirectory: true)
-        try? fileManager.createDirectory(at: folder, withIntermediateDirectories: true)
-
-        storageURL = folder.appendingPathComponent("presets.json")
+        if let storageURL {
+            self.storageURL = storageURL
+        } else {
+            let base = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first ?? fileManager.homeDirectoryForCurrentUser
+            let folder = base.appendingPathComponent("myUpscaler", isDirectory: true)
+            try? fileManager.createDirectory(at: folder, withIntermediateDirectories: true)
+            self.storageURL = folder.appendingPathComponent("presets.json")
+        }
 
         load()
     }
@@ -544,7 +534,8 @@ final class PresetStore: ObservableObject {
         preset.snapshot.apply(to: settings)
     }
 
-    // TODO: REVIEW THIS PIECE
+    func dismissNotice() { storageNotice = nil }
+
     private func load() {
         guard fileManager.fileExists(atPath: storageURL.path) else { return }
         do {
@@ -552,12 +543,24 @@ final class PresetStore: ObservableObject {
             let decoded = try JSONDecoder().decode([Preset].self, from: data)
             presets = decoded.sorted { $0.updatedAt > $1.updatedAt }
         } catch {
-            // If decoding fails, start clean rather than crashing the UI
             presets = []
+            keepUnreadableFileAside()
         }
     }
 
-    // TODO: REVIEW THIS PIECE
+    private func keepUnreadableFileAside() {
+        let folder = storageURL.deletingLastPathComponent()
+        var target = folder.appendingPathComponent("presets.bad")
+        var counter = 2
+        while fileManager.fileExists(atPath: target.path) { target = folder.appendingPathComponent("presets.bad.\(counter)"); counter += 1 }
+        do {
+            try fileManager.moveItem(at: storageURL, to: target)
+            storageNotice = "Your saved presets could not be read. The file was kept as \(target.lastPathComponent) next to it."
+        } catch {
+            storageNotice = "Your saved presets could not be read, and the file could not be set aside: \(error.localizedDescription)"
+        }
+    }
+
     private func persist() {
         do {
             let encoder = JSONEncoder()
@@ -565,7 +568,7 @@ final class PresetStore: ObservableObject {
             let data = try encoder.encode(presets)
             try data.write(to: storageURL, options: [.atomic])
         } catch {
-            // Intentionally ignore persistence errors to avoid disrupting the UI
+            storageNotice = "Presets could not be saved: \(error.localizedDescription)"
         }
     }
 

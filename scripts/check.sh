@@ -6,6 +6,7 @@ python3 scripts/check-source-budget.py
 python3 -m unittest discover -s tests -p 'test_workspace_runner.py'
 bash tests/test-shortcuts.sh
 bash tests/test-shortcuts-persistence.sh
+bash tests/test-preset-persistence.sh
 bash tests/test-upscale-settings.sh
 bash tests/test-restoration-controls.sh
 bash tests/test-finishing-strengths.sh

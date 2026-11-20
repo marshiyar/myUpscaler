@@ -8,5 +8,5 @@ if [[ -n ${MAKE_TEST_MEDIA:-} && -x $MAKE_TEST_MEDIA ]]; then
   cp "$MAKE_TEST_MEDIA" "$out"
   exit 0
 fi
-xcrun swiftc -O -swift-version 5 -target arm64-apple-macos15.2 -module-cache-path "$(dirname "$out")/fixture-cache" \
+xcrun swiftc -O -parse-as-library -swift-version 5 -target arm64-apple-macos15.2 -module-cache-path "$(dirname "$out")/fixture-cache" \
   tests/fixtures/MakeTestMedia.swift -o "$out"

@@ -8,7 +8,7 @@ trap 'rm -rf "$TEST_DIR"' EXIT
 bash tests/fixtures/build.sh "$TEST_DIR/make-test-media"
 "$TEST_DIR/make-test-media" audio-mux-set "$TEST_DIR"
 xcrun swiftc -whole-module-optimization -strict-concurrency=complete -warnings-as-errors -default-isolation MainActor -module-cache-path "$TEST_DIR/module-cache" -swift-version 5 \
-  -target arm64-apple-macos15.2 -O \
+  -target arm64-apple-macos15.2 -Onone \
   myUpscaler/Processing/VideoIO.swift myUpscaler/Processing/VideoAudioMuxer.swift \
   tests/apple-api/VideoAudioMuxRegression.swift -o "$TEST_DIR/VideoAudioMuxRegression"
 "$TEST_DIR/VideoAudioMuxRegression" "$TEST_DIR"

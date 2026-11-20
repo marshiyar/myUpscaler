@@ -3,7 +3,9 @@
 use std::time::Instant;
 use up60p::accel::Accelerator;
 use up60p::filters::scale::resize;
-use up60p::frame::Plane;
+use up60p::filters::sharpen::Cas;
+use up60p::filters::Spatial;
+use up60p::frame::{Frame, Plane};
 use up60p_gpu::GpuAccelerator;
 
 fn main() {
@@ -32,6 +34,21 @@ fn main() {
     };
     let cpu = time("lanczos x2 CPU", &|| resize(&src, 3840, 2160));
     let fast = time("lanczos x2 GPU", &|| gpu.resize(&src, 3840, 2160).unwrap());
+    let d = cpu.data.iter().zip(&fast.data).map(|(a, b)| (a - b).abs()).fold(0.0f32, f32::max);
+    println!("max difference {d}");
+
+    let mut big = Plane::new(3840, 2160, 0.0);
+    for (i, v) in big.data.iter_mut().enumerate() {
+        *v = ((i * 7919) % 251) as f32;
+    }
+    let chroma = Plane::new(1, 1, 128.0);
+    let cpu = time("cas 3840x2160 CPU", &|| {
+        let mut frame = Frame { planes: [big.clone(), chroma.clone(), chroma.clone()], alpha: None, pts: 0.0 };
+        Cas::new(0.8).apply(&mut frame);
+        let [luma, _, _] = frame.planes;
+        luma
+    });
+    let fast = time("cas 3840x2160 GPU", &|| gpu.cas(&big, 0.8).unwrap());
     let d = cpu.data.iter().zip(&fast.data).map(|(a, b)| (a - b).abs()).fold(0.0f32, f32::max);
     println!("max difference {d}");
 }

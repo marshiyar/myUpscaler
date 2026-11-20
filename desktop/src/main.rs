@@ -5,6 +5,7 @@
 
 #![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
 
+mod dropped;
 mod playback;
 mod player;
 mod presets;
@@ -13,13 +14,13 @@ mod progress;
 mod screenshot;
 mod settings;
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use slint::{ComponentHandle, Image, ModelRc, Rgba8Pixel, SharedPixelBuffer, SharedString, Timer, TimerMode, VecModel};
 use up60p::engine;
@@ -40,9 +41,7 @@ enum Report {
 /// A batch of the frame strip, for the input it was made for (its generation).
 type Thumbnails = (u64, Vec<(SharedPixelBuffer<Rgba8Pixel>, f64)>);
 
-/// Inputs the file dialog offers: what the backend processes.
-const MEDIA_EXTENSIONS: [&str; 12] =
-    ["mp4", "mov", "m4v", "mkv", "webm", "png", "jpg", "jpeg", "bmp", "webp", "tif", "tiff"];
+use dropped::MEDIA_EXTENSIONS;
 
 /// The longest the log may grow before its oldest lines are dropped.
 const LOG_LIMIT: usize = 200_000;
@@ -368,6 +367,35 @@ fn with(ui: &slint::Weak<AppWindow>, state: &Rc<RefCell<State>>, f: impl FnOnce(
     }
 }
 
+/// Receives files dropped on the window: highlights the input card while a file is over it and imports the first
+/// accepted file or folder on drop, unless an export is running.
+fn accept_drops(ui: &AppWindow, state: &Rc<RefCell<State>>) {
+    use slint::winit_030::{winit::event::WindowEvent, EventResult, WinitWindowAccessor};
+    let (w, st) = (ui.as_weak(), state.clone());
+    let last_import: Cell<Option<Instant>> = Cell::new(None);
+    ui.window().on_winit_window_event(move |_, event| {
+        let Some(ui) = w.upgrade() else { return EventResult::Propagate };
+        let app = ui.global::<App>();
+        match event {
+            WindowEvent::HoveredFile(_) => app.set_dropping(!app.get_running()),
+            WindowEvent::HoveredFileCancelled => app.set_dropping(false),
+            WindowEvent::DroppedFile(path) => {
+                app.set_dropping(false);
+                // One drop of several files arrives as one event per file: only the first one imports.
+                let repeat = last_import.get().is_some_and(|t| t.elapsed() < Duration::from_millis(500));
+                if !app.get_running() && !repeat {
+                    if let Some(target) = dropped::import_target(&[path.to_string_lossy()]) {
+                        last_import.set(Some(Instant::now()));
+                        select_input(&ui, &mut st.borrow_mut(), target);
+                    }
+                }
+            }
+            _ => {}
+        }
+        EventResult::Propagate
+    });
+}
+
 /// Connects the window to the backend: factory settings, the preview thread, presets and every action.
 fn wire(ui: &AppWindow) -> Rc<RefCell<State>> {
     settings::load(&ui.global::<Settings>(), &Options::default());
@@ -498,6 +526,7 @@ fn main() -> Result<(), String> {
 
     let ui = AppWindow::new().map_err(|e| e.to_string())?;
     let state = wire(&ui);
+    accept_drops(&ui, &state);
     let timer = Timer::default();
     let (w, st) = (ui.as_weak(), state.clone());
     timer.start(TimerMode::Repeated, Duration::from_millis(100), move || with(&w, &st, drain));

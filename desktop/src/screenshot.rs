@@ -1,5 +1,5 @@
 //! Renders the window to a PNG without a display, with Slint's software renderer:
-//! `myupscaler --screenshot out.png [--size 1280x800] [--inspector] [--page 0-3] [--log] [--about | --settings]
+//! `myupscaler --screenshot out.png [--size 1280x800] [--inspector] [--page 0-3] [--log] [--about | --settings] [--dragging]
 //! [--dark | --light] [--run [--after SECONDS]] [input]`.
 //! `--run` presses Run and waits for processing to finish before taking the picture.
 //! Used to review the interface in CI and on machines without a screen.
@@ -29,6 +29,7 @@ pub struct Shot {
     pub log: bool,
     pub about: bool,
     pub settings: bool,
+    pub dragging: bool,
     pub dark: bool,
     pub light: bool,
     pub run: bool,
@@ -49,6 +50,7 @@ impl Shot {
             log: false,
             about: false,
             settings: false,
+            dragging: false,
             dark: false,
             light: false,
             run: false,
@@ -70,6 +72,7 @@ impl Shot {
                 "--log" => shot.log = true,
                 "--about" => shot.about = true,
                 "--settings" => shot.settings = true,
+                "--dragging" => shot.dragging = true,
                 "--dark" => shot.dark = true,
                 "--light" => shot.light = true,
                 "--run" => shot.run = true,
@@ -97,6 +100,7 @@ pub fn take(shot: &Shot, setup: impl FnOnce(&AppWindow) -> Box<dyn FnMut(&AppWin
     app.set_log_open(shot.log);
     app.set_about_open(shot.about);
     app.set_settings_open(shot.settings);
+    app.set_dropping(shot.dragging);
     if shot.dark {
         ui.global::<Theme>().set_preference(ThemePreference::Dark);
     } else if shot.light {

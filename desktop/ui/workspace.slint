@@ -268,6 +268,23 @@ export component InputCard inherits Card {
         border-radius: Theme.card-radius;
     }
     if App.input-path != "": MediaView { }
+    if App.dropping && !App.running: Rectangle {
+        border-radius: Theme.card-radius;
+        background: Theme.accent.with-alpha(0.12);
+        border-width: 2px;
+        border-color: Theme.accent;
+        VerticalLayout {
+            alignment: end;
+            padding: Theme.lg;
+            Text {
+                text: "Drop to import";
+                font-size: Theme.title2;
+                font-weight: 600;
+                color: Theme.accent;
+                horizontal-alignment: center;
+            }
+        }
+    }
     if App.running: Rectangle {
         border-radius: 10px;
         background: #0000004d;

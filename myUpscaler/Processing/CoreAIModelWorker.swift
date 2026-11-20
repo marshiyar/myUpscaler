@@ -69,7 +69,7 @@ actor CoreAIModelWorker {
         let strides = input.strides.map(\.intValue)
         let side = layout.inputShape[2]
         if inputIsHalf {
-            let view = nativeInput.mutableView(as: Float16.self)
+            var view = nativeInput.mutableView(as: Float16.self)
             guard var elements = view.contiguousElements else { throw ModelError.invalidModel }
             for c in 0..<3 { for y in 0..<side { for x in 0..<side {
                 let value = values[c * strides[1] + y * strides[2] + x * strides[3]]
@@ -77,7 +77,7 @@ actor CoreAIModelWorker {
                 elements[c * side * side + y * side + x] = Float16(value)
             } } }
         } else {
-            let view = nativeInput.mutableView(as: Float.self)
+            var view = nativeInput.mutableView(as: Float.self)
             guard var elements = view.contiguousElements else { throw ModelError.invalidModel }
             for c in 0..<3 { for y in 0..<side { for x in 0..<side {
                 let value = values[c * strides[1] + y * strides[2] + x * strides[3]]

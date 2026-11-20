@@ -83,7 +83,12 @@ nonisolated struct CoreMLModelSpec: Identifiable, Hashable, Sendable {
     }
 }
 nonisolated enum CoreMLModelRegistry {
-    static let models: [CoreMLModelSpec] = CoreMLModelID.allCases.map { model(for: $0) }
+    // Ids the model preparation script cannot supply any more. They stay decodable so saved presets load, but are
+    // not offered and not looked up in the bundle.
+    static let retiredIDs: Set<CoreMLModelID> = [.realESRGANx2, .realESRGANx2FP16, .realESRGANx4FP16, .realESRGANx8Author]
+
+    // The models the app offers: what the preparation script supplies (x4, x8) and the opt-in local Core AI assets.
+    static let models: [CoreMLModelSpec] = CoreMLModelID.allCases.filter { !retiredIDs.contains($0) }.map { model(for: $0) }
 
     static var defaultModel: CoreMLModelSpec { model(for: .realESRGANx4) }
 

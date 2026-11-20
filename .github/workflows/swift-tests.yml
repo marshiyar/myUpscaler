@@ -49,7 +49,7 @@ jobs:
           bash scripts/run-parallel.sh
           tests/xctest.sh
           tests/test-upscale-settings.sh tests/test-restoration-controls.sh
-          tests/test-shortcuts.sh tests/test-shortcuts-persistence.sh
+          tests/test-shortcuts.sh tests/test-shortcuts-persistence.sh tests/test-preset-persistence.sh
           tests/test-editor-state.sh tests/test-workspace-actions.sh
           tests/upscaling-mode-support/run.sh tests/progress-parser/run.sh
           tests/test-processing-lifecycle.sh tests/test-batch.sh tests/logging/run.sh

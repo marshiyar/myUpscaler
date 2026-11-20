@@ -40,6 +40,14 @@ struct SavedPresetsPanel: View {
                         .font(.caption2)
                         .foregroundColor(.secondary)
 
+                    if let notice = presetStore.storageNotice {
+                        HStack(alignment: .top) {
+                            Text(notice).font(.caption).foregroundColor(.red)
+                            Spacer()
+                            Button("Dismiss") { presetStore.dismissNotice() }.buttonStyle(.link).font(.caption)
+                        }
+                    }
+
                     Divider()
 
                     if presetStore.presets.isEmpty {

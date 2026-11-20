@@ -63,24 +63,7 @@ jobs:
       - name: Package
         run: |
           set -euo pipefail
-          name="myupscaler-$TAG-${{ matrix.platform }}-${{ matrix.arch }}"
-          pkg="$RUNNER_TEMP/$name"
-          mkdir -p "$pkg"
-          engine=../third_party/mpvfx-media
-          case ${{ matrix.platform }} in
-            windows) cp target/release/myupscaler.exe target/release/mpvfx_ffi.dll "$pkg/" ;;
-            macos) cp target/release/myupscaler "$engine/lib/libmpvfx_ffi.dylib" "$pkg/" ;;
-            linux) cp target/release/myupscaler "$engine/lib/libmpvfx_ffi.so" "$pkg/" ;;
-          esac
-          cp "$engine/LICENSE" "$pkg/MpVFX-Media-LICENSE.txt"
-          cp "$engine/NOTICE" "$pkg/MpVFX-Media-NOTICE.txt"
-          cp ../LICENSE "$pkg/LICENSE.txt"
-          cd "$RUNNER_TEMP"
-          if [[ ${{ matrix.platform }} == windows ]]; then
-            7z a -tzip -bso0 "release/$name.zip" "$name"
-          else
-            tar -czf "release/$name.tar.gz" "$name"
-          fi
+          bash scripts/package.sh ${{ matrix.platform }} "myupscaler-$TAG-${{ matrix.platform }}-${{ matrix.arch }}" "$RUNNER_TEMP/release"
       - uses: actions/upload-artifact@v4
         with:
           name: release-${{ matrix.platform }}

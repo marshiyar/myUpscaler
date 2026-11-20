@@ -11,7 +11,6 @@ struct WorkspaceInspector: View {
         var id: Self { self }
     }
     @State private var page: Page = .upscale
-    @State private var showEncoding = false
     @State private var showExtra = false
     private let finishingInitiallyExpanded: Bool
 
@@ -69,10 +68,6 @@ struct WorkspaceInspector: View {
                                           chooseFolder: chooseOutputFolder) }
                     Section {
                         HardwareEncodingPanel(settings: settings)
-                        DisclosureGroup("CPU HEVC parameters", isExpanded: $showEncoding) {
-                            X265ParametersPanel(settings: settings)
-                        }
-                        .disabled(!settings.codec.useHEVC || settings.hardware.encoder == "videotoolbox" || settings.upscaling.scaler == "coreml")
                     }
                     Section { SavedPresetsPanel(presetStore: presetStore, settings: settings, isProcessing: runner.isRunning) }
                 }

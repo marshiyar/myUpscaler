@@ -1,5 +1,5 @@
 name: Set up macOS
-description: Selects the newest installed Xcode 27 (no sudo, so it works on a self-hosted Mac); optionally requires a Metal GPU.
+description: Selects the newest installed Xcode 27 (no sudo); optionally requires a Metal GPU.
 inputs:
   require-gpu:
     description: Fail unless Metal reports a GPU (for the GPU jobs).
@@ -11,7 +11,7 @@ runs:
       run: |
         set -euo pipefail
         # The newest installed Xcode 27, whatever its folder is called (Xcode_27.x.app on GitHub's machines,
-        # Xcode.app or Xcode-beta.app on a self-hosted Mac). DEVELOPER_DIR selects it for this job without sudo.
+        # Xcode.app or Xcode-beta.app). DEVELOPER_DIR selects it for this job without sudo.
         # Read the whole version output: piping xcodebuild into head makes it crash on the closed pipe.
         best='' best_version=''
         for app in /Applications/Xcode*.app; do

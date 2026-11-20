@@ -27,8 +27,6 @@ Split by an identifiable responsibility and explicit ownership boundary, not arb
 - Unused `QualityAnalyzer` implementation and synchronous preview-filter wrapper: no source callers remained; preview rendering uses the bounded background path. Legacy preset fields remain decodable.
 - Declaration-only x265 string parser, drop area, duplicate slider and unused scroll-background wrapper: actual controls use the maintained bindings and native slider implementation.
 
-The engine/logic fixes and UI changes are local commits preceding the source reorganization, so this batch can be reviewed or reverted independently. No remote publication is part of these changes.
-
 ## Executor boundaries
 
 The app target keeps its existing MainActor default isolation and Swift language mode. Explicit boundaries describe ownership rather than suppress diagnostics. Complete concurrency checking and warnings-as-errors remain enabled.

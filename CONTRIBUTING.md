@@ -58,29 +58,17 @@ settings. CI tests the supplied set and predicts with the packaged models.
 
 ## Actions workflows
 
-CI is split into five workflows whose jobs run in parallel; each runs only when
-the files it covers change, and nothing is checked twice. A sixth, **Release**,
-runs for tags:
+Workflows are in `.github/workflows/`; each runs only when the files it covers change.
 
-| Workflow | Jobs |
-| --- | --- |
-| **Rust** (`rust.yml`, Linux) | format, lints, unit tests, engine tests, build without the engine |
-| **Swift tests** (`swift-tests.yml`) | source lint (Linux); one macOS job with every logic test and XCTest |
-| **Regression tests** (`regression.yml`) | one macOS job: finishing chain through the Rust dry run, media tests, Metal kernels |
-| **Desktop app** (`desktop.yml`) | cross-platform Slint app: Linux checks, tests and screenshots; Windows build; macOS build and run |
-| **macOS build and bundle** (`build.yml`) | Release app (verify engine, signature, models and inference, package); model-set preparation |
-| **Release** (`release.yml`, `v*` tags or by hand for a tag) | desktop app built and smoke-tested on macOS, Windows and Linux; packaged apps and screenshots published on the tag's release |
+- `rust.yml`: format, lints, unit tests, engine tests and a build without the engine for the Rust backend.
+- `swift-tests.yml`: source lint, then every logic test and the XCTest scheme.
+- `regression.yml`: the finishing chain through the Rust dry run, media tests and Metal kernels.
+- `desktop.yml`: the cross-platform Slint app: Linux checks, tests and screenshots; Windows build; macOS build and run.
+- `build.yml`: Release app build (verify engine, signature, models and inference, package) and model-set preparation. The GPU jobs report the Metal device and fail if there is none.
+- `release.yml`: for `v*` tags (or by hand for a tag); builds and smoke-tests the desktop app on macOS, Windows and Linux and publishes the packaged apps and screenshots on the tag's release.
 
-The Linux and Windows jobs use GitHub's free standard runners. The five macOS
-jobs run on the maintainer's self-hosted Mac (runner labels `self-hosted`,
-`macOS`, `ARM64`), which has a real GPU for the GPU jobs (CoreML inference and
-the Metal kernels report the Metal device and fail if there is none). The Mac
-needs Xcode 27 in `/Applications` (any `Xcode*.app` name; the setup step selects
-it through `DEVELOPER_DIR`, without sudo) and Rust through rustup (the pinned
-release in `rust-toolchain.toml` installs itself). Pull requests from forks
-never run on it: the macOS jobs run for pushes, manual runs and pull requests
-from branches of this repository only. Inside a job, `scripts/run-parallel.sh`
-runs the scripts at the same time, one per CPU core.
+The macOS jobs need Xcode 27 in `/Applications` and Rust through rustup (the pinned release in `rust-toolchain.toml` installs itself). Inside a job, `scripts/run-parallel.sh` runs the scripts at the same time, one per CPU core.
+
 The media engine is a precompiled, pinned binary: it is downloaded and verified
 once, then restored from the cache. The compiled Rust backend (`libup60p.a` and
 its header) is stored the same way, keyed by the backend's sources, and is only

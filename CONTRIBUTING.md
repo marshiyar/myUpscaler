@@ -120,6 +120,8 @@ Swift tests that link the backend need the media engine from
 `scripts/prepare-media-engine.sh`; packaged-app verification
 (`tests/verify-packaged-engine.sh`) remains a separate requirement.
 
+`bash scripts/check-portable.sh` runs the source budget and the backend and desktop format, lint and test checks on Windows, Linux or macOS.
+
 `bash scripts/check-environment.sh` reports Xcode/SDK, the Metal compiler
 component and Rust. It does not install tools or download assets. Xcode may be present
 while its separately supplied Metal compiler component is missing.

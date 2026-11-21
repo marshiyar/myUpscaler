@@ -44,7 +44,7 @@ jobs:
         shell: bash
         working-directory: desktop
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.tag || github.ref }}
           persist-credentials: false
@@ -64,7 +64,7 @@ jobs:
         run: |
           set -euo pipefail
           bash scripts/package.sh ${{ matrix.platform }} "myupscaler-$TAG-${{ matrix.platform }}-${{ matrix.arch }}" "$RUNNER_TEMP/release"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: release-${{ matrix.platform }}
           path: ${{ runner.temp }}/release/*
@@ -82,9 +82,9 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { persist-credentials: false }
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: release-*
           path: dist

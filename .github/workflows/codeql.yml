@@ -37,7 +37,7 @@ jobs:
       matrix:
         language: [rust, python, actions]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { persist-credentials: false }
       - uses: github/codeql-action/init@v3
         with:
@@ -58,12 +58,12 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { persist-credentials: false }
       - uses: ./.github/actions/setup-macos
       - uses: ./.github/actions/rust-backend-macos
       - name: Restore prepared CoreML models
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: third_party/CoreML
           key: coreml-models-${{ hashFiles('scripts/prepare-bundled-models.sh', 'scripts/validate-bundled-models.sh') }}

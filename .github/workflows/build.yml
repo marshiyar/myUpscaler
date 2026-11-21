@@ -38,14 +38,14 @@ jobs:
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-macos
         with: { require-gpu: 'true' }
       - uses: ./.github/actions/rust-backend-macos
       - name: Restore prepared CoreML models
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: third_party/CoreML
           key: coreml-models-${{ hashFiles('scripts/prepare-bundled-models.sh', 'scripts/validate-bundled-models.sh') }}
@@ -144,7 +144,7 @@ jobs:
       - name: Preserve delivered app artifact
         id: delivered-app
         if: always() && steps.package-app.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: myUpscaler-macos-arm64-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/myUpscaler-delivery/
@@ -160,7 +160,7 @@ jobs:
           echo 'Ad hoc signed; not notarized. Retained for 90 days. No GitHub Release is published.' >> "$GITHUB_STEP_SUMMARY"
       - name: Upload build log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: macos-build-log
           path: |
@@ -178,12 +178,12 @@ jobs:
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-macos
       - name: Restore prepared CoreML models
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: third_party/CoreML
           key: coreml-models-${{ hashFiles('scripts/prepare-bundled-models.sh', 'scripts/validate-bundled-models.sh') }}

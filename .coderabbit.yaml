@@ -1,16 +1,28 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 language: en-US
 early_access: false
+tone_instructions: >-
+  At most five comments per pull request. Report only correctness, security and data-loss defects.
+  No style, naming, documentation or praise comments. One or two sentences each.
 reviews:
-  profile: chill
+  profile: quiet
   # Comments only: a review never blocks a merge.
   request_changes_workflow: false
   high_level_summary: false
   poem: false
   review_status: false
+  review_details: false
+  in_progress_fortune: false
   collapse_walkthrough: true
   sequence_diagrams: false
   changed_files_summary: false
+  estimate_code_review_effort: false
+  assess_linked_issues: false
+  related_issues: false
+  related_prs: false
+  suggested_labels: false
+  suggested_reviewers: false
+  enable_prompt_for_ai_agents: false
   auto_review:
     enabled: true
     drafts: false
@@ -26,5 +38,14 @@ reviews:
     - '!**/*.xcodeproj/**'
     - '!third_party/**'
     - '!docs/**/*.png'
+  tools:
+    languagetool:
+      enabled: false
+    markdownlint:
+      enabled: false
+    yamllint:
+      enabled: false
 chat:
   auto_reply: false
+knowledge_base:
+  opt_out: true

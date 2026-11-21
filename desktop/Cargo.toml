@@ -14,8 +14,8 @@ path = "src/main.rs"
 up60p = { path = "../backend" }
 up60p-gpu = { path = "../gpu" }
 slint = { version = "1.18", features = ["unstable-winit-030"] }
-cpal = "0.15"
-rfd = { version = "0.15", default-features = false, features = ["xdg-portal", "tokio"] }
+cpal = "0.18"
+rfd = { version = "0.16", default-features = false, features = ["xdg-portal", "tokio"] }
 
 [build-dependencies]
 slint-build = "1.18"

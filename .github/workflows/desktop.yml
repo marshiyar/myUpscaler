@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { persist-credentials: false }
       - name: System libraries for the interface (fonts) and the player (ALSA)
         run: sudo apt-get update -q && sudo apt-get install -y -q libfontconfig1-dev libasound2-dev
@@ -67,12 +67,12 @@ jobs:
           set -euo pipefail
           bash scripts/package.sh linux myupscaler-linux-x64 "$RUNNER_TEMP/package"
           bash scripts/check-package.sh "$RUNNER_TEMP/package/myupscaler-linux-x64.tar.gz" "$RUNNER_TEMP/package-check"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: myupscaler-linux-x64
           path: ${{ runner.temp }}/package/*.tar.gz
           if-no-files-found: error
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: desktop-screenshots
           path: ${{ runner.temp }}/screenshots/*.png
@@ -82,7 +82,7 @@ jobs:
     runs-on: windows-2025
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { persist-credentials: false }
       - uses: ./.github/actions/media-engine
       - uses: Swatinem/rust-cache@v2
@@ -95,7 +95,7 @@ jobs:
           set -euo pipefail
           bash scripts/package.sh windows myupscaler-windows-x64 "$RUNNER_TEMP/package"
           bash scripts/check-package.sh "$RUNNER_TEMP/package/myupscaler-windows-x64.zip" "$RUNNER_TEMP/package-check"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: myupscaler-windows-x64
           path: ${{ runner.temp }}/package/*.zip
@@ -107,7 +107,7 @@ jobs:
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { persist-credentials: false }
       - uses: ./.github/actions/media-engine
       # Kept outside the checkout (wiped on every run) and per runner, so a cancelled run's leftover cargo cannot lose its files; a later cargo waits on the lock instead.
@@ -122,7 +122,7 @@ jobs:
           python3 scripts/sample-image.py "$shots/sample.png"
           "$CARGO_TARGET_DIR/release/myupscaler" --screenshot "$shots/macos-finished-run.png" --run "$shots/sample.png"
           test -s "$shots/sample_[restored].png"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: desktop-macos-screenshot
           path: ${{ runner.temp }}/screenshots/macos-finished-run.png

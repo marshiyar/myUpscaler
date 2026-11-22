@@ -4,8 +4,8 @@ import SwiftUI
 
 struct UI {
     static let rowSpacing: CGFloat = 8             // space inside a group of rows
-    /// Below the toolbar: the window's smallest height (600) less the 40 points the toolbar takes.
-    static let windowMinHeight: CGFloat = 560
+    /// Below the toolbar: the window's smallest height (664) less the 40 points the toolbar takes.
+    static let windowMinHeight: CGFloat = 624
     static let buttonHeight: CGFloat = 32
     static let resetButtonStyle = BorderlessButtonStyle()
 }

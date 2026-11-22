@@ -134,9 +134,11 @@ export global App {
     in property <[string]> presets;
     in-out property <string> preset-message;
     in property <bool> mac;                         // shortcuts read ⌘ rather than Ctrl
+    in property <length> toolbar-height: 40px;      // the title bar on macOS, where it holds the toolbar
+    in property <length> toolbar-inset: 0px;        // room for the macOS window buttons at the toolbar's left
 
     in-out property <bool> inspector-visible;
-    in-out property <int> page;                     // 0 Upscale, 1 Restore, 2 Processor, 3 Output
+    in-out property <int> page;                     // 0 Upscale, 1 Restore, 2 Cleanup, 3 Output
     in-out property <bool> about-open;
     in-out property <bool> settings-open;
     in-out property <bool> log-open;
@@ -158,6 +160,8 @@ export global Actions {
     callback open-output();
     callback reveal-output();
     callback open-website();
+    callback toolbar-press();                       // a press on the empty part of the toolbar
+    callback appearance-changed();
     callback save-preset(string);
     callback apply-preset(int);
     callback update-preset(int);

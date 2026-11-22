@@ -14,6 +14,7 @@ mod preview;
 mod progress;
 mod screenshot;
 mod settings;
+mod window;
 
 use std::cell::{Cell, RefCell};
 use std::path::{Path, PathBuf};
@@ -562,9 +563,25 @@ fn main() -> Result<(), String> {
         });
     }
 
+    slint::BackendSelector::new()
+        .with_winit_window_attributes_hook(window::attributes)
+        .select()
+        .map_err(|e| e.to_string())?;
     let ui = AppWindow::new().map_err(|e| e.to_string())?;
     let state = wire(&ui);
     accept_drops(&ui, &state);
+    let w = ui.as_weak();
+    ui.global::<Actions>().on_toolbar_press(move || {
+        if let Some(ui) = w.upgrade() {
+            window::toolbar_press(&ui);
+        }
+    });
+    let w = ui.as_weak();
+    ui.global::<Actions>().on_appearance_changed(move || {
+        if let Some(ui) = w.upgrade() {
+            window::apply(&ui);
+        }
+    });
     let timer = Timer::default();
     let (w, st) = (ui.as_weak(), state.clone());
     timer.start(TimerMode::Repeated, Duration::from_millis(100), move || with(&w, &st, drain));
@@ -576,5 +593,7 @@ fn main() -> Result<(), String> {
     if let Some(path) = args.next().map(PathBuf::from) {
         select_input(&ui, &mut state.borrow_mut(), path);
     }
+    ui.show().map_err(|e| e.to_string())?;
+    window::apply_when_ready(ui.as_weak(), 0);
     ui.run().map_err(|e| e.to_string())
 }

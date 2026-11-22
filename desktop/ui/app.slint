@@ -15,9 +15,17 @@ export { Settings, App, Actions, Theme }
 
 component Toolbar inherits Rectangle {
     background: Theme.bar;
-    height: Theme.toolbar-height;
+    height: App.toolbar-height;
+    // On macOS this is the window's title bar: the empty part moves the window and a double click zooms it.
+    TouchArea {
+        pointer-event(event) => {
+            if event.kind == PointerEventKind.down && event.button == PointerEventButton.left {
+                Actions.toolbar-press();
+            }
+        }
+    }
     HorizontalLayout {
-        padding-left: 8px;
+        padding-left: 8px + App.toolbar-inset;
         padding-right: 8px;
         spacing: 4px;
         VerticalLayout {
@@ -30,7 +38,27 @@ component Toolbar inherits Rectangle {
                 clicked => { Actions.import(); }
             }
         }
-        Rectangle { horizontal-stretch: 1; }
+        // The video's name (macOS: the window title is not drawn) and the state of its preview.
+        VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            if App.mac || App.input-path != "": Text {
+                text: App.input-name != "" ? App.input-name : "myUpscaler";
+                font-size: Theme.body;
+                font-weight: 600;
+                color: Theme.text;
+                horizontal-alignment: center;
+                overflow: elide;
+            }
+            if App.input-path != "": Text {
+                text: App.running ? "Preview frozen while processing"
+                    : App.preview-busy && App.has-preview ? "Updating preview…" : "Approximate preview";
+                font-size: Theme.subheadline;
+                color: Theme.secondary;
+                horizontal-alignment: center;
+                overflow: elide;
+            }
+        }
         VerticalLayout {
             alignment: center;
             ToolbarButton {
@@ -205,6 +233,9 @@ export component AppWindow inherits Window {
             : self.appearance == ThemePreference.light ? ColorScheme.light : ColorScheme.unknown;
     }
     property <bool> modal: App.settings-open || App.about-open || App.enlarged;
+    // The window's title bar follows the colours of the interface.
+    property <bool> dark: Theme.dark;
+    changed dark => { Actions.appearance-changed(); }
 
     keys := FocusScope {
         key-pressed(e) => {

@@ -3,125 +3,106 @@
 import { Theme } from "theme.slint";
 import { Settings, App, Actions } from "globals.slint";
 import {
-    Divider, Caption, FormSection, PanelHeader, ChoiceRow, FieldRow, TextField, Button, ButtonKind, ButtonSize,
+    Divider, Caption, FormSection, FormRow, ChoiceRow, FieldRow, TextField, Button, ButtonKind, ButtonSize,
 } from "components.slint";
 
-component PresetRow inherits Rectangle {
+// One saved preset: its name (or the field renaming it) and its actions.
+component PresetRow inherits VerticalLayout {
     in property <string> name;
     in property <int> index;
     property <bool> renaming;
     property <string> draft;
     property <bool> confirm-delete;
-    background: Theme.accent.with-alpha(0.04);
-    border-radius: 8px;
+    spacing: 4px;
     function commit-rename() {
         if root.draft != "" {
             Actions.rename-preset(root.index, root.draft);
         }
         root.renaming = false;
     }
-    VerticalLayout {
-        padding: 8px;
-        spacing: 6px;
-        HorizontalLayout {
-            spacing: 6px;
-            if root.renaming: TextField {
-                text <=> root.draft;
-                placeholder: "Preset name";
-                label: "Preset name";
-                accepted => { root.commit-rename(); }
-            }
-            if !root.renaming: Text {
-                text: root.name;
-                font-size: Theme.subheadline;
-                font-weight: 500;
-                color: Theme.text;
-                vertical-alignment: center;
-                horizontal-stretch: 1;
-                overflow: elide;
-            }
-            Rectangle {
-                width: 20px;
-                accessible-role: button;
-                accessible-label: root.renaming ? "Save name" : "Rename";
-                Image {
-                    source: root.renaming ? @image-url("icons/check.svg") : @image-url("icons/pencil.svg");
-                    width: 13px;
-                    height: 13px;
-                    colorize: Theme.accent;
-                }
-                TouchArea {
-                    enabled: !App.running;
-                    clicked => {
-                        if root.renaming {
-                            root.commit-rename();
-                        } else {
-                            root.draft = root.name;
-                            root.renaming = true;
-                        }
+    HorizontalLayout {
+        spacing: 8px;
+        height: Theme.control-height;
+        if root.renaming: TextField {
+            text <=> root.draft;
+            placeholder: "Preset name";
+            label: "Preset name";
+            accepted => { root.commit-rename(); }
+        }
+        if !root.renaming: Text {
+            text: root.name;
+            font-size: Theme.body;
+            color: Theme.text;
+            vertical-alignment: center;
+            horizontal-stretch: 1;
+            overflow: elide;
+        }
+        VerticalLayout {
+            alignment: center;
+            Button {
+                text: root.renaming ? "Save name" : "Rename";
+                size: ButtonSize.small;
+                enabled: !App.running;
+                clicked => {
+                    if root.renaming {
+                        root.commit-rename();
+                    } else {
+                        root.draft = root.name;
+                        root.renaming = true;
                     }
                 }
             }
         }
-        if !root.confirm-delete: HorizontalLayout {
-            spacing: 8px;
-            alignment: start;
-            Button {
-                text: "Apply";
-                icon: @image-url("icons/apply.svg");
-                has-icon: true;
-                size: ButtonSize.small;
-                enabled: !App.running;
-                clicked => { Actions.apply-preset(root.index); }
-            }
-            Button {
-                text: "Update";
-                icon: @image-url("icons/update.svg");
-                has-icon: true;
-                kind: ButtonKind.prominent;
-                size: ButtonSize.small;
-                enabled: !App.running;
-                clicked => { Actions.update-preset(root.index); }
-            }
-            Button {
-                text: "Duplicate";
-                icon: @image-url("icons/duplicate.svg");
-                has-icon: true;
-                size: ButtonSize.small;
-                clicked => { Actions.duplicate-preset(root.index); }
-            }
-            Button {
-                text: "Delete";
-                icon: @image-url("icons/trash.svg");
-                has-icon: true;
-                size: ButtonSize.small;
-                destructive: true;
-                clicked => { root.confirm-delete = true; }
+    }
+    if !root.confirm-delete: HorizontalLayout {
+        spacing: 8px;
+        alignment: start;
+        Button {
+            text: "Apply";
+            size: ButtonSize.small;
+            enabled: !App.running;
+            clicked => { Actions.apply-preset(root.index); }
+        }
+        Button {
+            text: "Update";
+            size: ButtonSize.small;
+            enabled: !App.running;
+            clicked => { Actions.update-preset(root.index); }
+        }
+        Button {
+            text: "Duplicate";
+            size: ButtonSize.small;
+            clicked => { Actions.duplicate-preset(root.index); }
+        }
+        Button {
+            text: "Delete";
+            size: ButtonSize.small;
+            destructive: true;
+            clicked => { root.confirm-delete = true; }
+        }
+    }
+    if root.confirm-delete: HorizontalLayout {
+        spacing: 8px;
+        alignment: start;
+        Text {
+            text: "Delete preset?";
+            font-size: Theme.body;
+            color: Theme.text;
+            vertical-alignment: center;
+        }
+        Button {
+            text: "Delete \"" + root.name + "\"";
+            size: ButtonSize.small;
+            destructive: true;
+            clicked => {
+                root.confirm-delete = false;
+                Actions.delete-preset(root.index);
             }
         }
-        if root.confirm-delete: HorizontalLayout {
-            spacing: 8px;
-            alignment: start;
-            Text {
-                text: "Delete preset?";
-                font-size: Theme.subheadline;
-                color: Theme.text;
-                vertical-alignment: center;
-            }
-            Button {
-                text: "Delete \"" + root.name + "\"";
-                size: ButtonSize.small;
-                destructive: true;
-                clicked => {
-                    root.confirm-delete = false;
-                    Actions.delete-preset(root.index);
-                }
-            }
-            Button {
-                text: "Cancel";
-                size: ButtonSize.small;
-                clicked => { root.confirm-delete = false; }
-            }
+        Button {
+            text: "Cancel";
+            size: ButtonSize.small;
+            clicked => { root.confirm-delete = false; }
         }
     }
 }
@@ -132,118 +113,77 @@ export component OutputPage inherits VerticalLayout {
     FormSection {
         ChoiceRow {
             label: "Location";
-            small: true;
             choices: ["Same folder", "Custom folder"];
             index: Settings.custom-output ? 1 : 0;
-            menu-width: 120px;
+            menu-width: 130px;
             changed => {
                 Settings.custom-output = self.index == 1;
                 Actions.settings-changed();
             }
         }
-        if Settings.custom-output: Rectangle {
-            background: Theme.window;
-            border-radius: 6px;
-            HorizontalLayout {
-                padding: 6px;
-                padding-left: 4px;
-                padding-right: 4px;
-                spacing: 6px;
-                VerticalLayout {
-                    alignment: center;
-                    Image {
-                        source: @image-url("icons/folder.svg");
-                        width: 10px;
-                        height: 10px;
-                        colorize: Theme.secondary;
-                    }
-                }
-                Text {
-                    text: Settings.output-folder == "" ? "Choose an output folder" : Settings.output-folder;
-                    font-size: Theme.caption;
-                    color: Theme.secondary;
-                    vertical-alignment: center;
-                    overflow: elide;
-                    horizontal-stretch: 1;
-                }
+        if Settings.custom-output: HorizontalLayout {
+            spacing: 8px;
+            height: Theme.control-height;
+            Text {
+                text: Settings.output-folder == "" ? "Choose an output folder" : Settings.output-folder;
+                font-size: Theme.body;
+                color: Theme.secondary;
+                vertical-alignment: center;
+                overflow: elide;
+                horizontal-stretch: 1;
+            }
+            VerticalLayout {
+                alignment: center;
                 Button {
                     text: "Choose";
-                    size: ButtonSize.mini;
+                    size: ButtonSize.small;
                     clicked => { Actions.choose-output-folder(); }
                 }
             }
         }
-        Divider { }
         HorizontalLayout {
-            spacing: 5px;
-            VerticalLayout {
-                alignment: center;
-                Image {
-                    source: @image-url("icons/doc.svg");
-                    width: 10px;
-                    height: 10px;
-                    colorize: Theme.accent;
-                }
-            }
+            spacing: 8px;
+            height: Theme.control-height;
             Text {
-                text: "Output:";
-                font-size: Theme.caption;
-                color: Theme.secondary;
+                text: "Output";
+                font-size: Theme.body;
+                color: Theme.text;
                 vertical-alignment: center;
             }
             Text {
                 text: App.input-path == "" ? "Choose a video first" : App.predicted-output;
-                font-size: Theme.caption;
-                font-weight: 500;
-                color: Theme.text;
+                font-size: Theme.body;
+                color: Theme.secondary;
                 vertical-alignment: center;
+                horizontal-alignment: right;
                 overflow: elide;
                 horizontal-stretch: 1;
             }
         }
     }
+    Divider { }
     FormSection {
-        PanelHeader {
-            title: "Encoding";
-            icon: @image-url("icons/gears.svg");
-        }
-        Text {
-            text: "Output: H.264, 8-bit, MP4 with FLAC audio.";
-            font-size: Theme.caption;
-            color: Theme.secondary;
-            wrap: word-wrap;
-        }
-        Divider { }
+        title: "Encoding";
+        Caption { text: "Output: H.264, 8-bit, MP4 with FLAC audio."; }
         ChoiceRow {
             label: "Processing";
-            small: true;
             choices: App.devices;
             index <=> Settings.processing;
             enabled: !App.running;
             menu-width: 200px;
             changed => { Actions.settings-changed(); }
         }
-        if App.device-note != "": Text {
-            text: App.device-note;
-            font-size: Theme.caption;
-            color: Theme.secondary;
-            wrap: word-wrap;
-        }
-        Divider { }
+        if App.device-note != "": Caption { text: App.device-note; }
         FieldRow {
             label: "Threads";
-            small: true;
             value <=> Settings.threads;
             placeholder: "0 (auto)";
-            field-width: 60px;
             changed => { Actions.settings-changed(); }
         }
     }
+    Divider { }
     FormSection {
-        PanelHeader {
-            title: "Saved Presets";
-            icon: @image-url("icons/bookmark.svg");
-        }
+        title: "Saved Presets";
         HorizontalLayout {
             spacing: 8px;
             TextField {
@@ -252,35 +192,22 @@ export component OutputPage inherits VerticalLayout {
                 label: "Preset name";
                 enabled: !App.running;
             }
-            Button {
-                text: "Save current";
-                icon: @image-url("icons/save.svg");
-                has-icon: true;
-                kind: ButtonKind.prominent;
-                size: ButtonSize.small;
-                enabled: !App.running && root.preset-name != "";
-                clicked => {
-                    Actions.save-preset(root.preset-name);
-                    root.preset-name = "";
+            VerticalLayout {
+                alignment: center;
+                Button {
+                    text: "Save current";
+                    enabled: !App.running && root.preset-name != "";
+                    clicked => {
+                        Actions.save-preset(root.preset-name);
+                        root.preset-name = "";
+                    }
                 }
             }
         }
-        Text {
-            text: "Presets capture all current upscale settings for quick reuse.";
-            font-size: Theme.caption;
-            color: Theme.secondary;
-            wrap: word-wrap;
-        }
-        if App.preset-message != "": Text {
-            text: App.preset-message;
-            font-size: Theme.caption;
-            color: Theme.secondary;
-            wrap: word-wrap;
-        }
-        Divider { }
+        Caption { text: "Presets capture all current upscale settings for quick reuse."; }
+        if App.preset-message != "": Caption { text: App.preset-message; }
         if App.presets.length == 0: Caption {
             text: "No presets yet. Save one to reuse your favorite configuration.";
-            font-size: Theme.caption;
         }
         for name[i] in App.presets: PresetRow {
             name: name;

@@ -1,13 +1,13 @@
 // The adjustments panel, as the macOS app's WorkspaceInspector: a segmented picker (Upscale, Restore, Processor,
-// Output) over a grouped form. Locked while processing.
+// Output) over sections of label-and-control rows. Locked while processing.
 
 import { ScrollView } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { Settings, App, Actions } from "globals.slint";
 import { SegmentedPicker } from "controls.slint";
 import {
-    Divider, Caption, FormSection, PanelHeader, FormRow, ChoiceRow, SwitchRow, FieldRow, StackedField, ParameterRow,
-    Disclosure, Dropdown, TextField, Toggle, SliderControl, Button, ButtonKind, ButtonSize,
+    Divider, Caption, FormSection, FormRow, ChoiceRow, SwitchRow, FieldRow, StackedField, ParameterRow,
+    Disclosure, Dropdown, SliderControl, Button, ButtonKind, ButtonSize,
 } from "components.slint";
 import { OutputPage } from "output.slint";
 import { FinishingFilters } from "finishing.slint";
@@ -17,7 +17,6 @@ component UpscalePage inherits VerticalLayout {
     FormSection {
         FormRow {
             label: "Scaler";
-            small: true;
             Dropdown {
                 width: 160px;
                 model: ["Lanczos"];
@@ -26,69 +25,60 @@ component UpscalePage inherits VerticalLayout {
             }
         }
     }
+    Divider { }
     FormSection {
-        PanelHeader {
-            title: "Quality & Scale";
-            icon: @image-url("icons/chart-bar.svg");
-        }
-        VerticalLayout {
-            spacing: 4px;
-            HorizontalLayout {
-                spacing: 4px;
-                Text {
-                    text: "CRF";
-                    font-size: Theme.caption;
-                    font-weight: 500;
-                    color: Theme.text;
-                    horizontal-stretch: 1;
-                }
-                Text {
-                    text: crf.value.round();
-                    font-size: Theme.caption;
-                    font-weight: 500;
-                    color: Theme.text;
-                }
-                Text {
-                    text: "(Lower is better)";
-                    font-size: Theme.caption;
-                    color: Theme.secondary;
-                }
-            }
-            crf := SliderControl {
-                value: Settings.crf;
-                minimum: 0;
-                maximum: 51;
-                step: 1;
-                label: "CRF";
-                released(v) => {
-                    Settings.crf = v;
-                    Actions.settings-changed();
-                }
-            }
-        }
-        Divider { }
+        title: "Quality & Scale";
+        // Laid out as a ParameterRow without the reset button.
         HorizontalLayout {
-            spacing: 12px;
-            alignment: start;
-            StackedField {
-                label: "Scale";
-                value <=> Settings.scale;
-                placeholder: "2.0";
-                field-width: 60px;
-                changed => { Actions.settings-changed(); }
+            spacing: 8px;
+            height: Theme.control-height;
+            Text {
+                text: "CRF";
+                width: 76px;
+                font-size: Theme.body;
+                color: Theme.text;
+                vertical-alignment: center;
             }
-            StackedField {
-                label: "FPS";
-                value <=> Settings.fps;
-                placeholder: "60";
-                field-width: 60px;
-                changed => { Actions.settings-changed(); }
+            VerticalLayout {
+                alignment: center;
+                horizontal-stretch: 1;
+                crf := SliderControl {
+                    value: Settings.crf;
+                    minimum: 0;
+                    maximum: 51;
+                    step: 1;
+                    label: "CRF";
+                    released(v) => {
+                        Settings.crf = v;
+                        Actions.settings-changed();
+                    }
+                }
             }
+            Text {
+                width: 44px;
+                text: crf.value.round();
+                font-size: Theme.body;
+                color: Theme.text;
+                horizontal-alignment: right;
+                vertical-alignment: center;
+            }
+            Rectangle { width: 20px; }
         }
-        Divider { }
+        Caption { text: "Lower is better."; }
+        FieldRow {
+            label: "Scale";
+            value <=> Settings.scale;
+            placeholder: "2.0";
+            changed => { Actions.settings-changed(); }
+        }
+        FieldRow {
+            label: "FPS";
+            value <=> Settings.fps;
+            placeholder: "60";
+            changed => { Actions.settings-changed(); }
+        }
         ChoiceRow {
             label: "Interpolation";
-            small: true;
             choices: ["Off", "MCI", "Blend"];
             index <=> Settings.interpolation;
             changed => { Actions.settings-changed(); }
@@ -107,7 +97,6 @@ component RestorePage inherits VerticalLayout {
             index <=> Settings.denoise;
             changed => { Actions.settings-changed(); }
         }
-        if Settings.denoise > 0: Divider { }
         if Settings.denoise > 0: ParameterRow {
             title: "Strength";
             value <=> Settings.denoise-strength;
@@ -117,7 +106,6 @@ component RestorePage inherits VerticalLayout {
             default-value: Settings.denoise-default;
             changed => { Actions.settings-changed(); }
         }
-        Divider { }
         ParameterRow {
             title: "Deringing";
             value <=> Settings.dering;
@@ -126,20 +114,17 @@ component RestorePage inherits VerticalLayout {
             default-value: 0.5;
             changed => { Actions.settings-changed(); }
         }
-        Divider { }
         SwitchRow {
             label: "Sharpen";
             checked <=> Settings.sharpen;
             changed => { Actions.settings-changed(); }
         }
-        if Settings.sharpen: Divider { }
         if Settings.sharpen: ChoiceRow {
             label: "Method";
             choices: ["CAS", "Unsharp mask"];
             index <=> Settings.sharpen-method;
             changed => { Actions.settings-changed(); }
         }
-        if Settings.sharpen && Settings.sharpen-method == 0: Divider { }
         if Settings.sharpen && Settings.sharpen-method == 0: ParameterRow {
             title: "Strength";
             value <=> Settings.cas-strength;
@@ -147,7 +132,6 @@ component RestorePage inherits VerticalLayout {
             default-value: 0.25;
             changed => { Actions.settings-changed(); }
         }
-        if Settings.sharpen && Settings.sharpen-method == 1: Divider { }
         if Settings.sharpen && Settings.sharpen-method == 1: ParameterRow {
             title: "Matrix";
             value <=> Settings.usm-radius;
@@ -158,7 +142,6 @@ component RestorePage inherits VerticalLayout {
             default-value: 5;
             changed => { Actions.settings-changed(); }
         }
-        if Settings.sharpen && Settings.sharpen-method == 1: Divider { }
         if Settings.sharpen && Settings.sharpen-method == 1: ParameterRow {
             title: "Amount";
             value <=> Settings.usm-amount;
@@ -168,13 +151,13 @@ component RestorePage inherits VerticalLayout {
             changed => { Actions.settings-changed(); }
         }
     }
+    Divider { }
     FormSection {
         SwitchRow {
             label: "Color equalizer";
             checked <=> Settings.eq;
             changed => { Actions.settings-changed(); }
         }
-        if Settings.eq: Divider { }
         if Settings.eq: ParameterRow {
             title: "Contrast";
             value <=> Settings.contrast;
@@ -184,7 +167,6 @@ component RestorePage inherits VerticalLayout {
             default-value: 1;
             changed => { Actions.settings-changed(); }
         }
-        if Settings.eq: Divider { }
         if Settings.eq: ParameterRow {
             title: "Brightness";
             value <=> Settings.brightness;
@@ -195,7 +177,6 @@ component RestorePage inherits VerticalLayout {
             default-value: 0;
             changed => { Actions.settings-changed(); }
         }
-        if Settings.eq: Divider { }
         if Settings.eq: ParameterRow {
             title: "Saturation";
             value <=> Settings.saturation;
@@ -205,11 +186,10 @@ component RestorePage inherits VerticalLayout {
             changed => { Actions.settings-changed(); }
         }
     }
+    Divider { }
     FormSection {
         Disclosure {
             title: "Finishing filters (Lanczos)";
-            icon: @image-url("icons/sparkles.svg");
-            has-icon: true;
             expanded <=> root.finishing-open;
         }
         if root.finishing-open: FinishingFilters { }
@@ -221,7 +201,6 @@ component ProcessorPage inherits VerticalLayout {
     FormSection {
         ChoiceRow {
             label: "Deblock";
-            small: true;
             choices: ["Off", "weak", "strong"];
             index <=> Settings.deblock;
             menu-width: 110px;
@@ -230,14 +209,16 @@ component ProcessorPage inherits VerticalLayout {
         if Settings.deblock > 0: VerticalLayout {
             spacing: 4px;
             HorizontalLayout {
-                Caption {
+                Text {
                     text: "Thresholds";
+                    font-size: Theme.body;
+                    color: Theme.text;
                     horizontal-stretch: 1;
                     vertical-alignment: center;
                 }
                 Button {
                     text: "Defaults";
-                    size: ButtonSize.mini;
+                    size: ButtonSize.small;
                     clicked => {
                         Settings.deblock-alpha = "";
                         Settings.deblock-beta = "";
@@ -248,47 +229,42 @@ component ProcessorPage inherits VerticalLayout {
                 }
             }
             HorizontalLayout {
-                spacing: 6px;
+                spacing: 8px;
+                alignment: end;
                 StackedField {
                     label: "alpha";
                     value <=> Settings.deblock-alpha;
                     placeholder: "0.098";
-                    field-width: 52px;
                     changed => { Actions.settings-changed(); }
                 }
                 StackedField {
                     label: "beta";
                     value <=> Settings.deblock-beta;
                     placeholder: "0.05";
-                    field-width: 52px;
                     changed => { Actions.settings-changed(); }
                 }
                 StackedField {
                     label: "gamma";
                     value <=> Settings.deblock-gamma;
                     placeholder: "0.05";
-                    field-width: 52px;
                     changed => { Actions.settings-changed(); }
                 }
                 StackedField {
                     label: "delta";
                     value <=> Settings.deblock-delta;
                     placeholder: "0.05";
-                    field-width: 52px;
                     changed => { Actions.settings-changed(); }
                 }
             }
             if !Settings.deblock-valid: Text {
                 text: "Invalid saved or draft thresholds; use values from 0 to 1 or Defaults.";
-                font-size: Theme.caption;
+                font-size: Theme.subheadline;
                 color: Theme.red;
                 wrap: word-wrap;
             }
         }
-        Divider { }
         ChoiceRow {
             label: "Deband";
-            small: true;
             choices: ["Off", "Deband", "Gradfun", "Neo F3kdb (CPU)"];
             index <=> Settings.deband;
             menu-width: 200px;
@@ -300,9 +276,8 @@ component ProcessorPage inherits VerticalLayout {
             }
         }
         if (Settings.deband == 1 && Settings.f3kdb) || Settings.deband == 3: HorizontalLayout {
-            spacing: 6px;
-            padding-left: 8px;
-            alignment: start;
+            spacing: 8px;
+            alignment: end;
             StackedField {
                 label: "Range";
                 value <=> Settings.f3kdb-range;
@@ -324,22 +299,18 @@ component ProcessorPage inherits VerticalLayout {
         }
         if Settings.deband != 3 && !(Settings.deband == 1 && Settings.f3kdb): FieldRow {
             label: "Strength";
-            small: true;
-            padding-left: 8px;
             value <=> Settings.deband-strength;
             placeholder: "0.015";
             changed => { Actions.settings-changed(); }
         }
-        Divider { }
         FieldRow {
             label: "Grain";
-            small: true;
             value <=> Settings.grain;
             placeholder: "1.0";
-            field-width: 50px;
             changed => { Actions.settings-changed(); }
         }
     }
+    Divider { }
     FormSection {
         SwitchRow {
             label: "Remove near-duplicate frames";
@@ -347,14 +318,12 @@ component ProcessorPage inherits VerticalLayout {
             changed => { Actions.settings-changed(); }
         }
     }
+    Divider { }
     FormSection {
         HorizontalLayout {
             alignment: start;
             Button {
                 text: "Reset processing settings";
-                icon: @image-url("icons/reset.svg");
-                has-icon: true;
-                kind: ButtonKind.plain;
                 clicked => { Actions.reset-settings(); }
             }
         }
@@ -363,21 +332,22 @@ component ProcessorPage inherits VerticalLayout {
 
 export component Inspector inherits Rectangle {
     in-out property <bool> finishing-open;
-    background: Theme.form;
+    background: Theme.window;
     VerticalLayout {
-        HorizontalLayout {
-            padding: Theme.md;
+        VerticalLayout {
+            padding: 12px;
+            spacing: Theme.sm;
             SegmentedPicker {
                 items: ["Upscale", "Restore", "Processor", "Output"];
                 selected <=> App.page;
             }
+            if App.running: Caption { text: "Settings are locked while processing."; }
         }
+        Divider { }
         ScrollView {
             vertical-stretch: 1;
             VerticalLayout {
-                padding-left: Theme.md;
-                padding-right: Theme.md;
-                padding-bottom: Theme.md;
+                padding: 12px;
                 alignment: start;
                 if App.page == 0: UpscalePage { }
                 if App.page == 1: RestorePage {
@@ -388,14 +358,9 @@ export component Inspector inherits Rectangle {
             }
         }
     }
-    // Settings are locked while processing.
+    // Settings are locked while processing; the pages can still be read.
     if App.running: TouchArea {
-        y: 56px;
-        height: root.height - 56px;
-    }
-    if App.running: Rectangle {
-        y: 56px;
-        height: root.height - 56px;
-        background: Theme.form.with-alpha(0.45);
+        y: 72px;
+        height: root.height - 72px;
     }
 }

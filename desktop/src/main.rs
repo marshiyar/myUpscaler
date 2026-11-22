@@ -425,6 +425,16 @@ fn wire(ui: &AppWindow) -> Rc<RefCell<State>> {
     app.set_engine_version(engine::version().unwrap_or_else(|| "(not installed)".into()).into());
     app.set_version(env!("CARGO_PKG_VERSION").into());
     app.set_mac(cfg!(target_os = "macos"));
+    // The platform's interface font: Segoe UI on Windows, the system font on macOS (an empty family), and the
+    // embedded Inter where there is no single platform font.
+    let font = if cfg!(target_os = "windows") {
+        "Segoe UI"
+    } else if cfg!(target_os = "macos") {
+        ""
+    } else {
+        "Inter"
+    };
+    ui.global::<Theme>().set_font(font.into());
     let list = |items: &[&str]| ModelRc::new(VecModel::from(items.iter().map(|&i| i.into()).collect::<Vec<_>>()));
     app.set_hwaccels(list(settings::hwaccels()));
     app.set_encoders(list(settings::encoders()));

@@ -36,7 +36,9 @@ fn main() {
         }
     }
 
-    // The Cupertino base style on every platform; the app's own controls draw the rest from ui/theme.slint.
-    let config = slint_build::CompilerConfiguration::new().with_style("cupertino".into());
+    // The base style supplies the scroll bars and the About panel: Fluent on Windows, Cupertino elsewhere. The app's
+    // own controls draw the rest from ui/theme.slint.
+    let style = if windows { "fluent" } else { "cupertino" };
+    let config = slint_build::CompilerConfiguration::new().with_style(style.into());
     slint_build::compile_with_config("ui/app.slint", config).expect("the Slint interface failed to compile");
 }

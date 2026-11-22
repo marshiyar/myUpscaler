@@ -25,6 +25,10 @@ app="${dir}myupscaler"
 for licence in LICENSE.txt MpVFX-Media-LICENSE.txt MpVFX-Media-NOTICE.txt; do
   test -s "${dir}$licence" || { echo "Missing $licence in the package" >&2; exit 1; }
 done
+if [[ $app == *.exe ]]; then
+  # A build machine has this library installed, so only its presence in the package shows that it ships.
+  test -s "${dir}vcruntime140.dll" || { echo "Missing vcruntime140.dll in the package" >&2; exit 1; }
+fi
 # Run from the unpacked folder only: nothing beside the build tree is on the way.
 (cd "$dir" && "$app" --screenshot "$work/package-check.png")
 test -s "$work/package-check.png"

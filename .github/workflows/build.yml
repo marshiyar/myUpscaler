@@ -245,11 +245,11 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-macos
-      - name: Select Xcode 27.1
+      - name: Select Xcode 27.0
         run: |
           set -euo pipefail
-          echo "DEVELOPER_DIR=/Applications/Xcode_27.1.app/Contents/Developer" >> "$GITHUB_ENV"
-          /Applications/Xcode_27.1.app/Contents/Developer/usr/bin/xcodebuild -version
+          echo "DEVELOPER_DIR=/Applications/Xcode_27.0.app/Contents/Developer" >> "$GITHUB_ENV"
+          /Applications/Xcode_27.0.app/Contents/Developer/usr/bin/xcodebuild -version
       - name: Metal compiler component
         run: |
           set -euo pipefail

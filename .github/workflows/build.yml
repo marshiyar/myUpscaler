@@ -245,14 +245,18 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-macos
+      - name: Select Xcode 27.1
+        run: |
+          set -euo pipefail
+          echo "DEVELOPER_DIR=/Applications/Xcode_27.1.app/Contents/Developer" >> "$GITHUB_ENV"
+          /Applications/Xcode_27.1.app/Contents/Developer/usr/bin/xcodebuild -version
       - name: Metal compiler component
         run: |
           set -euo pipefail
-          xcrun metal -v 2>&1 | head -n 3 || true
           if ! xcrun metal -v > /dev/null 2>&1; then
             xcodebuild -downloadComponent MetalToolchain
-            xcrun metal -v 2>&1 | head -n 3
           fi
+          xcrun metal -v 2>&1 | head -n 1
       - uses: ./.github/actions/rust-backend-macos
       - name: Restore prepared CoreML models
         uses: actions/cache@v6

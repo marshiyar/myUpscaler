@@ -46,6 +46,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self.fixBlankWindows()
             self.applyLaunchWindowSize()
         }
+        // The first text field takes keyboard focus once the window is up; a still picture should not show it.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            if LaunchOptions.current != LaunchOptions(arguments: []) {
+                NSApplication.shared.windows.forEach { $0.makeFirstResponder(nil) }
+            }
+        }
     }
 
     private func applyLaunchWindowSize() {

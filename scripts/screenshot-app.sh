@@ -1,13 +1,13 @@
 #!/bin/bash
 # Launches a built myUpscaler.app on the Upscale page with a video loaded, in light appearance, waits for the window
 # to draw and saves a picture of that window (title bar included) as a PNG. Needs a signed-in macOS desktop session.
-# Usage: scripts/screenshot-app.sh <app bundle> <video> <output.png> [width x height of the content, default 1280x800]
+# Usage: scripts/screenshot-app.sh <app bundle> <video> <output.png> [width x height of the content, default 1280x676]
 set -euo pipefail
 
 app=${1:?app bundle}
 video=${2:?video file}
 output=${3:?output png}
-size=${4:-1280x800}
+size=${4:-1280x676}
 name=$(basename "$app" .app)
 work=$(mktemp -d)
 cleanup() { killall "$name" 2>/dev/null || true; rm -rf "$work"; }

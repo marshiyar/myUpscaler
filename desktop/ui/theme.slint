@@ -1,7 +1,7 @@
-// Design tokens matching the macOS app (myUpscaler/Views): macOS system colours for windows, cards, grouped forms,
-// labels and separators in light and dark appearance, the system blue accent, and macOS text sizes. Inter is
-// embedded for the interface, so every platform renders the same; the log uses the system's monospaced font, as
-// on macOS.
+// Design tokens shared with the macOS app (myUpscaler/Views): window, bar and control colours in light and dark
+// appearance, one accent, and the macOS text sizes. Every colour is opaque, so a surface looks the same wherever it
+// is placed. The interface font is the platform's own (set from main.rs); Inter is embedded for platforms without
+// one. The log uses the system's monospaced font.
 
 import { Palette } from "std-widgets.slint";
 import "fonts/Inter-Regular.ttf";
@@ -16,14 +16,13 @@ export global Theme {
         : preference == ThemePreference.light ? false
         : Palette.color-scheme != ColorScheme.light;
 
-    // Type (macOS text styles)
-    out property <string> font: "Inter";
+    // Type (macOS text styles). An empty family is the system's default interface font.
+    in property <string> font: "Inter";
     out property <string> mono: "monospace";
-    out property <length> title: 22px;              // .title
     out property <length> title2: 17px;             // .title2
     out property <length> body: 13px;               // .body, .headline
     out property <length> subheadline: 11px;        // .subheadline
-    out property <length> caption: 10px;            // .caption, .caption2
+    out property <length> caption: 10px;            // .caption
     out property <length> log: 11px;
 
     // Spacing and shape
@@ -31,12 +30,8 @@ export global Theme {
     out property <length> sm: 8px;
     out property <length> md: 16px;
     out property <length> lg: 24px;
-    out property <length> xl: 32px;
     out property <length> control-radius: 5px;
-    out property <length> section-radius: 8px;
-    out property <length> card-radius: 14px;
     out property <length> control-height: 22px;
-    out property <length> toolbar-height: 52px;
 
     // Motion
     out property <duration> fast: 120ms;
@@ -44,36 +39,31 @@ export global Theme {
 
     // Surfaces
     out property <color> window: dark ? #1e1e1e : #ececec;              // windowBackgroundColor
-    out property <color> card: dark ? #262626 : #ffffff;                // controlBackgroundColor
-    out property <color> well: dark ? #1a1a1a : #ffffff;                // textBackgroundColor
-    out property <color> card-border: dark ? #ffffff14 : #00000014;     // primary at 8%
+    out property <color> well: dark ? #141414 : #ffffff;                // log background
+    out property <color> stage: dark ? #141414 : #1c1c1c;               // behind the preview frame
     out property <color> bar: dark ? #2b2b2b : #f6f6f6;                 // toolbar and bottom bar
-    out property <color> form: dark ? #1e1e1e : #f2f2f2;                // grouped form background
-    out property <color> section: dark ? #ffffff0d : #ffffff;           // grouped form section
-    out property <color> section-border: dark ? #ffffff12 : #0000000f;
-    out property <color> separator: dark ? #ffffff1a : #0000001a;
-    out property <color> hover: dark ? #ffffff14 : #0000000d;
-    out property <color> pressed: dark ? #ffffff24 : #0000001a;
-    out property <color> fill: dark ? #ffffff1a : #0000000f;            // quaternary fill: tracks, segments
-    out property <color> control: dark ? #ffffff24 : #ffffff;           // bordered buttons, popup buttons
-    out property <color> control-border: dark ? #ffffff1f : #00000026;
-    out property <color> field: dark ? #ffffff0d : #ffffff;
-    out property <color> field-border: dark ? #ffffff26 : #00000026;
+    out property <color> separator: dark ? #3a3a3a : #d4d4d4;
+    out property <color> hover: dark ? #3c3c3c : #e6e6e6;
+    out property <color> pressed: dark ? #4a4a4a : #d9d9d9;
+    out property <color> fill: dark ? #3a3a3a : #dcdcdc;                // tracks, the segmented picker
+    out property <color> control: dark ? #3e3e3e : #ffffff;             // bordered buttons, pop-up buttons
+    out property <color> control-border: dark ? #555555 : #c8c8c8;
+    out property <color> field: dark ? #292929 : #ffffff;
     out property <color> popover: dark ? #2c2c2e : #f6f6f6;
     out property <color> segment: dark ? #636366 : #ffffff;             // selected segment
     out property <color> knob: #ffffff;
+    out property <color> knob-border: dark ? #1e1e1e : #b4b4b4;
+    out property <color> scrim: #00000066;                              // behind a sheet
 
     // Labels
     out property <color> text: dark ? #dfdfdf : #262626;                // labelColor
-    out property <color> secondary: dark ? #98989d : #808080;           // secondaryLabelColor
-    out property <color> tertiary: dark ? #636366 : #b2b2b2;            // tertiaryLabelColor
+    out property <color> secondary: dark ? #98989d : #6e6e6e;           // secondaryLabelColor
+    out property <color> disabled: dark ? #636366 : #a8a8a8;            // text and symbols of a disabled control
 
     // Accent and states
     out property <color> accent: dark ? #0a84ff : #007aff;
     out property <color> accent-pressed: dark ? #0071e3 : #0062cc;
+    out property <color> accent-disabled: dark ? #254a73 : #9cc9ff;
     out property <color> on-accent: #ffffff;
-    out property <color> focus: dark ? #0a84ff80 : #007aff80;
-    out property <color> green: dark ? #30d158 : #28cd41;
-    out property <color> orange: dark ? #ff9f0a : #ff9500;
     out property <color> red: dark ? #ff453a : #ff3b30;
 }

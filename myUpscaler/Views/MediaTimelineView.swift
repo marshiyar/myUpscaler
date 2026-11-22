@@ -5,26 +5,22 @@ import UniformTypeIdentifiers
 
 struct TimelineView: View {
     @ObservedObject var state: EditorState
-    @Namespace private var ns
-    @State private var hoverIndex: Int?
 
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal) {
-                LazyHStack(spacing: 10) {
+                LazyHStack(spacing: 8) {
                     ForEach(state.timelineFrames.indices, id: \.self) { i in
                         thumbnail(i)
                             .id(i)
                     }
                 }
-                .padding(6)
+                .padding(8)
             }
             .scrollContentBackground(.hidden)
             .background(Color.clear)
             .onChange(of: state.selectedFrameIndex) { _, idx in
-                withAnimation(.easeInOut(duration: 0.25)) {
-                    proxy.scrollTo(idx, anchor: .center)
-                }
+                proxy.scrollTo(idx, anchor: .center)
             }
         }
         .modifier(KeyboardNavigationModifier(selectedIndex: $state.selectedFrameIndex,
@@ -35,34 +31,25 @@ struct TimelineView: View {
     private func thumbnail(_ index: Int) -> some View {
         let selected = (index == state.selectedFrameIndex)
         return ZStack(alignment: .topLeading) {
-
             Image(nsImage: state.timelineFrames[index])
                 .resizable()
                 .aspectRatio(contentMode: .fill)
                 .frame(width: 104, height: 64)
-                .cornerRadius(3)
+                .clipped()
 
-            RoundedRectangle(cornerRadius: 3)
-                .stroke(selected ? Color.accentColor : Color.gray.opacity(0.3),
-                        lineWidth: selected ? 3 : 1)
-                .matchedGeometryEffect(id: "sel", in: ns, isSource: selected)
-                .frame(width: 104, height: 64)
-                .shadow(color: selected ? Color.accentColor.opacity(0.6) : .clear,
-                        radius: selected ? 6 : 0)
+            // The selected frame is outlined in the accent colour.
+            if selected {
+                Rectangle()
+                    .stroke(Color.accentColor, lineWidth: 2)
+                    .frame(width: 104, height: 64)
+            }
 
             Text("\(index + 1)")
-                .font(.system(size: 8, weight: .bold))
+                .font(.caption2.monospacedDigit())
                 .foregroundColor(.white)
                 .padding(.horizontal, 4)
-                .padding(.vertical, 1)
-                .background(selected ?
-                            Color.accentColor.opacity(0.9) :
-                            Color.primary.opacity(0.7))
-                .cornerRadius(2)
-                .padding(4)
+                .background(selected ? Color.accentColor : Color.black)
         }
-
-        .onHover { hoverIndex = $0 ? index : nil }
         .onTapGesture { state.selectFrame(index) }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Frame \(index + 1), \(state.formatTime(state.timelineFrameTimes[index]))")

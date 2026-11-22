@@ -1,5 +1,5 @@
-// Layout pieces of the macOS app's views: cards (rounded panels on the window), grouped-form sections with their
-// rows, the parameter row (label, slider, value, reset), disclosure headers and captions. The input controls are in
+// Layout pieces of the adjustments panel and the sheets: sections (a heading over rows), label-and-control rows, the
+// parameter row (label, slider, value, reset), the disclosure header and notes. The input controls are in
 // controls.slint.
 
 import { Theme } from "theme.slint";
@@ -12,85 +12,36 @@ export component Divider inherits Rectangle {
     background: Theme.separator;
 }
 
-// A rounded panel on the window background (the input and log cards).
-export component Card inherits Rectangle {
-    background: Theme.card;
-    border-radius: Theme.card-radius;
-    border-width: 1px;
-    border-color: Theme.card-border;
-}
-
-// Small secondary text.
+// A note under a control: small secondary text.
 export component Caption inherits Text {
     font-size: Theme.subheadline;
     color: Theme.secondary;
     wrap: word-wrap;
 }
 
-// One section of a grouped form: an optional header above a rounded box of rows.
+// One section of a form: an optional heading above its rows.
 export component FormSection inherits VerticalLayout {
     in property <string> title;
-    spacing: 6px;
+    spacing: 8px;
     if root.title != "": Text {
-        x: 10px;
         text: root.title;
         font-size: Theme.body;
         font-weight: 600;
         color: Theme.text;
     }
-    Rectangle {
-        background: Theme.section;
-        border-radius: Theme.section-radius;
-        border-width: 1px;
-        border-color: Theme.section-border;
-        VerticalLayout {
-            padding-left: 10px;
-            padding-right: 10px;
-            padding-top: 8px;
-            padding-bottom: 8px;
-            spacing: 8px;
-            @children
-        }
-    }
-}
-
-// A panel header inside a section ("Quality & Scale" with its symbol).
-export component PanelHeader inherits HorizontalLayout {
-    in property <string> title;
-    in property <image> icon;
-    spacing: 6px;
-    padding-bottom: 2px;
-    VerticalLayout {
-        alignment: center;
-        Image {
-            source: root.icon;
-            width: 13px;
-            height: 13px;
-            colorize: Theme.accent;
-        }
-    }
-    Text {
-        text: root.title;
-        font-size: Theme.subheadline;
-        font-weight: 600;
-        color: Theme.text;
-        vertical-alignment: center;
-        horizontal-stretch: 1;
-    }
+    @children
 }
 
 // A form row: the label on the left, the control on the right.
 export component FormRow inherits HorizontalLayout {
     in property <string> label;
-    in property <bool> small;       // caption-sized secondary label, as in the panels
     in property <bool> enabled: true;
     spacing: 8px;
     min-height: Theme.control-height;
     Text {
         text: root.label;
-        font-size: root.small ? Theme.subheadline : Theme.body;
-        color: root.small ? Theme.secondary : Theme.text;
-        opacity: root.enabled ? 1 : 0.45;
+        font-size: Theme.body;
+        color: root.enabled ? Theme.text : Theme.disabled;
         vertical-alignment: center;
         overflow: elide;
         horizontal-stretch: 1;
@@ -105,26 +56,26 @@ export component ChoiceRow inherits FormRow {
     in property <[string]> choices;
     in-out property <int> index;
     in property <length> menu-width: 140px;
+    in property <string> name: root.label;       // the control's accessible name
     callback changed();
     Dropdown {
         width: root.menu-width;
         model: root.choices;
         current-index <=> root.index;
         enabled: root.enabled;
-        label: root.label;
+        label: root.name;
         selected => { root.changed(); }
     }
 }
 
 export component SwitchRow inherits FormRow {
     in-out property <bool> checked;
-    in property <bool> mini;
+    in property <string> name: root.label;
     callback changed();
     Toggle {
         checked <=> root.checked;
-        mini: root.mini;
         enabled: root.enabled;
-        label: root.label;
+        label: root.name;
         toggled => { root.changed(); }
     }
 }
@@ -132,30 +83,32 @@ export component SwitchRow inherits FormRow {
 export component FieldRow inherits FormRow {
     in-out property <string> value;
     in property <string> placeholder;
-    in property <length> field-width: 55px;
+    in property <length> field-width: 60px;
+    in property <string> name: root.label;
     callback changed();
     TextField {
         width: root.field-width;
         text <=> root.value;
         placeholder: root.placeholder;
         enabled: root.enabled;
-        label: root.label;
+        label: root.name;
         edited => { root.changed(); }
     }
 }
 
-// A labelled field stacked above its label's caption, for the rows of small fields ("Range  Y  CbCr").
+// A field under its own label, for the rows of short fields ("Range  Y  CbCr").
 export component StackedField inherits VerticalLayout {
     in property <string> label;
+    in property <string> name: root.label;       // the field's accessible name
     in-out property <string> value;
     in property <string> placeholder;
-    in property <length> field-width: 40px;
+    in property <length> field-width: 52px;
     in property <bool> enabled: true;
     callback changed();
     spacing: 2px;
     Text {
         text: root.label;
-        font-size: Theme.caption;
+        font-size: Theme.subheadline;
         color: Theme.secondary;
     }
     TextField {
@@ -163,12 +116,12 @@ export component StackedField inherits VerticalLayout {
         text <=> root.value;
         placeholder: root.placeholder;
         enabled: root.enabled;
-        label: root.label;
+        label: root.name;
         edited => { root.changed(); }
     }
 }
 
-// Label, slider, value and a reset button ("Strength ——o—— 2.50 ↺"). Committed when the drag ends.
+// Label, slider, value and a reset button. Committed when the drag ends.
 export component ParameterRow inherits HorizontalLayout {
     in property <string> title;
     in-out property <float> value;
@@ -180,14 +133,12 @@ export component ParameterRow inherits HorizontalLayout {
     in property <bool> enabled: true;
     callback changed();
     spacing: 8px;
-    height: 24px;
+    height: Theme.control-height;
     Text {
         text: root.title;
-        width: 70px;
-        font-size: Theme.subheadline;
-        font-weight: 500;
-        color: Theme.text;
-        opacity: root.enabled ? 1 : 0.45;
+        width: 92px;
+        font-size: Theme.body;
+        color: root.enabled ? Theme.text : Theme.disabled;
         vertical-alignment: center;
         overflow: elide;
     }
@@ -208,16 +159,17 @@ export component ParameterRow inherits HorizontalLayout {
         }
     }
     Text {
-        width: 40px;
+        width: 44px;
         text: slider.value.to-fixed(root.digits);
-        font-size: Theme.subheadline;
-        font-weight: 500;
-        color: Theme.text;
+        font-size: Theme.body;
+        color: root.enabled ? Theme.text : Theme.disabled;
         horizontal-alignment: right;
         vertical-alignment: center;
     }
     Rectangle {
-        width: 22px;
+        width: 20px;
+        border-radius: Theme.control-radius;
+        background: reset.pressed ? Theme.pressed : Theme.window;
         accessible-role: button;
         accessible-label: "Reset " + root.title;
         accessible-action-default => { reset.clicked(); }
@@ -225,8 +177,7 @@ export component ParameterRow inherits HorizontalLayout {
             source: @image-url("icons/reset.svg");
             width: 12px;
             height: 12px;
-            colorize: Theme.accent;
-            opacity: root.enabled ? (reset.pressed ? 0.6 : 1) : 0.45;
+            colorize: root.enabled ? Theme.secondary : Theme.disabled;
         }
         reset := TouchArea {
             enabled: root.enabled;
@@ -242,17 +193,14 @@ export component ParameterRow inherits HorizontalLayout {
 // A disclosure group's header: a chevron that turns when open, then the label.
 export component Disclosure inherits Rectangle {
     in property <string> title;
-    in property <image> icon;
-    in property <bool> has-icon;
     in-out property <bool> expanded;
     in property <bool> enabled: true;
-    height: 22px;
+    height: Theme.control-height;
     accessible-role: button;
     accessible-label: root.title;
     accessible-expandable: true;
     accessible-expanded: root.expanded;
     accessible-action-default => { touch.clicked(); }
-    opacity: root.enabled ? 1 : 0.45;
     HorizontalLayout {
         spacing: 6px;
         VerticalLayout {
@@ -261,22 +209,14 @@ export component Disclosure inherits Rectangle {
                 source: root.expanded ? @image-url("icons/chevron-down.svg") : @image-url("icons/chevron-right.svg");
                 width: 10px;
                 height: 10px;
-                colorize: Theme.secondary;
-            }
-        }
-        if root.has-icon: VerticalLayout {
-            alignment: center;
-            Image {
-                source: root.icon;
-                width: 13px;
-                height: 13px;
-                colorize: Theme.accent;
+                colorize: root.enabled ? Theme.secondary : Theme.disabled;
             }
         }
         Text {
             text: root.title;
-            font-size: Theme.subheadline;
-            color: Theme.text;
+            font-size: Theme.body;
+            font-weight: 600;
+            color: root.enabled ? Theme.text : Theme.disabled;
             vertical-alignment: center;
             horizontal-stretch: 1;
         }

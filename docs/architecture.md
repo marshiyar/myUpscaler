@@ -26,6 +26,7 @@ Split by an identifiable responsibility and explicit ownership boundary, not arb
 - Unused regex extraction helper: the parser uses its combined expression.
 - Unused `QualityAnalyzer` implementation and synchronous preview-filter wrapper: no source callers remained; preview rendering uses the bounded background path. Legacy preset fields remain decodable.
 - Declaration-only x265 string parser, drop area, duplicate slider and unused scroll-background wrapper: actual controls use the maintained bindings and native slider implementation.
+- The unused compact adjustment panels (`PreviewAdjustmentPanels.swift`, `TransparentScrollView.swift`) and the card, shadow and button-style helpers of `DesignSystem.swift`: the workspace and the adjustments form use system styles.
 
 ## Executor boundaries
 

@@ -11,70 +11,43 @@ struct SavedPresetsPanel: View {
     @State private var newPresetName: String = ""
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Label("Saved Presets", systemImage: "bookmark.fill")
-                    .font(.subheadline.weight(.semibold))
-                Spacer()
+        InspectorSection(title: "Saved Presets") {
+            HStack(spacing: 8) {
+                TextField("Preset name", text: $newPresetName)
+                    .labelsHidden()
+                    .textFieldStyle(.roundedBorder)
+                    .frame(maxWidth: .infinity)
+                    .disabled(isProcessing)
+
+                Button("Save current", action: savePreset)
+                    .buttonStyle(.borderedProminent)
+                    .disabled(isProcessing || trimmed(newPresetName).isEmpty)
             }
-            .padding(.bottom, 2)
 
-            GroupBox {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 8) {
-                        TextField("Preset name", text: $newPresetName)
-                            .labelsHidden()
-                                .textFieldStyle(.roundedBorder)
-                            .frame(maxWidth: .infinity)
-                            .disabled(isProcessing)
+            if let notice = presetStore.storageNotice {
+                HStack(alignment: .top) {
+                    InspectorNote(notice, tint: .red)
+                    Button("Dismiss") { presetStore.dismissNotice() }.buttonStyle(.link)
+                }
+            }
 
-                        Button(action: savePreset) {
-                            Label("Save current", systemImage: "square.and.arrow.down")
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.small)
-                        .disabled(isProcessing || trimmed(newPresetName).isEmpty)
-                    }
-
-                    Text("Presets capture all current upscale settings for quick reuse.")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-
-                    if let notice = presetStore.storageNotice {
-                        HStack(alignment: .top) {
-                            Text(notice).font(.caption).foregroundColor(.red)
-                            Spacer()
-                            Button("Dismiss") { presetStore.dismissNotice() }.buttonStyle(.link).font(.caption)
-                        }
-                    }
-
-                    Divider()
-
-                    if presetStore.presets.isEmpty {
-                        Text("No presets yet. Save one to reuse your favorite configuration.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    } else {
-                        VStack(spacing: 8) {
-                            ForEach(presetStore.presets) { preset in
-                                PresetRow(
-                                    preset: preset,
-                                    isProcessing: isProcessing,
-                                    onApply: { presetStore.apply(preset, to: settings) },
-                                    onOverwrite: { presetStore.update(preset, settings: settings) },
-                                    onRename: { newName in presetStore.update(preset, newName: newName) },
-                                    onDuplicate: { presetStore.duplicate(preset) },
-                                    onDelete: { presetStore.delete(preset) }
-                                )
-                            }
-                        }
+            if presetStore.presets.isEmpty {
+                InspectorNote("No presets yet.")
+            } else {
+                VStack(spacing: 12) {
+                    ForEach(presetStore.presets) { preset in
+                        PresetRow(
+                            preset: preset,
+                            isProcessing: isProcessing,
+                            onApply: { presetStore.apply(preset, to: settings) },
+                            onOverwrite: { presetStore.update(preset, settings: settings) },
+                            onRename: { newName in presetStore.update(preset, newName: newName) },
+                            onDuplicate: { presetStore.duplicate(preset) },
+                            onDelete: { presetStore.delete(preset) }
+                        )
                     }
                 }
-                .padding(8)
             }
-            .groupBoxStyle(ModernGroupBoxStyle())
-            .cardStyle()
         }
     }
 
@@ -113,50 +86,28 @@ struct PresetRow: View {
                         .onSubmit(commitRename)
                 } else {
                     Text(preset.name)
-                        .font(.subheadline.weight(.medium))
+                        .font(.body)
                 }
 
                 Spacer()
 
-                Button(action: toggleRename) {
-                    Image(systemName: isRenaming ? "checkmark.circle.fill" : "pencil")
-                        .foregroundColor(.accentColor)
-                }
-                .buttonStyle(.plain)
-                .disabled(isProcessing)
+                Button(isRenaming ? "Save name" : "Rename", action: toggleRename)
+                    .disabled(isProcessing)
             }
 
             HStack(spacing: 8) {
-                Button(action: onApply) {
-                    Label("Apply", systemImage: "arrow.down.circle")
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .disabled(isProcessing)
+                Button("Apply", action: onApply)
+                    .disabled(isProcessing)
 
-                Button(action: onOverwrite) {
-                    Label("Update", systemImage: "arrow.triangle.2.circlepath")
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
-                .disabled(isProcessing)
+                Button("Update", action: onOverwrite)
+                    .disabled(isProcessing)
 
-                Button(action: onDuplicate) {
-                    Label("Duplicate", systemImage: "plus.square.on.square")
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
+                Button("Duplicate", action: onDuplicate)
 
-                Button(role: .destructive, action: { confirmDelete = true }) {
-                    Label("Delete", systemImage: "trash")
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
+                Button("Delete", role: .destructive, action: { confirmDelete = true })
             }
         }
-        .padding(8)
-        .background(Color.accentColor.opacity(0.04))
-        .cornerRadius(8)
+        .padding(.vertical, 4)
         .onAppear { nameDraft = preset.name }
         .confirmationDialog("Delete preset?", isPresented: $confirmDelete) {
             Button("Delete \"\(preset.name)\"", role: .destructive, action: onDelete)

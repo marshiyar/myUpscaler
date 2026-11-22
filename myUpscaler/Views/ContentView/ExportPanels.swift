@@ -4,87 +4,48 @@ import Combine
 import UniformTypeIdentifiers
 
 struct OutputPanel: View {
-    @Environment(\.workspaceInspector) private var inInspector
     @Binding var outputMode: UpscaleRunner.OutputMode
     @Binding var customOutputFolder: String
     let predictedName: String
     let chooseFolder: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if !inInspector { HStack {
-                Label("Output", systemImage: "folder.fill")
-                    .font(.subheadline.weight(.semibold))
-                Spacer()
-            }
-            .padding(.bottom, 2) }
-
-            GroupBox {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("Location")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        Picker("", selection: $outputMode) {
-                            Text("Same folder").tag(UpscaleRunner.OutputMode.same)
-                            Text("Custom folder").tag(UpscaleRunner.OutputMode.custom)
-                        }
-                        .labelsHidden()
-                        .pickerStyle(.menu)
-                        .controlSize(.small)
-                        .frame(width: 120)
-                        .fixedSize()
-                        .transition(.opacity)
-                        .animation(.easeInOut(duration: 0.15), value: outputMode)
-                    }
-
-                    if outputMode == .custom {
-                        HStack {
-                            Image(systemName: "folder")
-                                .foregroundColor(.secondary)
-                                .font(.system(size: 10))
-                            Text(customOutputFolder.isEmpty ? "Choose an output folder" : customOutputFolder)
-                                .help(customOutputFolder)
-                                .textSelection(.enabled)
-                                .truncationMode(.middle)
-                                .font(.caption)
-                                .lineLimit(1)
-                                .foregroundColor(.secondary)
-                            Spacer()
-
-                            Button("Choose", action: chooseFolder)
-                                .controlSize(.mini)
-                        }
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 6)
-                        .background(cardBackground)  // background to see easier
-                        .cornerRadius(6)
-                        .zIndex(1)
-                    }
-
-                    Divider()
-                        .padding(.vertical, 2)
-                    HStack {
-                        Image(systemName: "doc.text.fill")
-                            .foregroundColor(.accentColor)
-                            .font(.system(size: 10))
-                        Text("Output:")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text(predictedName)
-                            .font(.caption)
-                            .fontWeight(.medium)
-                            .foregroundColor(.primary)
-                            .lineLimit(1)
-                    }
+        InspectorSection {
+            InspectorRow(title: "Location") {
+                Picker("Location", selection: $outputMode) {
+                    Text("Same folder").tag(UpscaleRunner.OutputMode.same)
+                    Text("Custom folder").tag(UpscaleRunner.OutputMode.custom)
                 }
-                .padding(8)
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .fixedSize()
             }
-            .groupBoxStyle(ModernGroupBoxStyle())
-            .cardStyle()
+
+            if outputMode == .custom {
+                HStack(spacing: 8) {
+                    Text(customOutputFolder.isEmpty ? "Choose an output folder" : customOutputFolder)
+                        .help(customOutputFolder)
+                        .textSelection(.enabled)
+                        .truncationMode(.middle)
+                        .font(.body)
+                        .lineLimit(1)
+                        .foregroundColor(.secondary)
+                    Spacer(minLength: 8)
+                    Button("Choose", action: chooseFolder)
+                }
+            }
+
+            HStack(spacing: 8) {
+                Text("Output")
+                    .font(.body)
+                Spacer(minLength: 8)
+                Text(predictedName)
+                    .font(.body)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
         }
-        .frame(maxWidth: .infinity)
     }
 }
 
@@ -160,7 +121,7 @@ struct ProgressDetails: View {
                 }
                 if runner.batchTotal == 0 {
                 HStack(spacing: 14) {
-                    Text("Processing: \(runner.fpsString) fps")
+                    Text("Processing: \(runner.fpsString) frames/s")
                     Text("Media time: \(runner.timeString)")
                     Text("Remaining: \(runner.etaString)")
                 }
@@ -191,7 +152,7 @@ struct LogPanel: View {
                     ScrollView {
                         Text(runner.log.isEmpty ? "Export details will appear here." : runner.log)
                             .textSelection(.enabled)
-                            .font(.system(size: 11, design: .monospaced))
+                            .font(.system(.caption, design: .monospaced))
                             .frame(maxWidth: .infinity, alignment: .topLeading)
                             .padding(10)
                             .id("BOTTOM")
@@ -199,17 +160,16 @@ struct LogPanel: View {
                     .onChange(of: runner.log) { _, _ in reader.scrollTo("BOTTOM", anchor: .bottom) }
                 }
                 .frame(height: 170)
-                .background(Color.appTertiaryBackground, in: RoundedRectangle(cornerRadius: 8))
+                .background(Color.appTertiaryBackground)
                 .padding(.top, 8)
             } label: {
                 Label("Processing details", systemImage: "text.alignleft")
                     .font(.subheadline)
             }
         }
-        .padding(14)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.appSecondaryBackground, in: RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.primary.opacity(0.08)))
     }
 
     // Note: sandbox requirement securityScopedOutputURL

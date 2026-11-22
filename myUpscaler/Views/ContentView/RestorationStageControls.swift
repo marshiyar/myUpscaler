@@ -12,24 +12,24 @@ struct RestorationSharpenControls: View {
         switch presentation {
         case .sliders:
             if stage.sharpenMethod == "cas" {
-                ParameterRow(title: "CAS Strength",
+                ParameterRow(title: "Strength",
                              binding: $stage.sharpenStrength.text,
                              range: settings.sharpenStrengthRange,
                              step: settings.sharpenStrengthStep,
                              defaultValue: settings.sharpenStrengthDefault,
                              formatter: Formatters.twoFraction,
-                             sliderAccessibility: "CAS sharpen strength slider",
+                             sliderAccessibility: "Sharpen strength",
                              gradient: .sharpen)
                 { _ in settings.objectWillChange.send() }
             } else {
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: UI.rowSpacing) {
                     ParameterRow(title: "Radius",
                                  binding: $stage.usmRadius.text,
                                  range: settings.usmRadiusRange,
                                  step: settings.usmRadiusStep,
                                  defaultValue: settings.usmRadiusDefault,
                                  formatter: Formatters.integer,
-                                 sliderAccessibility: "Unsharp mask radius slider",
+                                 sliderAccessibility: "Sharpen radius",
                                  gradient: .usmRadius)
                     { _ in settings.objectWillChange.send() }
 
@@ -39,7 +39,7 @@ struct RestorationSharpenControls: View {
                                  step: settings.usmAmountStep,
                                  defaultValue: settings.usmAmountDefault,
                                  formatter: Formatters.twoFraction,
-                                 sliderAccessibility: "Unsharp mask amount slider",
+                                 sliderAccessibility: "Sharpen amount",
                                  gradient: .usmAmount)
                     { _ in settings.objectWillChange.send() }
 
@@ -49,48 +49,17 @@ struct RestorationSharpenControls: View {
                                  step: settings.usmThresholdStep,
                                  defaultValue: settings.usmThresholdDefault,
                                  formatter: Formatters.threeFraction,
-                                 sliderAccessibility: "Unsharp mask threshold slider",
+                                 sliderAccessibility: "Sharpen threshold",
                                  gradient: .usmThreshold)
                     { _ in settings.objectWillChange.send() }
-                    .transition(.opacity.combined(with: .move(edge: .top)))
                 }
-                .animation(.easeInOut(duration: 0.5), value: stage.useDering)
             }
         case .compact:
             if stage.sharpenMethod == "unsharp" {
-                HStack(spacing: 6) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Matrix")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        TextField("5", text: $stage.usmRadius.text)
-                            .labelsHidden()
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 35)
-                    }
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Amount")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        TextField("1.0", text: $stage.usmAmount.text)
-                            .labelsHidden()
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 35)
-                    }
-                }
-                .padding(.leading, 8)
+                InspectorField(title: "Radius", placeholder: "5", text: $stage.usmRadius.text, width: 50)
+                InspectorField(title: "Amount", placeholder: "1.0", text: $stage.usmAmount.text, width: 50)
             } else {
-                HStack {
-                    Text("CAS")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    TextField("0.25", text: $stage.sharpenStrength.text)
-                        .labelsHidden()
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 50)
-
-                }
-                .padding(.leading, 8)
+                InspectorField(title: "Strength", placeholder: "0.25", text: $stage.sharpenStrength.text, width: 50)
             }
         }
     }
@@ -98,25 +67,12 @@ struct RestorationSharpenControls: View {
 
 struct RestorationF3KDBControls: View {
     @Binding var stage: RestorationStage
-    var compact: Bool
 
     var body: some View {
-        HStack(spacing: 6) {
-            field("Range", placeholder: "15", text: $stage.f3kdbRange.text)
-            field("Y", placeholder: "64", text: $stage.f3kdbY.text)
-            field("CbCr", placeholder: "64", text: $stage.f3kdbCbCr.text)
-        }
-    }
-
-    private func field(_ title: String, placeholder: String, text: Binding<String>) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(title)
-                .font(compact ? .caption : .system(size: 10))
-                .foregroundStyle(.secondary)
-            TextField(placeholder, text: text)
-                .labelsHidden()
-                .textFieldStyle(.roundedBorder)
-                .frame(width: compact ? 35 : 40)
+        VStack(alignment: .leading, spacing: UI.rowSpacing) {
+            InspectorField(title: "Radius", placeholder: "15", text: $stage.f3kdbRange.text, width: 50)
+            InspectorField(title: "Brightness", placeholder: "64", text: $stage.f3kdbY.text, width: 50)
+            InspectorField(title: "Color", placeholder: "64", text: $stage.f3kdbCbCr.text, width: 50)
         }
     }
 }
@@ -126,30 +82,27 @@ struct DeblockThresholdControls: View {
     @Binding var text: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text("Thresholds").font(.caption).foregroundStyle(.secondary)
-                Spacer()
-                Button("Defaults") { text = "" }.controlSize(.mini)
+        VStack(alignment: .leading, spacing: UI.rowSpacing) {
+            InspectorRow(title: "Fine tuning") {
+                Button("Reset") { text = "" }
             }
-            HStack(spacing: 6) {
-                ForEach(["alpha", "beta", "gamma", "delta"], id: \.self) { key in
+            HStack(spacing: 8) {
+                ForEach(Array(["alpha", "beta", "gamma", "delta"].enumerated()), id: \.offset) { index, key in
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(key).font(.caption2).foregroundStyle(.secondary)
+                        Text("\(index + 1)").font(.callout).foregroundStyle(.secondary)
                         TextField(key == "alpha" ? "0.098" : "0.05", text: Binding(
                             get: { DeblockThresholds.value(key, in: text) },
                             set: { text = DeblockThresholds.replacing(key, with: $0, in: text) }),
                             prompt: Text(key == "alpha" ? "0.098" : "0.05"))
                             .labelsHidden()
                             .textFieldStyle(.roundedBorder)
-                            .accessibilityLabel("Deblock \(key) threshold")
+                            .accessibilityLabel("Fine tuning \(index + 1)")
                     }
                 }
             }
             .help("Detection thresholds from 0 to 1. Empty fields use the defaults.")
             if !DeblockThresholds.isValid(text) {
-                Text("Invalid saved or draft thresholds; use values from 0 to 1 or Defaults.")
-                    .font(.caption).foregroundStyle(.red)
+                InspectorNote("Use values from 0 to 1.", tint: .red)
             }
         }
     }

@@ -31,21 +31,6 @@ struct DragDropView: View {
                 ImportVideoView(isHovered: state.isHovered, chooseInput: chooseInput)
             } else {
                 VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Label(URL(fileURLWithPath: externalInputPath).lastPathComponent, systemImage: "film")
-                            .font(.subheadline.weight(.semibold))
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                        Text("Approximate preview")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        if let chooseInput {
-                            Button("Change video", action: chooseInput)
-                                .disabled(isProcessingFullUpscale)
-                        }
-                    }
-
                     HStack(alignment: .center, spacing: 12) {
                         ZStack {
                             if let image = state.thumbnailImage {
@@ -55,18 +40,13 @@ struct DragDropView: View {
                                     .onTapGesture(count: 2) { onFrameDoubleTap?(image) }
                                     .accessibilityLabel("Adjusted video preview")
                             } else {
-                                VStack(spacing: 8) {
-                                    Image(systemName: "film").font(.title)
-                                    Text("Video selected").font(.headline)
-                                    Text("The preview will appear here when available.")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                .padding()
+                                Text("The preview will appear here when available.")
+                                    .foregroundStyle(Color(white: 0.7))
+                                    .padding()
                             }
                         }
-                        .frame(minWidth: 160, maxWidth: .infinity, maxHeight: .infinity)
-                        .background(Color.appTertiaryBackground, in: RoundedRectangle(cornerRadius: 8))
+                        .frame(minWidth: 160, maxWidth: .infinity, minHeight: 80, maxHeight: .infinity)
+                        .background(Color(white: 0.11))
                         .layoutPriority(1)
 
                     }

@@ -17,6 +17,11 @@ slint = { version = "1.18", features = ["unstable-winit-030"] }
 cpal = "0.15"
 rfd = { version = "0.15", default-features = false, features = ["xdg-portal", "tokio"] }
 
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.5"
+objc2-app-kit = { version = "0.2", default-features = false, features = ["std", "NSApplication", "NSEvent", "NSResponder", "NSToolbar", "NSView", "NSWindow"] }
+objc2-foundation = { version = "0.2", default-features = false, features = ["std", "NSString", "NSGeometry"] }
+
 [build-dependencies]
 slint-build = "1.18"
 

@@ -14,6 +14,7 @@ mod preview;
 mod progress;
 mod screenshot;
 mod settings;
+mod window;
 
 use std::cell::{Cell, RefCell};
 use std::path::{Path, PathBuf};
@@ -215,7 +216,7 @@ fn start(ui: &AppWindow, state: &mut State) {
     let folder = output.parent().map(Path::to_path_buf).unwrap_or_default();
     state.expected = Some(if input.is_dir() { folder.clone() } else { output.clone() });
     app.set_log(SharedString::new());
-    append_log(ui, "--- Starting Rust Engine ---\n");
+    append_log(ui, "--- Starting export ---\n");
     append_log(ui, &format!("Input: {}\nOutput: {}\n\n", input.display(), folder.display()));
     if !input.is_dir() {
         append_log(ui, &format!("Expected output file: {}\n\n", output.display()));
@@ -425,6 +426,16 @@ fn wire(ui: &AppWindow) -> Rc<RefCell<State>> {
     app.set_engine_version(engine::version().unwrap_or_else(|| "(not installed)".into()).into());
     app.set_version(env!("CARGO_PKG_VERSION").into());
     app.set_mac(cfg!(target_os = "macos"));
+    // The platform's interface font: Segoe UI on Windows, the system font on macOS (an empty family), and the
+    // embedded Inter where there is no single platform font.
+    let font = if cfg!(target_os = "windows") {
+        "Segoe UI"
+    } else if cfg!(target_os = "macos") {
+        ""
+    } else {
+        "Inter"
+    };
+    ui.global::<Theme>().set_font(font.into());
     let list = |items: &[&str]| ModelRc::new(VecModel::from(items.iter().map(|&i| i.into()).collect::<Vec<_>>()));
     app.set_hwaccels(list(settings::hwaccels()));
     app.set_encoders(list(settings::encoders()));
@@ -552,9 +563,25 @@ fn main() -> Result<(), String> {
         });
     }
 
+    slint::BackendSelector::new()
+        .with_winit_window_attributes_hook(window::attributes)
+        .select()
+        .map_err(|e| e.to_string())?;
     let ui = AppWindow::new().map_err(|e| e.to_string())?;
     let state = wire(&ui);
     accept_drops(&ui, &state);
+    let w = ui.as_weak();
+    ui.global::<Actions>().on_toolbar_press(move || {
+        if let Some(ui) = w.upgrade() {
+            window::toolbar_press(&ui);
+        }
+    });
+    let w = ui.as_weak();
+    ui.global::<Actions>().on_appearance_changed(move || {
+        if let Some(ui) = w.upgrade() {
+            window::apply(&ui);
+        }
+    });
     let timer = Timer::default();
     let (w, st) = (ui.as_weak(), state.clone());
     timer.start(TimerMode::Repeated, Duration::from_millis(100), move || with(&w, &st, drain));
@@ -566,5 +593,7 @@ fn main() -> Result<(), String> {
     if let Some(path) = args.next().map(PathBuf::from) {
         select_input(&ui, &mut state.borrow_mut(), path);
     }
+    ui.show().map_err(|e| e.to_string())?;
+    window::apply_when_ready(ui.as_weak(), 0);
     ui.run().map_err(|e| e.to_string())
 }

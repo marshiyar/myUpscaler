@@ -9,33 +9,37 @@ struct KeyboardShortcutsView: View {
     @State private var errorMessage: String?
 
     var body: some View {
-        Form {
-            Section("Commands") {
-                ForEach(manager.availableActions) { command in
-                    HStack {
-                        Text(command.name)
-                        Spacer()
-                        ShortcutBadge(binding: edit?.command == command ? edit!.binding : manager.binding(for: command))
-                        if edit?.command == command {
-                            Button("Save") { saveEdit() }.disabled(edit?.binding == nil)
-                            Button("Cancel") { edit = nil; errorMessage = nil }
-                        } else {
-                            Button("Edit") {
-                                edit = Edit(command: command, binding: manager.binding(for: command))
-                                errorMessage = nil
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                InspectorSection(title: "Commands") {
+                    ForEach(manager.availableActions) { command in
+                        HStack {
+                            Text(command.name)
+                                .font(.body)
+                            Spacer()
+                            ShortcutBadge(binding: edit?.command == command ? edit!.binding : manager.binding(for: command))
+                            if edit?.command == command {
+                                Button("Save") { saveEdit() }.disabled(edit?.binding == nil)
+                                Button("Cancel") { edit = nil; errorMessage = nil }
+                            } else {
+                                Button("Edit") {
+                                    edit = Edit(command: command, binding: manager.binding(for: command))
+                                    errorMessage = nil
+                                }
                             }
                         }
+                        .frame(minHeight: 22)
                     }
                 }
-            }
-            Section {
-                Button("Reset to defaults", systemImage: "arrow.counterclockwise") {
+                Divider()
+                Button("Reset to defaults") {
                     edit = nil
                     update { try manager.resetToDefaults() }
                 }
             }
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .formStyle(.grouped)
 
         .sheet(item: $conflict) { requested in
             ShortcutConflictResolver(conflict: requested, errorMessage: errorMessage) { resolution in
@@ -77,8 +81,7 @@ private struct ShortcutBadge: View {
     var body: some View {
         Text(binding?.display ?? "Unassigned")
             .font(.body.monospaced())
-            .padding(.horizontal, 8).padding(.vertical, 4)
-            .background(Color.appSecondaryBackground, in: RoundedRectangle(cornerRadius: 6))
+            .foregroundStyle(.secondary)
             .accessibilityLabel(binding?.display ?? "No keyboard shortcut")
     }
 }

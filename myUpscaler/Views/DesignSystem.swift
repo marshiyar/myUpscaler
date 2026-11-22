@@ -1,245 +1,141 @@
 import SwiftUI
 
-struct DesignSystem {
-    struct Spacing {
-        static let xs: CGFloat = 4
-        static let sm: CGFloat = 8
-        static let md: CGFloat = 16
-        static let lg: CGFloat = 24
-        static let xl: CGFloat = 32
-        static let xxl: CGFloat = 40
-        static let xxxl: CGFloat = 48
-    }
-    struct Typography {
-        static let largeTitle = Font.system(size: 34, weight: .bold, design: .default)
-        static let title1 = Font.system(size: 28, weight: .bold, design: .default)
-        static let title2 = Font.system(size: 22, weight: .bold, design: .default)
-        static let title3 = Font.system(size: 20, weight: .semibold, design: .default)
-        static let headline = Font.system(size: 13, weight: .semibold, design: .default)
-        static let body = Font.system(size: 13, weight: .regular, design: .default)
-        static let bodyBold = Font.system(size: 13, weight: .semibold, design: .default)
-        static let callout = Font.system(size: 16, weight: .regular, design: .default)
-        static let subheadline = Font.system(size: 13, weight: .regular, design: .default)
-        static let subheadlineMedium = Font.system(size: 13, weight: .medium, design: .default)
-        static let footnote = Font.system(size: 13, weight: .regular, design: .default)
-        static let footnoteMedium = Font.system(size: 13, weight: .medium, design: .default)
-        static let caption1 = Font.system(size: 12, weight: .regular, design: .default)
-        static let caption2 = Font.system(size: 11, weight: .regular, design: .default)
-        static let monospaced = Font.system(size: 11, weight: .regular, design: .monospaced)
-    }
-
-    struct CornerRadius {
-        static let small: CGFloat = 6
-        static let medium: CGFloat = 8
-        static let large: CGFloat = 12
-        static let xlarge: CGFloat = 16
-    }
-
-    struct Shadow {
-        static let small = ShadowStyle(color: .black.opacity(0.08), radius: 2, x: 0, y: 1)
-        static let medium = ShadowStyle(color: .black.opacity(0.12), radius: 4, x: 0, y: 2)
-        static let large = ShadowStyle(color: .black.opacity(0.16), radius: 8, x: 0, y: 4)
-
-        struct ShadowStyle {
-            let color: Color
-            let radius: CGFloat
-            let x: CGFloat
-            let y: CGFloat
-        }
-    }
-}
-
 extension Color {
     static let appBackground = Color(NSColor.windowBackgroundColor)
-    static let appSecondaryBackground = Color(NSColor.controlBackgroundColor)
     static let appTertiaryBackground = Color(NSColor.textBackgroundColor)
-    static let appAccent = Color.accentColor
-    static let appAccentSecondary = Color.accentColor.opacity(0.7)
 }
 
-struct ModernCardStyle: ViewModifier {
-    let padding: CGFloat
-    let cornerRadius: CGFloat
+/// One section of the inspector or of a settings page: a plain title over flat rows. Sections are separated by one
+/// `Divider`, and nothing is boxed.
+struct InspectorSection<Content: View>: View {
+    var title: String? = nil
+    @ViewBuilder var content: () -> Content
 
-    init(padding: CGFloat = DesignSystem.Spacing.md, cornerRadius: CGFloat = DesignSystem.CornerRadius.large) {
-        self.padding = padding
-        self.cornerRadius = cornerRadius
-    }
-
-    func body(content: Content) -> some View {
-        content
-            .padding(padding)
-            .background {
-                RoundedRectangle(cornerRadius: cornerRadius)
-                    .fill(Color.appSecondaryBackground)
-                    .shadow(
-                        color: DesignSystem.Shadow.small.color,
-                        radius: DesignSystem.Shadow.small.radius,
-                        x: DesignSystem.Shadow.small.x,
-                        y: DesignSystem.Shadow.small.y
-                    )
-            }
-    }
-}
-
-extension View {
-    func modernCard(padding: CGFloat = DesignSystem.Spacing.md, cornerRadius: CGFloat = DesignSystem.CornerRadius.large) -> some View {
-        modifier(ModernCardStyle(padding: padding, cornerRadius: cornerRadius))
-    }
-}
-
-struct SectionHeaderStyle: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .font(DesignSystem.Typography.headline)
-            .foregroundColor(.primary)
-            .textCase(nil)
-    }
-}
-
-extension View {
-    func sectionHeader() -> some View {
-        modifier(SectionHeaderStyle())
-    }
-}
-
-struct ModernLabelStyle: ViewModifier {
-    let icon: String
-    let size: CGFloat
-
-    init(icon: String, size: CGFloat = 16) {
-        self.icon = icon
-        self.size = size
-    }
-
-    func body(content: Content) -> some View {
-        Label {
-            content
-        } icon: {
-            Image(systemName: icon)
-                .font(.system(size: size, weight: .medium))
-                .foregroundColor(.accentColor)
-        }
-    }
-}
-
-extension View {
-    func modernLabel(icon: String, size: CGFloat = 16) -> some View {
-        modifier(ModernLabelStyle(icon: icon, size: size))
-    }
-}
-
-struct PrimaryButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(DesignSystem.Typography.subheadlineMedium)
-            .foregroundColor(.white)
-            .padding(.horizontal, DesignSystem.Spacing.lg)
-            .padding(.vertical, DesignSystem.Spacing.sm)
-            .background {
-                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
-                    .fill(Color.accentColor)
-            }
-            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
-            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
-    }
-}
-
-struct SecondaryButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(DesignSystem.Typography.subheadlineMedium)
-            .foregroundColor(.accentColor)
-            .padding(.horizontal, DesignSystem.Spacing.lg)
-            .padding(.vertical, DesignSystem.Spacing.sm)
-            .background {
-                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
-                    .fill(Color.accentColor.opacity(0.1))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
-                            .stroke(Color.accentColor.opacity(0.3), lineWidth: 1)
-                    }
-            }
-            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
-            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
-    }
-}
-
-extension ButtonStyle where Self == PrimaryButtonStyle {
-    static var primary: PrimaryButtonStyle {
-        PrimaryButtonStyle()
-    }
-}
-
-extension ButtonStyle where Self == SecondaryButtonStyle {
-    static var secondary: SecondaryButtonStyle {
-        SecondaryButtonStyle()
-    }
-}
-
-struct ModernGroupBoxStyle: GroupBoxStyle {
-    @Environment(\.workspaceInspector) private var inInspector
-    func makeBody(configuration: Configuration) -> some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.sm) {
-            configuration.label
-                .font(DesignSystem.Typography.subheadlineMedium)
-                .foregroundColor(.secondary)
-            configuration.content
-        }
-        .padding(inInspector ? 0 : DesignSystem.Spacing.md)
-    }
-}
-
-extension GroupBoxStyle where Self == ModernGroupBoxStyle {
-    static var modern: ModernGroupBoxStyle {
-        ModernGroupBoxStyle()
-    }
-}
-
-struct ModernDivider: View {
     var body: some View {
-        Divider()
-            .background(Color.secondary.opacity(0.2))
+        VStack(alignment: .leading, spacing: UI.rowSpacing) {
+            if let title { Text(title).font(.headline) }
+            content()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
-struct EmptyStateView: View {
-    let icon: String
+/// The label on the left, its control on the right. Every label in the inspector is `.body`.
+struct InspectorRow<Control: View>: View {
     let title: String
-    let message: String
+    var enabled = true
+    @ViewBuilder var control: () -> Control
 
     var body: some View {
-        VStack(spacing: DesignSystem.Spacing.md) {
-            Image(systemName: icon)
-                .font(.system(size: 48, weight: .light))
-                .foregroundColor(.secondary)
-
+        HStack(spacing: 8) {
             Text(title)
-                .font(DesignSystem.Typography.title3)
-                .foregroundColor(.primary)
-
-            Text(message)
-                .font(DesignSystem.Typography.subheadline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
+                .font(.body)
+                .foregroundStyle(enabled ? Color.primary : Color.secondary)
+                .lineLimit(1)
+            Spacer(minLength: 8)
+            control()
         }
-        .padding(DesignSystem.Spacing.xl)
-        .frame(maxWidth: .infinity)
+        .frame(minHeight: 22)
     }
 }
-struct LoadingView: View {
+
+/// A switch row: the label on the left, the switch on the right.
+struct InspectorSwitch: View {
+    let title: String
+    @Binding var isOn: Bool
+    var enabled = true
+
     var body: some View {
-        ProgressView()
-            .scaleEffect(1.2)
-            .padding(DesignSystem.Spacing.lg)
+        InspectorRow(title: title, enabled: enabled) {
+            Toggle(title, isOn: $isOn)
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .disabled(!enabled)
+        }
     }
 }
 
+/// A note under a control.
+struct InspectorNote: View {
+    let text: String
+    var tint: Color = .secondary
 
-private struct WorkspaceInspectorKey: EnvironmentKey { static let defaultValue = false }
-extension EnvironmentValues {
-    var workspaceInspector: Bool {
-        get { self[WorkspaceInspectorKey.self] }
-        set { self[WorkspaceInspectorKey.self] = newValue }
+    init(_ text: String, tint: Color = .secondary) {
+        self.text = text
+        self.tint = tint
+    }
+
+    var body: some View {
+        Text(text)
+            .font(.callout)
+            .foregroundStyle(tint)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// A short field with its label to the left.
+struct InspectorField: View {
+    let title: String
+    let placeholder: String
+    @Binding var text: String
+    var enabled = true
+    var width: CGFloat = 60
+
+    var body: some View {
+        InspectorRow(title: title, enabled: enabled) {
+            TextField(placeholder, text: $text)
+                .labelsHidden()
+                .textFieldStyle(.roundedBorder)
+                .multilineTextAlignment(.trailing)
+                .frame(width: width)
+                .disabled(!enabled)
+                .accessibilityLabel(title)
+        }
+    }
+}
+
+/// Names shown in menus for values the settings store under their own keys; the keys do not change.
+enum DisplayName {
+    /// The denoisers in the order the menus list them: fastest first.
+    static let denoiserOrder = ["hqdn3d", "bm3d", "nlmeans", "atadenoise"]
+
+    static func orderedDenoisers(_ values: [String]) -> [String] {
+        values.sorted { (denoiserOrder.firstIndex(of: $0) ?? .max) < (denoiserOrder.firstIndex(of: $1) ?? .max) }
+    }
+
+    /// Fast, Balanced and Slow name the three denoisers by speed.
+    static func denoiser(_ value: String) -> String {
+        switch value {
+        case "hqdn3d": return "Fast"
+        case "bm3d": return "Balanced"
+        case "nlmeans": return "Slow"
+        case "atadenoise": return "Across frames"
+        default: return value
+        }
+    }
+
+    static func deblockMode(_ value: String) -> String {
+        switch value {
+        case "weak": return "Weak"
+        case "strong": return "Strong"
+        default: return value
+        }
+    }
+
+    static func hardwareDecoding(_ value: String) -> String {
+        switch value {
+        case "videotoolbox": return "Mac"
+        case "none": return "None"
+        default: return value
+        }
+    }
+
+    static func sharpenMethod(_ value: String) -> String {
+        switch value {
+        case "cas": return "Adaptive"
+        case "unsharp": return "Classic"
+        default: return value
+        }
     }
 }

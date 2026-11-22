@@ -2,11 +2,11 @@
 
 Issues and pull requests are welcome.
 
-Please ensure:
+Before opening a pull request:
 
-- Code builds with Xcode 27+
-- Existing tests pass
-- New behavior includes tests where applicable
+- the code builds with Xcode 27 or later;
+- existing tests pass;
+- new behavior has tests where they apply.
 
 By contributing, you agree that your contributions will be licensed under the same license as this project.
 
@@ -44,7 +44,7 @@ For a downloaded model ZIP, set `COREML_MODEL_ARCHIVE_URL` and
 folders at its root. These inputs are also available on manual Actions runs.
 The checksum verifies the supplied download, without pinning individual weights
 or compiled metadata files. Explicit sources replace any existing cache after
-validation. Xcode's **Embed CoreML models** phase loads and checks the prepared
+validation. Xcode's Embed CoreML models phase loads and checks the prepared
 assets, copies them into Resources, and removes models dropped from the set.
 
 Without an explicit source, `bash scripts/prepare-bundled-models.sh` reuses a

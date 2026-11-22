@@ -13,7 +13,7 @@ struct myUpscalerApp: App {
         WindowGroup {
 
             ContentView()
-                .frame(minWidth: 720, minHeight: 600)
+                .frame(minWidth: 720, minHeight: 664)
                 .navigationTitle("myUpscaler")
         }
         .windowToolbarStyle(.unifiedCompact)

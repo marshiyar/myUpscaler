@@ -31,6 +31,7 @@ runtime (`vcruntime140.dll`), as the `myupscaler-windows-x64` artifact, after pr
   macOS app's icon.
 - `src/settings.rs`: interface settings ↔ the backend's `Options`; the interface starts from the backend's factory
   settings, so the defaults are defined once.
+- `src/device.rs`: the Run on menu. On Windows and macOS the GPU is the default once an adapter opens; the last pick (`device.txt` beside the presets) wins. The CPU stays selectable and runs any stage the GPU declines.
 - `src/presets.rs`: saved presets, in `presets.txt` in the per-user settings folder (`field=value` lines).
 - `src/preview.rs`: the preview thread (one frame through the export's spatial filters) and the frame strip.
 - `src/player.rs`: the player thread: frames decoded at window size, sound through the system's output device

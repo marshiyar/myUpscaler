@@ -15,6 +15,17 @@ test -x "$executable"
 test -f "$engine"
 [[ $(xcrun lipo -archs "$engine") == arm64 ]]
 codesign --verify --strict "$engine"
+# The engine loads only if its signature matches the app's: the same team in a Developer ID or development build
+# (library validation stays on), and, in an ad hoc build, which has no team, the app's exception for library validation.
+team() { codesign -dvv "$1" 2>&1 | sed -n 's/^TeamIdentifier=//p'; }
+exception() { codesign -d --entitlements - "$1" 2>&1 | grep -c 'com.apple.security.cs.disable-library-validation' || true; }
+app_team=$(team "$app")
+if [[ $app_team == 'not set' ]]; then
+  [[ $(exception "$app") != 0 ]] || { echo 'The ad hoc app cannot load the engine: library validation is on.' >&2; exit 1; }
+else
+  [[ $(team "$engine") == "$app_team" ]] || { echo 'The engine is signed by another team than the app.' >&2; exit 1; }
+  [[ $(exception "$app") == 0 ]] || { echo 'A team-signed app must keep library validation on.' >&2; exit 1; }
+fi
 otool -L "$executable" | grep -q '@rpath/libmpvfx_ffi.dylib'
 otool -l "$executable" | grep -A2 LC_RPATH | grep -q '@executable_path/../Frameworks'
 nm -gU "$executable" | grep -q '_up60p_process_path'

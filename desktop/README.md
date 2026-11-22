@@ -18,8 +18,8 @@ cargo run --release                        # or: cargo run --release -- path/to/
 On Linux the build needs the fontconfig and ALSA development packages (`libfontconfig1-dev libasound2-dev` on
 Debian and Ubuntu). On Windows, run the first line from Git Bash (it comes with Git for Windows) and build with the MSVC toolchain (Visual
 Studio Build Tools, "Desktop development with C++"). The build copies the engine's `mpvfx_ffi.dll` next to
-`target\release\myupscaler.exe`; the two files together are the app. CI builds the same pair as the
-`myupscaler-windows-x64` artifact, after processing a test clip with it.
+`target\release\myupscaler.exe`; the two files together are the app. CI packages the same pair, with the Visual C++
+runtime (`vcruntime140.dll`), as the `myupscaler-windows-x64` artifact, after processing a test clip with it.
 
 ## Layout
 

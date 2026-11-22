@@ -17,7 +17,15 @@ trap 'rm -rf "$work"' EXIT
 pkg="$work/$name"
 mkdir -p "$pkg"
 case $platform in
-  windows) cp "$app.exe" target/release/mpvfx_ffi.dll "$pkg/" ;;
+  windows)
+    cp "$app.exe" target/release/mpvfx_ffi.dll "$pkg/"
+    # The app and the engine both load the Visual C++ runtime, which Windows itself does not include.
+    vswhere="/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe"
+    found=$("$vswhere" -latest -products '*' -find 'VC\Redist\MSVC\*\x64\Microsoft.VC*.CRT\vcruntime140.dll' | tr -d '\r' | sort -V)
+    runtime=${found##*$'\n'}
+    [[ -n $runtime ]] || { echo "The Visual C++ runtime (vcruntime140.dll) was not found" >&2; exit 1; }
+    cp "$(cygpath -u "$runtime")" "$pkg/"
+    ;;
   macos) cp "$app" "$engine/lib/libmpvfx_ffi.dylib" "$pkg/" ;;
   linux) cp "$app" "$engine/lib/libmpvfx_ffi.so" "$pkg/" ;;
   *) echo "Unknown platform: $platform" >&2; exit 1 ;;

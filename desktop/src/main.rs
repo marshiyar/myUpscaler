@@ -11,9 +11,11 @@ mod playback;
 mod player;
 mod presets;
 mod preview;
+mod processing;
 mod progress;
 mod screenshot;
 mod settings;
+mod system;
 mod window;
 
 use std::cell::{Cell, RefCell};
@@ -42,8 +44,6 @@ enum Report {
 
 /// A batch of the frame strip, for the input it was made for (its generation).
 type Thumbnails = (u64, Vec<(SharedPixelBuffer<Rgba8Pixel>, f64)>);
-
-use dropped::MEDIA_EXTENSIONS;
 
 /// The longest the log may grow before its oldest lines are dropped.
 const LOG_LIMIT: usize = 200_000;
@@ -242,23 +242,6 @@ fn start(ui: &AppWindow, state: &mut State) {
     });
 }
 
-/// Applies the result of the startup adapter search: the menu, and the entry to start with. That is the GPU where
-/// the platform prefers it, unless the user picked otherwise. A run that started before the search ended keeps the
-/// CPU it started on.
-fn gpu_found(ui: &AppWindow, state: &mut State, found: Result<Arc<dyn up60p::accel::Accelerator>, String>) {
-    let app = ui.global::<App>();
-    app.set_device_note(device::note(&found).into());
-    state.gpu = found.ok();
-    let names = device::choices(&state.gpu);
-    app.set_devices(ModelRc::new(VecModel::from(names.into_iter().map(SharedString::from).collect::<Vec<_>>())));
-    if !app.get_running() {
-        let index = device::initial(state.device_saved.get(), &state.gpu, device::GPU_FIRST);
-        ui.global::<Settings>().set_processing(index);
-        state.processing.set(index);
-        settings_changed(ui, state);
-    }
-}
-
 /// Applies what the processing, preview and frame-strip threads reported since the last tick.
 fn drain(ui: &AppWindow, state: &mut State) {
     let app = ui.global::<App>();
@@ -270,7 +253,7 @@ fn drain(ui: &AppWindow, state: &mut State) {
         };
         if let Some(found) = found {
             state.gpu_search = None;
-            gpu_found(ui, state, found);
+            processing::gpu_found(ui, state, found);
         }
     }
     while let Ok(reply) = state.replies.try_recv() {
@@ -356,51 +339,10 @@ fn drain(ui: &AppWindow, state: &mut State) {
     update_status(ui, state);
 }
 
-fn pick_input(folder: bool) -> Option<PathBuf> {
-    let dialog =
-        rfd::FileDialog::new().set_title(if folder { "Choose a batch folder" } else { "Choose a video or image" });
-    if folder {
-        dialog.pick_folder()
-    } else {
-        dialog.add_filter("Videos and images", &MEDIA_EXTENSIONS).pick_file()
-    }
-}
-
-/// Opens a file or web address with the system's default application, or shows a file in its folder.
-fn open_with_system(target: &str, reveal: bool) {
-    let mut command = if cfg!(target_os = "macos") {
-        let mut c = std::process::Command::new("open");
-        if reveal {
-            c.arg("-R");
-        }
-        c.arg(target);
-        c
-    } else if cfg!(windows) {
-        let mut c = std::process::Command::new("explorer");
-        c.arg(if reveal { format!("/select,{target}") } else { target.to_owned() });
-        c
-    } else {
-        let mut c = std::process::Command::new("xdg-open");
-        let path = Path::new(target);
-        c.arg(if reveal { path.parent().unwrap_or(path) } else { path });
-        c
-    };
-    let _ = command.spawn();
-}
-
 fn settings_changed(ui: &AppWindow, state: &State) {
     let current = ui.global::<Settings>();
     let asked = current.get_processing();
-    // A different entry than the one in effect is the user's pick (the search sets it through `processing`).
-    if asked != state.processing.get() && state.gpu.is_some() {
-        let choice = device::Choice::from_index(asked);
-        state.device_saved.set(Some(choice));
-        if let Some(file) = &state.device_file {
-            if let Err(e) = device::save(file, choice) {
-                append_log(ui, &format!("The processing choice could not be saved to {}: {e}\n", file.display()));
-            }
-        }
-    }
+    processing::remember(ui, state, asked);
     let in_effect = device::apply(asked, &state.gpu);
     current.set_processing(in_effect);
     state.processing.set(in_effect);
@@ -518,13 +460,13 @@ fn wire(ui: &AppWindow) -> Rc<RefCell<State>> {
     let actions = ui.global::<Actions>();
     let (w, st) = (ui.as_weak(), state.clone());
     actions.on_import(move || {
-        if let Some(path) = pick_input(false) {
+        if let Some(path) = system::pick_input(false) {
             with(&w, &st, |ui, s| select_input(ui, s, path));
         }
     });
     let (w, st) = (ui.as_weak(), state.clone());
     actions.on_import_folder(move || {
-        if let Some(path) = pick_input(true) {
+        if let Some(path) = system::pick_input(true) {
             with(&w, &st, |ui, s| select_input(ui, s, path));
         }
     });
@@ -565,13 +507,13 @@ fn wire(ui: &AppWindow) -> Rc<RefCell<State>> {
     actions.on_settings_changed(move || with(&w, &st, |ui, s| settings_changed(ui, s)));
     let (w, st) = (ui.as_weak(), state.clone());
     actions.on_open_output(move || {
-        with(&w, &st, |_, s| s.completed.iter().for_each(|p| open_with_system(&p.display().to_string(), false)))
+        with(&w, &st, |_, s| s.completed.iter().for_each(|p| system::open_with_system(&p.display().to_string(), false)))
     });
     let (w, st) = (ui.as_weak(), state.clone());
     actions.on_reveal_output(move || {
-        with(&w, &st, |_, s| s.completed.iter().for_each(|p| open_with_system(&p.display().to_string(), true)))
+        with(&w, &st, |_, s| s.completed.iter().for_each(|p| system::open_with_system(&p.display().to_string(), true)))
     });
-    actions.on_open_website(|| open_with_system(WEBSITE, false));
+    actions.on_open_website(|| system::open_with_system(WEBSITE, false));
     playback::wire(ui, &state);
     presets::wire(ui, &state);
 
@@ -632,73 +574,4 @@ fn main() -> Result<(), String> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use up60p::accel::Accelerator;
-
-    struct Stub;
-    impl Accelerator for Stub {
-        fn name(&self) -> String {
-            "Stub".into()
-        }
-    }
-
-    fn found() -> Result<Arc<dyn Accelerator>, String> {
-        Ok(Arc::new(Stub))
-    }
-
-    /// A window with its state, as `wire` builds them, remembering the processing pick in `file`.
-    fn start(file: &Path) -> (AppWindow, Rc<RefCell<State>>) {
-        let ui = AppWindow::new().unwrap();
-        let state = wire(&ui);
-        {
-            let mut s = state.borrow_mut();
-            s.gpu_search = None;
-            s.device_saved.set(device::load(file));
-            s.device_file = Some(file.to_path_buf());
-        }
-        (ui, state)
-    }
-
-    #[test]
-    fn the_gpu_is_the_default_and_the_pick_is_remembered() {
-        let _g = device::ACCEL_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-        let dir = std::env::temp_dir().join(format!("myupscaler-main-{}", std::process::id()));
-        let file = dir.join("device.txt");
-        let _ = std::fs::remove_dir_all(&dir);
-        let default = device::GPU_FIRST as i32;
-        let processing = |ui: &AppWindow| ui.global::<Settings>().get_processing();
-        i_slint_backend_testing::init_no_event_loop();
-
-        // First start: the platform default, and nothing is written for it.
-        let (ui, state) = start(&file);
-        gpu_found(&ui, &mut state.borrow_mut(), found());
-        assert_eq!(processing(&ui), default);
-        assert_eq!(up60p::accel::current().is_some(), default == 1);
-        assert!(!file.exists());
-
-        // The user picks the CPU: it is in effect and kept.
-        ui.global::<Settings>().set_processing(0);
-        settings_changed(&ui, &state.borrow());
-        assert!(up60p::accel::current().is_none());
-        assert_eq!(device::load(&file), Some(device::Choice::Cpu));
-
-        // Next start: the pick wins over the default.
-        let (ui, state) = start(&file);
-        gpu_found(&ui, &mut state.borrow_mut(), found());
-        assert_eq!(processing(&ui), 0);
-        assert!(up60p::accel::current().is_none());
-
-        // Picking the GPU is kept, and a start without an adapter runs on the CPU and keeps the pick.
-        ui.global::<Settings>().set_processing(1);
-        settings_changed(&ui, &state.borrow());
-        assert_eq!(up60p::accel::current().map(|a| a.name()).as_deref(), Some("Stub"));
-        assert_eq!(device::load(&file), Some(device::Choice::Gpu));
-        let (ui, state) = start(&file);
-        gpu_found(&ui, &mut state.borrow_mut(), Err("no adapter".into()));
-        assert_eq!(processing(&ui), 0);
-        assert!(up60p::accel::current().is_none());
-        assert_eq!(device::load(&file), Some(device::Choice::Gpu));
-        let _ = std::fs::remove_dir_all(&dir);
-    }
-}
+mod device_tests;

@@ -7,6 +7,7 @@ on:
       - 'backend/**'
       - 'gpu/**'
       - 'rust-toolchain.toml'
+      - 'scripts/fetch-sample-clip.sh'
       - 'scripts/prepare-media-engine.sh'
       - '.github/workflows/release.yml'
       - '.github/actions/media-engine/**'
@@ -60,7 +61,8 @@ jobs:
           "$app" --screenshot "$shots/finished-run.png" --run --log "$shots/sample.png"
           test -s "$shots/sample_[restored].png"
           cargo run --release --example sample_clip -- "$shots/clip.mp4"
-          "$app" --screenshot "$shots/video-light.png" --light --page 0 "$shots/clip.mp4"
+          bash ../scripts/fetch-sample-clip.sh "$shots/onepiece_demo.mp4"
+          "$app" --screenshot "$shots/video-light.png" --light --page 0 "$shots/onepiece_demo.mp4"
           "$app" --screenshot "$shots/video-running.png" --dark --inspector --run --after 5 "$shots/clip.mp4"
       - name: Package
         run: |

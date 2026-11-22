@@ -27,11 +27,11 @@ struct RestorationSecondSetPanel: View {
 
                         // Denoise 2
                         HStack {
-                            Text("Denoise").font(.caption)
+                            Text("Reduce noise").font(.caption)
                             Spacer()
                             Picker("", selection: $settings.secondary.denoiserChoice) {
                                 Text("Off").tag("off")
-                                ForEach(settings.denoisers, id: \.self) { Text($0).tag($0) }
+                                ForEach(settings.denoisers, id: \.self) { Text(DisplayName.denoiser($0)).tag($0) }
                             }
                             .pickerStyle(.menu)
                             .controlSize(.small)
@@ -50,7 +50,7 @@ struct RestorationSecondSetPanel: View {
                         Divider()
                             .padding(.vertical, 2)
 
-                        ParameterRow(title: "Deringing", binding: $settings.secondary.deringAmount, range: 0...10, step: 0.005,
+                        ParameterRow(title: "Remove halos", binding: $settings.secondary.deringAmount, range: 0...10, step: 0.005,
                                      defaultValue: 0.5, formatter: Formatters.twoFraction,
                                      sliderAccessibility: "Finishing deringing", gradient: .dering)
 
@@ -69,7 +69,7 @@ struct RestorationSecondSetPanel: View {
 
                             if settings.secondary.useSharpen {
                                 Picker("", selection: $settings.secondary.sharpenMethod) {
-                                    ForEach(settings.sharpenMethods, id: \.self) { Text($0) }
+                                    ForEach(settings.sharpenMethods, id: \.self) { Text(DisplayName.sharpenMethod($0)) }
                                 }
                                 .pickerStyle(.menu)
                                 .controlSize(.small)
@@ -86,7 +86,7 @@ struct RestorationSecondSetPanel: View {
                         Divider()
                             .padding(.vertical, 2)
 
-                        Picker("Deband", selection: $settings.secondary.debandChoice) {
+                        Picker("Remove banding", selection: $settings.secondary.debandChoice) {
                             Text("Off").tag("off")
                             Text("Deband").tag("deband")
                             Text("Gradfun").tag("gradfun")
@@ -137,7 +137,7 @@ struct RestorationSecondSetPanel: View {
                     }
                     .padding(8)
                 } label: {
-                    Label("Finishing filters (Lanczos)", systemImage: "wand.and.stars.inverse")
+                    Label("Finishing", systemImage: "wand.and.stars.inverse")
                         .font(.subheadline)
                 }
             }

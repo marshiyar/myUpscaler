@@ -21,7 +21,7 @@ struct QualityScalePanel: View {
                     // CRF Slider
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
-                            Text(settings.upscaling.scaler == "coreml" || settings.hardware.encoder == "videotoolbox" ? "Compression" : "CRF")
+                            Text(settings.upscaling.scaler == "coreml" || settings.hardware.encoder == "videotoolbox" ? "Compression" : "Quality")
                                 .font(.caption.weight(.medium))
                             Spacer()
                             Text("\(Int(localCRF ?? settings.codec.crf))")
@@ -63,7 +63,7 @@ struct QualityScalePanel: View {
                         }
 
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(settings.upscaling.scaler == "coreml" ? "FPS (source)" : "FPS")
+                            Text(settings.upscaling.scaler == "coreml" ? "Frame rate (source)" : "Frame rate")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             TextField("60", text: $settings.video.fps.text)
@@ -77,7 +77,7 @@ struct QualityScalePanel: View {
                     Divider()
                         .padding(.vertical, 2)
                     HStack {
-                        Text("Interpolation")
+                        Text("Smooth motion")
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Spacer()

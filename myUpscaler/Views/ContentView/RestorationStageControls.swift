@@ -58,7 +58,7 @@ struct RestorationSharpenControls: View {
             if stage.sharpenMethod == "unsharp" {
                 HStack(spacing: 6) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Matrix")
+                        Text("Radius")
                             .font(.caption)
                             .foregroundColor(.secondary)
                         TextField("5", text: $stage.usmRadius.text)
@@ -79,7 +79,7 @@ struct RestorationSharpenControls: View {
                 .padding(.leading, 8)
             } else {
                 HStack {
-                    Text("CAS")
+                    Text("Adaptive")
                         .font(.caption)
                         .foregroundColor(.secondary)
                     TextField("0.25", text: $stage.sharpenStrength.text)
@@ -140,13 +140,13 @@ struct DeblockThresholdControls: View {
                             prompt: Text(key == "alpha" ? "0.098" : "0.05"))
                             .labelsHidden()
                             .textFieldStyle(.roundedBorder)
-                            .accessibilityLabel("Deblock \(key) threshold")
+                            .accessibilityLabel("Remove blockiness \(key) threshold")
                     }
                 }
             }
             .help("Detection thresholds from 0 to 1. Empty fields use the defaults.")
             if !DeblockThresholds.isValid(text) {
-                Text("Invalid saved or draft thresholds; use values from 0 to 1 or Defaults.")
+                Text("Use values from 0 to 1.")
                     .font(.caption).foregroundStyle(.red)
             }
         }

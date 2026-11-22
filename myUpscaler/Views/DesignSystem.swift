@@ -26,3 +26,18 @@ extension EnvironmentValues {
         set { self[WorkspaceInspectorKey.self] = newValue }
     }
 }
+
+/// Names shown in menus for values the settings store under their own keys; the keys do not change.
+enum DisplayName {
+    static func denoiser(_ value: String) -> String {
+        value == "atadenoise" ? "Across frames" : value
+    }
+
+    static func sharpenMethod(_ value: String) -> String {
+        switch value {
+        case "cas": return "Adaptive"
+        case "unsharp": return "Classic"
+        default: return value
+        }
+    }
+}

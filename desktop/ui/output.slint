@@ -164,7 +164,7 @@ export component OutputPage inherits VerticalLayout {
     Divider { }
     FormSection {
         title: "Encoding";
-        Caption { text: "Output: H.264, 8-bit, MP4 with FLAC audio."; }
+        Caption { text: "Saves as MP4."; }
         ChoiceRow {
             label: "Processing";
             choices: App.devices;
@@ -175,7 +175,7 @@ export component OutputPage inherits VerticalLayout {
         }
         if App.device-note != "": Caption { text: App.device-note; }
         FieldRow {
-            label: "Threads";
+            label: "CPU threads";
             value <=> Settings.threads;
             placeholder: "0 (auto)";
             changed => { Actions.settings-changed(); }
@@ -204,10 +204,9 @@ export component OutputPage inherits VerticalLayout {
                 }
             }
         }
-        Caption { text: "Presets capture all current upscale settings for quick reuse."; }
         if App.preset-message != "": Caption { text: App.preset-message; }
         if App.presets.length == 0: Caption {
-            text: "No presets yet. Save one to reuse your favorite configuration.";
+            text: "No presets yet.";
         }
         for name[i] in App.presets: PresetRow {
             name: name;

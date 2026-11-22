@@ -7,7 +7,7 @@ struct WorkspaceInspector: View {
     @ObservedObject var presetStore: PresetStore
     let chooseOutputFolder: () -> Void
     enum Page: String, CaseIterable, Identifiable {
-        case upscale = "Upscale", restore = "Restore", processor = "Processor", output = "Output"
+        case upscale = "Upscale", restore = "Restore", processor = "Cleanup", output = "Output"
         var id: Self { self }
     }
     @State private var page: Page = .upscale
@@ -73,6 +73,7 @@ struct WorkspaceInspector: View {
                 }
             }
             .formStyle(.grouped)
+            .frame(minHeight: 120)
             .disabled(runner.isRunning)
             .environment(\.workspaceInspector, true)
         }
@@ -80,10 +81,10 @@ struct WorkspaceInspector: View {
     }
 
     private var primaryFilters: some View {
-        Section("Primary restoration") {
-            Picker("Denoise", selection: $settings.primary.denoiserChoice) {
+        Section("Restoration") {
+            Picker("Reduce noise", selection: $settings.primary.denoiserChoice) {
                 Text("Off").tag("off")
-                ForEach(settings.denoisers, id: \.self) { Text($0).tag($0) }
+                ForEach(settings.denoisers, id: \.self) { Text(DisplayName.denoiser($0)).tag($0) }
             }
             if settings.primary.useDenoise {
                 ParameterRow(title: "Strength", binding: $settings.primary.denoiseStrength.text,
@@ -91,14 +92,14 @@ struct WorkspaceInspector: View {
                              defaultValue: settings.denoiseStrengthDefault, formatter: Formatters.twoFraction,
                              sliderAccessibility: "Primary denoise strength", gradient: .denoise)
             }
-            ParameterRow(title: "Deringing", binding: $settings.primary.deringAmount, range: 0...10, step: 0.005,
+            ParameterRow(title: "Remove halos", binding: $settings.primary.deringAmount, range: 0...10, step: 0.005,
                          defaultValue: 0.5, formatter: Formatters.twoFraction,
                          sliderAccessibility: "Primary deringing", gradient: .dering)
                 .disabled(settings.upscaling.scaler == "coreml")
             Toggle("Sharpen", isOn: $settings.primary.useSharpen)
             if settings.primary.useSharpen {
                 Picker("Method", selection: $settings.primary.sharpenMethod) {
-                    Text("CAS").tag("cas"); Text("Unsharp mask").tag("unsharp")
+                    Text("Adaptive").tag("cas"); Text("Classic").tag("unsharp")
                 }
                 if settings.primary.sharpenMethod == "cas" {
                     ParameterRow(title: "Strength", binding: $settings.primary.sharpenStrength.text,
@@ -106,9 +107,9 @@ struct WorkspaceInspector: View {
                                  defaultValue: settings.sharpenStrengthDefault, formatter: Formatters.twoFraction,
                                  sliderAccessibility: "Primary sharpen strength", gradient: .sharpen)
                 } else {
-                    ParameterRow(title: "Matrix", binding: $settings.primary.usmRadius.text, range: settings.usmRadiusRange,
+                    ParameterRow(title: "Radius", binding: $settings.primary.usmRadius.text, range: settings.usmRadiusRange,
                                  step: settings.usmRadiusStep, defaultValue: settings.usmRadiusDefault,
-                                 formatter: Formatters.integer, sliderAccessibility: "Unsharp matrix size", gradient: .usmRadius)
+                                 formatter: Formatters.integer, sliderAccessibility: "Radius", gradient: .usmRadius)
                     ParameterRow(title: "Amount", binding: $settings.primary.usmAmount.text, range: settings.usmAmountRange,
                                  step: settings.usmAmountStep, defaultValue: settings.usmAmountDefault,
                                  formatter: Formatters.twoFraction, sliderAccessibility: "Unsharp amount", gradient: .usmAmount)
@@ -119,7 +120,7 @@ struct WorkspaceInspector: View {
 
     private var colorFilters: some View {
         Section {
-            Toggle("Color equalizer", isOn: enabled($settings.color.noEq))
+            Toggle("Color", isOn: enabled($settings.color.noEq))
             if settings.upscaling.scaler == "coreml" {
                 Text("Preview only")
                     .font(.caption).foregroundStyle(.secondary)

@@ -31,7 +31,7 @@ struct RestorationFiltersPanel: View {
 
                     // Deringing toggle + strength
                     Toggle(isOn: $settings.primary.useDering) {
-                        Text("Deringing")
+                        Text("Remove halos")
                             .font(.subheadline)
                     }
                     .toggleStyle(.switch)
@@ -44,7 +44,7 @@ struct RestorationFiltersPanel: View {
                                      step: 0.005,
                                      defaultValue: 0.5,
                                      formatter: Formatters.twoFraction,
-                                     sliderAccessibility: "Deringing strength slider",
+                                     sliderAccessibility: "Remove halos strength slider",
                                      gradient: .dering)
                         { _ in settings.objectWillChange.send() }
                             .padding(.top, 8)
@@ -54,8 +54,8 @@ struct RestorationFiltersPanel: View {
 
                     // Sharpen
                     Picker("Method", selection: $settings.primary.sharpenMethod) {
-                        Text("CAS").tag("cas")
-                        Text("Unsharp Mask").tag("unsharp")
+                        Text("Adaptive").tag("cas")
+                        Text("Classic").tag("unsharp")
                     }
                     .pickerStyle(.menu)
                     .frame(minWidth: 160)
@@ -87,7 +87,7 @@ struct RestorationPanel: View {
                 VStack(spacing: 8) {
                     // Deblock Mode
                     HStack {
-                        Text("Deblock")
+                        Text("Remove blockiness")
                             .font(.caption)
                             .disabled(settings.upscaling.scaler == "coreml")
                         Spacer()
@@ -114,7 +114,7 @@ struct RestorationPanel: View {
 
                     // Deband
                     HStack {
-                        Text("Deband")
+                        Text("Remove banding")
                             .font(.caption)
                         Spacer()
                         if settings.upscaling.scaler == "coreml" {

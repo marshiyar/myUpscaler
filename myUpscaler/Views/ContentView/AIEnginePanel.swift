@@ -21,22 +21,22 @@ struct AIEnginePanel: View {
                 VStack(spacing: 8) {
                     // Scaler
                     HStack {
-                        Text("Scaler")
+                        Text("Upscaling")
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Spacer()
-                        Picker("Scaler", selection: $settings.upscalingChoice) {
+                        Picker("Upscaling", selection: $settings.upscalingChoice) {
                             if let selected = settings.upscalingChoice, !settings.availableUpscalingChoices.contains(selected) {
-                                Text("\(selected.displayName) (unavailable)").tag(Optional(selected)).disabled(true)
+                                Text("\(selected.menuName) (unavailable)").tag(Optional(selected)).disabled(true)
                             } else if settings.upscalingChoice == nil {
                                 Text("Choose a scaler").tag(Optional<UpscalingChoice>.none).disabled(true)
                             }
                             ForEach(settings.availableUpscalingChoices) { choice in
-                                Text(choice.displayName).tag(Optional(choice))
+                                Text(choice.menuName).tag(Optional(choice))
                             }
                         }
                         .labelsHidden()
-                        .accessibilityLabel("Scaler")
+                        .accessibilityLabel("Upscaling")
                         .pickerStyle(.menu)
                         .controlSize(.small)
                         .frame(minWidth: 160)
@@ -54,5 +54,17 @@ struct AIEnginePanel: View {
             .groupBoxStyle(ModernGroupBoxStyle())
         }
         .frame(maxWidth: .infinity)
+    }
+}
+
+extension UpscalingChoice {
+    /// The name in the Upscaling menu. `displayName` stays the model's own name, which the processing log uses.
+    var menuName: String {
+        switch self {
+        case .lanczos: return "Standard"
+        case .model(let id):
+            return CoreMLModelRegistry.model(for: id).displayName
+                .replacingOccurrences(of: #"^Real-ESRGAN x(\d+)"#, with: "AI $1x", options: .regularExpression)
+        }
     }
 }

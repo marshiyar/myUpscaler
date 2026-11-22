@@ -4,7 +4,7 @@ The cross-platform version of myUpscaler: a [Slint](https://slint.dev) interface
 backend (`../backend`) the macOS app uses, with the same settings. Its layout follows the macOS app
 (`../myUpscaler/Views`): a toolbar (Import; the adjustments panel, Settings and About), the media pane (the import
 view, or the imported video's adjusted preview with a player and its frame strip) with the processing details under
-it, the adjustments panel docked on the right (Upscale, Restore, Processor and Output pages, saved presets
+it, the adjustments panel docked on the right (Upscale, Restore, Cleanup and Output pages, saved presets
 included), and the bottom bar with the status, progress and the Export button. Surfaces are flat and opaque, in light
 and dark appearance. The interface font is Segoe UI on Windows and the system font on macOS; Inter is embedded and
 used on Linux. The base style is Fluent on Windows and Cupertino elsewhere. The macOS app's keyboard shortcuts work

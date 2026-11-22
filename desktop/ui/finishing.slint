@@ -7,9 +7,9 @@ import { ChoiceRow, SwitchRow, FieldRow, StackedField, ParameterRow } from "comp
 export component FinishingFilters inherits VerticalLayout {
     spacing: 8px;
     ChoiceRow {
-        label: "Denoise";
+        label: "Reduce noise";
         name: "Finishing denoise";
-        choices: ["Off", "bm3d", "nlmeans", "hqdn3d", "atadenoise"];
+        choices: ["Off", "bm3d", "nlmeans", "hqdn3d", "Across frames"];
         index <=> Settings.denoise2;
         changed => { Actions.settings-changed(); }
     }
@@ -20,7 +20,7 @@ export component FinishingFilters inherits VerticalLayout {
         changed => { Actions.settings-changed(); }
     }
     ParameterRow {
-        title: "Deringing";
+        title: "Remove halos";
         value <=> Settings.dering2;
         maximum: 10;
         step: 0.005;
@@ -36,7 +36,7 @@ export component FinishingFilters inherits VerticalLayout {
     if Settings.sharpen2: ChoiceRow {
         label: "Method";
         name: "Finishing sharpen method";
-        choices: ["CAS", "Unsharp mask"];
+        choices: ["Adaptive", "Classic"];
         index <=> Settings.sharpen2-method;
         changed => { Actions.settings-changed(); }
     }
@@ -48,8 +48,8 @@ export component FinishingFilters inherits VerticalLayout {
         changed => { Actions.settings-changed(); }
     }
     if Settings.sharpen2 && Settings.sharpen2-method == 1: FieldRow {
-        label: "Matrix";
-        name: "Finishing unsharp matrix size";
+        label: "Radius";
+        name: "Finishing radius";
         value <=> Settings.usm2-radius;
         placeholder: "5";
         changed => { Actions.settings-changed(); }
@@ -62,7 +62,7 @@ export component FinishingFilters inherits VerticalLayout {
         changed => { Actions.settings-changed(); }
     }
     ChoiceRow {
-        label: "Deband";
+        label: "Remove banding";
         name: "Finishing deband";
         choices: ["Off", "Deband", "Gradfun", "Neo F3kdb (CPU)"];
         index <=> Settings.deband2;

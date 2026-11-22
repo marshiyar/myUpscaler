@@ -54,7 +54,7 @@ struct ParameterRow: View {
         HStack(alignment: .center, spacing: 8) {
             Text(title)
                 .font(.subheadline.weight(.medium))
-                .frame(width: 70, alignment: .leading)
+                .frame(width: 92, alignment: .leading)
                 .lineLimit(1)
 
             LuxuriousSlider(value: sliderBinding, range: range, step: step, gradient: gradient, onEditingChanged: { editing in
@@ -67,7 +67,7 @@ struct ParameterRow: View {
                     }
                 }
             })
-            .frame(minWidth: 120)
+            .frame(minWidth: 90)
             .accessibilityLabel(sliderAccessibility)
 
             // Value display

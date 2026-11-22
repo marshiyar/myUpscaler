@@ -36,10 +36,6 @@ struct SavedPresetsPanel: View {
                         .disabled(isProcessing || trimmed(newPresetName).isEmpty)
                     }
 
-                    Text("Presets capture all current upscale settings for quick reuse.")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-
                     if let notice = presetStore.storageNotice {
                         HStack(alignment: .top) {
                             Text(notice).font(.caption).foregroundColor(.red)
@@ -51,7 +47,7 @@ struct SavedPresetsPanel: View {
                     Divider()
 
                     if presetStore.presets.isEmpty {
-                        Text("No presets yet. Save one to reuse your favorite configuration.")
+                        Text("No presets yet.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)

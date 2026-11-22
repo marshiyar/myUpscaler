@@ -71,7 +71,7 @@ struct HardwareEncodingPanel: View {
                     }
 
                     HStack {
-                        Text("Threads")
+                        Text("CPU threads")
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Spacer()

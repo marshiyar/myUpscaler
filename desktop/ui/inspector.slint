@@ -16,12 +16,12 @@ component UpscalePage inherits VerticalLayout {
     spacing: Theme.md;
     FormSection {
         FormRow {
-            label: "Scaler";
+            label: "Upscaling";
             Dropdown {
                 width: 160px;
-                model: ["Lanczos"];
+                model: ["Standard"];
                 current-index <=> Settings.scaler;
-                label: "Scaler";
+                label: "Upscaling";
             }
         }
     }
@@ -33,7 +33,7 @@ component UpscalePage inherits VerticalLayout {
             spacing: 8px;
             height: Theme.control-height;
             Text {
-                text: "CRF";
+                text: "Quality";
                 width: 76px;
                 font-size: Theme.body;
                 color: Theme.text;
@@ -47,7 +47,7 @@ component UpscalePage inherits VerticalLayout {
                     minimum: 0;
                     maximum: 51;
                     step: 1;
-                    label: "CRF";
+                    label: "Quality";
                     released(v) => {
                         Settings.crf = v;
                         Actions.settings-changed();
@@ -72,13 +72,13 @@ component UpscalePage inherits VerticalLayout {
             changed => { Actions.settings-changed(); }
         }
         FieldRow {
-            label: "FPS";
+            label: "Frame rate";
             value <=> Settings.fps;
             placeholder: "60";
             changed => { Actions.settings-changed(); }
         }
         ChoiceRow {
-            label: "Interpolation";
+            label: "Smooth motion";
             choices: ["Off", "MCI", "Blend"];
             index <=> Settings.interpolation;
             changed => { Actions.settings-changed(); }
@@ -90,10 +90,10 @@ component RestorePage inherits VerticalLayout {
     spacing: Theme.md;
     in-out property <bool> finishing-open;
     FormSection {
-        title: "Primary restoration";
+        title: "Restoration";
         ChoiceRow {
-            label: "Denoise";
-            choices: ["Off", "bm3d", "nlmeans", "hqdn3d", "atadenoise"];
+            label: "Reduce noise";
+            choices: ["Off", "bm3d", "nlmeans", "hqdn3d", "Across frames"];
             index <=> Settings.denoise;
             changed => { Actions.settings-changed(); }
         }
@@ -107,7 +107,7 @@ component RestorePage inherits VerticalLayout {
             changed => { Actions.settings-changed(); }
         }
         ParameterRow {
-            title: "Deringing";
+            title: "Remove halos";
             value <=> Settings.dering;
             maximum: 10;
             step: 0.005;
@@ -121,7 +121,7 @@ component RestorePage inherits VerticalLayout {
         }
         if Settings.sharpen: ChoiceRow {
             label: "Method";
-            choices: ["CAS", "Unsharp mask"];
+            choices: ["Adaptive", "Classic"];
             index <=> Settings.sharpen-method;
             changed => { Actions.settings-changed(); }
         }
@@ -133,7 +133,7 @@ component RestorePage inherits VerticalLayout {
             changed => { Actions.settings-changed(); }
         }
         if Settings.sharpen && Settings.sharpen-method == 1: ParameterRow {
-            title: "Matrix";
+            title: "Radius";
             value <=> Settings.usm-radius;
             minimum: 3;
             maximum: 23;
@@ -154,7 +154,7 @@ component RestorePage inherits VerticalLayout {
     Divider { }
     FormSection {
         SwitchRow {
-            label: "Color equalizer";
+            label: "Color";
             checked <=> Settings.eq;
             changed => { Actions.settings-changed(); }
         }
@@ -189,7 +189,7 @@ component RestorePage inherits VerticalLayout {
     Divider { }
     FormSection {
         Disclosure {
-            title: "Finishing filters (Lanczos)";
+            title: "Finishing";
             expanded <=> root.finishing-open;
         }
         if root.finishing-open: FinishingFilters { }
@@ -200,7 +200,7 @@ component ProcessorPage inherits VerticalLayout {
     spacing: Theme.md;
     FormSection {
         ChoiceRow {
-            label: "Deblock";
+            label: "Remove blockiness";
             choices: ["Off", "weak", "strong"];
             index <=> Settings.deblock;
             menu-width: 110px;
@@ -257,14 +257,14 @@ component ProcessorPage inherits VerticalLayout {
                 }
             }
             if !Settings.deblock-valid: Text {
-                text: "Invalid saved or draft thresholds; use values from 0 to 1 or Defaults.";
+                text: "Use values from 0 to 1.";
                 font-size: Theme.subheadline;
                 color: Theme.red;
                 wrap: word-wrap;
             }
         }
         ChoiceRow {
-            label: "Deband";
+            label: "Remove banding";
             choices: ["Off", "Deband", "Gradfun", "Neo F3kdb (CPU)"];
             index <=> Settings.deband;
             menu-width: 200px;
@@ -338,7 +338,7 @@ export component Inspector inherits Rectangle {
             padding: 12px;
             spacing: Theme.sm;
             SegmentedPicker {
-                items: ["Upscale", "Restore", "Processor", "Output"];
+                items: ["Upscale", "Restore", "Cleanup", "Output"];
                 selected <=> App.page;
             }
             if App.running: Caption { text: "Settings are locked while processing."; }

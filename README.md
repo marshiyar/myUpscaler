@@ -1,21 +1,21 @@
 # myUpscaler
 
-A native macOS app for restoring and upscaling video with its Rust engine (Lanczos and a full restoration filter stack) or Core ML Real-ESRGAN. Includes frame previews, saved presets, and batch export.
+A macOS app for restoring and upscaling video with its Rust engine (Lanczos and a restoration filter stack) or Core ML Real-ESRGAN. It has frame previews, saved presets and batch export. A Slint desktop app for Windows and Linux shares the engine (see below).
 
 <img src="https://github.com/user-attachments/assets/0c40540b-d83c-4f9b-bad5-07c0baa4b978" alt="myUpscaler workspace" width="600">
 
-**macOS app requires:** Apple Silicon and macOS 15.7 or later. Building from source uses Xcode 27 with its Metal compiler component installed, and Rust (the toolchain is pinned in `rust-toolchain.toml`).
+The macOS app needs Apple Silicon and macOS 15.7 or later. Building from source uses Xcode 27 with its Metal compiler component installed, and Rust (the toolchain is pinned in `rust-toolchain.toml`).
 
 ## Use
 
-1. **Import** a video or folder, or drop a video into the workspace.
-2. Open **Adjustments** and choose **Lanczos** or an included **Real-ESRGAN** model in the Scaler picker. Set the output scale.
-3. Use **Restore** and **Processor** to adjust filters, then **Output** to choose encoding, presets, and an output folder.
-4. Start the export. Use **Cancel** to stop processing.
+1. Import a video or folder, or drop a video into the window.
+2. Open Adjustments and choose Lanczos or an included Real-ESRGAN model in the Scaler picker. Set the output scale.
+3. Adjust filters on the Restore and Processor pages. On the Output page, choose encoding, presets and the output folder.
+4. Export. Cancel stops processing.
 
 Lanczos supports video and still images; Core ML supports video. Available controls depend on the selected engine. The frame preview approximates restoration and may differ from the export.
 
-Shortcuts: **⌘O** imports, **⌘R** exports, and **⌘.** cancels. Customize bindings in **Settings → Shortcuts**.
+Shortcuts: ⌘O imports, ⌘R exports and ⌘. cancels. Bindings can be changed in Settings.
 
 ## Engine
 
@@ -44,7 +44,7 @@ bash scripts/prepare-bundled-models.sh
 open myUpscaler.xcodeproj
 ```
 
-The preparation scripts download and verify the required assets. In Xcode, select the **myUpscaler** scheme and run it on **My Mac**; the build compiles the Rust backend first.
+The preparation scripts download and verify the required assets. In Xcode, select the myUpscaler scheme and run it on My Mac; the build compiles the Rust backend first.
 
 For development checks and additional setup options, see [CONTRIBUTING.md](CONTRIBUTING.md).
 

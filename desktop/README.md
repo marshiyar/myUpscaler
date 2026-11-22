@@ -1,13 +1,14 @@
 # myUpscaler desktop (macOS, Windows, Linux)
 
 The cross-platform version of myUpscaler: a [Slint](https://slint.dev) interface on the same Rust processing
-backend (`../backend`) the macOS app uses, with the same settings. It looks and works like the macOS app
-(`../myUpscaler/Views`): a toolbar (Import; the adjustments panel, Settings and About), the input card (the import
-view, or the imported video's adjusted preview with a player and its frame strip), the processing details card, the adjustments
-panel docked on the right (Upscale, Restore, Processor and Output pages as a grouped form, saved presets included),
-and the bottom bar with the progress and the Export button. The controls are drawn like their macOS counterparts with
-macOS system colours, in light and dark appearance, and Inter is embedded, so the app looks the same on macOS,
-Windows and Linux. The macOS app's keyboard shortcuts work everywhere (Ctrl for ⌘).
+backend (`../backend`) the macOS app uses, with the same settings. Its layout follows the macOS app
+(`../myUpscaler/Views`): a toolbar (Import; the adjustments panel, Settings and About), the media pane (the import
+view, or the imported video's adjusted preview with a player and its frame strip) with the processing details under
+it, the adjustments panel docked on the right (Upscale, Restore, Processor and Output pages, saved presets
+included), and the bottom bar with the status, progress and the Export button. Surfaces are flat and opaque, in light
+and dark appearance. The interface font is Segoe UI on Windows and the system font on macOS; Inter is embedded and
+used on Linux. The base style is Fluent on Windows and Cupertino elsewhere. The macOS app's keyboard shortcuts work
+everywhere (Ctrl for ⌘).
 
 ```sh
 bash ../scripts/prepare-media-engine.sh   # the media engine (macOS arm64, Linux x86_64, Windows x86_64)
@@ -23,11 +24,11 @@ Studio Build Tools, "Desktop development with C++"). The build copies the engine
 ## Layout
 
 - `ui/`: the interface. `theme.slint` holds the design tokens, `controls.slint` the controls (switch, slider, pop-up
-  button, text field, buttons, progress, segmented picker, toolbar button), `components.slint` cards, form sections and
-  rows, `inspector.slint` the adjustments panel (`finishing.slint` the second restoration pass, `output.slint` the
-  Output page), `workspace.slint` the input and details cards and the bottom bar, `app.slint` the window, its shortcuts
-  and the Settings and About sheets. `fonts/` holds Inter with its OFL licence; `icons/app-icon.png` is the macOS app's
-  icon.
+  button, text field, buttons, progress, segmented picker, toolbar button), `components.slint` form sections and rows,
+  `inspector.slint` the adjustments panel (`finishing.slint` the second restoration pass, `output.slint` the Output
+  page), `workspace.slint` the media pane, the processing details and the bottom bar, `app.slint` the window, its
+  shortcuts and the Settings and About sheets. `fonts/` holds Inter with its OFL licence; `icons/app-icon.png` is the
+  macOS app's icon.
 - `src/settings.rs`: interface settings ↔ the backend's `Options`; the interface starts from the backend's factory
   settings, so the defaults are defined once.
 - `src/presets.rs`: saved presets, in `presets.txt` in the per-user settings folder (`field=value` lines).

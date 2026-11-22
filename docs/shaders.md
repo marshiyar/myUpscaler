@@ -21,8 +21,8 @@ requires `[[stitchable]]` functions, as documented in the installed SDK header.
 The stale fallback was removed; compiled kernel names and behavior are unchanged.
 
 For Xcode 27, keep `MTL_COMPILER_FLAGS = -fcikernel` and
-`MTLLINKER_FLAGS = -fcikernel`. Both phases use the **metal driver**. When invoking
-the low-level **metallib** tool directly, its CI flag is `-cikernel`; the installed
+`MTLLINKER_FLAGS = -fcikernel`. Both phases use the `metal` driver. When invoking
+the low-level `metallib` tool directly, its CI flag is `-cikernel`; the installed
 version requires a single linked AIR input. Do not replace the driver's flag
 with the low-level flag. Compile and link with the same deployment target, such
 as `air64-apple-macos15.2`; mixing AIR targets can produce a library without its

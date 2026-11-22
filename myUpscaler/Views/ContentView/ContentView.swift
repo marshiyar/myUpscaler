@@ -15,9 +15,12 @@ struct ContentView: View {
     @State private var enlargedFrameImage: NSImage? = nil
     @State private var editorState: EditorState? = nil
     @State private var showInspector = false
+    private let launch: LaunchOptions
 
-    init(runner: UpscaleRunner = UpscaleRunner(), inspectorInitiallyVisible: Bool = false) {
-        _showInspector = State(initialValue: inspectorInitiallyVisible)
+    init(runner: UpscaleRunner = UpscaleRunner(), inspectorInitiallyVisible: Bool = false,
+         launch: LaunchOptions = .current) {
+        self.launch = launch
+        _showInspector = State(initialValue: inspectorInitiallyVisible || launch.page != nil)
         _runner = StateObject(wrappedValue: runner)
         _settings = ObservedObject(wrappedValue: runner.settings)
     }
@@ -72,7 +75,7 @@ struct ContentView: View {
         .navigationTitle(runner.inputPath.isEmpty ? "myUpscaler" : URL(fileURLWithPath: runner.inputPath).lastPathComponent)
         .navigationSubtitle(runner.inputPath.isEmpty ? "" : runner.isRunning ? "Preview frozen while processing" : "Approximate preview")
         .focusedSceneValue(\.commandDispatcher, dispatcher)
-        .onAppear { configureCommands() }
+        .onAppear { configureCommands(); openLaunchInput() }
         .onDisappear { dispatcher.configure([:]) }
         .onChange(of: runner.isCancelling) { _, _ in dispatcher.refreshAvailability() }
         .onChange(of: runner.isRunning) { _, _ in dispatcher.refreshAvailability() }
@@ -134,7 +137,18 @@ struct ContentView: View {
     }
     private var inspector: some View {
         WorkspaceInspector(runner: runner, settings: settings, presetStore: presetStore,
-                           chooseOutputFolder: { dispatcher.perform(.chooseOutput) })
+                           chooseOutputFolder: { dispatcher.perform(.chooseOutput) },
+                           initialPage: launch.page ?? .upscale)
+    }
+
+    /// The video named by `--open`, loaded as if it had been chosen in the Import panel.
+    private func openLaunchInput() {
+        guard let path = launch.inputPath, runner.inputPath.isEmpty else { return }
+        guard VideoInput.acceptsSelection(URL(fileURLWithPath: path)) else {
+            runner.log.append("ERROR: \(VideoInput.message)\n")
+            return
+        }
+        runner.inputPath = path
     }
 
     private func configureCommands() {

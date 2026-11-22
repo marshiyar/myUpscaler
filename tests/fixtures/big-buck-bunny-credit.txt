@@ -1,0 +1,7 @@
+big-buck-bunny.mp4
+
+Big Buck Bunny, (c) copyright 2008, Blender Foundation / www.bigbuckbunny.org
+Licensed under Creative Commons Attribution 3.0 (https://creativecommons.org/licenses/by/3.0/)
+Source: https://peach.blender.org/
+
+Changes: one continuous shot (6.4 s) cut from the film, audio removed, scaled to 854x480 and re-encoded as H.264.

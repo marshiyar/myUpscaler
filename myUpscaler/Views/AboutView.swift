@@ -24,7 +24,7 @@ struct AboutView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            Text("Video restoration and upscaling for macOS, Windows and Linux.")
+            Text("Upscale and restore video on Mac and Windows.")
             HStack {
                 Link("GitHub repository", destination: websiteURL)
                 Spacer()

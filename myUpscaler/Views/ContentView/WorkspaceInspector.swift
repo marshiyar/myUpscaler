@@ -38,92 +38,106 @@ struct WorkspaceInspector: View {
             .pickerStyle(.segmented)
             .labelsHidden()
             .padding(16)
-            Form {
-                switch page {
-                case .upscale:
-                    Section { AIEnginePanel(settings: settings) }
-                    Section { QualityScalePanel(settings: settings) }
-                case .restore:
-                    primaryFilters
-                    colorFilters
-                    Section { RestorationSecondSetPanel(settings: settings, initiallyExpanded: finishingInitiallyExpanded) }
-                case .processor:
-                    Section { RestorationPanel(settings: settings) }
-                    Section {
-                        Toggle("Remove near-duplicate frames", isOn: enabled($settings.modes.noDecimate))
-                            .disabled(settings.upscaling.scaler == "coreml")
-                            .help("Decimate removes near-duplicate frames before output frame-rate conversion.")
-                    }
-                    Section {
-                        Button {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    switch page {
+                    case .upscale:
+                        AIEnginePanel(settings: settings)
+                        Divider()
+                        QualityScalePanel(settings: settings)
+                    case .restore:
+                        primaryFilters
+                        Divider()
+                        colorFilters
+                        Divider()
+                        RestorationSecondSetPanel(settings: settings, initiallyExpanded: finishingInitiallyExpanded)
+                    case .processor:
+                        RestorationPanel(settings: settings)
+                        Divider()
+                        InspectorSection {
+                            InspectorSwitch(title: "Remove near-duplicate frames", isOn: enabled($settings.modes.noDecimate),
+                                            enabled: settings.upscaling.scaler != "coreml")
+                                .help("Removes frames that repeat.")
+                        }
+                        Divider()
+                        Button("Reset processing settings") {
                             settings.resetToDefaults()
-                        } label: {
-                            Label("Reset processing settings", systemImage: "arrow.counterclockwise")
                         }
                         .help("Reset all processing settings to their defaults")
-                    }
-                case .output:
-                    Section { OutputPanel(outputMode: $runner.outputMode, customOutputFolder: $runner.customOutputFolder,
-                                          predictedName: runner.inputPath.isEmpty ? "Choose a video first" : runner.predictedOutputName,
-                                          chooseFolder: chooseOutputFolder) }
-                    Section {
+                    case .output:
+                        OutputPanel(outputMode: $runner.outputMode, customOutputFolder: $runner.customOutputFolder,
+                                    predictedName: runner.inputPath.isEmpty ? "Choose a video first" : runner.predictedOutputName,
+                                    chooseFolder: chooseOutputFolder)
+                        Divider()
                         HardwareEncodingPanel(settings: settings)
+                        Divider()
+                        SavedPresetsPanel(presetStore: presetStore, settings: settings, isProcessing: runner.isRunning)
                     }
-                    Section { SavedPresetsPanel(presetStore: presetStore, settings: settings, isProcessing: runner.isRunning) }
                 }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .formStyle(.grouped)
             .frame(minHeight: 120)
             .disabled(runner.isRunning)
-            .environment(\.workspaceInspector, true)
         }
-//        .background(Color.appBackground)
     }
 
     private var primaryFilters: some View {
-        Section("Restoration") {
-            Picker("Reduce noise", selection: $settings.primary.denoiserChoice) {
-                Text("Off").tag("off")
-                ForEach(settings.denoisers, id: \.self) { Text(DisplayName.denoiser($0)).tag($0) }
+        InspectorSection(title: "Restore") {
+            InspectorRow(title: "Reduce noise") {
+                Picker("Reduce noise", selection: $settings.primary.denoiserChoice) {
+                    Text("Off").tag("off")
+                    ForEach(DisplayName.orderedDenoisers(settings.denoisers), id: \.self) {
+                        Text(DisplayName.denoiser($0)).tag($0)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .fixedSize()
             }
             if settings.primary.useDenoise {
                 ParameterRow(title: "Strength", binding: $settings.primary.denoiseStrength.text,
                              range: settings.denoiseStrengthRange, step: settings.denoiseStrengthStep,
                              defaultValue: settings.denoiseStrengthDefault, formatter: Formatters.twoFraction,
-                             sliderAccessibility: "Primary denoise strength", gradient: .denoise)
+                             sliderAccessibility: "Reduce noise strength", gradient: .denoise)
             }
             ParameterRow(title: "Remove halos", binding: $settings.primary.deringAmount, range: 0...10, step: 0.005,
                          defaultValue: 0.5, formatter: Formatters.twoFraction,
-                         sliderAccessibility: "Primary deringing", gradient: .dering)
+                         sliderAccessibility: "Remove halos", gradient: .dering)
                 .disabled(settings.upscaling.scaler == "coreml")
-            Toggle("Sharpen", isOn: $settings.primary.useSharpen)
+            InspectorSwitch(title: "Sharpen", isOn: $settings.primary.useSharpen)
             if settings.primary.useSharpen {
-                Picker("Method", selection: $settings.primary.sharpenMethod) {
-                    Text("Adaptive").tag("cas"); Text("Classic").tag("unsharp")
+                InspectorRow(title: "Style") {
+                    Picker("Style", selection: $settings.primary.sharpenMethod) {
+                        Text("Adaptive").tag("cas"); Text("Classic").tag("unsharp")
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .fixedSize()
                 }
                 if settings.primary.sharpenMethod == "cas" {
                     ParameterRow(title: "Strength", binding: $settings.primary.sharpenStrength.text,
                                  range: settings.sharpenStrengthRange, step: settings.sharpenStrengthStep,
                                  defaultValue: settings.sharpenStrengthDefault, formatter: Formatters.twoFraction,
-                                 sliderAccessibility: "Primary sharpen strength", gradient: .sharpen)
+                                 sliderAccessibility: "Sharpen strength", gradient: .sharpen)
                 } else {
                     ParameterRow(title: "Radius", binding: $settings.primary.usmRadius.text, range: settings.usmRadiusRange,
                                  step: settings.usmRadiusStep, defaultValue: settings.usmRadiusDefault,
-                                 formatter: Formatters.integer, sliderAccessibility: "Radius", gradient: .usmRadius)
+                                 formatter: Formatters.integer, sliderAccessibility: "Sharpen radius", gradient: .usmRadius)
                     ParameterRow(title: "Amount", binding: $settings.primary.usmAmount.text, range: settings.usmAmountRange,
                                  step: settings.usmAmountStep, defaultValue: settings.usmAmountDefault,
-                                 formatter: Formatters.twoFraction, sliderAccessibility: "Unsharp amount", gradient: .usmAmount)
+                                 formatter: Formatters.twoFraction, sliderAccessibility: "Sharpen amount", gradient: .usmAmount)
                 }
             }
         }
     }
 
     private var colorFilters: some View {
-        Section {
-            Toggle("Color", isOn: enabled($settings.color.noEq))
+        InspectorSection {
+            InspectorSwitch(title: "Color", isOn: enabled($settings.color.noEq))
             if settings.upscaling.scaler == "coreml" {
-                Text("Preview only")
-                    .font(.caption).foregroundStyle(.secondary)
+                InspectorNote("Preview only")
             }
             if !settings.color.noEq {
                 ParameterRow(title: "Contrast", binding: $settings.color.eqContrast.text, range: 0.5...2, step: 0.005,

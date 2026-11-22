@@ -38,9 +38,12 @@ struct ContentView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 if showInspector {
-                    Divider()
                     inspector
                         .frame(width: geometry.size.width >= 1080 ? 440 : 320)
+                        .frame(maxHeight: .infinity)
+                        .overlay(alignment: .leading) {
+                            Rectangle().fill(Color(nsColor: .separatorColor)).frame(width: 1)
+                        }
                 }
             }
             .toolbar {
@@ -49,6 +52,7 @@ struct ContentView: View {
                         .disabled(runner.isRunning)
                         .help("Choose a video or batch folder")
                 }
+                .withoutSharedBackground()
                 ToolbarItemGroup(placement: .primaryAction) {
                     Button {
                         dispatcher.perform(.toggleInspector)
@@ -60,6 +64,7 @@ struct ContentView: View {
                     Button { dispatcher.perform(.openAbout) } label: { Label("About", systemImage: "info.circle") }
 
                 }
+                .withoutSharedBackground()
             }
         }
         .frame(minWidth: 720, minHeight: UI.windowMinHeight)
@@ -176,6 +181,18 @@ struct ContentView: View {
         if panel.runModal() == .OK, let url = panel.url, !runner.isRunning {
             runner.customOutputFolder = url.path
             runner.securityScopedOutputURL = url
+        }
+    }
+}
+
+extension ToolbarContent {
+    /// No capsule or circle behind toolbar items where the system draws one (macOS 26 and later).
+    @ToolbarContentBuilder
+    func withoutSharedBackground() -> some ToolbarContent {
+        if #available(macOS 26.0, *) {
+            self.sharedBackgroundVisibility(.hidden)
+        } else {
+            self
         }
     }
 }

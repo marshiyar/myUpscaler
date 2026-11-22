@@ -9,7 +9,7 @@ nonisolated extension Up60PEngineError: LocalizedError {
         case .io: return "Unable to read the input or write the output. Check paths, permissions and encoder support."
         case .internalError: return "The processing engine failed. See the diagnostic log for context."
         case .notInitialized: return "The processing engine is not initialized."
-        case .unsupportedScaler: return "This upscaling mode is unsupported. Choose Standard or an included Core ML model."
+        case .unsupportedScaler: return "This upscaling mode is unsupported. Choose Standard or an included AI upscaling model."
         case .unknownStatus(let code): return "Processing failed with status \(code)."
         }
     }

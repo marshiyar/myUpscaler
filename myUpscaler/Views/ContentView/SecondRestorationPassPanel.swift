@@ -1,7 +1,4 @@
 import SwiftUI
-import AppKit
-import Combine
-import UniformTypeIdentifiers
 
 struct RestorationSecondSetPanel: View {
     @ObservedObject var settings: UpscaleSettings
@@ -12,138 +9,89 @@ struct RestorationSecondSetPanel: View {
         _isExpanded = State(initialValue: initiallyExpanded)
     }
 
+    private var aiUpscaling: Bool { settings.upscaling.scaler == "coreml" }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if settings.upscaling.scaler == "coreml" {
-                Text("Unavailable for Core ML export")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: UI.rowSpacing) {
+            if aiUpscaling {
+                InspectorNote("Not available with AI upscaling")
             }
-            GroupBox {
-                DisclosureGroup(isExpanded: $isExpanded) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Divider()
-                            .padding(.vertical, 2)
-
-                        // Denoise 2
-                        HStack {
-                            Text("Reduce noise").font(.caption)
-                            Spacer()
-                            Picker("", selection: $settings.secondary.denoiserChoice) {
+            DisclosureGroup(isExpanded: $isExpanded) {
+                VStack(alignment: .leading, spacing: UI.rowSpacing) {
+                    InspectorRow(title: "Reduce noise") {
+                        HStack(spacing: 8) {
+                            Picker("Reduce noise", selection: $settings.secondary.denoiserChoice) {
                                 Text("Off").tag("off")
-                                ForEach(settings.denoisers, id: \.self) { Text(DisplayName.denoiser($0)).tag($0) }
+                                ForEach(DisplayName.orderedDenoisers(settings.denoisers), id: \.self) {
+                                    Text(DisplayName.denoiser($0)).tag($0)
+                                }
                             }
+                            .labelsHidden()
                             .pickerStyle(.menu)
-                            .controlSize(.small)
-                            .frame(width: 100)
+                            .fixedSize()
                             if settings.secondary.useDenoise {
-                                TextField("Str", text: $settings.secondary.denoiseStrength.text)
+                                TextField("Strength", text: $settings.secondary.denoiseStrength.text)
                                     .labelsHidden()
-                                .textFieldStyle(.roundedBorder)
+                                    .textFieldStyle(.roundedBorder)
+                                    .multilineTextAlignment(.trailing)
                                     .frame(width: 50)
-
-                            } else {
-                                Spacer()
-                            }
-                        }
-
-                        Divider()
-                            .padding(.vertical, 2)
-
-                        ParameterRow(title: "Remove halos", binding: $settings.secondary.deringAmount, range: 0...10, step: 0.005,
-                                     defaultValue: 0.5, formatter: Formatters.twoFraction,
-                                     sliderAccessibility: "Finishing deringing", gradient: .dering)
-
-                        Divider()
-                            .padding(.vertical, 2)
-
-                        // Sharpen 2
-                        VStack(alignment: .leading) {
-                            Toggle(isOn: $settings.secondary.useSharpen) {
-                                Text("Sharpen")
-                                    .font(.caption)
-                                    .foregroundColor(settings.secondary.useSharpen ? .primary : .secondary)
-                            }
-                            .toggleStyle(.switch)
-                            .controlSize(.mini)
-
-                            if settings.secondary.useSharpen {
-                                Picker("", selection: $settings.secondary.sharpenMethod) {
-                                    ForEach(settings.sharpenMethods, id: \.self) { Text(DisplayName.sharpenMethod($0)) }
-                                }
-                                .pickerStyle(.menu)
-                                .controlSize(.small)
-                                .frame(width: 90)
-                            }
-                        }
-
-                        if settings.secondary.useSharpen {
-                            RestorationSharpenControls(stage: $settings.secondary, settings: settings,
-                                                       presentation: .compact)
-
-                        }
-
-                        Divider()
-                            .padding(.vertical, 2)
-
-                        Picker("Remove banding", selection: $settings.secondary.debandChoice) {
-                            Text("Off").tag("off")
-                            Text("Deband").tag("deband")
-                            Text("Gradfun").tag("gradfun")
-                            Text("Neo F3kdb (CPU)").tag("neo_f3kdb")
-                                .disabled(!UpscaleSettings.neoF3kdbAvailable)
-                        }
-                        .pickerStyle(.menu)
-                        .controlSize(.small)
-
-                        if settings.secondary.useDeband {
-                            if ["f3kdb", "neo_f3kdb"].contains(settings.secondary.debandMethod) {
-                                RestorationF3KDBControls(stage: $settings.secondary, compact: true)
-                                    .padding(.leading, 8)
-                            } else {
-                                HStack {
-                                    Text("Strength")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                    TextField("0.015", text: $settings.secondary.debandStrength.text)
-                                        .labelsHidden()
-                                .textFieldStyle(.roundedBorder)
-                                        .frame(width: 55)
-                                }
-                                .padding(.leading, 8)
-                            }
-                        }
-
-                        Divider()
-                            .padding(.vertical, 2)
-
-                        // Grain 2
-                        VStack(alignment: .leading) {
-                            Toggle(isOn: $settings.secondary.useGrain) {
-                                Text("Grain")
-                                    .font(.caption)
-                                    .foregroundColor(settings.secondary.useGrain ? .primary : .secondary)
-                            }
-                            .toggleStyle(.switch)
-                            .controlSize(.mini)
-
-                            if settings.secondary.useGrain {
-                                TextField("1.0", text: $settings.secondary.grainStrength.text)
-                                    .labelsHidden()
-                                .textFieldStyle(.roundedBorder)
-                                    .frame(width: 50)
+                                    .accessibilityLabel("Reduce noise strength")
                             }
                         }
                     }
-                    .padding(8)
-                } label: {
-                    Label("Finishing", systemImage: "wand.and.stars.inverse")
-                        .font(.subheadline)
+
+                    ParameterRow(title: "Remove halos", binding: $settings.secondary.deringAmount, range: 0...10, step: 0.005,
+                                 defaultValue: 0.5, formatter: Formatters.twoFraction,
+                                 sliderAccessibility: "Remove halos", gradient: .dering)
+
+                    InspectorSwitch(title: "Sharpen", isOn: $settings.secondary.useSharpen)
+                    if settings.secondary.useSharpen {
+                        InspectorRow(title: "Style") {
+                            Picker("Style", selection: $settings.secondary.sharpenMethod) {
+                                ForEach(settings.sharpenMethods, id: \.self) { Text(DisplayName.sharpenMethod($0)) }
+                            }
+                            .labelsHidden()
+                            .pickerStyle(.menu)
+                            .fixedSize()
+                        }
+                        RestorationSharpenControls(stage: $settings.secondary, settings: settings,
+                                                   presentation: .compact)
+                    }
+
+                    InspectorRow(title: "Remove banding") {
+                        Picker("Remove banding", selection: $settings.secondary.debandChoice) {
+                            Text("Off").tag("off")
+                            Text("Standard").tag("deband")
+                            Text("Gradient").tag("gradfun")
+                            Text("Advanced").tag("neo_f3kdb")
+                                .disabled(!UpscaleSettings.neoF3kdbAvailable)
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.menu)
+                        .fixedSize()
+                    }
+                    if settings.secondary.useDeband {
+                        if ["f3kdb", "neo_f3kdb"].contains(settings.secondary.debandMethod) {
+                            RestorationF3KDBControls(stage: $settings.secondary)
+                        } else {
+                            InspectorField(title: "Strength", placeholder: "0.015",
+                                           text: $settings.secondary.debandStrength.text, width: 55)
+                        }
+                    }
+
+                    InspectorSwitch(title: "Grain", isOn: $settings.secondary.useGrain)
+                    if settings.secondary.useGrain {
+                        InspectorField(title: "Strength", placeholder: "1.0",
+                                       text: $settings.secondary.grainStrength.text, width: 50)
+                    }
                 }
+                .padding(.top, UI.rowSpacing)
+            } label: {
+                Text("Finishing")
+                    .font(.headline)
             }
-            .groupBoxStyle(ModernGroupBoxStyle())
         }
-        .disabled(settings.upscaling.scaler == "coreml")
-        .help("The second restoration pass is available only for Lanczos (Rust engine) exports")
+        .disabled(aiUpscaling)
+        .help("Runs after upscaling. Available with Standard.")
     }
 }

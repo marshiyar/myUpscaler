@@ -1,59 +1,30 @@
 import SwiftUI
-import AppKit
-import Combine
-import UniformTypeIdentifiers
 
 struct AIEnginePanel: View {
-    @Environment(\.workspaceInspector) private var inInspector
     @ObservedObject var settings: UpscaleSettings
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if !inInspector {
-                HStack {
-                Label("Upscaling", systemImage: "arrow.up.left.and.arrow.down.right")
-                    .font(.subheadline.weight(.semibold))
-                Spacer()
-            }
-            .padding(.bottom, 2) }
-
-            GroupBox {
-                VStack(spacing: 8) {
-                    // Scaler
-                    HStack {
-                        Text("Upscaling")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        Picker("Upscaling", selection: $settings.upscalingChoice) {
-                            if let selected = settings.upscalingChoice, !settings.availableUpscalingChoices.contains(selected) {
-                                Text("\(selected.menuName) (unavailable)").tag(Optional(selected)).disabled(true)
-                            } else if settings.upscalingChoice == nil {
-                                Text("Choose a scaler").tag(Optional<UpscalingChoice>.none).disabled(true)
-                            }
-                            ForEach(settings.availableUpscalingChoices) { choice in
-                                Text(choice.menuName).tag(Optional(choice))
-                            }
-                        }
-                        .labelsHidden()
-                        .accessibilityLabel("Upscaling")
-                        .pickerStyle(.menu)
-                        .controlSize(.small)
-                        .frame(minWidth: 160)
+        InspectorSection {
+            InspectorRow(title: "Upscaling") {
+                Picker("Upscaling", selection: $settings.upscalingChoice) {
+                    if let selected = settings.upscalingChoice, !settings.availableUpscalingChoices.contains(selected) {
+                        Text("\(selected.menuName) (unavailable)").tag(Optional(selected)).disabled(true)
+                    } else if settings.upscalingChoice == nil {
+                        Text("Choose upscaling").tag(Optional<UpscalingChoice>.none).disabled(true)
                     }
-
-                    if let reason = settings.upscalingUnavailableReason {
-                        Text(reason)
-                            .font(.caption)
-                            .foregroundColor(.orange)
+                    ForEach(settings.availableUpscalingChoices) { choice in
+                        Text(choice.menuName).tag(Optional(choice))
                     }
-
                 }
-                .padding(8)
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .fixedSize()
             }
-            .groupBoxStyle(ModernGroupBoxStyle())
+
+            if let reason = settings.upscalingUnavailableReason {
+                InspectorNote(reason, tint: .orange)
+            }
         }
-        .frame(maxWidth: .infinity)
     }
 }
 

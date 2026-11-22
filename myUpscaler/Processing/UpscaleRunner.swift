@@ -167,11 +167,10 @@ class UpscaleRunner: ObservableObject {
         let selectedEngine: EngineProtocol
         if settings.upscaling.scaler == "coreml" {
             selectedEngine = CoreMLEngine.shared
-            let backend = CoreMLModelRegistry.model(for: settings.upscaling.coremlModelId).backend
-            log.append("--- Starting \(backend == .coreAI ? "Core AI" : "Core ML") Engine ---\n")
+            log.append("--- Starting export ---\n")
         } else {
             selectedEngine = self.engine
-            log.append("--- Starting Rust Engine ---\n")
+            log.append("--- Starting export ---\n")
         }
         self.activeEngine = selectedEngine
         log.append("Input: \(inputPath)\n")

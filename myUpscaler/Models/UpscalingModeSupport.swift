@@ -12,9 +12,9 @@ nonisolated enum UpscalingModeSupport {
         if scaler == "lanczos" { return nil }
         if scaler == "coreml" {
             return bundledModelIDs.contains(modelID) ? nil :
-                "The selected CoreML model is not included in this app. Choose Standard or an included model."
+                "The selected AI upscaling model is not included in this app. Choose Standard or an included model."
         }
-        return "The saved upscaling mode is unavailable in this app. Choose Standard or an included CoreML model."
+        return "The saved upscaling mode is unavailable in this app. Choose Standard or an included AI upscaling model."
     }
 
     static func label(for scaler: String) -> String {

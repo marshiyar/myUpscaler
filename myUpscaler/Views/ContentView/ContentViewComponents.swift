@@ -10,12 +10,20 @@ struct LuxuriousSlider: View {
     var onEditingChanged: ((Bool) -> Void)? = nil
     @State private var isEditing = false
 
+    /// The value rounded to the step from the range's start. The slider itself is continuous: a stepped slider
+    /// draws tick marks as a second line under the track.
+    private func snapped(_ next: Double) -> Double {
+        guard step > 0 else { return next }
+        let rounded = ((next - range.lowerBound) / step).rounded() * step + range.lowerBound
+        return min(max(rounded, range.lowerBound), range.upperBound)
+    }
+
     var body: some View {
         Slider(value: Binding(get: { value }, set: { next in
-            value = next
+            value = snapped(next)
             // Keyboard and accessibility adjustments also commit, without a drag.
             if !isEditing { onEditingChanged?(false) }
-        }), in: range, step: step, onEditingChanged: { editing in
+        }), in: range, onEditingChanged: { editing in
             isEditing = editing
             onEditingChanged?(editing)
         })
@@ -53,7 +61,7 @@ struct ParameterRow: View {
     var body: some View {
         HStack(alignment: .center, spacing: 8) {
             Text(title)
-                .font(.subheadline.weight(.medium))
+                .font(.body)
                 .frame(width: 92, alignment: .leading)
                 .lineLimit(1)
 
@@ -72,8 +80,8 @@ struct ParameterRow: View {
 
             // Value display
             Text(formatter.string(from: NSNumber(value: displayValue)) ?? "")
-                .font(.subheadline.weight(.medium))
-                .frame(width: 40, alignment: .trailing)
+                .font(.body.monospacedDigit())
+                .frame(width: 44, alignment: .trailing)
                 .foregroundColor(.primary)
 
             // Reset button
@@ -89,7 +97,7 @@ struct ParameterRow: View {
             .help("Reset \(title) to default")
             .buttonStyle(UI.resetButtonStyle)
             .controlSize(.small)
-            .frame(width: 28)
+            .frame(width: 24)
             .foregroundColor(.accentColor)
         }
         .padding(.vertical, 2)

@@ -2,13 +2,17 @@
 
 Upscale and restore video on Mac and Windows.
 
-<img src="https://github.com/user-attachments/assets/0c40540b-d83c-4f9b-bad5-07c0baa4b978" alt="myUpscaler workspace" width="600">
+<img src="docs/media/app.png" alt="The myUpscaler window" width="800">
+
+[Demo video](https://github.com/marshiyar/myUpscaler/releases/download/v0.1.0/myupscaler-demo.mp4)
 
 - Upscale: Raise the resolution of old or small videos. AI upscaling on Mac.
 - Restore: Remove noise, sharpen and correct color.
 - Batch: Export a whole folder with the same settings.
 
 ## Download
+
+[Downloads](https://github.com/marshiyar/myUpscaler/releases)
 
 - Mac: macOS 15.7 or later, M1 or newer
 - Windows: Windows 11, 64-bit
@@ -68,3 +72,5 @@ Application code: [Apache-2.0](LICENSE).
 Core ML model assets are provided by Marshiyar. [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN) weights retain their upstream [BSD 3-Clause license](myUpscaler/ThirdParty/RealESRGAN-LICENSE.txt).
 
 The MpVFX media engine (`libmpvfx_ffi.dylib`, from the [mpvfx-media-binaries](https://github.com/marshiyar/mpvfx-media-binaries) releases) is proprietary and is included with the app by permission of its author; its [licence](myUpscaler/ThirdParty/MpVFX-Media-LICENSE.txt) and [third-party notices](myUpscaler/ThirdParty/MpVFX-Media-NOTICE.txt) are included as app resources. It is not covered by this repository's licence.
+
+Demo footage: [Big Buck Bunny](https://peach.blender.org/), (c) copyright 2008, Blender Foundation / www.bigbuckbunny.org, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Shortened, resized, compressed and upscaled.

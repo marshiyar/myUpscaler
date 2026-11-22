@@ -276,10 +276,10 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$HOME/Downloads"
-          cp tests/fixtures/big-buck-bunny.mp4 "$HOME/Downloads/big-buck-bunny.mp4"
+          bash scripts/fetch-sample-clip.sh "$HOME/Downloads/onepiece_demo.mp4"
           bash scripts/screenshot-app.sh \
             "$RUNNER_TEMP/myUpscaler-DerivedData/Build/Products/Release/myUpscaler.app" \
-            "$HOME/Downloads/big-buck-bunny.mp4" "$RUNNER_TEMP/screenshots/macos.png"
+            "$HOME/Downloads/onepiece_demo.mp4" "$RUNNER_TEMP/screenshots/macos.png"
       - uses: actions/upload-artifact@v7
         with:
           name: macos-screenshot

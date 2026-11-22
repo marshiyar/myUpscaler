@@ -27,6 +27,22 @@ actor ModelManager {
         cachedModel = (id, model)
     }
 
+    /// Neural Engine + CPU by default (faster than `.all` for RealESRGAN on Apple silicon).
+    /// Override with UserDefaults "coreMLComputeUnits" or env MYUPSCALER_COMPUTE_UNITS:
+    /// all, cpuAndGPU, cpuAndNeuralEngine, cpuOnly.
+    nonisolated static func preferredComputeUnits(
+        defaults: UserDefaults = .standard,
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> MLComputeUnits {
+        let raw = environment["MYUPSCALER_COMPUTE_UNITS"] ?? defaults.string(forKey: "coreMLComputeUnits")
+        switch raw {
+        case "all": return .all
+        case "cpuAndGPU": return .cpuAndGPU
+        case "cpuOnly": return .cpuOnly
+        default: return .cpuAndNeuralEngine
+        }
+    }
+
     private func sourceModelURL(resourceName: String) -> URL? {
         if let url = bundle.url(forResource: resourceName, withExtension: "mlpackage") { return url }
         if let url = bundle.url(forResource: resourceName, withExtension: "mlmodel") { return url }
@@ -93,7 +109,7 @@ actor ModelManager {
             return model
         }
         let config = MLModelConfiguration()
-        config.computeUnits = .all
+        config.computeUnits = Self.preferredComputeUnits()
         config.allowLowPrecisionAccumulationOnGPU = true
 
         guard let modelURL = CoreMLModelRegistry.bundledURL(for: spec, bundle: bundle) else {
@@ -109,7 +125,7 @@ actor ModelManager {
             progressHandler?(1.0)
             return model
         } catch {
-            print("DEBUG: Failed to load model with .all compute units. Retry compiling...")
+            print("DEBUG: Failed to load model with preferred compute units. Retry compiling...")
 
             if let src = sourceURL ?? (modelURL.pathExtension != "mlmodelc" ? modelURL : nil) {
                 let compiledURL = try await MLModel.compileModel(at: src)

@@ -7,7 +7,7 @@ import { Settings, App, Actions } from "globals.slint";
 import { SegmentedPicker } from "controls.slint";
 import {
     Divider, Caption, FormSection, FormRow, ChoiceRow, SwitchRow, FieldRow, StackedField, ParameterRow,
-    Disclosure, Dropdown, SliderControl, Button, ButtonKind, ButtonSize,
+    Disclosure, Dropdown, Button, ButtonKind, ButtonSize,
 } from "components.slint";
 import { OutputPage } from "output.slint";
 import { FinishingFilters } from "finishing.slint";
@@ -28,43 +28,12 @@ component UpscalePage inherits VerticalLayout {
     Divider { }
     FormSection {
         title: "Size and quality";
-        // Laid out as a ParameterRow without the reset button.
-        HorizontalLayout {
-            spacing: 8px;
-            height: Theme.control-height;
-            Text {
-                text: "Quality";
-                width: 76px;
-                font-size: Theme.body;
-                color: Theme.text;
-                vertical-alignment: center;
-            }
-            VerticalLayout {
-                alignment: center;
-                horizontal-stretch: 1;
-                crf := SliderControl {
-                    value: Settings.crf;
-                    minimum: 0;
-                    maximum: 51;
-                    step: 1;
-                    label: "Quality";
-                    released(v) => {
-                        Settings.crf = v;
-                        Actions.settings-changed();
-                    }
-                }
-            }
-            Text {
-                width: 44px;
-                text: crf.value.round();
-                font-size: Theme.body;
-                color: Theme.text;
-                horizontal-alignment: right;
-                vertical-alignment: center;
-            }
-            Rectangle { width: 20px; }
+        ChoiceRow {
+            label: "Quality";
+            choices: ["High", "Medium", "Low"];
+            index <=> Settings.quality;
+            changed => { Actions.settings-changed(); }
         }
-        Caption { text: "Lower number, better quality"; }
         FieldRow {
             label: "Size";
             value <=> Settings.scale;

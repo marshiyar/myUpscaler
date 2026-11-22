@@ -132,7 +132,11 @@ fn x265_params(aq: &str, psy: &str, deblock1: &str, deblock2: &str) -> String {
 /// Shows `o` in the interface.
 pub fn load(s: &Settings, o: &Options) {
     s.set_scaler(0);
-    s.set_crf(number(&text(&o.crf), 20.0));
+    s.set_quality(match up60p::pipeline::quality(&text(&o.crf)) {
+        up60p::engine::Quality::High => 0,
+        up60p::engine::Quality::Standard => 1,
+        up60p::engine::Quality::Draft => 2,
+    });
     s.set_scale(text(&o.scale_factor).into());
     s.set_fps(text(&o.fps).into());
     s.set_interpolation(match (flag(o.no_interpolate), text(&o.mi_mode).as_str()) {
@@ -230,7 +234,15 @@ pub fn update_ranges(s: &Settings) {
 pub fn options(s: &Settings) -> Options {
     let mut o = Options::default();
     set(&mut o.scaler, "lanczos");
-    set(&mut o.crf, &format!("{}", s.get_crf().round() as i32));
+    // One value inside each of the encoder's three quality tiers.
+    set(
+        &mut o.crf,
+        match s.get_quality() {
+            1 => "23",
+            2 => "30",
+            _ => "20",
+        },
+    );
     set(&mut o.scale_factor, &s.get_scale());
     set(&mut o.fps, &s.get_fps());
     let interpolation = s.get_interpolation();
@@ -359,6 +371,23 @@ mod tests {
                 assert_eq!(a, b, "{name}");
             }
         }
+    }
+
+    #[test]
+    fn every_quality_choice_is_its_own_encoder_tier() {
+        let ui = window();
+        let s = ui.global::<Settings>();
+        load(&s, &Options::default());
+        let tiers: Vec<_> = (0..3)
+            .map(|choice| {
+                s.set_quality(choice);
+                let o = options(&s);
+                load(&s, &o);
+                assert_eq!(s.get_quality(), choice);
+                up60p::pipeline::quality(&text(&o.crf)) as u32
+            })
+            .collect();
+        assert_eq!(tiers, [2, 1, 0]);
     }
 
     #[test]

@@ -5,7 +5,10 @@
 //! Elsewhere the window keeps the system's decorations.
 
 use crate::AppWindow;
-use slint::winit_030::{winit, WinitWindowAccessor};
+use slint::winit_030::winit;
+#[cfg(any(windows, target_os = "macos"))]
+use slint::winit_030::WinitWindowAccessor;
+#[cfg(any(windows, target_os = "macos"))]
 use slint::ComponentHandle;
 
 /// Window attributes set before the window exists.

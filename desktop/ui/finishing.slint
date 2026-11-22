@@ -9,7 +9,7 @@ export component FinishingFilters inherits VerticalLayout {
     ChoiceRow {
         label: "Reduce noise";
         name: "Finishing denoise";
-        choices: ["Off", "bm3d", "nlmeans", "hqdn3d", "Across frames"];
+        choices: ["Off", "Fast", "Balanced", "Slow", "Across frames"];
         index <=> Settings.denoise2;
         changed => { Actions.settings-changed(); }
     }
@@ -34,7 +34,7 @@ export component FinishingFilters inherits VerticalLayout {
         changed => { Actions.settings-changed(); }
     }
     if Settings.sharpen2: ChoiceRow {
-        label: "Method";
+        label: "Style";
         name: "Finishing sharpen method";
         choices: ["Adaptive", "Classic"];
         index <=> Settings.sharpen2-method;
@@ -42,7 +42,7 @@ export component FinishingFilters inherits VerticalLayout {
     }
     if Settings.sharpen2 && Settings.sharpen2-method == 0: FieldRow {
         label: "Strength";
-        name: "Finishing CAS strength";
+        name: "Finishing sharpen strength";
         value <=> Settings.cas2-strength;
         placeholder: "0.25";
         changed => { Actions.settings-changed(); }
@@ -56,15 +56,15 @@ export component FinishingFilters inherits VerticalLayout {
     }
     if Settings.sharpen2 && Settings.sharpen2-method == 1: FieldRow {
         label: "Amount";
-        name: "Finishing unsharp amount";
+        name: "Finishing sharpen amount";
         value <=> Settings.usm2-amount;
         placeholder: "1.0";
         changed => { Actions.settings-changed(); }
     }
     ChoiceRow {
         label: "Remove banding";
-        name: "Finishing deband";
-        choices: ["Off", "Deband", "Gradfun", "Neo F3kdb (CPU)"];
+        name: "Finishing banding";
+        choices: ["Off", "Standard", "Gradient", "Advanced"];
         index <=> Settings.deband2;
         menu-width: 160px;
         changed => {
@@ -78,19 +78,22 @@ export component FinishingFilters inherits VerticalLayout {
         spacing: 8px;
         alignment: end;
         StackedField {
-            label: "Range";
+            label: "Radius";
+            name: "Finishing banding radius";
             value <=> Settings.f3kdb2-range;
             placeholder: "15";
             changed => { Actions.settings-changed(); }
         }
         StackedField {
-            label: "Y";
+            label: "Brightness";
+            name: "Finishing banding brightness";
             value <=> Settings.f3kdb2-y;
             placeholder: "64";
             changed => { Actions.settings-changed(); }
         }
         StackedField {
-            label: "CbCr";
+            label: "Color";
+            name: "Finishing banding color";
             value <=> Settings.f3kdb2-cbcr;
             placeholder: "64";
             changed => { Actions.settings-changed(); }
@@ -98,7 +101,7 @@ export component FinishingFilters inherits VerticalLayout {
     }
     if Settings.deband2 == 2 || (Settings.deband2 == 1 && !Settings.f3kdb2): FieldRow {
         label: "Strength";
-        name: "Finishing deband strength";
+        name: "Finishing banding strength";
         value <=> Settings.deband2-strength;
         placeholder: "0.015";
         changed => { Actions.settings-changed(); }

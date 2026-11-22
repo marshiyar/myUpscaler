@@ -290,7 +290,7 @@ export component BottomBar inherits Rectangle {
             if App.running: HorizontalLayout {
                 spacing: 14px;
                 alignment: start;
-                for line in ["Processing: " + App.fps-text + " fps", "Media time: " + App.time-text,
+                for line in ["Processing: " + App.fps-text + " frames/s", "Media time: " + App.time-text,
                     "Remaining: " + App.eta-text]: Text {
                     text: line;
                     font-size: Theme.subheadline;

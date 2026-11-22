@@ -99,6 +99,7 @@ export component FieldRow inherits FormRow {
 // A field under its own label, for the rows of short fields ("Range  Y  CbCr").
 export component StackedField inherits VerticalLayout {
     in property <string> label;
+    in property <string> name: root.label;       // the field's accessible name
     in-out property <string> value;
     in property <string> placeholder;
     in property <length> field-width: 52px;
@@ -115,7 +116,7 @@ export component StackedField inherits VerticalLayout {
         text <=> root.value;
         placeholder: root.placeholder;
         enabled: root.enabled;
-        label: root.label;
+        label: root.name;
         edited => { root.changed(); }
     }
 }

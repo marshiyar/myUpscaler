@@ -216,7 +216,7 @@ fn start(ui: &AppWindow, state: &mut State) {
     let folder = output.parent().map(Path::to_path_buf).unwrap_or_default();
     state.expected = Some(if input.is_dir() { folder.clone() } else { output.clone() });
     app.set_log(SharedString::new());
-    append_log(ui, "--- Starting Rust Engine ---\n");
+    append_log(ui, "--- Starting export ---\n");
     append_log(ui, &format!("Input: {}\nOutput: {}\n\n", input.display(), folder.display()));
     if !input.is_dir() {
         append_log(ui, &format!("Expected output file: {}\n\n", output.display()));

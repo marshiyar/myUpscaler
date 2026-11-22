@@ -7,8 +7,8 @@ use up60p::options::{set, text, Options};
 
 use crate::Settings;
 
-/// Backend names for the interface's choice indexes, in the macOS app's menu order (after "Off").
-pub const DENOISERS: [&str; 4] = ["bm3d", "nlmeans", "hqdn3d", "atadenoise"];
+/// Backend names for the interface's choice indexes, in the menu's order (after "Off").
+pub const DENOISERS: [&str; 4] = ["hqdn3d", "bm3d", "nlmeans", "atadenoise"];
 pub const DEBLOCK_MODES: [&str; 2] = ["weak", "strong"];
 pub const PRESETS: [&str; 3] = ["veryfast", "faster", "medium"];
 const DEBLOCK_KEYS: [&str; 4] = ["alpha", "beta", "gamma", "delta"];
@@ -55,7 +55,7 @@ fn flag(v: i32) -> bool {
 /// A denoise menu index (0 off) for a switch and a denoiser name.
 fn denoise_choice(on: bool, denoiser: &str) -> i32 {
     if on {
-        index_of(&DENOISERS, denoiser).map_or(1, |i| i as i32 + 1)
+        index_of(&DENOISERS, denoiser).map_or(2, |i| i as i32 + 1)
     } else {
         0
     }
@@ -366,7 +366,7 @@ mod tests {
         let ui = window();
         let s = ui.global::<Settings>();
         load(&s, &Options::default());
-        s.set_denoise(2);
+        s.set_denoise(3);
         s.set_interpolation(2);
         s.set_deblock(1);
         s.set_deband(3);
@@ -424,7 +424,7 @@ mod tests {
         let ui = window();
         let s = ui.global::<Settings>();
         load(&s, &Options::default());
-        s.set_denoise(2); // NLMeans: 1..30
+        s.set_denoise(3); // NLMeans: 1..30
         s.set_denoise_strength(45.0);
         update_ranges(&s);
         assert_eq!((s.get_denoise_min(), s.get_denoise_max(), s.get_denoise_default()), (1.0, 30.0, 1.0));

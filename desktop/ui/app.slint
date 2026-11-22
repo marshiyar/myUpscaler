@@ -42,7 +42,7 @@ component Toolbar inherits Rectangle {
         VerticalLayout {
             horizontal-stretch: 1;
             alignment: center;
-            if App.mac || App.input-path != "": Text {
+            if App.mac: Text {
                 text: App.input-name != "" ? App.input-name : "myUpscaler";
                 font-size: Theme.body;
                 font-weight: 600;
@@ -191,7 +191,7 @@ component AboutSheet inherits Sheet {
         }
     }
     Text {
-        text: "Video restoration and upscaling for macOS, Windows and Linux.";
+        text: "Upscale and restore video on Mac and Windows.";
         font-size: Theme.body;
         color: Theme.text;
         wrap: word-wrap;

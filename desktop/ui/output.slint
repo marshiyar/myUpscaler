@@ -163,10 +163,10 @@ export component OutputPage inherits VerticalLayout {
     }
     Divider { }
     FormSection {
-        title: "Encoding";
+        title: "File";
         Caption { text: "Saves as MP4."; }
         ChoiceRow {
-            label: "Processing";
+            label: "Run on";
             choices: App.devices;
             index <=> Settings.processing;
             enabled: !App.running;

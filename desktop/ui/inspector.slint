@@ -27,7 +27,7 @@ component UpscalePage inherits VerticalLayout {
     }
     Divider { }
     FormSection {
-        title: "Quality & Scale";
+        title: "Size and quality";
         // Laid out as a ParameterRow without the reset button.
         HorizontalLayout {
             spacing: 8px;
@@ -64,9 +64,9 @@ component UpscalePage inherits VerticalLayout {
             }
             Rectangle { width: 20px; }
         }
-        Caption { text: "Lower is better."; }
+        Caption { text: "Lower number, better quality"; }
         FieldRow {
-            label: "Scale";
+            label: "Size";
             value <=> Settings.scale;
             placeholder: "2.0";
             changed => { Actions.settings-changed(); }
@@ -79,7 +79,7 @@ component UpscalePage inherits VerticalLayout {
         }
         ChoiceRow {
             label: "Smooth motion";
-            choices: ["Off", "MCI", "Blend"];
+            choices: ["Off", "Follow motion", "Blend frames"];
             index <=> Settings.interpolation;
             changed => { Actions.settings-changed(); }
         }
@@ -90,10 +90,10 @@ component RestorePage inherits VerticalLayout {
     spacing: Theme.md;
     in-out property <bool> finishing-open;
     FormSection {
-        title: "Restoration";
+        title: "Restore";
         ChoiceRow {
             label: "Reduce noise";
-            choices: ["Off", "bm3d", "nlmeans", "hqdn3d", "Across frames"];
+            choices: ["Off", "Fast", "Balanced", "Slow", "Across frames"];
             index <=> Settings.denoise;
             changed => { Actions.settings-changed(); }
         }
@@ -120,7 +120,7 @@ component RestorePage inherits VerticalLayout {
             changed => { Actions.settings-changed(); }
         }
         if Settings.sharpen: ChoiceRow {
-            label: "Method";
+            label: "Style";
             choices: ["Adaptive", "Classic"];
             index <=> Settings.sharpen-method;
             changed => { Actions.settings-changed(); }
@@ -201,7 +201,7 @@ component ProcessorPage inherits VerticalLayout {
     FormSection {
         ChoiceRow {
             label: "Remove blockiness";
-            choices: ["Off", "weak", "strong"];
+            choices: ["Off", "Weak", "Strong"];
             index <=> Settings.deblock;
             menu-width: 110px;
             changed => { Actions.settings-changed(); }
@@ -210,14 +210,14 @@ component ProcessorPage inherits VerticalLayout {
             spacing: 4px;
             HorizontalLayout {
                 Text {
-                    text: "Thresholds";
+                    text: "Fine tuning";
                     font-size: Theme.body;
                     color: Theme.text;
                     horizontal-stretch: 1;
                     vertical-alignment: center;
                 }
                 Button {
-                    text: "Defaults";
+                    text: "Reset";
                     size: ButtonSize.small;
                     clicked => {
                         Settings.deblock-alpha = "";
@@ -232,25 +232,29 @@ component ProcessorPage inherits VerticalLayout {
                 spacing: 8px;
                 alignment: end;
                 StackedField {
-                    label: "alpha";
+                    label: "1";
+                    name: "Fine tuning 1";
                     value <=> Settings.deblock-alpha;
                     placeholder: "0.098";
                     changed => { Actions.settings-changed(); }
                 }
                 StackedField {
-                    label: "beta";
+                    label: "2";
+                    name: "Fine tuning 2";
                     value <=> Settings.deblock-beta;
                     placeholder: "0.05";
                     changed => { Actions.settings-changed(); }
                 }
                 StackedField {
-                    label: "gamma";
+                    label: "3";
+                    name: "Fine tuning 3";
                     value <=> Settings.deblock-gamma;
                     placeholder: "0.05";
                     changed => { Actions.settings-changed(); }
                 }
                 StackedField {
-                    label: "delta";
+                    label: "4";
+                    name: "Fine tuning 4";
                     value <=> Settings.deblock-delta;
                     placeholder: "0.05";
                     changed => { Actions.settings-changed(); }
@@ -265,7 +269,7 @@ component ProcessorPage inherits VerticalLayout {
         }
         ChoiceRow {
             label: "Remove banding";
-            choices: ["Off", "Deband", "Gradfun", "Neo F3kdb (CPU)"];
+            choices: ["Off", "Standard", "Gradient", "Advanced"];
             index <=> Settings.deband;
             menu-width: 200px;
             changed => {
@@ -279,19 +283,22 @@ component ProcessorPage inherits VerticalLayout {
             spacing: 8px;
             alignment: end;
             StackedField {
-                label: "Range";
+                label: "Radius";
+                name: "Banding radius";
                 value <=> Settings.f3kdb-range;
                 placeholder: "15";
                 changed => { Actions.settings-changed(); }
             }
             StackedField {
-                label: "Y";
+                label: "Brightness";
+                name: "Banding brightness";
                 value <=> Settings.f3kdb-y;
                 placeholder: "64";
                 changed => { Actions.settings-changed(); }
             }
             StackedField {
-                label: "CbCr";
+                label: "Color";
+                name: "Banding color";
                 value <=> Settings.f3kdb-cbcr;
                 placeholder: "64";
                 changed => { Actions.settings-changed(); }
@@ -337,11 +344,17 @@ export component Inspector inherits Rectangle {
         VerticalLayout {
             padding: 12px;
             spacing: Theme.sm;
+            alignment: start;
+            vertical-stretch: 0;
             SegmentedPicker {
                 items: ["Upscale", "Restore", "Cleanup", "Output"];
                 selected <=> App.page;
             }
-            if App.running: Caption { text: "Settings are locked while processing."; }
+            if App.running: Caption {
+                text: "Settings are locked while processing.";
+                wrap: no-wrap;
+                overflow: elide;
+            }
         }
         Divider { }
         ScrollView {

@@ -74,7 +74,6 @@ struct SavedPresetsPanel: View {
                 .padding(8)
             }
             .groupBoxStyle(ModernGroupBoxStyle())
-            .cardStyle()
         }
     }
 
@@ -137,7 +136,7 @@ struct PresetRow: View {
                 Button(action: onOverwrite) {
                     Label("Update", systemImage: "arrow.triangle.2.circlepath")
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.bordered)
                 .controlSize(.small)
                 .disabled(isProcessing)
 
@@ -154,9 +153,7 @@ struct PresetRow: View {
                 .controlSize(.small)
             }
         }
-        .padding(8)
-        .background(Color.accentColor.opacity(0.04))
-        .cornerRadius(8)
+        .padding(.vertical, 4)
         .onAppear { nameDraft = preset.name }
         .confirmationDialog("Delete preset?", isPresented: $confirmDelete) {
             Button("Delete \"\(preset.name)\"", role: .destructive, action: onDelete)

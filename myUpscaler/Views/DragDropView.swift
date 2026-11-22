@@ -36,7 +36,7 @@ struct DragDropView: View {
                             .font(.subheadline.weight(.semibold))
                             .lineLimit(1)
                             .truncationMode(.middle)
-                        Text("Approximate preview")
+                        Text(isProcessingFullUpscale ? "Preview frozen while processing" : "Approximate preview")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         Spacer()
@@ -55,18 +55,13 @@ struct DragDropView: View {
                                     .onTapGesture(count: 2) { onFrameDoubleTap?(image) }
                                     .accessibilityLabel("Adjusted video preview")
                             } else {
-                                VStack(spacing: 8) {
-                                    Image(systemName: "film").font(.title)
-                                    Text("Video selected").font(.headline)
-                                    Text("The preview will appear here when available.")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                .padding()
+                                Text("The preview will appear here when available.")
+                                    .foregroundStyle(Color(white: 0.7))
+                                    .padding()
                             }
                         }
                         .frame(minWidth: 160, maxWidth: .infinity, maxHeight: .infinity)
-                        .background(Color.appTertiaryBackground, in: RoundedRectangle(cornerRadius: 8))
+                        .background(Color(white: 0.11))
                         .layoutPriority(1)
 
                     }

@@ -13,7 +13,6 @@ struct ContentView: View {
     @State private var showSettings = false
     @State private var showAbout = false
     @State private var enlargedFrameImage: NSImage? = nil
-    @State private var showPiPPreview: Bool = false
     @State private var editorState: EditorState? = nil
     @State private var showInspector = false
 
@@ -26,19 +25,16 @@ struct ContentView: View {
     var body: some View {
         GeometryReader { geometry in
             HStack(spacing: 0) {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        InputSection(inputPath: Binding(get: { runner.inputPath }, set: { path in
-                            if !runner.isRunning { runner.inputPath = path }
-                        }), chooseInput: { dispatcher.perform(.chooseInput) },
-                            canImport: { !runner.isRunning }, settings: settings,
-                            isProcessingFullUpscale: runner.isRunning,
-                            onFrameDoubleTap: { enlargedFrameImage = $0 },
-                            onEditorStateAvailable: { editorState = $0 })
-                            .frame(height: max(360, geometry.size.height - 140))
-                        LogPanel(runner: runner)
-                    }
-                    .padding(20)
+                VStack(spacing: 0) {
+                    InputSection(inputPath: Binding(get: { runner.inputPath }, set: { path in
+                        if !runner.isRunning { runner.inputPath = path }
+                    }), chooseInput: { dispatcher.perform(.chooseInput) },
+                        canImport: { !runner.isRunning }, settings: settings,
+                        isProcessingFullUpscale: runner.isRunning,
+                        onFrameDoubleTap: { enlargedFrameImage = $0 },
+                        onEditorStateAvailable: { editorState = $0 })
+                    Divider()
+                    LogPanel(runner: runner)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 if showInspector {
@@ -113,66 +109,32 @@ struct ContentView: View {
         .sheet(isPresented: $showAbout) {
             AboutView()
         }
-        // MARK: -  ---------- ENLARGED FRAME OVERLAY (covers entire app) ----------
-        .overlay(
-                Group {
-                    // Enlarged Frame Image
-                    if let img = enlargedFrameImage {
-                        ZStack {
-                            // Semi-transparent background covering entire window
-                            Color.black.opacity(0.85)
-                                .ignoresSafeArea(.all)
-                                .onTapGesture(count: 2) {
-                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                        enlargedFrameImage = nil
-                                    }
-                                }
-
-                            // Enlarged image centered
-                            VStack {
-                                Spacer()
-
-                                Image(nsImage: img)
-                                    .resizable()
-                                    .scaledToFit()
-                                    .cornerRadius(12)
-                                    .shadow(color: Color.black.opacity(0.5), radius: 20, x: 0, y: 10)
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                    .padding(40)
-                                    .onTapGesture(count: 2) {
-                                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                            enlargedFrameImage = nil
-                                        }
-                                    }
-
-                                Spacer()
-                                // Hint text
-                                HStack {
-                                    Text("Double-click to close")
-                                        .font(.caption)
-                                        .foregroundColor(.white.opacity(0.6))
-                                    Text("•")
-                                        .font(.caption)
-                                        .foregroundColor(.white.opacity(0.4))
-                                    Text("Press ESC")
-                                        .font(.caption)
-                                        .foregroundColor(.white.opacity(0.6))
-                                }
-                                .padding(.bottom, 20)
-                            }
-                        }
-                        .transition(.opacity.combined(with: .scale(scale: 0.9)))
-                        .zIndex(10000)  // Very high z-index to ensure it's on top
-                        .focusable()
-                        .onKeyPress(.escape) {
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                enlargedFrameImage = nil
-                            }
-                            return .handled
-                        }
+        // The enlarged preview covers the window.
+        .overlay {
+            if let img = enlargedFrameImage {
+                ZStack {
+                    Color.black
+                        .onTapGesture(count: 2) { enlargedFrameImage = nil }
+                    VStack(spacing: 8) {
+                        Image(nsImage: img)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .onTapGesture(count: 2) { enlargedFrameImage = nil }
+                        Text("Double-click or press Esc to close")
+                            .font(.caption)
+                            .foregroundStyle(Color(white: 0.7))
                     }
+                    .padding(16)
                 }
-        )
+                .ignoresSafeArea()
+                .focusable()
+                .onKeyPress(.escape) {
+                    enlargedFrameImage = nil
+                    return .handled
+                }
+            }
+        }
         .onChange(of: runner.inputPath) { _, _ in
             // Reset the enlarged frame when a new video is imported
             enlargedFrameImage = nil

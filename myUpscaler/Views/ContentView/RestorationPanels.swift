@@ -47,9 +47,7 @@ struct RestorationFiltersPanel: View {
                                      sliderAccessibility: "Deringing strength slider",
                                      gradient: .dering)
                         { _ in settings.objectWillChange.send() }
-                            .transition(.opacity.combined(with: .move(edge: .top)))
                             .padding(.top, 8)
-                            .animation(.easeInOut(duration: 0.2), value: settings.primary.useDering)
                     }
 
                     Divider()
@@ -68,7 +66,6 @@ struct RestorationFiltersPanel: View {
                 .padding(.top, 16)
             }
             .groupBoxStyle(ModernGroupBoxStyle())
-            .cardStyle()
         }
     }
 }
@@ -191,7 +188,6 @@ struct RestorationPanel: View {
                 .padding(8)
             }
             .groupBoxStyle(ModernGroupBoxStyle())
-            .cardStyle()
         }
         .frame(maxWidth: .infinity)
     }

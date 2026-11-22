@@ -52,9 +52,7 @@ struct RestorationSharpenControls: View {
                                  sliderAccessibility: "Unsharp mask threshold slider",
                                  gradient: .usmThreshold)
                     { _ in settings.objectWillChange.send() }
-                    .transition(.opacity.combined(with: .move(edge: .top)))
                 }
-                .animation(.easeInOut(duration: 0.5), value: stage.useDering)
             }
         case .compact:
             if stage.sharpenMethod == "unsharp" {
@@ -111,7 +109,7 @@ struct RestorationF3KDBControls: View {
     private func field(_ title: String, placeholder: String, text: Binding<String>) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
-                .font(compact ? .caption : .system(size: 10))
+                .font(compact ? .caption : .caption2)
                 .foregroundStyle(.secondary)
             TextField(placeholder, text: text)
                 .labelsHidden()

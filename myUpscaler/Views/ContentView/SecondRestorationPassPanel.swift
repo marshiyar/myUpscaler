@@ -142,7 +142,6 @@ struct RestorationSecondSetPanel: View {
                 }
             }
             .groupBoxStyle(ModernGroupBoxStyle())
-            .cardStyle()
         }
         .disabled(settings.upscaling.scaler == "coreml")
         .help("The second restoration pass is available only for Lanczos (Rust engine) exports")

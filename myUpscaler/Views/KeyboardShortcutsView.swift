@@ -77,8 +77,7 @@ private struct ShortcutBadge: View {
     var body: some View {
         Text(binding?.display ?? "Unassigned")
             .font(.body.monospaced())
-            .padding(.horizontal, 8).padding(.vertical, 4)
-            .background(Color.appSecondaryBackground, in: RoundedRectangle(cornerRadius: 6))
+            .foregroundStyle(.secondary)
             .accessibilityLabel(binding?.display ?? "No keyboard shortcut")
     }
 }

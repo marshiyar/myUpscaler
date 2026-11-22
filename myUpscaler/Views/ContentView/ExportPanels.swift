@@ -35,15 +35,13 @@ struct OutputPanel: View {
                         .controlSize(.small)
                         .frame(width: 120)
                         .fixedSize()
-                        .transition(.opacity)
-                        .animation(.easeInOut(duration: 0.15), value: outputMode)
                     }
 
                     if outputMode == .custom {
                         HStack {
                             Image(systemName: "folder")
                                 .foregroundColor(.secondary)
-                                .font(.system(size: 10))
+                                .font(.caption2)
                             Text(customOutputFolder.isEmpty ? "Choose an output folder" : customOutputFolder)
                                 .help(customOutputFolder)
                                 .textSelection(.enabled)
@@ -56,11 +54,6 @@ struct OutputPanel: View {
                             Button("Choose", action: chooseFolder)
                                 .controlSize(.mini)
                         }
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 6)
-                        .background(cardBackground)  // background to see easier
-                        .cornerRadius(6)
-                        .zIndex(1)
                     }
 
                     Divider()
@@ -68,7 +61,7 @@ struct OutputPanel: View {
                     HStack {
                         Image(systemName: "doc.text.fill")
                             .foregroundColor(.accentColor)
-                            .font(.system(size: 10))
+                            .font(.caption2)
                         Text("Output:")
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -82,7 +75,6 @@ struct OutputPanel: View {
                 .padding(8)
             }
             .groupBoxStyle(ModernGroupBoxStyle())
-            .cardStyle()
         }
         .frame(maxWidth: .infinity)
     }
@@ -191,7 +183,7 @@ struct LogPanel: View {
                     ScrollView {
                         Text(runner.log.isEmpty ? "Export details will appear here." : runner.log)
                             .textSelection(.enabled)
-                            .font(.system(size: 11, design: .monospaced))
+                            .font(.system(.caption, design: .monospaced))
                             .frame(maxWidth: .infinity, alignment: .topLeading)
                             .padding(10)
                             .id("BOTTOM")
@@ -199,17 +191,16 @@ struct LogPanel: View {
                     .onChange(of: runner.log) { _, _ in reader.scrollTo("BOTTOM", anchor: .bottom) }
                 }
                 .frame(height: 170)
-                .background(Color.appTertiaryBackground, in: RoundedRectangle(cornerRadius: 8))
+                .background(Color.appTertiaryBackground)
                 .padding(.top, 8)
             } label: {
                 Label("Processing details", systemImage: "text.alignleft")
                     .font(.subheadline)
             }
         }
-        .padding(14)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.appSecondaryBackground, in: RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.primary.opacity(0.08)))
     }
 
     // Note: sandbox requirement securityScopedOutputURL

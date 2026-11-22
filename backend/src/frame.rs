@@ -93,6 +93,36 @@ impl Frame {
         Frame { planes: [y, cb, cr], alpha, pts }
     }
 
+    /// The colour planes as RGB on the 0..255 scale, unclamped.
+    pub fn rgb_planes(&self) -> [Vec<f32>; 3] {
+        let [y, cb, cr] = &self.planes;
+        let n = y.data.len();
+        let (mut r, mut g, mut b) = (Vec::with_capacity(n), Vec::with_capacity(n), Vec::with_capacity(n));
+        for i in 0..n {
+            let (luma, u, v) = (y.data[i], cb.data[i] - 128.0, cr.data[i] - 128.0);
+            let (red, blue) = (luma + CR_SCALE * v, luma + CB_SCALE * u);
+            r.push(red);
+            b.push(blue);
+            g.push((luma - KR * red - KB * blue) / KG);
+        }
+        [r, g, b]
+    }
+
+    /// Builds a frame from RGB planes on the 0..255 scale; values outside it are clamped.
+    pub fn from_rgb_planes(rgb: &[Vec<f32>; 3], w: usize, h: usize, pts: f64, alpha: Option<Plane>) -> Frame {
+        let mut y = Plane::new(w, h, 0.0);
+        let mut cb = Plane::new(w, h, 0.0);
+        let mut cr = Plane::new(w, h, 0.0);
+        for i in 0..w * h {
+            let (r, g, b) = (rgb[0][i].clamp(0.0, 255.0), rgb[1][i].clamp(0.0, 255.0), rgb[2][i].clamp(0.0, 255.0));
+            let luma = KR * r + KG * g + KB * b;
+            y.data[i] = luma;
+            cb.data[i] = (b - luma) / CB_SCALE + 128.0;
+            cr.data[i] = (r - luma) / CR_SCALE + 128.0;
+        }
+        Frame { planes: [y, cb, cr], alpha, pts }
+    }
+
     /// Converts back to RGBA8 with a triangular dither of one code value, so gradients smoothed by the filters do
     /// not band again when rounded to 8 bits. `seed` varies the dither between frames.
     pub fn to_rgba(&self, seed: u32) -> Vec<u8> {
@@ -170,6 +200,24 @@ mod tests {
         for (a, b) in rgba.iter().zip(&back) {
             assert!((*a as i32 - *b as i32).abs() <= 1, "{a} vs {b}");
         }
+    }
+
+    #[test]
+    fn rgb_planes_round_trip() {
+        let rgba: Vec<u8> =
+            (0..4 * 6).flat_map(|i| [(i * 37 % 256) as u8, (i * 11 % 256) as u8, (i * 91 % 256) as u8, 255]).collect();
+        let f = Frame::from_rgba(&rgba, 6, 4, 2.0, false);
+        let rgb = f.rgb_planes();
+        for (i, px) in rgba.chunks_exact(4).enumerate() {
+            for c in 0..3 {
+                assert!((rgb[c][i] - px[c] as f32).abs() < 1e-3, "pixel {i} channel {c}");
+            }
+        }
+        let back = Frame::from_rgb_planes(&rgb, 6, 4, 2.0, None);
+        for (a, b) in f.planes.iter().zip(&back.planes) {
+            assert!(a.data.iter().zip(&b.data).all(|(x, y)| (x - y).abs() < 1e-3));
+        }
+        assert_eq!(back.pts, 2.0);
     }
 
     #[test]

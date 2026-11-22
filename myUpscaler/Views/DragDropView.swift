@@ -31,21 +31,6 @@ struct DragDropView: View {
                 ImportVideoView(isHovered: state.isHovered, chooseInput: chooseInput)
             } else {
                 VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Label(URL(fileURLWithPath: externalInputPath).lastPathComponent, systemImage: "film")
-                            .font(.subheadline.weight(.semibold))
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                        Text(isProcessingFullUpscale ? "Preview frozen while processing" : "Approximate preview")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        if let chooseInput {
-                            Button("Change video", action: chooseInput)
-                                .disabled(isProcessingFullUpscale)
-                        }
-                    }
-
                     HStack(alignment: .center, spacing: 12) {
                         ZStack {
                             if let image = state.thumbnailImage {
@@ -60,7 +45,7 @@ struct DragDropView: View {
                                     .padding()
                             }
                         }
-                        .frame(minWidth: 160, maxWidth: .infinity, maxHeight: .infinity)
+                        .frame(minWidth: 160, maxWidth: .infinity, minHeight: 80, maxHeight: .infinity)
                         .background(Color(white: 0.11))
                         .layoutPriority(1)
 

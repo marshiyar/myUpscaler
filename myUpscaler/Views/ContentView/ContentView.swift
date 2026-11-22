@@ -44,20 +44,6 @@ struct ContentView: View {
                 }
             }
             .toolbar {
-                if #available(macOS 26, *) {
-                    ToolbarItem(placement: .principal) {
-                        Color.clear.frame(width: 400, height: 24)
-                            .contentShape(Rectangle())
-                            .gesture(WindowDragGesture())
-                    }
-                    .sharedBackgroundVisibility(.hidden)
-                } else {
-                    ToolbarItem(placement: .principal) {
-                        Color.clear.frame(width: 400, height: 24)
-                            .contentShape(Rectangle())
-                            .gesture(WindowDragGesture())
-                    }
-                }
                 ToolbarItem(placement: .navigation) {
                     Button { dispatcher.perform(.chooseInput) } label: { Label("Import", systemImage: "folder.badge.plus") }
                         .disabled(runner.isRunning)
@@ -78,7 +64,8 @@ struct ContentView: View {
         }
         .frame(minWidth: 720, minHeight: UI.windowMinHeight)
         .background(Color.appBackground)
-        .navigationTitle("myUpscaler")
+        .navigationTitle(runner.inputPath.isEmpty ? "myUpscaler" : URL(fileURLWithPath: runner.inputPath).lastPathComponent)
+        .navigationSubtitle(runner.inputPath.isEmpty ? "" : runner.isRunning ? "Preview frozen while processing" : "Approximate preview")
         .focusedSceneValue(\.commandDispatcher, dispatcher)
         .onAppear { configureCommands() }
         .onDisappear { dispatcher.configure([:]) }

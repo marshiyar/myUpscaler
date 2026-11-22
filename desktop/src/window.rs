@@ -47,6 +47,8 @@ pub fn apply_when_ready(ui: slint::Weak<AppWindow>, attempt: u32) {
 pub fn toolbar_press(ui: &AppWindow) {
     #[cfg(target_os = "macos")]
     mac::toolbar_press(ui);
+    #[cfg(not(target_os = "macos"))]
+    let _ = ui;
 }
 
 #[cfg(target_os = "macos")]

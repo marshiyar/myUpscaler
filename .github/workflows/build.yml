@@ -234,3 +234,54 @@ jobs:
             COREML_MODELS_DIR="$saved" bash scripts/prepare-bundled-models.sh
           diff -qr "$saved" third_party/CoreML
           echo '::notice::External prebuilt model ZIP/directory, cache replacement and checksum requirement passed.'
+
+  screenshot:
+    # The app's own window, in light appearance on the Upscale page with a video loaded.
+    # GitHub's hosted macOS image (Xcode 27); it has a desktop session to draw the window in.
+    runs-on: xcode-27
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-macos
+      - name: Metal compiler component
+        run: |
+          set -euo pipefail
+          if ! xcrun metal -v > /dev/null 2>&1; then
+            xcodebuild -downloadComponent MetalToolchain
+          fi
+          xcrun metal -v 2>&1 | head -n 1
+      - uses: ./.github/actions/rust-backend-macos
+      - name: Restore prepared CoreML models
+        uses: actions/cache@v6
+        with:
+          path: third_party/CoreML
+          key: coreml-models-${{ hashFiles('scripts/prepare-bundled-models.sh', 'scripts/validate-bundled-models.sh') }}
+      - name: Prepare bundled CoreML models
+        run: bash scripts/prepare-bundled-models.sh
+      - name: Build Release app
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project myUpscaler.xcodeproj -scheme myUpscaler \
+            -configuration Release -destination 'generic/platform=macOS' \
+            -derivedDataPath "$RUNNER_TEMP/myUpscaler-DerivedData" \
+            CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= \
+            ENABLE_USER_SCRIPT_SANDBOXING=NO SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
+            build > "$RUNNER_TEMP/build.log" 2>&1 || { grep -E 'error:' "$RUNNER_TEMP/build.log" | head -n 20; tail -n 30 "$RUNNER_TEMP/build.log"; exit 1; }
+          tail -n 3 "$RUNNER_TEMP/build.log"
+          test -d "$RUNNER_TEMP/myUpscaler-DerivedData/Build/Products/Release/myUpscaler.app"
+      - name: Screenshot
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/Downloads"
+          bash scripts/fetch-sample-clip.sh "$HOME/Downloads/onepiece_demo.mp4"
+          bash scripts/screenshot-app.sh \
+            "$RUNNER_TEMP/myUpscaler-DerivedData/Build/Products/Release/myUpscaler.app" \
+            "$HOME/Downloads/onepiece_demo.mp4" "$RUNNER_TEMP/screenshots/macos.png"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: macos-screenshot
+          path: ${{ runner.temp }}/screenshots/macos.png
+          if-no-files-found: error

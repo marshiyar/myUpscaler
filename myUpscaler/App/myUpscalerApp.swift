@@ -36,9 +36,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         setenv("AIR_Diagnostics", "0", 1)
         setenv("MTL_COMPILER_LOG_LEVEL", "0", 1)
 
+        switch LaunchOptions.current.appearance {
+        case .light?: NSApp.appearance = NSAppearance(named: .aqua)
+        case .dark?: NSApp.appearance = NSAppearance(named: .darkAqua)
+        case nil: break
+        }
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             self.fixBlankWindows()
+            self.applyLaunchWindowSize()
         }
+        // The first text field takes keyboard focus once the window is up; a still picture should not show it.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            if LaunchOptions.current != LaunchOptions(arguments: []) {
+                NSApplication.shared.windows.forEach { $0.makeFirstResponder(nil) }
+            }
+        }
+    }
+
+    private func applyLaunchWindowSize() {
+        guard let size = LaunchOptions.current.windowSize,
+              let window = NSApplication.shared.windows.first(where: { $0.isVisible && $0.frame.width >= 150 }) else { return }
+        window.setContentSize(size)
+        window.center()
     }
 
     private func fixBlankWindows() {

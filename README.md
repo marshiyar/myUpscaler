@@ -2,7 +2,16 @@
 
 Upscale and restore video on Mac and Windows.
 
-<img src="docs/media/app.png" alt="The myUpscaler window" width="800">
+<table>
+<tr>
+<td width="50%"><img src="docs/media/app-mac.jpg" alt="The myUpscaler Upscale page in the macOS app"></td>
+<td width="50%"><img src="docs/media/app-windows.jpg" alt="The myUpscaler Upscale page in the Windows app"></td>
+</tr>
+<tr>
+<td align="center">Mac</td>
+<td align="center">Windows</td>
+</tr>
+</table>
 
 [Demo video](https://github.com/marshiyar/myUpscaler/releases/download/v0.1.0/myupscaler-demo.mp4)
 

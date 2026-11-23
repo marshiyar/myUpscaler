@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
       - name: System libraries for the interface (fonts) and the player (ALSA)
         run: sudo apt-get update -q && sudo apt-get install -y -q libfontconfig1-dev libasound2-dev
@@ -69,12 +69,12 @@ jobs:
           set -euo pipefail
           bash scripts/package.sh linux myupscaler-linux-x64 "$RUNNER_TEMP/package"
           bash scripts/check-package.sh "$RUNNER_TEMP/package/myupscaler-linux-x64.tar.gz" "$RUNNER_TEMP/package-check"
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: myupscaler-linux-x64
           path: ${{ runner.temp }}/package/*.tar.gz
           if-no-files-found: error
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: desktop-screenshots
           path: ${{ runner.temp }}/screenshots/*.png
@@ -84,7 +84,7 @@ jobs:
     runs-on: windows-2025
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
       - uses: ./.github/actions/media-engine
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
@@ -97,7 +97,7 @@ jobs:
           set -euo pipefail
           bash scripts/package.sh windows myupscaler-windows-x64 "$RUNNER_TEMP/package"
           bash scripts/check-package.sh "$RUNNER_TEMP/package/myupscaler-windows-x64.zip" "$RUNNER_TEMP/package-check"
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: myupscaler-windows-x64
           path: ${{ runner.temp }}/package/*.zip
@@ -107,7 +107,7 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
       - uses: ./.github/actions/media-engine
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
@@ -122,7 +122,7 @@ jobs:
           python3 scripts/sample-image.py "$shots/sample.png"
           target/release/myupscaler --screenshot "$shots/macos-finished-run.png" --run "$shots/sample.png"
           test -s "$shots/sample_[restored].png"
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: desktop-macos-screenshot
           path: ${{ runner.temp }}/screenshots/macos-finished-run.png

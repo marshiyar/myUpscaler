@@ -37,14 +37,14 @@ jobs:
       matrix:
         language: [rust, python, actions]
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
-      - uses: github/codeql-action/init@v3
+      - uses: github/codeql-action/init@d2aacf54c2fbc910db8d7ec338fdb54ea48c692d # v3.39.4
         with:
           languages: ${{ matrix.language }}
           build-mode: none
           queries: security-and-quality
-      - uses: github/codeql-action/analyze@v3
+      - uses: github/codeql-action/analyze@d2aacf54c2fbc910db8d7ec338fdb54ea48c692d # v3.39.4
         with:
           category: /language:${{ matrix.language }}
 
@@ -57,19 +57,19 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
       - uses: ./.github/actions/setup-macos
       - uses: ./.github/actions/rust-backend-macos
       - name: Restore prepared CoreML models
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: third_party/CoreML
           key: coreml-models-${{ hashFiles('scripts/prepare-bundled-models.sh', 'scripts/validate-bundled-models.sh') }}
       - name: Prepare bundled CoreML models
         shell: bash
         run: bash scripts/prepare-bundled-models.sh
-      - uses: github/codeql-action/init@v3
+      - uses: github/codeql-action/init@d2aacf54c2fbc910db8d7ec338fdb54ea48c692d # v3.39.4
         with:
           languages: swift
           build-mode: manual
@@ -85,6 +85,6 @@ jobs:
             CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= \
             ENABLE_USER_SCRIPT_SANDBOXING=NO \
             build
-      - uses: github/codeql-action/analyze@v3
+      - uses: github/codeql-action/analyze@d2aacf54c2fbc910db8d7ec338fdb54ea48c692d # v3.39.4
         with:
           category: /language:swift

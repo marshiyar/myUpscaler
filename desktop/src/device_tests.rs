@@ -44,7 +44,12 @@ fn the_gpu_is_the_default_and_the_pick_is_remembered() {
     assert_eq!(up60p::accel::current().is_some(), default == 1);
     assert!(!file.exists());
 
-    // The user picks the CPU: it is in effect and kept.
+    // The user picks the CPU: it is in effect and kept. Where the CPU is already the default, the GPU is picked
+    // first so that the CPU pick is a change.
+    if !device::GPU_FIRST {
+        ui.global::<Settings>().set_processing(1);
+        settings_changed(&ui, &state.borrow());
+    }
     ui.global::<Settings>().set_processing(0);
     settings_changed(&ui, &state.borrow());
     assert!(up60p::accel::current().is_none());

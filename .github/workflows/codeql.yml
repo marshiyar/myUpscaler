@@ -49,10 +49,9 @@ jobs:
           category: /language:${{ matrix.language }}
 
   swift:
-    # Swift is analysed while the app is built, which needs Xcode. Weekly and on request only, so it never
-    # competes with pull request jobs for the Mac.
+    # Swift is analysed while the app is built, which needs Xcode. Weekly and on request only.
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: xcode-27
     timeout-minutes: 60
     permissions:
       contents: read

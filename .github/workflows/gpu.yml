@@ -37,7 +37,7 @@ jobs:
       - name: Software Vulkan driver
         if: runner.os == 'Linux'
         run: sudo apt-get update -q && sudo apt-get install -y -q mesa-vulkan-drivers
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with: { workspaces: gpu, shared-key: "gpu-${{ matrix.os }}" }
       - run: cargo fmt --check
       - run: cargo clippy --all-targets -- -D warnings

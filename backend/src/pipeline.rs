@@ -1,6 +1,6 @@
 //! Turns the app's options into a filter chain, in the order the app applies them:
 //!
-//! decimate → deblock → denoise → dering → interpolate → Lanczos scale → sharpen → deband → second-set dering,
+//! decimate → deblock → denoise → dering → interpolate → Lanczos or model scale → sharpen → deband → second-set dering,
 //! deblock, denoise, sharpen and deband → EQ → grain → repeat.
 //!
 //! A video's frame rate is changed by one of the two: interpolate (blend or motion-compensated pictures, a stage of
@@ -22,7 +22,7 @@ use crate::filters::hqdn3d::Hqdn3d;
 use crate::filters::interpolate::{Mode, Retimer};
 use crate::filters::nlmeans::NlMeans;
 use crate::filters::repeat::Repeater;
-use crate::filters::scale::{scaled_size, Lanczos};
+use crate::filters::scale::{scaled_size, AiScale, Lanczos};
 use crate::filters::sharpen::{Cas, Unsharp};
 use crate::filters::{number, Chain, Filter};
 use crate::options::{text, Options};
@@ -340,7 +340,18 @@ pub fn build(o: &Options, source: Source) -> Result<Plan, String> {
             fps = Some((num, den));
         }
     }
-    chain.push_stage(Box::new(Lanczos { factor: scale }));
+    if text(&o.scaler) == "model" {
+        let path = text(&o.ai_model);
+        if path.is_empty() {
+            return Err("Upscaling with a model needs ai_model, the path of the model file.".into());
+        }
+        if !std::path::Path::new(&path).is_file() {
+            return Err(format!("Model file not found: {path}"));
+        }
+        chain.push_stage(Box::new(AiScale::new(scale, path)));
+    } else {
+        chain.push_stage(Box::new(Lanczos { factor: scale }));
+    }
     if !flag(o.no_sharpen) {
         chain.push_some(sharpener(
             &text(&o.sharpen_method),

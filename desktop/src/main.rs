@@ -11,9 +11,11 @@ mod playback;
 mod player;
 mod presets;
 mod preview;
+mod processing;
 mod progress;
 mod screenshot;
 mod settings;
+mod system;
 mod window;
 
 use std::cell::{Cell, RefCell};
@@ -42,8 +44,6 @@ enum Report {
 
 /// A batch of the frame strip, for the input it was made for (its generation).
 type Thumbnails = (u64, Vec<(SharedPixelBuffer<Rgba8Pixel>, f64)>);
-
-use dropped::MEDIA_EXTENSIONS;
 
 /// The longest the log may grow before its oldest lines are dropped.
 const LOG_LIMIT: usize = 200_000;
@@ -74,6 +74,10 @@ struct State {
     /// The graphics adapter once found, and the startup search still running.
     gpu: device::Probe,
     gpu_search: Option<Receiver<Result<Arc<dyn up60p::accel::Accelerator>, String>>>,
+    /// The processing entry in effect, the one the user picked last (kept in `device_file`) and where it is kept.
+    processing: Cell<i32>,
+    device_saved: Cell<Option<device::Choice>>,
+    device_file: Option<PathBuf>,
 }
 
 fn append_log(ui: &AppWindow, text: &str) {
@@ -249,12 +253,7 @@ fn drain(ui: &AppWindow, state: &mut State) {
         };
         if let Some(found) = found {
             state.gpu_search = None;
-            app.set_device_note(device::note(&found).into());
-            state.gpu = found.ok();
-            let names = device::choices(&state.gpu);
-            app.set_devices(ModelRc::new(VecModel::from(
-                names.into_iter().map(SharedString::from).collect::<Vec<_>>(),
-            )));
+            processing::gpu_found(ui, state, found);
         }
     }
     while let Ok(reply) = state.replies.try_recv() {
@@ -340,41 +339,13 @@ fn drain(ui: &AppWindow, state: &mut State) {
     update_status(ui, state);
 }
 
-fn pick_input(folder: bool) -> Option<PathBuf> {
-    let dialog =
-        rfd::FileDialog::new().set_title(if folder { "Choose a batch folder" } else { "Choose a video or image" });
-    if folder {
-        dialog.pick_folder()
-    } else {
-        dialog.add_filter("Videos and images", &MEDIA_EXTENSIONS).pick_file()
-    }
-}
-
-/// Opens a file or web address with the system's default application, or shows a file in its folder.
-fn open_with_system(target: &str, reveal: bool) {
-    let mut command = if cfg!(target_os = "macos") {
-        let mut c = std::process::Command::new("open");
-        if reveal {
-            c.arg("-R");
-        }
-        c.arg(target);
-        c
-    } else if cfg!(windows) {
-        let mut c = std::process::Command::new("explorer");
-        c.arg(if reveal { format!("/select,{target}") } else { target.to_owned() });
-        c
-    } else {
-        let mut c = std::process::Command::new("xdg-open");
-        let path = Path::new(target);
-        c.arg(if reveal { path.parent().unwrap_or(path) } else { path });
-        c
-    };
-    let _ = command.spawn();
-}
-
 fn settings_changed(ui: &AppWindow, state: &State) {
     let current = ui.global::<Settings>();
-    current.set_processing(device::apply(current.get_processing(), &state.gpu));
+    let asked = current.get_processing();
+    processing::remember(ui, state, asked);
+    let in_effect = device::apply(asked, &state.gpu);
+    current.set_processing(in_effect);
+    state.processing.set(in_effect);
     settings::update_ranges(&ui.global::<Settings>());
     if let Some(input) = &state.input {
         let options = settings::options(&ui.global::<Settings>());
@@ -456,6 +427,7 @@ fn wire(ui: &AppWindow) -> Rc<RefCell<State>> {
         let _ = gpu_tx.send(device::open_gpu());
     });
     let preset_file = presets::file();
+    let device_file = device::file();
     let loaded = preset_file.as_deref().map(presets::load);
     ui.global::<App>().set_preset_message(loaded.as_ref().and_then(|l| l.message.clone()).unwrap_or_default().into());
     let state = Rc::new(RefCell::new(State {
@@ -479,19 +451,22 @@ fn wire(ui: &AppWindow) -> Rc<RefCell<State>> {
         player_events,
         gpu: None,
         gpu_search: Some(gpu_search),
+        processing: Cell::new(0),
+        device_saved: Cell::new(device_file.as_deref().and_then(device::load)),
+        device_file,
     }));
     presets::refresh(ui, &state.borrow());
 
     let actions = ui.global::<Actions>();
     let (w, st) = (ui.as_weak(), state.clone());
     actions.on_import(move || {
-        if let Some(path) = pick_input(false) {
+        if let Some(path) = system::pick_input(false) {
             with(&w, &st, |ui, s| select_input(ui, s, path));
         }
     });
     let (w, st) = (ui.as_weak(), state.clone());
     actions.on_import_folder(move || {
-        if let Some(path) = pick_input(true) {
+        if let Some(path) = system::pick_input(true) {
             with(&w, &st, |ui, s| select_input(ui, s, path));
         }
     });
@@ -532,13 +507,13 @@ fn wire(ui: &AppWindow) -> Rc<RefCell<State>> {
     actions.on_settings_changed(move || with(&w, &st, |ui, s| settings_changed(ui, s)));
     let (w, st) = (ui.as_weak(), state.clone());
     actions.on_open_output(move || {
-        with(&w, &st, |_, s| s.completed.iter().for_each(|p| open_with_system(&p.display().to_string(), false)))
+        with(&w, &st, |_, s| s.completed.iter().for_each(|p| system::open_with_system(&p.display().to_string(), false)))
     });
     let (w, st) = (ui.as_weak(), state.clone());
     actions.on_reveal_output(move || {
-        with(&w, &st, |_, s| s.completed.iter().for_each(|p| open_with_system(&p.display().to_string(), true)))
+        with(&w, &st, |_, s| s.completed.iter().for_each(|p| system::open_with_system(&p.display().to_string(), true)))
     });
-    actions.on_open_website(|| open_with_system(WEBSITE, false));
+    actions.on_open_website(|| system::open_with_system(WEBSITE, false));
     playback::wire(ui, &state);
     presets::wire(ui, &state);
 
@@ -597,3 +572,6 @@ fn main() -> Result<(), String> {
     window::apply_when_ready(ui.as_weak(), 0);
     ui.run().map_err(|e| e.to_string())
 }
+
+#[cfg(test)]
+mod device_tests;

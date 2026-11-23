@@ -22,7 +22,7 @@ def section(repository: str, tag: str, results: pathlib.Path) -> str:
         START,
         "## Smoke tests",
         "",
-        "Each platform's build of the desktop app was run headless on that platform: the import view, the "
+        "Each platform's build of the desktop app was run headless on that platform: the import view, the ",
         "adjustments panel on a generated clip, and the clip exported end to end (the exported file is checked).",
     ]
     for key, label in PLATFORMS:

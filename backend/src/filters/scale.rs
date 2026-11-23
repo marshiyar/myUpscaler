@@ -91,6 +91,19 @@ pub fn resize(p: &Plane, w: usize, h: usize) -> Plane {
     out
 }
 
+/// Resamples every plane of `frame` to `w` x `h` with Lanczos, on the accelerator when one takes it.
+fn fit(frame: &mut Frame, w: usize, h: usize) {
+    let accel = crate::accel::current();
+    let scale = |p: &Plane| accel.as_ref().and_then(|a| a.resize(p, w, h)).unwrap_or_else(|| resize(p, w, h));
+    for p in frame.planes.iter_mut() {
+        *p = scale(p);
+    }
+    if let Some(a) = frame.alpha.as_mut() {
+        *a = scale(a);
+        a.data.iter_mut().for_each(|v| *v = v.clamp(0.0, 255.0));
+    }
+}
+
 impl Spatial for Lanczos {
     fn describe(&self) -> String {
         format!("lanczos(x{:.2})", self.factor)
@@ -99,14 +112,49 @@ impl Spatial for Lanczos {
     fn apply(&mut self, frame: &mut Frame) {
         let w = scaled_size(frame.width(), self.factor);
         let h = scaled_size(frame.height(), self.factor);
-        let accel = crate::accel::current();
-        let scale = |p: &Plane| accel.as_ref().and_then(|a| a.resize(p, w, h)).unwrap_or_else(|| resize(p, w, h));
-        for p in frame.planes.iter_mut() {
-            *p = scale(p);
-        }
-        if let Some(a) = frame.alpha.as_mut() {
-            *a = scale(a);
-            a.data.iter_mut().for_each(|v| *v = v.clamp(0.0, 255.0));
+        fit(frame, w, h);
+    }
+}
+
+/// Enlarges with a neural-network model through the installed accelerator, then resamples to the requested size when
+/// the model's own factor differs. Without an accelerator that takes the model, the frame goes through Lanczos at the
+/// requested factor.
+pub struct AiScale {
+    pub factor: f64,
+    /// Path of the model file, handed to the accelerator unchanged.
+    pub model: String,
+    fell_back: bool,
+}
+
+impl AiScale {
+    pub fn new(factor: f64, model: String) -> AiScale {
+        AiScale { factor, model, fell_back: false }
+    }
+}
+
+impl Spatial for AiScale {
+    fn describe(&self) -> String {
+        let name =
+            std::path::Path::new(&self.model).file_name().map_or_else(String::new, |n| n.to_string_lossy().into());
+        let note = if self.fell_back { ", lanczos instead" } else { "" };
+        format!("model({name}, x{:.2}{note})", self.factor)
+    }
+
+    fn apply(&mut self, frame: &mut Frame) {
+        let w = scaled_size(frame.width(), self.factor);
+        let h = scaled_size(frame.height(), self.factor);
+        let enlarged = crate::accel::current().and_then(|a| a.ai_upscale(&self.model, frame));
+        match enlarged {
+            Some(mut out) => {
+                if (out.width(), out.height()) != (w, h) {
+                    fit(&mut out, w, h);
+                }
+                *frame = out;
+            }
+            None => {
+                self.fell_back = true;
+                fit(frame, w, h);
+            }
         }
     }
 }
@@ -114,6 +162,16 @@ impl Spatial for Lanczos {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn model_stage_falls_back_to_lanczos_without_an_accelerator() {
+        crate::accel::clear();
+        let mut frame = Frame::from_rgba(&[200; 4 * 6 * 4], 6, 4, 0.0, false);
+        let mut stage = AiScale::new(2.0, "model.param".into());
+        stage.apply(&mut frame);
+        assert_eq!((frame.width(), frame.height()), (12, 8));
+        assert!(stage.describe().contains("lanczos instead"));
+    }
 
     #[test]
     fn sizes_are_even() {

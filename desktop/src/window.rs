@@ -75,26 +75,22 @@ mod mac {
         ui.window()
             .with_winit_window(|window| {
                 let (Some(win), Some(mtm)) = (ns_window(window), MainThreadMarker::new()) else { return };
-                // SAFETY: AppKit calls on the main thread with a live window.
-                unsafe {
-                    // An empty toolbar in the unified style gives the title bar the height of a toolbar and centres the
-                    // traffic lights in it, as in a native app. The interface draws the toolbar's contents.
-                    if win.toolbar().is_none() {
-                        let toolbar = NSToolbar::initWithIdentifier(mtm.alloc(), &NSString::from_str("main"));
-                        toolbar.setShowsBaselineSeparator(false);
-                        win.setToolbar(Some(&toolbar));
-                        win.setToolbarStyle(NSWindowToolbarStyle::Unified);
+                // An empty toolbar in the unified style gives the title bar the height of a toolbar and centres the
+                // traffic lights in it, as in a native app. The interface draws the toolbar's contents.
+                if win.toolbar().is_none() {
+                    let toolbar = NSToolbar::initWithIdentifier(mtm.alloc(), &NSString::from_str("main"));
+                    win.setToolbar(Some(&toolbar));
+                    win.setToolbarStyle(NSWindowToolbarStyle::Unified);
+                }
+                if let Some(zoom) = win.standardWindowButton(NSWindowButton::ZoomButton) {
+                    // The toolbar is as tall as twice the distance from the window's top to the middle of the
+                    // window buttons, so the buttons sit centred in it.
+                    let rect = zoom.convertRect_toView(zoom.bounds(), None);
+                    let middle = win.frame().size.height - (rect.origin.y + rect.size.height / 2.0);
+                    if middle > 10.0 {
+                        app.set_toolbar_height((middle * 2.0) as f32);
                     }
-                    if let Some(zoom) = win.standardWindowButton(NSWindowButton::NSWindowZoomButton) {
-                        // The toolbar is as tall as twice the distance from the window's top to the middle of the
-                        // window buttons, so the buttons sit centred in it.
-                        let rect = zoom.convertRect_toView(zoom.bounds(), None);
-                        let middle = win.frame().size.height - (rect.origin.y + rect.size.height / 2.0);
-                        if middle > 10.0 {
-                            app.set_toolbar_height((middle * 2.0) as f32);
-                        }
-                        app.set_toolbar_inset((rect.origin.x + rect.size.width + 12.0) as f32);
-                    }
+                    app.set_toolbar_inset((rect.origin.x + rect.size.width + 12.0) as f32);
                 }
             })
             .is_some()
@@ -103,9 +99,7 @@ mod mac {
     pub fn toolbar_press(ui: &AppWindow) {
         ui.window().with_winit_window(|window| {
             let Some(mtm) = MainThreadMarker::new() else { return };
-            // SAFETY: AppKit calls on the main thread while the press is being handled.
-            let double =
-                unsafe { NSApplication::sharedApplication(mtm).currentEvent().is_some_and(|e| e.clickCount() >= 2) };
+            let double = NSApplication::sharedApplication(mtm).currentEvent().is_some_and(|e| e.clickCount() >= 2);
             if !double {
                 let _ = window.drag_window();
                 return;

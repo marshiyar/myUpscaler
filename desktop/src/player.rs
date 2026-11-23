@@ -61,7 +61,7 @@ where
 {
     let channels = config.channels as usize;
     let stream = device.build_output_stream(
-        config,
+        *config,
         move |out: &mut [T], _| {
             let mut queue = shared.queue.lock().unwrap_or_else(|e| e.into_inner());
             let available = queue.len().min(out.len()) / channels * channels;
@@ -93,7 +93,7 @@ impl Sound {
             _ => None,
         }?;
         stream.pause().ok()?;
-        Some(Sound { stream, shared, rate: config.sample_rate.0, channels: config.channels as u32, reader: None })
+        Some(Sound { stream, shared, rate: config.sample_rate, channels: config.channels as u32, reader: None })
     }
 
     /// Starts the file's sound at `seconds` (reading from the start and dropping what comes before).

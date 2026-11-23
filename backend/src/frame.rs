@@ -109,6 +109,7 @@ impl Frame {
     }
 
     /// Builds a frame from RGB planes on the 0..255 scale; values outside it are clamped.
+    #[allow(clippy::needless_range_loop)] // `i` indexes the three input planes and the three output planes
     pub fn from_rgb_planes(rgb: &[Vec<f32>; 3], w: usize, h: usize, pts: f64, alpha: Option<Plane>) -> Frame {
         let mut y = Plane::new(w, h, 0.0);
         let mut cb = Plane::new(w, h, 0.0);

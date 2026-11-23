@@ -3,7 +3,7 @@
 //! the request, and the stage then runs its own CPU code, which is also the reference the accelerated result is
 //! tested against.
 
-use crate::frame::Plane;
+use crate::frame::{Frame, Plane};
 use std::sync::{Arc, RwLock};
 
 pub trait Accelerator: Send + Sync {
@@ -22,6 +22,12 @@ pub trait Accelerator: Send + Sync {
 
     /// BM3D denoising of one plane with noise level `sigma` (see `filters::bm3d::Bm3d`).
     fn bm3d(&self, _plane: &Plane, _sigma: f32) -> Option<Plane> {
+        None
+    }
+
+    /// Enlarges a frame with the neural-network model in the file `model` (see `filters::scale::AiScale`). The
+    /// result is the model's native multiple of the input size.
+    fn ai_upscale(&self, _model: &str, _frame: &Frame) -> Option<Frame> {
         None
     }
 }

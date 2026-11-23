@@ -125,8 +125,8 @@ pub unsafe extern "C" fn up60p_process_path(input_path: *const c_char, opts: *co
                 return status::INTERNAL;
             }
         };
-        if text(&options.scaler) != "lanczos" {
-            log("The selected upscaling mode is not handled by the Rust engine. Choose Lanczos or CoreML.\n");
+        if !matches!(text(&options.scaler).as_str(), "lanczos" | "model") {
+            log("The selected upscaling mode is not handled by the Rust engine. Choose Lanczos, a model or CoreML.\n");
             return status::UNSUPPORTED_SCALER;
         }
         if engine::version().is_none() {

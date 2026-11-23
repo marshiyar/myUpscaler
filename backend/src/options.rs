@@ -156,7 +156,6 @@ options! {
 pub const NOT_USED: &[(&str, &str)] = &[
     ("preset", "x264 speed preset; the engine's H.264 encoder has quality tiers, chosen from crf"),
     ("ai_backend", "legacy FFmpeg DNN scaler; CoreML upscaling runs in Swift"),
-    ("ai_model", "legacy FFmpeg DNN scaler; CoreML upscaling runs in Swift"),
     ("ai_model_type", "legacy FFmpeg DNN scaler; CoreML upscaling runs in Swift"),
     ("dnn_backend", "legacy FFmpeg DNN scaler; CoreML upscaling runs in Swift"),
     ("x265_params", "HEVC encoder settings; the engine encodes H.264"),

@@ -247,7 +247,8 @@ jobs:
           if ! xcrun metal -v > /dev/null 2>&1; then
             xcodebuild -downloadComponent MetalToolchain
           fi
-          xcrun metal -v 2>&1 | head -n 1
+          version=$(xcrun metal -v 2>&1 || true)
+          echo "${version%%$'\n'*}"
       - uses: ./.github/actions/rust-backend-macos
       - name: Restore prepared CoreML models
         uses: actions/cache@v6

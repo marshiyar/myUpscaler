@@ -13,7 +13,6 @@ Upscale and restore video on Mac and Windows.
 </tr>
 </table>
 
-[Demo video](https://github.com/marshiyar/myUpscaler/releases/download/v0.1.0/myupscaler-demo.mp4)
 
 - Upscale: Raise the resolution of old or small videos. AI upscaling on Mac.
 - Restore: Remove noise, sharpen and correct color.
